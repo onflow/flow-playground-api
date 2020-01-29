@@ -1,0 +1,30 @@
+# .gqlgen.yml example
+#
+# Refer to https://gqlgen.com/config/
+# for detailed .gqlgen.yml documentation.
+
+schema:
+- schema.graphql
+exec:
+  filename: generated.go
+model:
+  filename: models_gen.go
+resolver:
+  filename: resolver.go
+  type: Resolver
+autobind: []
+models:
+  UUID:
+    model: github.com/dapperlabs/flow-playground-api.UUID
+  Address:
+    model: github.com/dapperlabs/flow-playground-api.Address
+  Account:
+    model: github.com/dapperlabs/flow-playground-api.Account
+  TransactionTemplate:
+    model: github.com/dapperlabs/flow-playground-api.TransactionTemplate
+  TransactionExecution:
+    model: github.com/dapperlabs/flow-playground-api.TransactionExecution
+  ScriptTemplate:
+    model: github.com/dapperlabs/flow-playground-api.ScriptTemplate
+  ScriptExecution:
+    model: github.com/dapperlabs/flow-playground-api.ScriptExecution

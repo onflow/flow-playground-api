@@ -1,0 +1,77 @@
+scalar UUID
+scalar Address
+
+type Account {
+  ID: UUID!
+  address: Address!
+  draftCode: String!
+  deployedCode: String!
+}
+
+type TransactionTemplate {
+  id: UUID!
+  script: String!
+}
+
+type TransactionExecution {
+  id: UUID!
+  template: TransactionTemplate!
+  payerAccount: Account!
+  signerAccounts: [Account!]!
+}
+
+type ScriptTemplate {
+  id: UUID!
+  script: String!
+}
+
+type ScriptExecution {
+  id: UUID!
+  template: ScriptTemplate!
+}
+
+type Query {
+  accounts: [Account!]!
+  transactionTemplates: [TransactionTemplate!]!
+  transactionExecutions: [TransactionExecution!]!
+  scriptTemplates: [ScriptTemplate!]!
+  scriptExecutions: [ScriptExecution!]!
+}
+
+input NewTransactionTemplate {
+  script: String!
+}
+
+input UpdateTransactionTemplate {
+  templateId: String!
+  script: String!
+}
+
+input NewTransactionExecution {
+  templateId: String!
+  payer: String!
+  signers: [String]!
+}
+
+input NewScriptTemplate {
+  script: String!
+}
+
+input UpdateScriptTemplate {
+  templateId: String!
+  script: String!
+}
+
+input NewScriptExecution {
+  templateId: String!
+}
+
+type Mutation {
+  createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
+  updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
+  createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
+
+  createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
+  updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  createScriptExecution(input: NewScriptExecution!): ScriptExecution!
+}
