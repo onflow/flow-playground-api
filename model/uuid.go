@@ -1,4 +1,4 @@
-package flow_playground_api
+package model
 
 import (
 	"fmt"

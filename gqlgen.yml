@@ -15,16 +15,16 @@ resolver:
 autobind: []
 models:
   UUID:
-    model: github.com/dapperlabs/flow-playground-api.UUID
+    model: github.com/dapperlabs/flow-playground-api/model.UUID
   Address:
-    model: github.com/dapperlabs/flow-playground-api.Address
+    model: github.com/dapperlabs/flow-playground-api/model.Address
   Account:
-    model: github.com/dapperlabs/flow-playground-api.Account
+    model: github.com/dapperlabs/flow-playground-api/model.Account
   TransactionTemplate:
-    model: github.com/dapperlabs/flow-playground-api.TransactionTemplate
+    model: github.com/dapperlabs/flow-playground-api/model.TransactionTemplate
   TransactionExecution:
-    model: github.com/dapperlabs/flow-playground-api.TransactionExecution
+    model: github.com/dapperlabs/flow-playground-api/model.TransactionExecution
   ScriptTemplate:
-    model: github.com/dapperlabs/flow-playground-api.ScriptTemplate
+    model: github.com/dapperlabs/flow-playground-api/model.ScriptTemplate
   ScriptExecution:
-    model: github.com/dapperlabs/flow-playground-api.ScriptExecution
+    model: github.com/dapperlabs/flow-playground-api/model.ScriptExecution

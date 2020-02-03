@@ -12,6 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/vektah/gqlparser"
 	"github.com/vektah/gqlparser/ast"
@@ -93,27 +94,27 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*TransactionTemplate, error)
-	UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*TransactionTemplate, error)
-	CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*TransactionExecution, error)
-	CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*ScriptTemplate, error)
-	UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*ScriptTemplate, error)
-	CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*ScriptExecution, error)
+	CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*model.TransactionTemplate, error)
+	UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*model.TransactionTemplate, error)
+	CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*model.TransactionExecution, error)
+	CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*model.ScriptTemplate, error)
+	UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*model.ScriptTemplate, error)
+	CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*model.ScriptExecution, error)
 }
 type QueryResolver interface {
-	Accounts(ctx context.Context) ([]*Account, error)
-	TransactionTemplates(ctx context.Context) ([]*TransactionTemplate, error)
-	TransactionExecutions(ctx context.Context) ([]*TransactionExecution, error)
-	ScriptTemplates(ctx context.Context) ([]*ScriptTemplate, error)
-	ScriptExecutions(ctx context.Context) ([]*ScriptExecution, error)
+	Accounts(ctx context.Context) ([]*model.Account, error)
+	TransactionTemplates(ctx context.Context) ([]*model.TransactionTemplate, error)
+	TransactionExecutions(ctx context.Context) ([]*model.TransactionExecution, error)
+	ScriptTemplates(ctx context.Context) ([]*model.ScriptTemplate, error)
+	ScriptExecutions(ctx context.Context) ([]*model.ScriptExecution, error)
 }
 type ScriptExecutionResolver interface {
-	Template(ctx context.Context, obj *ScriptExecution) (*ScriptTemplate, error)
+	Template(ctx context.Context, obj *model.ScriptExecution) (*model.ScriptTemplate, error)
 }
 type TransactionExecutionResolver interface {
-	Template(ctx context.Context, obj *TransactionExecution) (*TransactionTemplate, error)
-	PayerAccount(ctx context.Context, obj *TransactionExecution) (*Account, error)
-	SignerAccounts(ctx context.Context, obj *TransactionExecution) ([]*Account, error)
+	Template(ctx context.Context, obj *model.TransactionExecution) (*model.TransactionTemplate, error)
+	PayerAccount(ctx context.Context, obj *model.TransactionExecution) (*model.Account, error)
+	SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error)
 }
 
 type executableSchema struct {
@@ -615,7 +616,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Account_ID(ctx context.Context, field graphql.CollectedField, obj *Account) (ret graphql.Marshaler) {
+func (ec *executionContext) _Account_ID(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -652,7 +653,7 @@ func (ec *executionContext) _Account_ID(ctx context.Context, field graphql.Colle
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Account_address(ctx context.Context, field graphql.CollectedField, obj *Account) (ret graphql.Marshaler) {
+func (ec *executionContext) _Account_address(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -683,13 +684,13 @@ func (ec *executionContext) _Account_address(ctx context.Context, field graphql.
 		}
 		return graphql.Null
 	}
-	res := resTmp.(Address)
+	res := resTmp.(model.Address)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAddress(ctx, field.Selections, res)
+	return ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Account_draftCode(ctx context.Context, field graphql.CollectedField, obj *Account) (ret graphql.Marshaler) {
+func (ec *executionContext) _Account_draftCode(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -726,7 +727,7 @@ func (ec *executionContext) _Account_draftCode(ctx context.Context, field graphq
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Account_deployedCode(ctx context.Context, field graphql.CollectedField, obj *Account) (ret graphql.Marshaler) {
+func (ec *executionContext) _Account_deployedCode(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -801,10 +802,10 @@ func (ec *executionContext) _Mutation_createTransactionTemplate(ctx context.Cont
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*TransactionTemplate)
+	res := resTmp.(*model.TransactionTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx, field.Selections, res)
+	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateTransactionTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -845,10 +846,10 @@ func (ec *executionContext) _Mutation_updateTransactionTemplate(ctx context.Cont
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*TransactionTemplate)
+	res := resTmp.(*model.TransactionTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx, field.Selections, res)
+	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createTransactionExecution(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -889,10 +890,10 @@ func (ec *executionContext) _Mutation_createTransactionExecution(ctx context.Con
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*TransactionExecution)
+	res := resTmp.(*model.TransactionExecution)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecution(ctx, field.Selections, res)
+	return ec.marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecution(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createScriptTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -933,10 +934,10 @@ func (ec *executionContext) _Mutation_createScriptTemplate(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*ScriptTemplate)
+	res := resTmp.(*model.ScriptTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx, field.Selections, res)
+	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateScriptTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -977,10 +978,10 @@ func (ec *executionContext) _Mutation_updateScriptTemplate(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*ScriptTemplate)
+	res := resTmp.(*model.ScriptTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx, field.Selections, res)
+	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1021,10 +1022,10 @@ func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context,
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*ScriptExecution)
+	res := resTmp.(*model.ScriptExecution)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecution(ctx, field.Selections, res)
+	return ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_accounts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1058,10 +1059,10 @@ func (ec *executionContext) _Query_accounts(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*Account)
+	res := resTmp.([]*model.Account)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccountᚄ(ctx, field.Selections, res)
+	return ec.marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccountᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionTemplates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1095,10 +1096,10 @@ func (ec *executionContext) _Query_transactionTemplates(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*TransactionTemplate)
+	res := resTmp.([]*model.TransactionTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplateᚄ(ctx, field.Selections, res)
+	return ec.marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionExecutions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1132,10 +1133,10 @@ func (ec *executionContext) _Query_transactionExecutions(ctx context.Context, fi
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*TransactionExecution)
+	res := resTmp.([]*model.TransactionExecution)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecutionᚄ(ctx, field.Selections, res)
+	return ec.marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecutionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_scriptTemplates(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1169,10 +1170,10 @@ func (ec *executionContext) _Query_scriptTemplates(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ScriptTemplate)
+	res := resTmp.([]*model.ScriptTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplateᚄ(ctx, field.Selections, res)
+	return ec.marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplateᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_scriptExecutions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1206,10 +1207,10 @@ func (ec *executionContext) _Query_scriptExecutions(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*ScriptExecution)
+	res := resTmp.([]*model.ScriptExecution)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecutionᚄ(ctx, field.Selections, res)
+	return ec.marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecutionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1287,7 +1288,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ScriptExecution_id(ctx context.Context, field graphql.CollectedField, obj *ScriptExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _ScriptExecution_id(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1324,7 +1325,7 @@ func (ec *executionContext) _ScriptExecution_id(ctx context.Context, field graph
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ScriptExecution_template(ctx context.Context, field graphql.CollectedField, obj *ScriptExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _ScriptExecution_template(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1355,13 +1356,13 @@ func (ec *executionContext) _ScriptExecution_template(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*ScriptTemplate)
+	res := resTmp.(*model.ScriptTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx, field.Selections, res)
+	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ScriptTemplate_id(ctx context.Context, field graphql.CollectedField, obj *ScriptTemplate) (ret graphql.Marshaler) {
+func (ec *executionContext) _ScriptTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1398,7 +1399,7 @@ func (ec *executionContext) _ScriptTemplate_id(ctx context.Context, field graphq
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ScriptTemplate_script(ctx context.Context, field graphql.CollectedField, obj *ScriptTemplate) (ret graphql.Marshaler) {
+func (ec *executionContext) _ScriptTemplate_script(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1435,7 +1436,7 @@ func (ec *executionContext) _ScriptTemplate_script(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_id(ctx context.Context, field graphql.CollectedField, obj *TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_id(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1472,7 +1473,7 @@ func (ec *executionContext) _TransactionExecution_id(ctx context.Context, field 
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_template(ctx context.Context, field graphql.CollectedField, obj *TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_template(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1503,13 +1504,13 @@ func (ec *executionContext) _TransactionExecution_template(ctx context.Context, 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*TransactionTemplate)
+	res := resTmp.(*model.TransactionTemplate)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx, field.Selections, res)
+	return ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_payerAccount(ctx context.Context, field graphql.CollectedField, obj *TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_payerAccount(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1540,13 +1541,13 @@ func (ec *executionContext) _TransactionExecution_payerAccount(ctx context.Conte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*Account)
+	res := resTmp.(*model.Account)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccount(ctx, field.Selections, res)
+	return ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Context, field graphql.CollectedField, obj *TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1577,13 +1578,13 @@ func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Con
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*Account)
+	res := resTmp.([]*model.Account)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccountᚄ(ctx, field.Selections, res)
+	return ec.marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccountᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionTemplate_id(ctx context.Context, field graphql.CollectedField, obj *TransactionTemplate) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.TransactionTemplate) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1620,7 +1621,7 @@ func (ec *executionContext) _TransactionTemplate_id(ctx context.Context, field g
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionTemplate_script(ctx context.Context, field graphql.CollectedField, obj *TransactionTemplate) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionTemplate_script(ctx context.Context, field graphql.CollectedField, obj *model.TransactionTemplate) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2950,7 +2951,7 @@ func (ec *executionContext) unmarshalInputUpdateTransactionTemplate(ctx context.
 
 var accountImplementors = []string{"Account"}
 
-func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, obj *Account) graphql.Marshaler {
+func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, obj *model.Account) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, accountImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3148,7 +3149,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var scriptExecutionImplementors = []string{"ScriptExecution"}
 
-func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.SelectionSet, obj *ScriptExecution) graphql.Marshaler {
+func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.SelectionSet, obj *model.ScriptExecution) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, scriptExecutionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3189,7 +3190,7 @@ func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.Select
 
 var scriptTemplateImplementors = []string{"ScriptTemplate"}
 
-func (ec *executionContext) _ScriptTemplate(ctx context.Context, sel ast.SelectionSet, obj *ScriptTemplate) graphql.Marshaler {
+func (ec *executionContext) _ScriptTemplate(ctx context.Context, sel ast.SelectionSet, obj *model.ScriptTemplate) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, scriptTemplateImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3221,7 +3222,7 @@ func (ec *executionContext) _ScriptTemplate(ctx context.Context, sel ast.Selecti
 
 var transactionExecutionImplementors = []string{"TransactionExecution"}
 
-func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.SelectionSet, obj *TransactionExecution) graphql.Marshaler {
+func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.SelectionSet, obj *model.TransactionExecution) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, transactionExecutionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3290,7 +3291,7 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 
 var transactionTemplateImplementors = []string{"TransactionTemplate"}
 
-func (ec *executionContext) _TransactionTemplate(ctx context.Context, sel ast.SelectionSet, obj *TransactionTemplate) graphql.Marshaler {
+func (ec *executionContext) _TransactionTemplate(ctx context.Context, sel ast.SelectionSet, obj *model.TransactionTemplate) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, transactionTemplateImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3565,11 +3566,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccount(ctx context.Context, sel ast.SelectionSet, v Account) graphql.Marshaler {
+func (ec *executionContext) marshalNAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx context.Context, sel ast.SelectionSet, v model.Account) graphql.Marshaler {
 	return ec._Account(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccountᚄ(ctx context.Context, sel ast.SelectionSet, v []*Account) graphql.Marshaler {
+func (ec *executionContext) marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccountᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Account) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3593,7 +3594,7 @@ func (ec *executionContext) marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋfl
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccount(ctx, sel, v[i])
+			ret[i] = ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3606,7 +3607,7 @@ func (ec *executionContext) marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋfl
 	return ret
 }
 
-func (ec *executionContext) marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAccount(ctx context.Context, sel ast.SelectionSet, v *Account) graphql.Marshaler {
+func (ec *executionContext) marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx context.Context, sel ast.SelectionSet, v *model.Account) graphql.Marshaler {
 	if v == nil {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3616,12 +3617,12 @@ func (ec *executionContext) marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflow�
 	return ec._Account(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAddress(ctx context.Context, v interface{}) (Address, error) {
-	var res Address
+func (ec *executionContext) unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx context.Context, v interface{}) (model.Address, error) {
+	var res model.Address
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐAddress(ctx context.Context, sel ast.SelectionSet, v Address) graphql.Marshaler {
+func (ec *executionContext) marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx context.Context, sel ast.SelectionSet, v model.Address) graphql.Marshaler {
 	return v
 }
 
@@ -3655,11 +3656,11 @@ func (ec *executionContext) unmarshalNNewTransactionTemplate2githubᚗcomᚋdapp
 	return ec.unmarshalInputNewTransactionTemplate(ctx, v)
 }
 
-func (ec *executionContext) marshalNScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecution(ctx context.Context, sel ast.SelectionSet, v ScriptExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx context.Context, sel ast.SelectionSet, v model.ScriptExecution) graphql.Marshaler {
 	return ec._ScriptExecution(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*ScriptExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScriptExecution) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3683,7 +3684,7 @@ func (ec *executionContext) marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperl
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecution(ctx, sel, v[i])
+			ret[i] = ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3696,7 +3697,7 @@ func (ec *executionContext) marshalNScriptExecution2ᚕᚖgithubᚗcomᚋdapperl
 	return ret
 }
 
-func (ec *executionContext) marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptExecution(ctx context.Context, sel ast.SelectionSet, v *ScriptExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx context.Context, sel ast.SelectionSet, v *model.ScriptExecution) graphql.Marshaler {
 	if v == nil {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3706,11 +3707,11 @@ func (ec *executionContext) marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabs
 	return ec._ScriptExecution(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx context.Context, sel ast.SelectionSet, v ScriptTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx context.Context, sel ast.SelectionSet, v model.ScriptTemplate) graphql.Marshaler {
 	return ec._ScriptTemplate(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*ScriptTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScriptTemplate) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3734,7 +3735,7 @@ func (ec *executionContext) marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperla
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx, sel, v[i])
+			ret[i] = ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3747,7 +3748,7 @@ func (ec *executionContext) marshalNScriptTemplate2ᚕᚖgithubᚗcomᚋdapperla
 	return ret
 }
 
-func (ec *executionContext) marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐScriptTemplate(ctx context.Context, sel ast.SelectionSet, v *ScriptTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx context.Context, sel ast.SelectionSet, v *model.ScriptTemplate) graphql.Marshaler {
 	if v == nil {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3800,11 +3801,11 @@ func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecution(ctx context.Context, sel ast.SelectionSet, v TransactionExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecution(ctx context.Context, sel ast.SelectionSet, v model.TransactionExecution) graphql.Marshaler {
 	return ec._TransactionExecution(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*TransactionExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TransactionExecution) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3828,7 +3829,7 @@ func (ec *executionContext) marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋda
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecution(ctx, sel, v[i])
+			ret[i] = ec.marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecution(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3841,7 +3842,7 @@ func (ec *executionContext) marshalNTransactionExecution2ᚕᚖgithubᚗcomᚋda
 	return ret
 }
 
-func (ec *executionContext) marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionExecution(ctx context.Context, sel ast.SelectionSet, v *TransactionExecution) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecution(ctx context.Context, sel ast.SelectionSet, v *model.TransactionExecution) graphql.Marshaler {
 	if v == nil {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3851,11 +3852,11 @@ func (ec *executionContext) marshalNTransactionExecution2ᚖgithubᚗcomᚋdappe
 	return ec._TransactionExecution(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx context.Context, sel ast.SelectionSet, v TransactionTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx context.Context, sel ast.SelectionSet, v model.TransactionTemplate) graphql.Marshaler {
 	return ec._TransactionTemplate(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*TransactionTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplateᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TransactionTemplate) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -3879,7 +3880,7 @@ func (ec *executionContext) marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdap
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx, sel, v[i])
+			ret[i] = ec.marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -3892,7 +3893,7 @@ func (ec *executionContext) marshalNTransactionTemplate2ᚕᚖgithubᚗcomᚋdap
 	return ret
 }
 
-func (ec *executionContext) marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐTransactionTemplate(ctx context.Context, sel ast.SelectionSet, v *TransactionTemplate) graphql.Marshaler {
+func (ec *executionContext) marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionTemplate(ctx context.Context, sel ast.SelectionSet, v *model.TransactionTemplate) graphql.Marshaler {
 	if v == nil {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -3903,11 +3904,11 @@ func (ec *executionContext) marshalNTransactionTemplate2ᚖgithubᚗcomᚋdapper
 }
 
 func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v interface{}) (uuid.UUID, error) {
-	return UnmarshalUUID(v)
+	return model.UnmarshalUUID(v)
 }
 
 func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
-	res := MarshalUUID(v)
+	res := model.MarshalUUID(v)
 	if res == graphql.Null {
 		if !ec.HasError(graphql.GetResolverContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")

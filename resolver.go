@@ -2,7 +2,11 @@ package flow_playground_api
 
 import (
 	"context"
-) // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
+
+	"github.com/dapperlabs/flow-playground-api/model"
+)
+
+// THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 type Resolver struct{}
 
@@ -21,57 +25,57 @@ func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 
 type mutationResolver struct{ *Resolver }
 
-func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*TransactionTemplate, error) {
+func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*TransactionTemplate, error) {
+func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*TransactionExecution, error) {
+func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*model.TransactionExecution, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*ScriptTemplate, error) {
+func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*ScriptTemplate, error) {
+func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*ScriptExecution, error) {
+func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*model.ScriptExecution, error) {
 	panic("not implemented")
 }
 
 type queryResolver struct{ *Resolver }
 
-func (r *queryResolver) Accounts(ctx context.Context) ([]*Account, error) {
+func (r *queryResolver) Accounts(ctx context.Context) ([]*model.Account, error) {
 	panic("not implemented")
 }
-func (r *queryResolver) TransactionTemplates(ctx context.Context) ([]*TransactionTemplate, error) {
+func (r *queryResolver) TransactionTemplates(ctx context.Context) ([]*model.TransactionTemplate, error) {
 	panic("not implemented")
 }
-func (r *queryResolver) TransactionExecutions(ctx context.Context) ([]*TransactionExecution, error) {
+func (r *queryResolver) TransactionExecutions(ctx context.Context) ([]*model.TransactionExecution, error) {
 	panic("not implemented")
 }
-func (r *queryResolver) ScriptTemplates(ctx context.Context) ([]*ScriptTemplate, error) {
+func (r *queryResolver) ScriptTemplates(ctx context.Context) ([]*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
-func (r *queryResolver) ScriptExecutions(ctx context.Context) ([]*ScriptExecution, error) {
+func (r *queryResolver) ScriptExecutions(ctx context.Context) ([]*model.ScriptExecution, error) {
 	panic("not implemented")
 }
 
 type scriptExecutionResolver struct{ *Resolver }
 
-func (r *scriptExecutionResolver) Template(ctx context.Context, obj *ScriptExecution) (*ScriptTemplate, error) {
+func (r *scriptExecutionResolver) Template(ctx context.Context, obj *model.ScriptExecution) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
 
 type transactionExecutionResolver struct{ *Resolver }
 
-func (r *transactionExecutionResolver) Template(ctx context.Context, obj *TransactionExecution) (*TransactionTemplate, error) {
+func (r *transactionExecutionResolver) Template(ctx context.Context, obj *model.TransactionExecution) (*model.TransactionTemplate, error) {
 	panic("not implemented")
 }
-func (r *transactionExecutionResolver) PayerAccount(ctx context.Context, obj *TransactionExecution) (*Account, error) {
+func (r *transactionExecutionResolver) PayerAccount(ctx context.Context, obj *model.TransactionExecution) (*model.Account, error) {
 	panic("not implemented")
 }
-func (r *transactionExecutionResolver) SignerAccounts(ctx context.Context, obj *TransactionExecution) ([]*Account, error) {
+func (r *transactionExecutionResolver) SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
 	panic("not implemented")
 }

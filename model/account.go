@@ -1,6 +1,8 @@
-package flow_playground_api
+package model
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type Account struct {
 	ID           uuid.UUID
