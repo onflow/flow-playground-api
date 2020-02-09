@@ -26,6 +26,8 @@ func UnmarshalUUID(v interface{}) (id uuid.UUID, err error) {
 func MarshalUUID(id uuid.UUID) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
 		b, _ := id.MarshalText()
+		w.Write([]byte("\""))
 		w.Write(b)
+		w.Write([]byte("\""))
 	})
 }

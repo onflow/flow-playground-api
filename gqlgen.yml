@@ -7,8 +7,10 @@ schema:
 - schema.graphql
 exec:
   filename: generated.go
+  package: playground
 model:
   filename: models_gen.go
+  package: playground
 resolver:
   filename: resolver.go
   type: Resolver
@@ -18,6 +20,8 @@ models:
     model: github.com/dapperlabs/flow-playground-api/model.UUID
   Address:
     model: github.com/dapperlabs/flow-playground-api/model.Address
+  Project:
+    model: github.com/dapperlabs/flow-playground-api/model.Project
   Account:
     model: github.com/dapperlabs/flow-playground-api/model.Account
   TransactionTemplate:

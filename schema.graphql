@@ -1,8 +1,17 @@
 scalar UUID
 scalar Address
 
+type Project {
+  id: UUID!
+  accounts: [Account!]
+  transactionTemplates: [TransactionTemplate!]
+  transactionExecutions: [TransactionExecution!]
+  scriptTemplates: [TransactionTemplate!]
+  scriptExecutions: [TransactionExecution!]
+}
+
 type Account {
-  ID: UUID!
+  id: UUID!
   address: Address!
   draftCode: String!
   deployedCode: String!
@@ -10,6 +19,7 @@ type Account {
 
 type TransactionTemplate {
   id: UUID!
+  index: Int!
   script: String!
 }
 
@@ -31,42 +41,48 @@ type ScriptExecution {
 }
 
 type Query {
-  accounts: [Account!]!
-  transactionTemplates: [TransactionTemplate!]!
-  transactionExecutions: [TransactionExecution!]!
-  scriptTemplates: [ScriptTemplate!]!
-  scriptExecutions: [ScriptExecution!]!
+  project(id: UUID!): Project!
+
+  transactionTemplate(id: UUID!): TransactionTemplate!
 }
 
 input NewTransactionTemplate {
+  projectId: UUID!
   script: String!
 }
 
 input UpdateTransactionTemplate {
-  templateId: String!
-  script: String!
+  templateId: UUID!
+  index: Int
+  script: String
 }
 
 input NewTransactionExecution {
-  templateId: String!
+  projectId: UUID!
+  templateId: UUID!
   payer: String!
   signers: [String]!
 }
 
 input NewScriptTemplate {
+  projectId: UUID!
   script: String!
 }
 
 input UpdateScriptTemplate {
-  templateId: String!
+  projectId: UUID!
+  templateId: UUID!
   script: String!
 }
 
 input NewScriptExecution {
+  projectId: UUID!
   templateId: String!
 }
 
 type Mutation {
+  createProject: Project!
+
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
   createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
@@ -75,3 +91,4 @@ type Mutation {
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
+
