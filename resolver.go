@@ -53,7 +53,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context) (*model.Project, e
 	return proj, nil
 }
 
-func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*model.TransactionTemplate, error) {
+func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	tpl := &model.TransactionTemplate{
 		ID:        uuid.New(),
 		ProjectID: input.ProjectID,
@@ -75,37 +75,27 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 	return tpl, nil
 }
 
-func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
-	tpl := &model.TransactionTemplate{
-		ID: input.TemplateID,
-	}
+func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
+	var tpl model.TransactionTemplate
 
-	if input.Index != nil {
-		tpl.Index = *input.Index
-	}
-
-	if input.Script != nil {
-		tpl.Script = *input.Script
-	}
-
-	err := r.store.UpdateTransactionTemplate(tpl)
+	err := r.store.UpdateTransactionTemplate(input, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update transaction template")
 	}
 
-	return tpl, nil
+	return &tpl, nil
 }
 
-func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*model.TransactionExecution, error) {
+func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*model.ScriptTemplate, error) {
+func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*model.ScriptTemplate, error) {
+func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
-func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*model.ScriptExecution, error) {
+func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
 	panic("not implemented")
 }
 

@@ -2,6 +2,6 @@
 generate:
 	GO111MODULE=on go generate ./...
 
-.PHONY: start
-start:
+.PHONY: run
+run:
 	GO111MODULE=on go run server/server.go

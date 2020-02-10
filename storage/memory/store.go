@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/google/uuid"
@@ -50,7 +51,13 @@ func (s *Store) InsertTransactionTemplate(tpl *model.TransactionTemplate) error 
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	count := len(s.transactionTemplates)
+	var tpls []*model.TransactionTemplate
+	err := s.GetTransactionTemplatesForProject(tpl.ProjectID, &tpls)
+	if err != nil {
+		return err
+	}
+
+	count := len(tpls)
 
 	// set index to one after last
 	tpl.Index = count
@@ -60,16 +67,29 @@ func (s *Store) InsertTransactionTemplate(tpl *model.TransactionTemplate) error 
 	return nil
 }
 
-func (s *Store) UpdateTransactionTemplate(tpl *model.TransactionTemplate) error {
+func (s *Store) UpdateTransactionTemplate(
+	input model.UpdateTransactionTemplate,
+	tpl *model.TransactionTemplate,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.transactionTemplates[tpl.ID]
+	t, ok := s.transactionTemplates[input.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	s.transactionTemplates[tpl.ID] = *tpl
+	if input.Index != nil {
+		t.Index = *input.Index
+	}
+
+	if input.Script != nil {
+		t.Script = *input.Script
+	}
+
+	s.transactionTemplates[input.ID] = t
+
+	*tpl = t
 
 	return nil
 }
@@ -97,6 +117,9 @@ func (s *Store) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*
 			res = append(res, &t)
 		}
 	}
+
+	// sort results by index
+	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
 
 	*tpls = res
 

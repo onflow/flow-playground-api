@@ -52,13 +52,12 @@ input NewTransactionTemplate {
 }
 
 input UpdateTransactionTemplate {
-  templateId: UUID!
+  id: UUID!
   index: Int
   script: String
 }
 
 input NewTransactionExecution {
-  projectId: UUID!
   templateId: UUID!
   payer: String!
   signers: [String]!
@@ -70,13 +69,11 @@ input NewScriptTemplate {
 }
 
 input UpdateScriptTemplate {
-  projectId: UUID!
-  templateId: UUID!
+  id: UUID!
   script: String!
 }
 
 input NewScriptExecution {
-  projectId: UUID!
   templateId: String!
 }
 

@@ -56,12 +56,12 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateProject              func(childComplexity int) int
-		CreateScriptExecution      func(childComplexity int, input NewScriptExecution) int
-		CreateScriptTemplate       func(childComplexity int, input NewScriptTemplate) int
-		CreateTransactionExecution func(childComplexity int, input NewTransactionExecution) int
-		CreateTransactionTemplate  func(childComplexity int, input NewTransactionTemplate) int
-		UpdateScriptTemplate       func(childComplexity int, input UpdateScriptTemplate) int
-		UpdateTransactionTemplate  func(childComplexity int, input UpdateTransactionTemplate) int
+		CreateScriptExecution      func(childComplexity int, input model.NewScriptExecution) int
+		CreateScriptTemplate       func(childComplexity int, input model.NewScriptTemplate) int
+		CreateTransactionExecution func(childComplexity int, input model.NewTransactionExecution) int
+		CreateTransactionTemplate  func(childComplexity int, input model.NewTransactionTemplate) int
+		UpdateScriptTemplate       func(childComplexity int, input model.UpdateScriptTemplate) int
+		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
 	}
 
 	Project struct {
@@ -104,12 +104,12 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateProject(ctx context.Context) (*model.Project, error)
-	CreateTransactionTemplate(ctx context.Context, input NewTransactionTemplate) (*model.TransactionTemplate, error)
-	UpdateTransactionTemplate(ctx context.Context, input UpdateTransactionTemplate) (*model.TransactionTemplate, error)
-	CreateTransactionExecution(ctx context.Context, input NewTransactionExecution) (*model.TransactionExecution, error)
-	CreateScriptTemplate(ctx context.Context, input NewScriptTemplate) (*model.ScriptTemplate, error)
-	UpdateScriptTemplate(ctx context.Context, input UpdateScriptTemplate) (*model.ScriptTemplate, error)
-	CreateScriptExecution(ctx context.Context, input NewScriptExecution) (*model.ScriptExecution, error)
+	CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error)
+	UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error)
+	CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error)
+	CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error)
+	UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error)
+	CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error)
 }
 type ProjectResolver interface {
 	Accounts(ctx context.Context, obj *model.Project) ([]*model.Account, error)
@@ -191,7 +191,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateScriptExecution(childComplexity, args["input"].(NewScriptExecution)), true
+		return e.complexity.Mutation.CreateScriptExecution(childComplexity, args["input"].(model.NewScriptExecution)), true
 
 	case "Mutation.createScriptTemplate":
 		if e.complexity.Mutation.CreateScriptTemplate == nil {
@@ -203,7 +203,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateScriptTemplate(childComplexity, args["input"].(NewScriptTemplate)), true
+		return e.complexity.Mutation.CreateScriptTemplate(childComplexity, args["input"].(model.NewScriptTemplate)), true
 
 	case "Mutation.createTransactionExecution":
 		if e.complexity.Mutation.CreateTransactionExecution == nil {
@@ -215,7 +215,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateTransactionExecution(childComplexity, args["input"].(NewTransactionExecution)), true
+		return e.complexity.Mutation.CreateTransactionExecution(childComplexity, args["input"].(model.NewTransactionExecution)), true
 
 	case "Mutation.createTransactionTemplate":
 		if e.complexity.Mutation.CreateTransactionTemplate == nil {
@@ -227,7 +227,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateTransactionTemplate(childComplexity, args["input"].(NewTransactionTemplate)), true
+		return e.complexity.Mutation.CreateTransactionTemplate(childComplexity, args["input"].(model.NewTransactionTemplate)), true
 
 	case "Mutation.updateScriptTemplate":
 		if e.complexity.Mutation.UpdateScriptTemplate == nil {
@@ -239,7 +239,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateScriptTemplate(childComplexity, args["input"].(UpdateScriptTemplate)), true
+		return e.complexity.Mutation.UpdateScriptTemplate(childComplexity, args["input"].(model.UpdateScriptTemplate)), true
 
 	case "Mutation.updateTransactionTemplate":
 		if e.complexity.Mutation.UpdateTransactionTemplate == nil {
@@ -251,7 +251,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTransactionTemplate(childComplexity, args["input"].(UpdateTransactionTemplate)), true
+		return e.complexity.Mutation.UpdateTransactionTemplate(childComplexity, args["input"].(model.UpdateTransactionTemplate)), true
 
 	case "Project.accounts":
 		if e.complexity.Project.Accounts == nil {
@@ -512,13 +512,12 @@ input NewTransactionTemplate {
 }
 
 input UpdateTransactionTemplate {
-  templateId: UUID!
+  id: UUID!
   index: Int
   script: String
 }
 
 input NewTransactionExecution {
-  projectId: UUID!
   templateId: UUID!
   payer: String!
   signers: [String]!
@@ -530,13 +529,11 @@ input NewScriptTemplate {
 }
 
 input UpdateScriptTemplate {
-  projectId: UUID!
-  templateId: UUID!
+  id: UUID!
   script: String!
 }
 
 input NewScriptExecution {
-  projectId: UUID!
   templateId: String!
 }
 
@@ -562,9 +559,9 @@ type Mutation {
 func (ec *executionContext) field_Mutation_createScriptExecution_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 NewScriptExecution
+	var arg0 model.NewScriptExecution
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewScriptExecution(ctx, tmp)
+		arg0, err = ec.unmarshalNNewScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewScriptExecution(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -576,9 +573,9 @@ func (ec *executionContext) field_Mutation_createScriptExecution_args(ctx contex
 func (ec *executionContext) field_Mutation_createScriptTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 NewScriptTemplate
+	var arg0 model.NewScriptTemplate
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewScriptTemplate(ctx, tmp)
+		arg0, err = ec.unmarshalNNewScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewScriptTemplate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -590,9 +587,9 @@ func (ec *executionContext) field_Mutation_createScriptTemplate_args(ctx context
 func (ec *executionContext) field_Mutation_createTransactionExecution_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 NewTransactionExecution
+	var arg0 model.NewTransactionExecution
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewTransactionExecution(ctx, tmp)
+		arg0, err = ec.unmarshalNNewTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewTransactionExecution(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -604,9 +601,9 @@ func (ec *executionContext) field_Mutation_createTransactionExecution_args(ctx c
 func (ec *executionContext) field_Mutation_createTransactionTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 NewTransactionTemplate
+	var arg0 model.NewTransactionTemplate
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNNewTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewTransactionTemplate(ctx, tmp)
+		arg0, err = ec.unmarshalNNewTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewTransactionTemplate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -618,9 +615,9 @@ func (ec *executionContext) field_Mutation_createTransactionTemplate_args(ctx co
 func (ec *executionContext) field_Mutation_updateScriptTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 UpdateScriptTemplate
+	var arg0 model.UpdateScriptTemplate
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐUpdateScriptTemplate(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateScriptTemplate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -632,9 +629,9 @@ func (ec *executionContext) field_Mutation_updateScriptTemplate_args(ctx context
 func (ec *executionContext) field_Mutation_updateTransactionTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 UpdateTransactionTemplate
+	var arg0 model.UpdateTransactionTemplate
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐUpdateTransactionTemplate(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateTransactionTemplate(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -932,7 +929,7 @@ func (ec *executionContext) _Mutation_createTransactionTemplate(ctx context.Cont
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateTransactionTemplate(rctx, args["input"].(NewTransactionTemplate))
+		return ec.resolvers.Mutation().CreateTransactionTemplate(rctx, args["input"].(model.NewTransactionTemplate))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -976,7 +973,7 @@ func (ec *executionContext) _Mutation_updateTransactionTemplate(ctx context.Cont
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateTransactionTemplate(rctx, args["input"].(UpdateTransactionTemplate))
+		return ec.resolvers.Mutation().UpdateTransactionTemplate(rctx, args["input"].(model.UpdateTransactionTemplate))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1020,7 +1017,7 @@ func (ec *executionContext) _Mutation_createTransactionExecution(ctx context.Con
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateTransactionExecution(rctx, args["input"].(NewTransactionExecution))
+		return ec.resolvers.Mutation().CreateTransactionExecution(rctx, args["input"].(model.NewTransactionExecution))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1064,7 +1061,7 @@ func (ec *executionContext) _Mutation_createScriptTemplate(ctx context.Context, 
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateScriptTemplate(rctx, args["input"].(NewScriptTemplate))
+		return ec.resolvers.Mutation().CreateScriptTemplate(rctx, args["input"].(model.NewScriptTemplate))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1108,7 +1105,7 @@ func (ec *executionContext) _Mutation_updateScriptTemplate(ctx context.Context, 
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateScriptTemplate(rctx, args["input"].(UpdateScriptTemplate))
+		return ec.resolvers.Mutation().UpdateScriptTemplate(rctx, args["input"].(model.UpdateScriptTemplate))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1152,7 +1149,7 @@ func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context,
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateScriptExecution(rctx, args["input"].(NewScriptExecution))
+		return ec.resolvers.Mutation().CreateScriptExecution(rctx, args["input"].(model.NewScriptExecution))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3098,18 +3095,12 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputNewScriptExecution(ctx context.Context, obj interface{}) (NewScriptExecution, error) {
-	var it NewScriptExecution
+func (ec *executionContext) unmarshalInputNewScriptExecution(ctx context.Context, obj interface{}) (model.NewScriptExecution, error) {
+	var it model.NewScriptExecution
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "projectId":
-			var err error
-			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "templateId":
 			var err error
 			it.TemplateID, err = ec.unmarshalNString2string(ctx, v)
@@ -3122,8 +3113,8 @@ func (ec *executionContext) unmarshalInputNewScriptExecution(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewScriptTemplate(ctx context.Context, obj interface{}) (NewScriptTemplate, error) {
-	var it NewScriptTemplate
+func (ec *executionContext) unmarshalInputNewScriptTemplate(ctx context.Context, obj interface{}) (model.NewScriptTemplate, error) {
+	var it model.NewScriptTemplate
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3146,18 +3137,12 @@ func (ec *executionContext) unmarshalInputNewScriptTemplate(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewTransactionExecution(ctx context.Context, obj interface{}) (NewTransactionExecution, error) {
-	var it NewTransactionExecution
+func (ec *executionContext) unmarshalInputNewTransactionExecution(ctx context.Context, obj interface{}) (model.NewTransactionExecution, error) {
+	var it model.NewTransactionExecution
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "projectId":
-			var err error
-			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "templateId":
 			var err error
 			it.TemplateID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
@@ -3182,8 +3167,8 @@ func (ec *executionContext) unmarshalInputNewTransactionExecution(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputNewTransactionTemplate(ctx context.Context, obj interface{}) (NewTransactionTemplate, error) {
-	var it NewTransactionTemplate
+func (ec *executionContext) unmarshalInputNewTransactionTemplate(ctx context.Context, obj interface{}) (model.NewTransactionTemplate, error) {
+	var it model.NewTransactionTemplate
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3206,21 +3191,15 @@ func (ec *executionContext) unmarshalInputNewTransactionTemplate(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Context, obj interface{}) (UpdateScriptTemplate, error) {
-	var it UpdateScriptTemplate
+func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Context, obj interface{}) (model.UpdateScriptTemplate, error) {
+	var it model.UpdateScriptTemplate
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "projectId":
+		case "id":
 			var err error
-			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "templateId":
-			var err error
-			it.TemplateID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3236,15 +3215,15 @@ func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateTransactionTemplate(ctx context.Context, obj interface{}) (UpdateTransactionTemplate, error) {
-	var it UpdateTransactionTemplate
+func (ec *executionContext) unmarshalInputUpdateTransactionTemplate(ctx context.Context, obj interface{}) (model.UpdateTransactionTemplate, error) {
+	var it model.UpdateTransactionTemplate
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "templateId":
+		case "id":
 			var err error
-			it.TemplateID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4029,19 +4008,19 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) unmarshalNNewScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewScriptExecution(ctx context.Context, v interface{}) (NewScriptExecution, error) {
+func (ec *executionContext) unmarshalNNewScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewScriptExecution(ctx context.Context, v interface{}) (model.NewScriptExecution, error) {
 	return ec.unmarshalInputNewScriptExecution(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNNewScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewScriptTemplate(ctx context.Context, v interface{}) (NewScriptTemplate, error) {
+func (ec *executionContext) unmarshalNNewScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewScriptTemplate(ctx context.Context, v interface{}) (model.NewScriptTemplate, error) {
 	return ec.unmarshalInputNewScriptTemplate(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNNewTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewTransactionExecution(ctx context.Context, v interface{}) (NewTransactionExecution, error) {
+func (ec *executionContext) unmarshalNNewTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewTransactionExecution(ctx context.Context, v interface{}) (model.NewTransactionExecution, error) {
 	return ec.unmarshalInputNewTransactionExecution(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNNewTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐNewTransactionTemplate(ctx context.Context, v interface{}) (NewTransactionTemplate, error) {
+func (ec *executionContext) unmarshalNNewTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewTransactionTemplate(ctx context.Context, v interface{}) (model.NewTransactionTemplate, error) {
 	return ec.unmarshalInputNewTransactionTemplate(ctx, v)
 }
 
@@ -4172,11 +4151,11 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 	return res
 }
 
-func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐUpdateScriptTemplate(ctx context.Context, v interface{}) (UpdateScriptTemplate, error) {
+func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateScriptTemplate(ctx context.Context, v interface{}) (model.UpdateScriptTemplate, error) {
 	return ec.unmarshalInputUpdateScriptTemplate(ctx, v)
 }
 
-func (ec *executionContext) unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚐUpdateTransactionTemplate(ctx context.Context, v interface{}) (UpdateTransactionTemplate, error) {
+func (ec *executionContext) unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateTransactionTemplate(ctx context.Context, v interface{}) (model.UpdateTransactionTemplate, error) {
 	return ec.unmarshalInputUpdateTransactionTemplate(ctx, v)
 }
 

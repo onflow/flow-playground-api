@@ -9,8 +9,8 @@ exec:
   filename: generated.go
   package: playground
 model:
-  filename: models_gen.go
-  package: playground
+  filename: model/models_gen.go
+  package: model
 resolver:
   filename: resolver.go
   type: Resolver
