@@ -8,10 +8,16 @@ This project uses [gqlgen](https://github.com/99designs/gqlgen) to generate Grap
 make generate
 ```
 
+## Testing
+
+```shell script
+make test
+```
+
 ## Running the server
 
 ```shell script
-make start
+make run
 ```
 
 When running locally, the GraphQL playground is available at [http://localhost:8080/](http://localhost:8080/).
