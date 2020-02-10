@@ -86,6 +86,15 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 	return &tpl, nil
 }
 
+func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	err := r.store.DeleteTransactionTemplate(id)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to delete transaction template")
+	}
+
+	return id, nil
+}
+
 func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	panic("not implemented")
 }

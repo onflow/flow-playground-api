@@ -52,7 +52,7 @@ func (s *Store) InsertTransactionTemplate(tpl *model.TransactionTemplate) error 
 	defer s.mut.Unlock()
 
 	var tpls []*model.TransactionTemplate
-	err := s.GetTransactionTemplatesForProject(tpl.ProjectID, &tpls)
+	err := s.getTransactionTemplatesForProject(tpl.ProjectID, &tpls)
 	if err != nil {
 		return err
 	}
@@ -109,6 +109,13 @@ func (s *Store) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTempl
 }
 
 func (s *Store) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getTransactionTemplatesForProject(projectID, tpls)
+}
+
+func (s *Store) getTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
 	res := make([]*model.TransactionTemplate, 0)
 
 	for _, tpl := range s.transactionTemplates {
@@ -122,6 +129,20 @@ func (s *Store) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*
 	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
 
 	*tpls = res
+
+	return nil
+}
+
+func (s *Store) DeleteTransactionTemplate(id uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	_, ok := s.transactionTemplates[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	delete(s.transactionTemplates, id)
 
 	return nil
 }

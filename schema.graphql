@@ -82,6 +82,7 @@ type Mutation {
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
+  deleteTransactionTemplate(id: UUID!): UUID!
   createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!

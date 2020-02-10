@@ -80,6 +80,12 @@ mutation($templateId: UUID!, $index: Int!) {
 }
 `
 
+const MutationDeleteTransactionTemplate = `
+mutation($templateId: UUID!) {
+  deleteTransactionTemplate(id: $templateId)
+}
+`
+
 func TestProjects(t *testing.T) {
 	t.Run("Create project", func(t *testing.T) {
 		c := newClient()
@@ -352,6 +358,22 @@ func TestTransactionTemplates(t *testing.T) {
 		)
 
 		assert.Error(t, err)
+	})
+
+	t.Run("Delete transaction template", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		templateID := createTransactionTemplate(c, projectID)
+
+		var resp struct {
+			DeleteTransactionTemplate string
+		}
+
+		c.MustPost(MutationDeleteTransactionTemplate, &resp, client.Var("templateId", templateID))
+
+		assert.Equal(t, templateID, resp.DeleteTransactionTemplate)
 	})
 }
 

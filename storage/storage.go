@@ -15,6 +15,7 @@ type Store interface {
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
 	GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error
 	GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error
+	DeleteTransactionTemplate(id uuid.UUID) error
 }
 
 var ErrNotFound = errors.New("entity not found")
