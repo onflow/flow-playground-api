@@ -11,8 +11,8 @@ type TransactionTemplate struct {
 
 type TransactionExecution struct {
 	ID               uuid.UUID
-	TemplateID       uuid.UUID
 	Index            int
+	Script           string
 	PayerAccountID   uuid.UUID
 	SignerAccountIDs []uuid.UUID
 }

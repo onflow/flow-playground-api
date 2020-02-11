@@ -29,9 +29,6 @@ func (r *Resolver) Project() ProjectResolver {
 func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
-func (r *Resolver) ScriptExecution() ScriptExecutionResolver {
-	return &scriptExecutionResolver{r}
-}
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
@@ -96,7 +93,8 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 }
 
 func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	panic("not implemented")
+	// var tpl model.TransactionTemplate
+	return nil, nil
 }
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
@@ -157,20 +155,12 @@ func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (
 	return &tpl, nil
 }
 
-type scriptExecutionResolver struct{ *Resolver }
-
-func (r *scriptExecutionResolver) Template(ctx context.Context, obj *model.ScriptExecution) (*model.ScriptTemplate, error) {
-	panic("not implemented")
-}
-
 type transactionExecutionResolver struct{ *Resolver }
 
-func (r *transactionExecutionResolver) Template(ctx context.Context, obj *model.TransactionExecution) (*model.TransactionTemplate, error) {
-	panic("not implemented")
-}
 func (r *transactionExecutionResolver) PayerAccount(ctx context.Context, obj *model.TransactionExecution) (*model.Account, error) {
 	panic("not implemented")
 }
+
 func (r *transactionExecutionResolver) SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
 	panic("not implemented")
 }

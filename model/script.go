@@ -9,7 +9,7 @@ type ScriptTemplate struct {
 }
 
 type ScriptExecution struct {
-	ID         uuid.UUID
-	Index      int
-	TemplateID uuid.UUID
+	ID     uuid.UUID
+	Index  int
+	Script string
 }

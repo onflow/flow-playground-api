@@ -25,7 +25,7 @@ type TransactionTemplate {
 
 type TransactionExecution {
   id: UUID!
-  template: TransactionTemplate!
+  script: String!
   payerAccount: Account!
   signerAccounts: [Account!]!
 }
@@ -37,7 +37,7 @@ type ScriptTemplate {
 
 type ScriptExecution {
   id: UUID!
-  template: ScriptTemplate!
+  script: String!
 }
 
 type Query {
@@ -58,7 +58,7 @@ input UpdateTransactionTemplate {
 }
 
 input NewTransactionExecution {
-  templateId: UUID!
+  script: String!
   payer: String!
   signers: [String]!
 }
@@ -74,7 +74,7 @@ input UpdateScriptTemplate {
 }
 
 input NewScriptExecution {
-  templateId: String!
+  script: String!
 }
 
 type Mutation {

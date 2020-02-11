@@ -112,7 +112,11 @@ func TestProjects(t *testing.T) {
 			Project struct{ ID string }
 		}
 
-		c.MustPost(QueryGetProject, &respB, client.Var("projectId", respA.CreateProject.ID))
+		c.MustPost(
+			QueryGetProject,
+			&respB,
+			client.Var("projectId", respA.CreateProject.ID),
+		)
 
 		assert.Equal(t, respA.CreateProject.ID, respB.Project.ID)
 	})
@@ -126,7 +130,11 @@ func TestProjects(t *testing.T) {
 
 		badID := uuid.New().String()
 
-		err := c.Post(QueryGetProject, &resp, client.Var("projectId", badID))
+		err := c.Post(
+			QueryGetProject,
+			&resp,
+			client.Var("projectId", badID),
+		)
 
 		assert.Error(t, err)
 	})
