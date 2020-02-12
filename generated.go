@@ -97,6 +97,7 @@ type ComplexityRoot struct {
 		Error          func(childComplexity int) int
 		Events         func(childComplexity int) int
 		ID             func(childComplexity int) int
+		Logs           func(childComplexity int) int
 		PayerAccount   func(childComplexity int) int
 		Script         func(childComplexity int) int
 		SignerAccounts func(childComplexity int) int
@@ -403,6 +404,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionExecution.ID(childComplexity), true
 
+	case "TransactionExecution.logs":
+		if e.complexity.TransactionExecution.Logs == nil {
+			break
+		}
+
+		return e.complexity.TransactionExecution.Logs(childComplexity), true
+
 	case "TransactionExecution.payerAccount":
 		if e.complexity.TransactionExecution.PayerAccount == nil {
 			break
@@ -553,6 +561,7 @@ type TransactionExecution {
   signerAccounts: [Account!]!
   error: String,
   events: [Event]!,
+  logs: [String!]!,
 }
 
 type XDRValue {
@@ -2110,6 +2119,43 @@ func (ec *executionContext) _TransactionExecution_events(ctx context.Context, fi
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNEvent2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TransactionExecution_logs(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "TransactionExecution",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Logs, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TransactionTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.TransactionTemplate) (ret graphql.Marshaler) {
@@ -4006,6 +4052,11 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "logs":
+			out.Values[i] = ec._TransactionExecution_logs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4526,6 +4577,35 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalNTransactionExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐTransactionExecution(ctx context.Context, sel ast.SelectionSet, v model.TransactionExecution) graphql.Marshaler {

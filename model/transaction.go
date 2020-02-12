@@ -21,6 +21,7 @@ type TransactionExecution struct {
 	SignerAccountIDs []uuid.UUID
 	Error            *string
 	Events           []Event
+	Logs             []string
 }
 
 type RegisterDelta struct {

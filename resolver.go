@@ -120,6 +120,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		ID:        uuid.New(),
 		ProjectID: input.ProjectID,
 		Script:    input.Script,
+		Logs:      result.Logs,
 	}
 
 	if result.Error != nil {

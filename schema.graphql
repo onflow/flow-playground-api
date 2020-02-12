@@ -30,6 +30,7 @@ type TransactionExecution {
   signerAccounts: [Account!]!
   error: String,
   events: [Event]!,
+  logs: [String!]!,
 }
 
 type XDRValue {

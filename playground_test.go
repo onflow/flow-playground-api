@@ -7,6 +7,7 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
@@ -83,6 +84,27 @@ mutation($templateId: UUID!, $index: Int!) {
 const MutationDeleteTransactionTemplate = `
 mutation($templateId: UUID!) {
   deleteTransactionTemplate(id: $templateId)
+}
+`
+
+const MutationCreateTransactionExecution = `
+mutation($projectId: UUID!, $script: String!) {
+  createTransactionExecution(input: {
+    projectId: $projectId,
+    script: $script,
+  }) {
+    id
+    script
+    error
+	logs
+    events {
+      type
+      values {
+        type
+        value
+      }
+    }
+  }
 }
 `
 
@@ -382,6 +404,144 @@ func TestTransactionTemplates(t *testing.T) {
 		c.MustPost(MutationDeleteTransactionTemplate, &resp, client.Var("templateId", templateID))
 
 		assert.Equal(t, templateID, resp.DeleteTransactionTemplate)
+	})
+}
+
+func TestTransactionExecutions(t *testing.T) {
+	t.Run("Create execution for non-existent project", func(t *testing.T) {
+		c := newClient()
+
+		badID := uuid.New().String()
+
+		var resp struct {
+			CreateTransactionExecution struct {
+				ID     string
+				Script string
+				Error  string
+				Events []struct {
+					Type   string
+					Values []struct {
+						Type  string
+						Value string
+					}
+				}
+			}
+		}
+
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", badID),
+			client.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Create simple execution", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		var resp struct {
+			CreateTransactionExecution struct {
+				ID     string
+				Script string
+				Error  string
+				Logs   []string
+				Events []struct {
+					Type   string
+					Values []struct {
+						Type  string
+						Value string
+					}
+				}
+			}
+		}
+
+		const script = "transaction { execute { log(\"Hello, World!\") } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		assert.Empty(t, resp.CreateTransactionExecution.Error)
+		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+	})
+
+	t.Run("Multiple executions", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		var respA struct {
+			CreateTransactionExecution struct {
+				ID     string
+				Script string
+				Error  string
+				Logs   []string
+				Events []struct {
+					Type   string
+					Values []struct {
+						Type  string
+						Value string
+					}
+				}
+			}
+		}
+
+		const script = "transaction { execute { Account([], []) } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respA,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+
+		eventA := respA.CreateTransactionExecution.Events[0]
+
+		// first account should have address 0x01
+		assert.Equal(t, "flow.AccountCreated", eventA.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+
+		var respB struct {
+			CreateTransactionExecution struct {
+				ID     string
+				Script string
+				Error  string
+				Logs   []string
+				Events []struct {
+					Type   string
+					Values []struct {
+						Type  string
+						Value string
+					}
+				}
+			}
+		}
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respB,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+
+		eventB := respB.CreateTransactionExecution.Events[0]
+
+		// second account should have address 0x02
+		assert.Equal(t, "flow.AccountCreated", eventB.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
 	})
 }
 
