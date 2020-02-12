@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dapperlabs/flow-go/language"
+	"github.com/dapperlabs/flow-go/language/encoding"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -121,13 +123,28 @@ func (r *mutationResolver) CreateTransactionExecution(
 	}
 
 	if result.Error != nil {
-		exe.Error = result.Error.Error()
+		*exe.Error = result.Error.Error()
 	}
 
 	if len(result.Events) > 0 {
-		events := make([]string, len(result.Events))
+		events := make([]model.Event, len(result.Events))
 		for i, event := range result.Events {
-			events[i] = fmt.Sprintf("%s", event)
+
+			values := make([]*model.XDRValue, len(event.Fields))
+			for j, field := range event.Fields {
+				value, _ := language.ConvertValue(field)
+				encValue, _ := encoding.Encode(value)
+
+				values[j] = &model.XDRValue{
+					Type:  value.Type().ID(),
+					Value: fmt.Sprintf("%x", encValue),
+				}
+			}
+
+			events[i] = model.Event{
+				Type:   string(event.Type.ID()),
+				Values: values,
+			}
 		}
 
 		exe.Events = events

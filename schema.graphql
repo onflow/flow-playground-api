@@ -29,7 +29,17 @@ type TransactionExecution {
   payerAccount: Account!
   signerAccounts: [Account!]!
   error: String,
-  events: [String]!,
+  events: [Event]!,
+}
+
+type XDRValue {
+  type: String!
+  value: String!
+}
+
+type Event {
+  type: String!
+  values: [XDRValue!]!
 }
 
 type ScriptTemplate {

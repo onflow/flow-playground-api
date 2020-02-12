@@ -19,8 +19,8 @@ type TransactionExecution struct {
 	Script           string
 	PayerAccountID   uuid.UUID
 	SignerAccountIDs []uuid.UUID
-	Error            string
-	Events           []string
+	Error            *string
+	Events           []Event
 }
 
 type RegisterDelta struct {
