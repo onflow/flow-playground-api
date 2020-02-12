@@ -28,6 +28,8 @@ type TransactionExecution {
   script: String!
   payerAccount: Account!
   signerAccounts: [Account!]!
+  error: String,
+  events: [String]!,
 }
 
 type ScriptTemplate {
@@ -58,9 +60,8 @@ input UpdateTransactionTemplate {
 }
 
 input NewTransactionExecution {
+  projectId: UUID!
   script: String!
-  payer: String!
-  signers: [String]!
 }
 
 input NewScriptTemplate {
@@ -74,6 +75,7 @@ input UpdateScriptTemplate {
 }
 
 input NewScriptExecution {
+  projectId: UUID!
   script: String!
 }
 

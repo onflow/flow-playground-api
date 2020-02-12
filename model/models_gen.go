@@ -7,7 +7,8 @@ import (
 )
 
 type NewScriptExecution struct {
-	TemplateID string `json:"templateId"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Script    string    `json:"script"`
 }
 
 type NewScriptTemplate struct {
@@ -16,9 +17,8 @@ type NewScriptTemplate struct {
 }
 
 type NewTransactionExecution struct {
-	TemplateID uuid.UUID `json:"templateId"`
-	Payer      string    `json:"payer"`
-	Signers    []*string `json:"signers"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Script    string    `json:"script"`
 }
 
 type NewTransactionTemplate struct {
