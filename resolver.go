@@ -2,22 +2,28 @@ package playground
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 type Resolver struct {
-	store storage.Store
+	store    storage.Store
+	computer *vm.Computer
 }
 
 func NewResolver(store storage.Store) *Resolver {
-	return &Resolver{store}
+	return &Resolver{
+		store:    store,
+		computer: vm.NewComputer(store),
+	}
 }
 
 func (r *Resolver) Mutation() MutationResolver {
@@ -92,10 +98,49 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 	return id, nil
 }
 
-func (r *mutationResolver) CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	// var tpl model.TransactionTemplate
-	return nil, nil
+func (r *mutationResolver) CreateTransactionExecution(
+	ctx context.Context,
+	input model.NewTransactionExecution,
+) (*model.TransactionExecution, error) {
+	var proj model.Project
+
+	err := r.store.GetProject(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to execute transaction")
+	}
+
+	exe := model.TransactionExecution{
+		ID:        uuid.New(),
+		ProjectID: input.ProjectID,
+		Script:    input.Script,
+	}
+
+	if result.Error != nil {
+		exe.Error = result.Error.Error()
+	}
+
+	if len(result.Events) > 0 {
+		events := make([]string, len(result.Events))
+		for i, event := range result.Events {
+			events[i] = fmt.Sprintf("%s", event)
+		}
+
+		exe.Events = events
+	}
+
+	err = r.store.InsertTransactionExecution(&exe, delta)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to insert transaction execution record")
+	}
+
+	return &exe, nil
 }
+
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
 	panic("not implemented")
 }
@@ -121,9 +166,18 @@ func (r *projectResolver) TransactionTemplates(ctx context.Context, obj *model.P
 
 	return tpls, nil
 }
+
 func (r *projectResolver) TransactionExecutions(ctx context.Context, obj *model.Project) ([]*model.TransactionExecution, error) {
-	panic("not implemented")
+	var exes []*model.TransactionExecution
+
+	err := r.store.GetTransactionExecutionsForProject(obj.ID, &exes)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get transaction executions")
+	}
+
+	return exes, nil
 }
+
 func (r *projectResolver) ScriptTemplates(ctx context.Context, obj *model.Project) ([]*model.TransactionTemplate, error) {
 	panic("not implemented")
 }
