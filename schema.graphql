@@ -6,8 +6,8 @@ type Project {
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
-  scriptTemplates: [TransactionTemplate!]
-  scriptExecutions: [TransactionExecution!]
+  scriptTemplates: [ScriptTemplate!]
+  scriptExecutions: [ScriptExecution!]
 }
 
 type Account {
@@ -44,6 +44,7 @@ type Query {
   project(id: UUID!): Project!
 
   transactionTemplate(id: UUID!): TransactionTemplate!
+  scriptTemplate(id: UUID!): ScriptTemplate!
 }
 
 input NewTransactionTemplate {
