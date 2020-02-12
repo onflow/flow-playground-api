@@ -4,6 +4,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
 	"github.com/google/uuid"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -11,16 +12,20 @@ import (
 )
 
 type Store struct {
-	mut                  sync.RWMutex
-	projects             map[uuid.UUID]model.Project
-	transactionTemplates map[uuid.UUID]model.TransactionTemplate
+	mut                   sync.RWMutex
+	projects              map[uuid.UUID]model.Project
+	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
+	transactionExecutions map[uuid.UUID]model.TransactionExecution
+	registerDeltas        []model.RegisterDelta
 }
 
 func NewStore() *Store {
 	return &Store{
-		mut:                  sync.RWMutex{},
-		projects:             make(map[uuid.UUID]model.Project),
-		transactionTemplates: make(map[uuid.UUID]model.TransactionTemplate),
+		mut:                   sync.RWMutex{},
+		projects:              make(map[uuid.UUID]model.Project),
+		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
+		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
+		registerDeltas:        make([]model.RegisterDelta, 0),
 	}
 }
 
@@ -37,12 +42,12 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.Project) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	t, ok := s.projects[id]
+	p, ok := s.projects[id]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	*proj = t
+	*proj = p
 
 	return nil
 }
@@ -143,6 +148,102 @@ func (s *Store) DeleteTransactionTemplate(id uuid.UUID) error {
 	}
 
 	delete(s.transactionTemplates, id)
+
+	return nil
+}
+
+func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	var exes []*model.TransactionExecution
+	err := s.getTransactionExecutionsForProject(exe.ProjectID, &exes)
+	if err != nil {
+		return err
+	}
+
+	count := len(exes)
+
+	// set index to one after last
+	exe.Index = count
+
+	s.transactionExecutions[exe.ID] = *exe
+
+	err = s.insertRegisterDelta(exe.ProjectID, delta)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getTransactionExecutionsForProject(projectID, exes)
+}
+
+func (s *Store) getTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
+	res := make([]*model.TransactionExecution, 0)
+
+	for _, exe := range s.transactionExecutions {
+		if exe.ProjectID == projectID {
+			e := exe
+			res = append(res, &e)
+		}
+	}
+
+	// sort results by index
+	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
+
+	*exes = res
+
+	return nil
+}
+
+func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	return s.insertRegisterDelta(projectID, delta)
+}
+
+func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+	p, ok := s.projects[projectID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	index := p.TransactionCount + 1
+
+	regDelta := model.RegisterDelta{
+		ProjectID: projectID,
+		Index:     index,
+		Delta:     delta,
+	}
+
+	s.registerDeltas = append(s.registerDeltas, regDelta)
+
+	p.TransactionCount = index
+
+	s.projects[projectID] = p
+
+	return nil
+}
+
+func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	res := make([]state.Delta, 0)
+
+	for _, delta := range s.registerDeltas {
+		if delta.ProjectID == projectID {
+			res = append(res, delta.Delta)
+		}
+	}
+	*deltas = res
 
 	return nil
 }
