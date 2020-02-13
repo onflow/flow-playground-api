@@ -11,6 +11,7 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
+	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 const MutationCreateProject = `
@@ -486,11 +487,69 @@ func TestTransactionExecutions(t *testing.T) {
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
 	})
+
+	t.Run("Multiple executions with cache reset", func(t *testing.T) {
+		// manually construct resolver
+		store := memory.NewStore()
+		computer := vm.NewComputer(store)
+		resolver := playground.NewResolver(store, computer)
+
+		c := newClientWithResolve(resolver)
+
+		projectID := createProject(c)
+
+		var respA CreateTransactionExecutionResponse
+
+		const script = "transaction { execute { Account([], []) } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respA,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+
+		eventA := respA.CreateTransactionExecution.Events[0]
+
+		// first account should have address 0x01
+		assert.Equal(t, "flow.AccountCreated", eventA.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+
+		// clear ledger cache
+		computer.ClearCache()
+
+		var respB CreateTransactionExecutionResponse
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respB,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+
+		eventB := respB.CreateTransactionExecution.Events[0]
+
+		// second account should have address 0x02
+		assert.Equal(t, "flow.AccountCreated", eventB.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
+	})
 }
 
 func newClient() *client.Client {
-	resolver := playground.NewResolver(memory.NewStore())
+	store := memory.NewStore()
+	computer := vm.NewComputer(store)
 
+	resolver := playground.NewResolver(store, computer)
+
+	return newClientWithResolve(resolver)
+}
+
+func newClientWithResolve(resolver *playground.Resolver) *client.Client {
 	return client.New(
 		handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),

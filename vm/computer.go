@@ -53,6 +53,10 @@ func (c *Computer) ExecuteTransaction(projectID uuid.UUID, script string) (*virt
 	return result, delta, nil
 }
 
+func (c *Computer) ClearCache() {
+	c.ledgerCache = make(map[uuid.UUID]Ledger)
+}
+
 func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (Ledger, error) {
 	ledger, ok := c.ledgerCache[projectID]
 	if ok {

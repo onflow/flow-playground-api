@@ -21,10 +21,10 @@ type Resolver struct {
 	computer *vm.Computer
 }
 
-func NewResolver(store storage.Store) *Resolver {
+func NewResolver(store storage.Store, computer *vm.Computer) *Resolver {
 	return &Resolver{
 		store:    store,
-		computer: vm.NewComputer(store),
+		computer: computer,
 	}
 }
 
