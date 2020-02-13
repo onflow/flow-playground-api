@@ -33,6 +33,6 @@ func (a *Address) UnmarshalGQL(v interface{}) error {
 }
 
 func (a Address) MarshalGQL(w io.Writer) {
-	str := hex.EncodeToString(a[:])
+	str := fmt.Sprintf("\"%x\"", a)
 	io.WriteString(w, str)
 }

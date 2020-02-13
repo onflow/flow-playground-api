@@ -26,7 +26,7 @@ type TransactionTemplate {
 type TransactionExecution {
   id: UUID!
   script: String!
-  signerAccounts: [Account!]!
+  signers: [Account!]!
   error: String,
   events: [Event]!,
   logs: [String!]!,
@@ -58,6 +58,12 @@ type Query {
   transactionTemplate(id: UUID!): TransactionTemplate!
 }
 
+input UpdateAccount {
+  id: UUID!
+  draftCode: String
+  deployedCode: String
+}
+
 input NewTransactionTemplate {
   projectId: UUID!
   script: String!
@@ -72,6 +78,7 @@ input UpdateTransactionTemplate {
 input NewTransactionExecution {
   projectId: UUID!
   script: String!
+  signers: [Address!]!
 }
 
 input NewScriptTemplate {
@@ -91,6 +98,8 @@ input NewScriptExecution {
 
 type Mutation {
   createProject: Project!
+
+  updateAccount(input: UpdateAccount!): Account!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!

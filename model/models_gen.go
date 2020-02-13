@@ -24,11 +24,18 @@ type NewScriptTemplate struct {
 type NewTransactionExecution struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`
+	Signers   []Address `json:"signers"`
 }
 
 type NewTransactionTemplate struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`
+}
+
+type UpdateAccount struct {
+	ID           uuid.UUID `json:"id"`
+	DraftCode    *string   `json:"draftCode"`
+	DeployedCode *string   `json:"deployedCode"`
 }
 
 type UpdateScriptTemplate struct {

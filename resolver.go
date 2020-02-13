@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dapperlabs/flow-go-sdk"
+	"github.com/dapperlabs/flow-go-sdk/templates"
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/encoding"
 	"github.com/google/uuid"
@@ -55,7 +57,77 @@ func (r *mutationResolver) CreateProject(ctx context.Context) (*model.Project, e
 		return nil, errors.Wrap(err, "failed to store project")
 	}
 
+	// TODO: clean this up
+	for i := 0; i < 3; i++ {
+		acc := model.Account{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Index:     i,
+		}
+
+		script, _ := templates.CreateAccount(nil, nil)
+		result, delta, err := r.computer.ExecuteTransaction(acc.ProjectID, string(script), nil)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to deploy account code")
+		}
+
+		if result.Error != nil {
+			return nil, errors.Wrap(result.Error, "failed to deploy account code")
+		}
+
+		err = r.store.InsertRegisterDelta(acc.ProjectID, delta)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to store register delta")
+		}
+
+		value, _ := language.ConvertValue(result.Events[0].Fields[0])
+		addressValue := value.(language.Address)
+
+		address := model.Address(flow.BytesToAddress(addressValue.Bytes()))
+
+		acc.Address = address
+
+		err = r.store.InsertAccount(&acc)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to store account")
+		}
+	}
+
 	return proj, nil
+}
+
+func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
+	var acc model.Account
+
+	err := r.store.GetAccount(input.ID, &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	// TODO: make deployment atomic
+	if input.DeployedCode != nil {
+		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
+		result, delta, err := r.computer.ExecuteTransaction(acc.ProjectID, script, []model.Address{acc.Address})
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to deploy account code")
+		}
+
+		if result.Error != nil {
+			return nil, errors.Wrap(result.Error, "failed to deploy account code")
+		}
+
+		err = r.store.InsertRegisterDelta(acc.ProjectID, delta)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to store register delta")
+		}
+	}
+
+	err = r.store.UpdateAccount(input, &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update account")
+	}
+
+	return &acc, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -111,7 +183,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script)
+	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
@@ -124,7 +196,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 	}
 
 	if result.Error != nil {
-		*exe.Error = result.Error.Error()
+		runtimeErr := result.Error.Error()
+		exe.Error = &runtimeErr
 	}
 
 	if len(result.Events) > 0 {
@@ -172,8 +245,16 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*model.Account, error) {
-	panic("not implemented")
+	var accs []*model.Account
+
+	err := r.store.GetAccountsForProject(obj.ID, &accs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get accounts")
+	}
+
+	return accs, nil
 }
+
 func (r *projectResolver) TransactionTemplates(ctx context.Context, obj *model.Project) ([]*model.TransactionTemplate, error) {
 	var tpls []*model.TransactionTemplate
 
@@ -229,10 +310,6 @@ func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (
 
 type transactionExecutionResolver struct{ *Resolver }
 
-func (r *transactionExecutionResolver) PayerAccount(ctx context.Context, obj *model.TransactionExecution) (*model.Account, error) {
-	panic("not implemented")
-}
-
-func (r *transactionExecutionResolver) SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
+func (r *transactionExecutionResolver) Signers(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
 	panic("not implemented")
 }

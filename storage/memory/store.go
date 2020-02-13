@@ -14,6 +14,7 @@ import (
 type Store struct {
 	mut                   sync.RWMutex
 	projects              map[uuid.UUID]model.Project
+	accounts              map[uuid.UUID]model.Account
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	registerDeltas        []model.RegisterDelta
@@ -23,6 +24,7 @@ func NewStore() *Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
 		projects:              make(map[uuid.UUID]model.Project),
+		accounts:              make(map[uuid.UUID]model.Account),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		registerDeltas:        make([]model.RegisterDelta, 0),
@@ -48,6 +50,92 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.Project) error {
 	}
 
 	*proj = p
+
+	return nil
+}
+
+func (s *Store) InsertAccount(acc *model.Account) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	s.accounts[acc.ID] = *acc
+
+	return nil
+}
+
+func (s *Store) GetAccount(id uuid.UUID, acc *model.Account) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	p, ok := s.accounts[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	*acc = p
+
+	return nil
+}
+
+func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	a, ok := s.accounts[input.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	if input.DraftCode != nil {
+		a.DraftCode = *input.DraftCode
+	}
+
+	if input.DeployedCode != nil {
+		a.DeployedCode = *input.DeployedCode
+	}
+
+	s.accounts[input.ID] = a
+
+	*acc = a
+
+	return nil
+}
+
+func (s *Store) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getAccountsForProject(projectID, accs)
+}
+
+func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+	res := make([]*model.Account, 0)
+
+	for _, acc := range s.accounts {
+		if acc.ProjectID == projectID {
+			a := acc
+			res = append(res, &a)
+		}
+	}
+
+	// sort results by index
+	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
+
+	*accs = res
+
+	return nil
+}
+
+func (s *Store) DeleteAccount(id uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	_, ok := s.accounts[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	delete(s.accounts, id)
 
 	return nil
 }

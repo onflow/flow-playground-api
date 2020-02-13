@@ -65,6 +65,7 @@ type ComplexityRoot struct {
 		CreateTransactionExecution func(childComplexity int, input model.NewTransactionExecution) int
 		CreateTransactionTemplate  func(childComplexity int, input model.NewTransactionTemplate) int
 		DeleteTransactionTemplate  func(childComplexity int, id uuid.UUID) int
+		UpdateAccount              func(childComplexity int, input model.UpdateAccount) int
 		UpdateScriptTemplate       func(childComplexity int, input model.UpdateScriptTemplate) int
 		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
 	}
@@ -94,12 +95,12 @@ type ComplexityRoot struct {
 	}
 
 	TransactionExecution struct {
-		Error          func(childComplexity int) int
-		Events         func(childComplexity int) int
-		ID             func(childComplexity int) int
-		Logs           func(childComplexity int) int
-		Script         func(childComplexity int) int
-		SignerAccounts func(childComplexity int) int
+		Error   func(childComplexity int) int
+		Events  func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Logs    func(childComplexity int) int
+		Script  func(childComplexity int) int
+		Signers func(childComplexity int) int
 	}
 
 	TransactionTemplate struct {
@@ -116,6 +117,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateProject(ctx context.Context) (*model.Project, error)
+	UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error)
 	CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error)
 	UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error)
 	DeleteTransactionTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
@@ -136,7 +138,7 @@ type QueryResolver interface {
 	TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error)
 }
 type TransactionExecutionResolver interface {
-	SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error)
+	Signers(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error)
 }
 
 type executableSchema struct {
@@ -262,6 +264,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteTransactionTemplate(childComplexity, args["id"].(uuid.UUID)), true
+
+	case "Mutation.updateAccount":
+		if e.complexity.Mutation.UpdateAccount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateAccount_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateAccount(childComplexity, args["input"].(model.UpdateAccount)), true
 
 	case "Mutation.updateScriptTemplate":
 		if e.complexity.Mutation.UpdateScriptTemplate == nil {
@@ -416,12 +430,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionExecution.Script(childComplexity), true
 
-	case "TransactionExecution.signerAccounts":
-		if e.complexity.TransactionExecution.SignerAccounts == nil {
+	case "TransactionExecution.signers":
+		if e.complexity.TransactionExecution.Signers == nil {
 			break
 		}
 
-		return e.complexity.TransactionExecution.SignerAccounts(childComplexity), true
+		return e.complexity.TransactionExecution.Signers(childComplexity), true
 
 	case "TransactionTemplate.id":
 		if e.complexity.TransactionTemplate.ID == nil {
@@ -548,7 +562,7 @@ type TransactionTemplate {
 type TransactionExecution {
   id: UUID!
   script: String!
-  signerAccounts: [Account!]!
+  signers: [Account!]!
   error: String,
   events: [Event]!,
   logs: [String!]!,
@@ -580,6 +594,12 @@ type Query {
   transactionTemplate(id: UUID!): TransactionTemplate!
 }
 
+input UpdateAccount {
+  id: UUID!
+  draftCode: String
+  deployedCode: String
+}
+
 input NewTransactionTemplate {
   projectId: UUID!
   script: String!
@@ -594,6 +614,7 @@ input UpdateTransactionTemplate {
 input NewTransactionExecution {
   projectId: UUID!
   script: String!
+  signers: [Address!]!
 }
 
 input NewScriptTemplate {
@@ -613,6 +634,8 @@ input NewScriptExecution {
 
 type Mutation {
   createProject: Project!
+
+  updateAccount(input: UpdateAccount!): Account!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
@@ -698,6 +721,20 @@ func (ec *executionContext) field_Mutation_deleteTransactionTemplate_args(ctx co
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateAccount_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateAccount
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNUpdateAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateAccount(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -1064,6 +1101,50 @@ func (ec *executionContext) _Mutation_createProject(ctx context.Context, field g
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNProject2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateAccount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateAccount_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateAccount(rctx, args["input"].(model.UpdateAccount))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Account)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createTransactionTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1966,7 +2047,7 @@ func (ec *executionContext) _TransactionExecution_script(ctx context.Context, fi
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_signers(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1985,7 +2066,7 @@ func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Con
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TransactionExecution().SignerAccounts(rctx, obj)
+		return ec.resolvers.TransactionExecution().Signers(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3513,6 +3594,12 @@ func (ec *executionContext) unmarshalInputNewTransactionExecution(ctx context.Co
 			if err != nil {
 				return it, err
 			}
+		case "signers":
+			var err error
+			it.Signers, err = ec.unmarshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -3534,6 +3621,36 @@ func (ec *executionContext) unmarshalInputNewTransactionTemplate(ctx context.Con
 		case "script":
 			var err error
 			it.Script, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateAccount(ctx context.Context, obj interface{}) (model.UpdateAccount, error) {
+	var it model.UpdateAccount
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "draftCode":
+			var err error
+			it.DraftCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "deployedCode":
+			var err error
+			it.DeployedCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3696,6 +3813,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createProject":
 			out.Values[i] = ec._Mutation_createProject(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateAccount":
+			out.Values[i] = ec._Mutation_updateAccount(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3970,7 +4092,7 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "signerAccounts":
+		case "signers":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3978,7 +4100,7 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._TransactionExecution_signerAccounts(ctx, field, obj)
+				res = ec._TransactionExecution_signers(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4381,6 +4503,35 @@ func (ec *executionContext) marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑp
 	return v
 }
 
+func (ec *executionContext) unmarshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, v interface{}) ([]model.Address, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]model.Address, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Address) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -4587,6 +4738,10 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateAccount(ctx context.Context, v interface{}) (model.UpdateAccount, error) {
+	return ec.unmarshalInputUpdateAccount(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateScriptTemplate(ctx context.Context, v interface{}) (model.UpdateScriptTemplate, error) {
