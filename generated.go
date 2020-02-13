@@ -98,7 +98,6 @@ type ComplexityRoot struct {
 		Events         func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Logs           func(childComplexity int) int
-		PayerAccount   func(childComplexity int) int
 		Script         func(childComplexity int) int
 		SignerAccounts func(childComplexity int) int
 	}
@@ -137,7 +136,6 @@ type QueryResolver interface {
 	TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error)
 }
 type TransactionExecutionResolver interface {
-	PayerAccount(ctx context.Context, obj *model.TransactionExecution) (*model.Account, error)
 	SignerAccounts(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error)
 }
 
@@ -411,13 +409,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionExecution.Logs(childComplexity), true
 
-	case "TransactionExecution.payerAccount":
-		if e.complexity.TransactionExecution.PayerAccount == nil {
-			break
-		}
-
-		return e.complexity.TransactionExecution.PayerAccount(childComplexity), true
-
 	case "TransactionExecution.script":
 		if e.complexity.TransactionExecution.Script == nil {
 			break
@@ -557,7 +548,6 @@ type TransactionTemplate {
 type TransactionExecution {
   id: UUID!
   script: String!
-  payerAccount: Account!
   signerAccounts: [Account!]!
   error: String,
   events: [Event]!,
@@ -1974,43 +1964,6 @@ func (ec *executionContext) _TransactionExecution_script(ctx context.Context, fi
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _TransactionExecution_payerAccount(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "TransactionExecution",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TransactionExecution().PayerAccount(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Account)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TransactionExecution_signerAccounts(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
@@ -4017,20 +3970,6 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "payerAccount":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._TransactionExecution_payerAccount(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "signerAccounts":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {

@@ -26,7 +26,6 @@ type TransactionTemplate {
 type TransactionExecution {
   id: UUID!
   script: String!
-  payerAccount: Account!
   signerAccounts: [Account!]!
   error: String,
   events: [Event]!,

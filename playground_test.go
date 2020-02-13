@@ -21,6 +21,10 @@ mutation {
 }
 `
 
+type CreateProjectResponse struct {
+	CreateProject struct{ ID string }
+}
+
 const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {
@@ -28,6 +32,10 @@ query($projectId: UUID!) {
   }
 }
 `
+
+type GetProjectResponse struct {
+	Project struct{ ID string }
+}
 
 const QueryGetProjectTransactionTemplates = `
 query($projectId: UUID!) {
@@ -42,6 +50,17 @@ query($projectId: UUID!) {
 }
 `
 
+type GetProjectTransactionTemplatesResponse struct {
+	Project struct {
+		ID                   string
+		TransactionTemplates []struct {
+			ID     string
+			Script string
+			Index  int
+		}
+	}
+}
+
 const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
@@ -52,14 +71,31 @@ mutation($projectId: UUID!, $script: String!) {
 }
 `
 
+type CreateTransactionTemplateResponse struct {
+	CreateTransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const QueryGetTransactionTemplate = `
 query($templateId: UUID!) {
   transactionTemplate(id: $templateId) {
     id
     script
+	index
   }
 }
 `
+
+type GetTransactionTemplateResponse struct {
+	TransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
 
 const MutationUpdateTransactionTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
@@ -81,11 +117,23 @@ mutation($templateId: UUID!, $index: Int!) {
 }
 `
 
+type UpdateTransactionTemplateResponse struct {
+	UpdateTransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationDeleteTransactionTemplate = `
 mutation($templateId: UUID!) {
   deleteTransactionTemplate(id: $templateId)
 }
 `
+
+type DeleteTransactionTemplateResponse struct {
+	DeleteTransactionTemplate string
+}
 
 const MutationCreateTransactionExecution = `
 mutation($projectId: UUID!, $script: String!) {
@@ -108,13 +156,27 @@ mutation($projectId: UUID!, $script: String!) {
 }
 `
 
+type CreateTransactionExecutionResponse struct {
+	CreateTransactionExecution struct {
+		ID     string
+		Script string
+		Error  string
+		Logs   []string
+		Events []struct {
+			Type   string
+			Values []struct {
+				Type  string
+				Value string
+			}
+		}
+	}
+}
+
 func TestProjects(t *testing.T) {
 	t.Run("Create project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			CreateProject struct{ ID string }
-		}
+		var resp CreateProjectResponse
 
 		c.MustPost(MutationCreateProject, &resp)
 
@@ -124,15 +186,11 @@ func TestProjects(t *testing.T) {
 	t.Run("Get project", func(t *testing.T) {
 		c := newClient()
 
-		var respA struct {
-			CreateProject struct{ ID string }
-		}
+		var respA CreateProjectResponse
 
 		c.MustPost(MutationCreateProject, &respA)
 
-		var respB struct {
-			Project struct{ ID string }
-		}
+		var respB GetProjectResponse
 
 		c.MustPost(
 			QueryGetProject,
@@ -146,9 +204,7 @@ func TestProjects(t *testing.T) {
 	t.Run("Get non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct{ ID string }
-		}
+		var resp CreateProjectResponse
 
 		badID := uuid.New().String()
 
@@ -168,13 +224,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var resp struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -192,13 +242,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -207,13 +251,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "foo"),
 		)
 
-		var respB struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB GetTransactionTemplateResponse
 
 		c.MustPost(
 			QueryGetTransactionTemplate,
@@ -228,13 +266,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp GetTransactionTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -252,13 +284,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -269,13 +295,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		templateID := respA.CreateTransactionTemplate.ID
 
-		var respB struct {
-			UpdateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB UpdateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationUpdateTransactionTemplateScript,
@@ -311,13 +331,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Update non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp UpdateTransactionTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -340,16 +354,7 @@ func TestTransactionTemplates(t *testing.T) {
 		templateIDB := createTransactionTemplate(c, projectID)
 		templateIDC := createTransactionTemplate(c, projectID)
 
-		var resp struct {
-			Project struct {
-				ID                   string
-				TransactionTemplates []struct {
-					ID     string
-					Script string
-					Index  int
-				}
-			}
-		}
+		var resp GetProjectTransactionTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectTransactionTemplates,
@@ -370,14 +375,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction templates for non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct {
-				TransactionTemplates []struct {
-					ID     string
-					Script string
-				}
-			}
-		}
+		var resp GetProjectTransactionTemplatesResponse
 
 		badID := uuid.New().String()
 
@@ -413,20 +411,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		badID := uuid.New().String()
 
-		var resp struct {
-			CreateTransactionExecution struct {
-				ID     string
-				Script string
-				Error  string
-				Events []struct {
-					Type   string
-					Values []struct {
-						Type  string
-						Value string
-					}
-				}
-			}
-		}
+		var resp CreateTransactionExecutionResponse
 
 		err := c.Post(
 			MutationCreateTransactionExecution,
@@ -443,21 +428,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var resp struct {
-			CreateTransactionExecution struct {
-				ID     string
-				Script string
-				Error  string
-				Logs   []string
-				Events []struct {
-					Type   string
-					Values []struct {
-						Type  string
-						Value string
-					}
-				}
-			}
-		}
+		var resp CreateTransactionExecutionResponse
 
 		const script = "transaction { execute { log(\"Hello, World!\") } }"
 
@@ -478,21 +449,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateTransactionExecution struct {
-				ID     string
-				Script string
-				Error  string
-				Logs   []string
-				Events []struct {
-					Type   string
-					Values []struct {
-						Type  string
-						Value string
-					}
-				}
-			}
-		}
+		var respA CreateTransactionExecutionResponse
 
 		const script = "transaction { execute { Account([], []) } }"
 
@@ -512,21 +469,7 @@ func TestTransactionExecutions(t *testing.T) {
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
 
-		var respB struct {
-			CreateTransactionExecution struct {
-				ID     string
-				Script string
-				Error  string
-				Logs   []string
-				Events []struct {
-					Type   string
-					Values []struct {
-						Type  string
-						Value string
-					}
-				}
-			}
-		}
+		var respB CreateTransactionExecutionResponse
 
 		c.MustPost(
 			MutationCreateTransactionExecution,

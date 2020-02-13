@@ -17,7 +17,6 @@ type TransactionExecution struct {
 	ProjectID        uuid.UUID
 	Index            int
 	Script           string
-	PayerAccountID   uuid.UUID
 	SignerAccountIDs []uuid.UUID
 	Error            *string
 	Events           []Event
