@@ -23,7 +23,8 @@ func NewComputer(store storage.Store) *Computer {
 	return &Computer{
 		store:        store,
 		blockContext: virtualmachine.New(runtime.NewInterpreterRuntime()).NewBlockContext(&flow.Header{Number: 0}),
-		ledgerCache:  make(map[uuid.UUID]Ledger),
+		// TODO: cache eviction
+		ledgerCache: make(map[uuid.UUID]Ledger),
 	}
 }
 
@@ -36,9 +37,9 @@ func (c *Computer) ExecuteTransaction(projectID uuid.UUID, script string) (*virt
 	view := ledger.NewView()
 
 	result, err := c.blockContext.ExecuteTransaction(view, &flow.TransactionBody{
-		Nonce:          rand.Uint64(),
-		Script:         []byte(script),
-		PayerAccount:   flow.Address{},
+		Nonce:  rand.Uint64(),
+		Script: []byte(script),
+		// TODO: include accounts
 		ScriptAccounts: nil,
 	})
 	if err != nil {
