@@ -558,9 +558,7 @@ func newClientWithResolve(resolver *playground.Resolver) *client.Client {
 }
 
 func createProject(c *client.Client) string {
-	var resp struct {
-		CreateProject struct{ ID string }
-	}
+	var resp CreateProjectResponse
 
 	c.MustPost(MutationCreateProject, &resp)
 
@@ -568,13 +566,7 @@ func createProject(c *client.Client) string {
 }
 
 func createTransactionTemplate(c *client.Client, projectID string) string {
-	var resp struct {
-		CreateTransactionTemplate struct {
-			ID     string
-			Script string
-			Index  int
-		}
-	}
+	var resp CreateTransactionTemplateResponse
 
 	c.MustPost(
 		MutationCreateTransactionTemplate,
