@@ -41,6 +41,19 @@ query($projectId: UUID!) {
 }
 `
 
+const QueryGetProjectScriptTemplates = `
+query($projectId: UUID!) {
+  project(id: $projectId) {
+    id
+    scriptTemplates {
+      id
+      script 
+      index
+    }
+  }
+}
+`
+
 const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
@@ -122,6 +135,12 @@ mutation($templateId: UUID!, $index: Int!) {
 	script
     index
   }
+}
+`
+
+const MutationDeleteScriptTemplate = `
+mutation($templateId: UUID!) {
+  deleteScriptTemplate(id: $templateId)
 }
 `
 
@@ -592,6 +611,81 @@ func TestScriptTemplates(t *testing.T) {
 
 		assert.Error(t, err)
 	})
+
+	t.Run("Get script templates for project", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		templateIDA := createScriptTemplate(c, projectID)
+		templateIDB := createScriptTemplate(c, projectID)
+		templateIDC := createScriptTemplate(c, projectID)
+
+		var resp struct {
+			Project struct {
+				ID              string
+				ScriptTemplates []struct {
+					ID     string
+					Script string
+					Index  int
+				}
+			}
+		}
+
+		c.MustPost(
+			QueryGetProjectScriptTemplates,
+			&resp,
+			client.Var("projectId", projectID),
+		)
+
+		assert.Len(t, resp.Project.ScriptTemplates, 3)
+		assert.Equal(t, templateIDA, resp.Project.ScriptTemplates[0].ID)
+		assert.Equal(t, templateIDB, resp.Project.ScriptTemplates[1].ID)
+		assert.Equal(t, templateIDC, resp.Project.ScriptTemplates[2].ID)
+
+		assert.Equal(t, 0, resp.Project.ScriptTemplates[0].Index)
+		assert.Equal(t, 1, resp.Project.ScriptTemplates[1].Index)
+		assert.Equal(t, 2, resp.Project.ScriptTemplates[2].Index)
+	})
+
+	t.Run("Get script templates for non-existent project", func(t *testing.T) {
+		c := newClient()
+
+		var resp struct {
+			Project struct {
+				ScriptTemplates []struct {
+					ID     string
+					Script string
+				}
+			}
+		}
+
+		badID := uuid.New().String()
+
+		err := c.Post(
+			QueryGetProjectScriptTemplates,
+			&resp,
+			client.Var("projectId", badID),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Delete script template", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		templateID := createScriptTemplate(c, projectID)
+
+		var resp struct {
+			DeleteScriptTemplate string
+		}
+
+		c.MustPost(MutationDeleteScriptTemplate, &resp, client.Var("templateId", templateID))
+
+		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
+	})
 }
 
 func newClient() *client.Client {
@@ -631,4 +725,23 @@ func createTransactionTemplate(c *client.Client, projectID string) string {
 	)
 
 	return resp.CreateTransactionTemplate.ID
+}
+
+func createScriptTemplate(c *client.Client, projectID string) string {
+	var resp struct {
+		CreateScriptTemplate struct {
+			ID     string
+			Script string
+			Index  int
+		}
+	}
+
+	c.MustPost(
+		MutationCreateScriptTemplate,
+		&resp,
+		client.Var("projectId", projectID),
+		client.Var("script", "foo"),
+	)
+
+	return resp.CreateScriptTemplate.ID
 }
