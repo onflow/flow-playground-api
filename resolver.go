@@ -134,6 +134,15 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	panic("not implemented")
 }
 
+func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	err := r.store.DeleteScriptTemplate(id)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to delete script template")
+	}
+
+	return id, nil
+}
+
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*model.Account, error) {

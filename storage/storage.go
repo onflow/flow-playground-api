@@ -22,6 +22,7 @@ type Store interface {
 	UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error
 	GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error
 	GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error
+	DeleteScriptTemplate(id uuid.UUID) error
 }
 
 var ErrNotFound = errors.New("entity not found")

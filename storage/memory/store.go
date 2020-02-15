@@ -234,3 +234,17 @@ func (s *Store) getScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model
 
 	return nil
 }
+
+func (s *Store) DeleteScriptTemplate(id uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	_, ok := s.scriptTemplates[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	delete(s.scriptTemplates, id)
+
+	return nil
+}

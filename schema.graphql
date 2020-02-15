@@ -90,6 +90,7 @@ type Mutation {
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  deleteScriptTemplate(id: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 

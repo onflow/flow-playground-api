@@ -59,6 +59,7 @@ type ComplexityRoot struct {
 		CreateScriptTemplate       func(childComplexity int, input model.NewScriptTemplate) int
 		CreateTransactionExecution func(childComplexity int, input model.NewTransactionExecution) int
 		CreateTransactionTemplate  func(childComplexity int, input model.NewTransactionTemplate) int
+		DeleteScriptTemplate       func(childComplexity int, id uuid.UUID) int
 		DeleteTransactionTemplate  func(childComplexity int, id uuid.UUID) int
 		UpdateScriptTemplate       func(childComplexity int, input model.UpdateScriptTemplate) int
 		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
@@ -112,6 +113,7 @@ type MutationResolver interface {
 	CreateTransactionExecution(ctx context.Context, input model.NewTransactionExecution) (*model.TransactionExecution, error)
 	CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error)
 	UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error)
+	DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error)
 	CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error)
 }
 type ProjectResolver interface {
@@ -228,6 +230,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateTransactionTemplate(childComplexity, args["input"].(model.NewTransactionTemplate)), true
+
+	case "Mutation.deleteScriptTemplate":
+		if e.complexity.Mutation.DeleteScriptTemplate == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteScriptTemplate_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteScriptTemplate(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Mutation.deleteTransactionTemplate":
 		if e.complexity.Mutation.DeleteTransactionTemplate == nil {
@@ -581,6 +595,7 @@ type Mutation {
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  deleteScriptTemplate(id: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 
@@ -644,6 +659,20 @@ func (ec *executionContext) field_Mutation_createTransactionTemplate_args(ctx co
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteScriptTemplate_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1228,6 +1257,50 @@ func (ec *executionContext) _Mutation_updateScriptTemplate(ctx context.Context, 
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNScriptTemplate2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptTemplate(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteScriptTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteScriptTemplate_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteScriptTemplate(rctx, args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(uuid.UUID)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3536,6 +3609,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updateScriptTemplate":
 			out.Values[i] = ec._Mutation_updateScriptTemplate(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteScriptTemplate":
+			out.Values[i] = ec._Mutation_deleteScriptTemplate(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
