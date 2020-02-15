@@ -7,7 +7,7 @@ import (
 )
 
 type NewScriptExecution struct {
-	TemplateID string `json:"templateId"`
+	Script string `json:"script"`
 }
 
 type NewScriptTemplate struct {
@@ -16,9 +16,9 @@ type NewScriptTemplate struct {
 }
 
 type NewTransactionExecution struct {
-	TemplateID uuid.UUID `json:"templateId"`
-	Payer      string    `json:"payer"`
-	Signers    []*string `json:"signers"`
+	Script  string    `json:"script"`
+	Payer   string    `json:"payer"`
+	Signers []*string `json:"signers"`
 }
 
 type NewTransactionTemplate struct {
@@ -28,7 +28,8 @@ type NewTransactionTemplate struct {
 
 type UpdateScriptTemplate struct {
 	ID     uuid.UUID `json:"id"`
-	Script string    `json:"script"`
+	Index  *int      `json:"index"`
+	Script *string   `json:"script"`
 }
 
 type UpdateTransactionTemplate struct {
