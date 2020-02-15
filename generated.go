@@ -80,6 +80,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Account             func(childComplexity int, id uuid.UUID) int
 		Project             func(childComplexity int, id uuid.UUID) int
 		TransactionTemplate func(childComplexity int, id uuid.UUID) int
 	}
@@ -135,6 +136,7 @@ type ProjectResolver interface {
 }
 type QueryResolver interface {
 	Project(ctx context.Context, id uuid.UUID) (*model.Project, error)
+	Account(ctx context.Context, id uuid.UUID) (*model.Account, error)
 	TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error)
 }
 type TransactionExecutionResolver interface {
@@ -342,6 +344,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Project.TransactionTemplates(childComplexity), true
+
+	case "Query.account":
+		if e.complexity.Query.Account == nil {
+			break
+		}
+
+		args, err := ec.field_Query_account_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Account(childComplexity, args["id"].(uuid.UUID)), true
 
 	case "Query.project":
 		if e.complexity.Query.Project == nil {
@@ -591,6 +605,7 @@ type ScriptExecution {
 type Query {
   project(id: UUID!): Project!
 
+  account(id: UUID!): Account!
   transactionTemplate(id: UUID!): TransactionTemplate!
 }
 
@@ -614,7 +629,7 @@ input UpdateTransactionTemplate {
 input NewTransactionExecution {
   projectId: UUID!
   script: String!
-  signers: [Address!]!
+  signers: [Address!]
 }
 
 input NewScriptTemplate {
@@ -777,6 +792,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_account_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1704,6 +1733,50 @@ func (ec *executionContext) _Query_project(ctx context.Context, field graphql.Co
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNProject2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_account(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_account_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Account(rctx, args["id"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Account)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNAccount2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccount(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_transactionTemplate(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3596,7 +3669,7 @@ func (ec *executionContext) unmarshalInputNewTransactionExecution(ctx context.Co
 			}
 		case "signers":
 			var err error
-			it.Signers, err = ec.unmarshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx, v)
+			it.Signers, err = ec.unmarshalOAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3973,6 +4046,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_project(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "account":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_account(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4501,35 +4588,6 @@ func (ec *executionContext) unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflow�
 
 func (ec *executionContext) marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx context.Context, sel ast.SelectionSet, v model.Address) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) unmarshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, v interface{}) ([]model.Address, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]model.Address, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Address) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, sel, v[i])
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -5066,6 +5124,38 @@ func (ec *executionContext) marshalOAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋfl
 
 	}
 	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, v interface{}) ([]model.Address, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]model.Address, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOAddress2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddressᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Address) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, sel, v[i])
+	}
+
 	return ret
 }
 

@@ -183,7 +183,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script, nil)
+	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script, input.Signers)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
@@ -206,8 +206,15 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 			values := make([]*model.XDRValue, len(event.Fields))
 			for j, field := range event.Fields {
-				value, _ := language.ConvertValue(field)
-				encValue, _ := encoding.Encode(value)
+				value, err := language.ConvertValue(field)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to convert event value")
+				}
+
+				encValue, err := encoding.Encode(value)
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to encode event value")
+				}
 
 				values[j] = &model.XDRValue{
 					Type:  value.Type().ID(),
@@ -295,6 +302,17 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	}
 
 	return &proj, nil
+}
+
+func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Account, error) {
+	var acc model.Account
+
+	err := r.store.GetAccount(id, &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	return &acc, nil
 }
 
 func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error) {

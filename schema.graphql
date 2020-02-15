@@ -55,6 +55,7 @@ type ScriptExecution {
 type Query {
   project(id: UUID!): Project!
 
+  account(id: UUID!): Account!
   transactionTemplate(id: UUID!): TransactionTemplate!
 }
 
@@ -78,7 +79,7 @@ input UpdateTransactionTemplate {
 input NewTransactionExecution {
   projectId: UUID!
   script: String!
-  signers: [Address!]!
+  signers: [Address!]
 }
 
 input NewScriptTemplate {
