@@ -86,6 +86,7 @@ type ComplexityRoot struct {
 
 	ScriptTemplate struct {
 		ID     func(childComplexity int) int
+		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
 	}
 
@@ -363,6 +364,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ScriptTemplate.ID(childComplexity), true
 
+	case "ScriptTemplate.index":
+		if e.complexity.ScriptTemplate.Index == nil {
+			break
+		}
+
+		return e.complexity.ScriptTemplate.Index(childComplexity), true
+
 	case "ScriptTemplate.script":
 		if e.complexity.ScriptTemplate.Script == nil {
 			break
@@ -515,6 +523,7 @@ type TransactionExecution {
 
 type ScriptTemplate {
   id: UUID!
+  index: Int!
   script: String!
 }
 
@@ -554,7 +563,8 @@ input NewScriptTemplate {
 
 input UpdateScriptTemplate {
   id: UUID!
-  script: String!
+  index: Int
+  script: String
 }
 
 input NewScriptExecution {
@@ -1787,6 +1797,43 @@ func (ec *executionContext) _ScriptTemplate_id(ctx context.Context, field graphq
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ScriptTemplate_index(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ScriptTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ScriptTemplate_script(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
@@ -3344,9 +3391,15 @@ func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Conte
 			if err != nil {
 				return it, err
 			}
+		case "index":
+			var err error
+			it.Index, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "script":
 			var err error
-			it.Script, err = ec.unmarshalNString2string(ctx, v)
+			it.Script, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3701,6 +3754,11 @@ func (ec *executionContext) _ScriptTemplate(ctx context.Context, sel ast.Selecti
 			out.Values[i] = graphql.MarshalString("ScriptTemplate")
 		case "id":
 			out.Values[i] = ec._ScriptTemplate_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "index":
+			out.Values[i] = ec._ScriptTemplate_index(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

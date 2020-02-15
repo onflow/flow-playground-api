@@ -181,7 +181,13 @@ func (s *Store) UpdateScriptTemplate(
 		return storage.ErrNotFound
 	}
 
-	t.Script = input.Script
+	if input.Index != nil {
+		t.Index = *input.Index
+	}
+
+	if input.Script != nil {
+		t.Script = *input.Script
+	}
 
 	s.scriptTemplates[input.ID] = t
 

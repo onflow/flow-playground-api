@@ -28,7 +28,8 @@ type NewTransactionTemplate struct {
 
 type UpdateScriptTemplate struct {
 	ID     uuid.UUID `json:"id"`
-	Script string    `json:"script"`
+	Index  *int      `json:"index"`
+	Script *string   `json:"script"`
 }
 
 type UpdateTransactionTemplate struct {
