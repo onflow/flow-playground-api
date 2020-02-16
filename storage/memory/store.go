@@ -17,6 +17,7 @@ type Store struct {
 	accounts              map[uuid.UUID]model.Account
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
+	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
 	registerDeltas        []model.RegisterDelta
 }
 
@@ -27,6 +28,7 @@ func NewStore() *Store {
 		accounts:              make(map[uuid.UUID]model.Account),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
+		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
 		registerDeltas:        make([]model.RegisterDelta, 0),
 	}
 }
@@ -286,6 +288,107 @@ func (s *Store) getTransactionExecutionsForProject(projectID uuid.UUID, exes *[]
 	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
 
 	*exes = res
+
+	return nil
+}
+
+func (s *Store) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	var tpls []*model.ScriptTemplate
+	err := s.getScriptTemplatesForProject(tpl.ProjectID, &tpls)
+	if err != nil {
+		return err
+	}
+
+	count := len(tpls)
+
+	// set index to one after last
+	tpl.Index = count
+
+	s.scriptTemplates[tpl.ID] = *tpl
+
+	return nil
+
+}
+
+func (s *Store) UpdateScriptTemplate(
+	input model.UpdateScriptTemplate,
+	tpl *model.ScriptTemplate,
+) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	t, ok := s.scriptTemplates[input.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	if input.Index != nil {
+		t.Index = *input.Index
+	}
+
+	if input.Script != nil {
+		t.Script = *input.Script
+	}
+
+	s.scriptTemplates[input.ID] = t
+
+	*tpl = t
+
+	return nil
+}
+
+func (s *Store) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	t, ok := s.scriptTemplates[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	*tpl = t
+
+	return nil
+}
+
+func (s *Store) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getScriptTemplatesForProject(projectID, tpls)
+}
+
+func (s *Store) getScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
+	res := make([]*model.ScriptTemplate, 0)
+
+	for _, tpl := range s.scriptTemplates {
+		if tpl.ProjectID == projectID {
+			t := tpl
+			res = append(res, &t)
+		}
+	}
+
+	// sort results by index
+	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
+
+	*tpls = res
+
+	return nil
+}
+
+func (s *Store) DeleteScriptTemplate(id uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	_, ok := s.scriptTemplates[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	delete(s.scriptTemplates, id)
 
 	return nil
 }

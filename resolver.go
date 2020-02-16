@@ -240,13 +240,49 @@ func (r *mutationResolver) CreateTransactionExecution(
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
-	panic("not implemented")
+	tpl := &model.ScriptTemplate{
+		ID:        uuid.New(),
+		ProjectID: input.ProjectID,
+		Script:    input.Script,
+	}
+
+	var proj model.Project
+
+	err := r.store.GetProject(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	err = r.store.InsertScriptTemplate(tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to store script template")
+	}
+
+	return tpl, nil
 }
+
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
-	panic("not implemented")
+	var tpl model.ScriptTemplate
+
+	err := r.store.UpdateScriptTemplate(input, &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update script template")
+	}
+
+	return &tpl, nil
 }
+
 func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
 	panic("not implemented")
+}
+
+func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	err := r.store.DeleteScriptTemplate(id)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to delete script template")
+	}
+
+	return id, nil
 }
 
 type projectResolver struct{ *Resolver }
@@ -284,10 +320,18 @@ func (r *projectResolver) TransactionExecutions(ctx context.Context, obj *model.
 	return exes, nil
 }
 
-func (r *projectResolver) ScriptTemplates(ctx context.Context, obj *model.Project) ([]*model.TransactionTemplate, error) {
-	panic("not implemented")
+func (r *projectResolver) ScriptTemplates(ctx context.Context, obj *model.Project) ([]*model.ScriptTemplate, error) {
+	var tpls []*model.ScriptTemplate
+
+	err := r.store.GetScriptTemplatesForProject(obj.ID, &tpls)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script templates")
+	}
+
+	return tpls, nil
 }
-func (r *projectResolver) ScriptExecutions(ctx context.Context, obj *model.Project) ([]*model.TransactionExecution, error) {
+
+func (r *projectResolver) ScriptExecutions(ctx context.Context, obj *model.Project) ([]*model.ScriptExecution, error) {
 	panic("not implemented")
 }
 
@@ -321,6 +365,17 @@ func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (
 	err := r.store.GetTransactionTemplate(id, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get transaction template")
+	}
+
+	return &tpl, nil
+}
+
+func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID) (*model.ScriptTemplate, error) {
+	var tpl model.ScriptTemplate
+
+	err := r.store.GetScriptTemplate(id, &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script template")
 	}
 
 	return &tpl, nil
