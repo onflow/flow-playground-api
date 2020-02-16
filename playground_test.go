@@ -207,6 +207,14 @@ mutation($projectId: UUID!, $script: String!) {
 }
 `
 
+type CreateScriptTemplateResponse struct {
+	CreateScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const QueryGetScriptTemplate = `
 query($templateId: UUID!) {
   scriptTemplate(id: $templateId) {
@@ -215,6 +223,14 @@ query($templateId: UUID!) {
   }
 }
 `
+
+type GetScriptTemplateResponse struct {
+	ScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
 
 const MutationUpdateScriptTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
@@ -236,11 +252,23 @@ mutation($templateId: UUID!, $index: Int!) {
 }
 `
 
+type UpdateScriptTemplateResponse struct {
+	UpdateScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationDeleteScriptTemplate = `
 mutation($templateId: UUID!) {
   deleteScriptTemplate(id: $templateId)
 }
 `
+
+type DeleteScriptTemplateResponse struct {
+	DeleteScriptTemplate string
+}
 
 func TestProjects(t *testing.T) {
 	t.Run("Create project", func(t *testing.T) {
@@ -616,13 +644,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var resp struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -640,13 +662,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -655,13 +671,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "foo"),
 		)
 
-		var respB struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB GetScriptTemplateResponse
 
 		c.MustPost(
 			QueryGetScriptTemplate,
@@ -676,13 +686,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp GetScriptTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -700,13 +704,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -717,13 +715,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		templateID := respA.CreateScriptTemplate.ID
 
-		var respB struct {
-			UpdateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB UpdateScriptTemplateResponse
 
 		c.MustPost(
 			MutationUpdateScriptTemplateScript,
@@ -736,13 +728,7 @@ func TestScriptTemplates(t *testing.T) {
 		assert.Equal(t, respA.CreateScriptTemplate.Index, respB.UpdateScriptTemplate.Index)
 		assert.Equal(t, "bar", respB.UpdateScriptTemplate.Script)
 
-		var respC struct {
-			UpdateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respC UpdateScriptTemplateResponse
 
 		c.MustPost(
 			MutationUpdateScriptTemplateIndex,
@@ -759,13 +745,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Update non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp UpdateScriptTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -788,16 +768,7 @@ func TestScriptTemplates(t *testing.T) {
 		templateIDB := createScriptTemplate(c, projectID)
 		templateIDC := createScriptTemplate(c, projectID)
 
-		var resp struct {
-			Project struct {
-				ID              string
-				ScriptTemplates []struct {
-					ID     string
-					Script string
-					Index  int
-				}
-			}
-		}
+		var resp GetProjectScriptTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectScriptTemplates,
@@ -818,14 +789,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script templates for non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct {
-				ScriptTemplates []struct {
-					ID     string
-					Script string
-				}
-			}
-		}
+		var resp GetProjectScriptTemplatesResponse
 
 		badID := uuid.New().String()
 
@@ -845,9 +809,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		templateID := createScriptTemplate(c, projectID)
 
-		var resp struct {
-			DeleteScriptTemplate string
-		}
+		var resp DeleteScriptTemplateResponse
 
 		c.MustPost(MutationDeleteScriptTemplate, &resp, client.Var("templateId", templateID))
 
