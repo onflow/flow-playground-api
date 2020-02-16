@@ -22,6 +22,12 @@ type Store interface {
 	InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
 
+	InsertScriptTemplate(tpl *model.ScriptTemplate) error
+	UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error
+	GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error
+	GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error
+	DeleteScriptTemplate(id uuid.UUID) error
+
 	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error
 }

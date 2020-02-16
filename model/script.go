@@ -3,9 +3,10 @@ package model
 import "github.com/google/uuid"
 
 type ScriptTemplate struct {
-	ID     uuid.UUID
-	Index  int
-	Script string
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+	Index     int
+	Script    string
 }
 
 type ScriptExecution struct {

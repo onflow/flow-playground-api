@@ -6,8 +6,8 @@ type Project {
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
-  scriptTemplates: [TransactionTemplate!]
-  scriptExecutions: [TransactionExecution!]
+  scriptTemplates: [ScriptTemplate!]
+  scriptExecutions: [ScriptExecution!]
 }
 
 type Account {
@@ -44,6 +44,7 @@ type Event {
 
 type ScriptTemplate {
   id: UUID!
+  index: Int!
   script: String!
 }
 
@@ -56,6 +57,7 @@ type Query {
   project(id: UUID!): Project!
 
   transactionTemplate(id: UUID!): TransactionTemplate!
+  scriptTemplate(id: UUID!): ScriptTemplate!
 }
 
 input NewTransactionTemplate {
@@ -81,7 +83,8 @@ input NewScriptTemplate {
 
 input UpdateScriptTemplate {
   id: UUID!
-  script: String!
+  index: Int
+  script: String
 }
 
 input NewScriptExecution {
@@ -99,6 +102,7 @@ type Mutation {
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  deleteScriptTemplate(id: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 
