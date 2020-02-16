@@ -6,8 +6,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type Event struct {
+	Type   string      `json:"type"`
+	Values []*XDRValue `json:"values"`
+}
+
 type NewScriptExecution struct {
-	Script string `json:"script"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Script    string    `json:"script"`
 }
 
 type NewScriptTemplate struct {
@@ -16,9 +22,8 @@ type NewScriptTemplate struct {
 }
 
 type NewTransactionExecution struct {
-	Script  string    `json:"script"`
-	Payer   string    `json:"payer"`
-	Signers []*string `json:"signers"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Script    string    `json:"script"`
 }
 
 type NewTransactionTemplate struct {
@@ -36,4 +41,9 @@ type UpdateTransactionTemplate struct {
 	ID     uuid.UUID `json:"id"`
 	Index  *int      `json:"index"`
 	Script *string   `json:"script"`
+}
+
+type XDRValue struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }

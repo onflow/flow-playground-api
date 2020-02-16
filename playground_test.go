@@ -7,9 +7,11 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
+	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 const MutationCreateProject = `
@@ -20,6 +22,10 @@ mutation {
 }
 `
 
+type CreateProjectResponse struct {
+	CreateProject struct{ ID string }
+}
+
 const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {
@@ -27,6 +33,10 @@ query($projectId: UUID!) {
   }
 }
 `
+
+type GetProjectResponse struct {
+	Project struct{ ID string }
+}
 
 const QueryGetProjectTransactionTemplates = `
 query($projectId: UUID!) {
@@ -41,6 +51,17 @@ query($projectId: UUID!) {
 }
 `
 
+type GetProjectTransactionTemplatesResponse struct {
+	Project struct {
+		ID                   string
+		TransactionTemplates []struct {
+			ID     string
+			Script string
+			Index  int
+		}
+	}
+}
+
 const QueryGetProjectScriptTemplates = `
 query($projectId: UUID!) {
   project(id: $projectId) {
@@ -54,6 +75,17 @@ query($projectId: UUID!) {
 }
 `
 
+type GetProjectScriptTemplatesResponse struct {
+	Project struct {
+		ID              string
+		ScriptTemplates []struct {
+			ID     string
+			Script string
+			Index  int
+		}
+	}
+}
+
 const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
@@ -64,14 +96,31 @@ mutation($projectId: UUID!, $script: String!) {
 }
 `
 
+type CreateTransactionTemplateResponse struct {
+	CreateTransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const QueryGetTransactionTemplate = `
 query($templateId: UUID!) {
   transactionTemplate(id: $templateId) {
     id
     script
+	index
   }
 }
 `
+
+type GetTransactionTemplateResponse struct {
+	TransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
 
 const MutationUpdateTransactionTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
@@ -93,11 +142,60 @@ mutation($templateId: UUID!, $index: Int!) {
 }
 `
 
+type UpdateTransactionTemplateResponse struct {
+	UpdateTransactionTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationDeleteTransactionTemplate = `
 mutation($templateId: UUID!) {
   deleteTransactionTemplate(id: $templateId)
 }
 `
+
+type DeleteTransactionTemplateResponse struct {
+	DeleteTransactionTemplate string
+}
+
+const MutationCreateTransactionExecution = `
+mutation($projectId: UUID!, $script: String!) {
+  createTransactionExecution(input: {
+    projectId: $projectId,
+    script: $script,
+  }) {
+    id
+    script
+    error
+	logs
+    events {
+      type
+      values {
+        type
+        value
+      }
+    }
+  }
+}
+`
+
+type CreateTransactionExecutionResponse struct {
+	CreateTransactionExecution struct {
+		ID     string
+		Script string
+		Error  string
+		Logs   []string
+		Events []struct {
+			Type   string
+			Values []struct {
+				Type  string
+				Value string
+			}
+		}
+	}
+}
 
 const MutationCreateScriptTemplate = `
 mutation($projectId: UUID!, $script: String!) {
@@ -109,6 +207,14 @@ mutation($projectId: UUID!, $script: String!) {
 }
 `
 
+type CreateScriptTemplateResponse struct {
+	CreateScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const QueryGetScriptTemplate = `
 query($templateId: UUID!) {
   scriptTemplate(id: $templateId) {
@@ -117,6 +223,14 @@ query($templateId: UUID!) {
   }
 }
 `
+
+type GetScriptTemplateResponse struct {
+	ScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
 
 const MutationUpdateScriptTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
@@ -138,19 +252,29 @@ mutation($templateId: UUID!, $index: Int!) {
 }
 `
 
+type UpdateScriptTemplateResponse struct {
+	UpdateScriptTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationDeleteScriptTemplate = `
 mutation($templateId: UUID!) {
   deleteScriptTemplate(id: $templateId)
 }
 `
 
+type DeleteScriptTemplateResponse struct {
+	DeleteScriptTemplate string
+}
+
 func TestProjects(t *testing.T) {
 	t.Run("Create project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			CreateProject struct{ ID string }
-		}
+		var resp CreateProjectResponse
 
 		c.MustPost(MutationCreateProject, &resp)
 
@@ -160,15 +284,11 @@ func TestProjects(t *testing.T) {
 	t.Run("Get project", func(t *testing.T) {
 		c := newClient()
 
-		var respA struct {
-			CreateProject struct{ ID string }
-		}
+		var respA CreateProjectResponse
 
 		c.MustPost(MutationCreateProject, &respA)
 
-		var respB struct {
-			Project struct{ ID string }
-		}
+		var respB GetProjectResponse
 
 		c.MustPost(
 			QueryGetProject,
@@ -182,9 +302,7 @@ func TestProjects(t *testing.T) {
 	t.Run("Get non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct{ ID string }
-		}
+		var resp CreateProjectResponse
 
 		badID := uuid.New().String()
 
@@ -204,13 +322,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var resp struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -228,13 +340,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -243,13 +349,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "foo"),
 		)
 
-		var respB struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB GetTransactionTemplateResponse
 
 		c.MustPost(
 			QueryGetTransactionTemplate,
@@ -264,13 +364,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp GetTransactionTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -288,13 +382,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
@@ -305,13 +393,7 @@ func TestTransactionTemplates(t *testing.T) {
 
 		templateID := respA.CreateTransactionTemplate.ID
 
-		var respB struct {
-			UpdateTransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB UpdateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationUpdateTransactionTemplateScript,
@@ -347,13 +429,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Update non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			TransactionTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp UpdateTransactionTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -376,16 +452,7 @@ func TestTransactionTemplates(t *testing.T) {
 		templateIDB := createTransactionTemplate(c, projectID)
 		templateIDC := createTransactionTemplate(c, projectID)
 
-		var resp struct {
-			Project struct {
-				ID                   string
-				TransactionTemplates []struct {
-					ID     string
-					Script string
-					Index  int
-				}
-			}
-		}
+		var resp GetProjectTransactionTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectTransactionTemplates,
@@ -406,14 +473,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction templates for non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct {
-				TransactionTemplates []struct {
-					ID     string
-					Script string
-				}
-			}
-		}
+		var resp GetProjectTransactionTemplatesResponse
 
 		badID := uuid.New().String()
 
@@ -443,19 +503,148 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 }
 
+func TestTransactionExecutions(t *testing.T) {
+	t.Run("Create execution for non-existent project", func(t *testing.T) {
+		c := newClient()
+
+		badID := uuid.New().String()
+
+		var resp CreateTransactionExecutionResponse
+
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", badID),
+			client.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Create simple execution", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = "transaction { execute { log(\"Hello, World!\") } }"
+
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+		assert.NoError(t, err)
+
+		assert.Empty(t, resp.CreateTransactionExecution.Error)
+		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+	})
+
+	t.Run("Multiple executions", func(t *testing.T) {
+		c := newClient()
+
+		projectID := createProject(c)
+
+		var respA CreateTransactionExecutionResponse
+
+		const script = "transaction { execute { Account([], []) } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respA,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+
+		eventA := respA.CreateTransactionExecution.Events[0]
+
+		// first account should have address 0x01
+		assert.Equal(t, "flow.AccountCreated", eventA.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+
+		var respB CreateTransactionExecutionResponse
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respB,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+
+		eventB := respB.CreateTransactionExecution.Events[0]
+
+		// second account should have address 0x02
+		assert.Equal(t, "flow.AccountCreated", eventB.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
+	})
+
+	t.Run("Multiple executions with cache reset", func(t *testing.T) {
+		// manually construct resolver
+		store := memory.NewStore()
+		computer := vm.NewComputer(store)
+		resolver := playground.NewResolver(store, computer)
+
+		c := newClientWithResolve(resolver)
+
+		projectID := createProject(c)
+
+		var respA CreateTransactionExecutionResponse
+
+		const script = "transaction { execute { Account([], []) } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respA,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+
+		eventA := respA.CreateTransactionExecution.Events[0]
+
+		// first account should have address 0x01
+		assert.Equal(t, "flow.AccountCreated", eventA.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+
+		// clear ledger cache
+		computer.ClearCache()
+
+		var respB CreateTransactionExecutionResponse
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&respB,
+			client.Var("projectId", projectID),
+			client.Var("script", script),
+		)
+
+		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+
+		eventB := respB.CreateTransactionExecution.Events[0]
+
+		// second account should have address 0x02
+		assert.Equal(t, "flow.AccountCreated", eventB.Type)
+		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
+	})
+}
+
 func TestScriptTemplates(t *testing.T) {
 	t.Run("Create script template", func(t *testing.T) {
 		c := newClient()
 
 		projectID := createProject(c)
 
-		var resp struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -473,13 +662,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -488,13 +671,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "foo"),
 		)
 
-		var respB struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB GetScriptTemplateResponse
 
 		c.MustPost(
 			QueryGetScriptTemplate,
@@ -509,13 +686,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp GetScriptTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -533,13 +704,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		projectID := createProject(c)
 
-		var respA struct {
-			CreateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
@@ -550,13 +715,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		templateID := respA.CreateScriptTemplate.ID
 
-		var respB struct {
-			UpdateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respB UpdateScriptTemplateResponse
 
 		c.MustPost(
 			MutationUpdateScriptTemplateScript,
@@ -569,13 +728,7 @@ func TestScriptTemplates(t *testing.T) {
 		assert.Equal(t, respA.CreateScriptTemplate.Index, respB.UpdateScriptTemplate.Index)
 		assert.Equal(t, "bar", respB.UpdateScriptTemplate.Script)
 
-		var respC struct {
-			UpdateScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var respC UpdateScriptTemplateResponse
 
 		c.MustPost(
 			MutationUpdateScriptTemplateIndex,
@@ -592,13 +745,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Update non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			ScriptTemplate struct {
-				ID     string
-				Script string
-				Index  int
-			}
-		}
+		var resp UpdateScriptTemplateResponse
 
 		badID := uuid.New().String()
 
@@ -621,16 +768,7 @@ func TestScriptTemplates(t *testing.T) {
 		templateIDB := createScriptTemplate(c, projectID)
 		templateIDC := createScriptTemplate(c, projectID)
 
-		var resp struct {
-			Project struct {
-				ID              string
-				ScriptTemplates []struct {
-					ID     string
-					Script string
-					Index  int
-				}
-			}
-		}
+		var resp GetProjectScriptTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectScriptTemplates,
@@ -651,14 +789,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script templates for non-existent project", func(t *testing.T) {
 		c := newClient()
 
-		var resp struct {
-			Project struct {
-				ScriptTemplates []struct {
-					ID     string
-					Script string
-				}
-			}
-		}
+		var resp GetProjectScriptTemplatesResponse
 
 		badID := uuid.New().String()
 
@@ -678,9 +809,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		templateID := createScriptTemplate(c, projectID)
 
-		var resp struct {
-			DeleteScriptTemplate string
-		}
+		var resp DeleteScriptTemplateResponse
 
 		c.MustPost(MutationDeleteScriptTemplate, &resp, client.Var("templateId", templateID))
 
@@ -689,8 +818,15 @@ func TestScriptTemplates(t *testing.T) {
 }
 
 func newClient() *client.Client {
-	resolver := playground.NewResolver(memory.NewStore())
+	store := memory.NewStore()
+	computer := vm.NewComputer(store)
 
+	resolver := playground.NewResolver(store, computer)
+
+	return newClientWithResolve(resolver)
+}
+
+func newClientWithResolve(resolver *playground.Resolver) *client.Client {
 	return client.New(
 		handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
