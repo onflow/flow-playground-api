@@ -13,6 +13,12 @@ type Store interface {
 	InsertProject(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 
+	InsertAccount(acc *model.Account) error
+	GetAccount(id uuid.UUID, acc *model.Account) error
+	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
+	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
+	DeleteAccount(id uuid.UUID) error
+
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
 	GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error

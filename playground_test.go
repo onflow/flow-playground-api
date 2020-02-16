@@ -1,6 +1,7 @@
 package playground_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/99designs/gqlgen/client"
@@ -9,33 +10,49 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	playground "github.com/dapperlabs/flow-playground-api"
+	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
+
+type Project struct {
+	ID       string
+	Accounts []struct {
+		ID      string
+		Address string
+	}
+}
 
 const MutationCreateProject = `
 mutation {
   createProject {
     id
+	accounts {
+	  id 
+	  address
+	}
   }
 }
 `
 
 type CreateProjectResponse struct {
-	CreateProject struct{ ID string }
+	CreateProject Project
 }
 
 const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {
     id
+	accounts {
+	  id
+	  address
+	}
   }
 }
 `
 
 type GetProjectResponse struct {
-	Project struct{ ID string }
+	Project Project
 }
 
 const QueryGetProjectTransactionTemplates = `
@@ -86,6 +103,63 @@ type GetProjectScriptTemplatesResponse struct {
 	}
 }
 
+const QueryGetAccount = `
+query($accountId: UUID!) {
+  account(id: $accountId) {
+    id
+	address
+	draftCode
+	deployedCode
+  }
+}
+`
+
+type GetAccountResponse struct {
+	Account struct {
+		ID           string
+		Address      string
+		DraftCode    string
+		DeployedCode string
+	}
+}
+
+const MutationUpdateAccountDraftCode = `
+mutation($accountId: UUID!, $code: String!) {
+  updateAccount(input: { id: $accountId, draftCode: $code }) {
+    id
+	address
+	draftCode
+	deployedCode
+  }
+}
+`
+
+const MutationUpdateAccountDeployedCode = `
+mutation($accountId: UUID!, $code: String!) {
+  updateAccount(input: { id: $accountId, deployedCode: $code }) {
+    id
+	address
+	draftCode
+	deployedCode
+  }
+}
+`
+
+type UpdateAccountResponse struct {
+	UpdateAccount struct {
+		ID           string
+		Address      string
+		DraftCode    string
+		DeployedCode string
+	}
+}
+
+type TransactionTemplate struct {
+	ID     string
+	Script string
+	Index  int
+}
+
 const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
@@ -97,11 +171,7 @@ mutation($projectId: UUID!, $script: String!) {
 `
 
 type CreateTransactionTemplateResponse struct {
-	CreateTransactionTemplate struct {
-		ID     string
-		Script string
-		Index  int
-	}
+	CreateTransactionTemplate TransactionTemplate
 }
 
 const QueryGetTransactionTemplate = `
@@ -161,10 +231,11 @@ type DeleteTransactionTemplateResponse struct {
 }
 
 const MutationCreateTransactionExecution = `
-mutation($projectId: UUID!, $script: String!) {
+mutation($projectId: UUID!, $script: String!, $signers: [Address!]) {
   createTransactionExecution(input: {
     projectId: $projectId,
     script: $script,
+	signers: $signers,
   }) {
     id
     script
@@ -279,6 +350,9 @@ func TestProjects(t *testing.T) {
 		c.MustPost(MutationCreateProject, &resp)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
+
+		// project should be created with 3 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, 3)
 	})
 
 	t.Run("Get project", func(t *testing.T) {
@@ -320,14 +394,14 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Create transaction template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var resp CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
 			&resp,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -338,14 +412,14 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -380,14 +454,14 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Update transaction template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateTransactionTemplateResponse
 
 		c.MustPost(
 			MutationCreateTransactionTemplate,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -446,24 +520,24 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction templates for project", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
-		templateIDA := createTransactionTemplate(c, projectID)
-		templateIDB := createTransactionTemplate(c, projectID)
-		templateIDC := createTransactionTemplate(c, projectID)
+		templateA := createTransactionTemplate(c, project.ID)
+		templateB := createTransactionTemplate(c, project.ID)
+		templateC := createTransactionTemplate(c, project.ID)
 
 		var resp GetProjectTransactionTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectTransactionTemplates,
 			&resp,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 		)
 
 		assert.Len(t, resp.Project.TransactionTemplates, 3)
-		assert.Equal(t, templateIDA, resp.Project.TransactionTemplates[0].ID)
-		assert.Equal(t, templateIDB, resp.Project.TransactionTemplates[1].ID)
-		assert.Equal(t, templateIDC, resp.Project.TransactionTemplates[2].ID)
+		assert.Equal(t, templateA.ID, resp.Project.TransactionTemplates[0].ID)
+		assert.Equal(t, templateB.ID, resp.Project.TransactionTemplates[1].ID)
+		assert.Equal(t, templateC.ID, resp.Project.TransactionTemplates[2].ID)
 
 		assert.Equal(t, 0, resp.Project.TransactionTemplates[0].Index)
 		assert.Equal(t, 1, resp.Project.TransactionTemplates[1].Index)
@@ -489,17 +563,15 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Delete transaction template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
-		templateID := createTransactionTemplate(c, projectID)
+		template := createTransactionTemplate(c, project.ID)
 
-		var resp struct {
-			DeleteTransactionTemplate string
-		}
+		var resp DeleteTransactionTemplateResponse
 
-		c.MustPost(MutationDeleteTransactionTemplate, &resp, client.Var("templateId", templateID))
+		c.MustPost(MutationDeleteTransactionTemplate, &resp, client.Var("templateId", template.ID))
 
-		assert.Equal(t, templateID, resp.DeleteTransactionTemplate)
+		assert.Equal(t, template.ID, resp.DeleteTransactionTemplate)
 	})
 }
 
@@ -524,7 +596,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Create simple execution", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -533,7 +605,7 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
 		assert.NoError(t, err)
@@ -546,7 +618,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateTransactionExecutionResponse
 
@@ -555,7 +627,7 @@ func TestTransactionExecutions(t *testing.T) {
 		c.MustPost(
 			MutationCreateTransactionExecution,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
 
@@ -564,16 +636,16 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x01
+		// first account should have address 0x04
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
 
 		var respB CreateTransactionExecutionResponse
 
 		c.MustPost(
 			MutationCreateTransactionExecution,
 			&respB,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
 
@@ -581,9 +653,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x02
+		// second account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -594,7 +666,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		c := newClientWithResolve(resolver)
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateTransactionExecutionResponse
 
@@ -603,7 +675,7 @@ func TestTransactionExecutions(t *testing.T) {
 		c.MustPost(
 			MutationCreateTransactionExecution,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
 
@@ -612,9 +684,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x01
+		// first account should have address 0x04
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000001", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -624,7 +696,7 @@ func TestTransactionExecutions(t *testing.T) {
 		c.MustPost(
 			MutationCreateTransactionExecution,
 			&respB,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
 
@@ -632,9 +704,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x02
+		// second account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000002", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
 	})
 }
 
@@ -642,14 +714,14 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Create script template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var resp CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
 			&resp,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -660,14 +732,14 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -702,14 +774,14 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Update script template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
 		var respA CreateScriptTemplateResponse
 
 		c.MustPost(
 			MutationCreateScriptTemplate,
 			&respA,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
 		)
 
@@ -762,18 +834,18 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script templates for project", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
-		templateIDA := createScriptTemplate(c, projectID)
-		templateIDB := createScriptTemplate(c, projectID)
-		templateIDC := createScriptTemplate(c, projectID)
+		templateIDA := createScriptTemplate(c, project.ID)
+		templateIDB := createScriptTemplate(c, project.ID)
+		templateIDC := createScriptTemplate(c, project.ID)
 
 		var resp GetProjectScriptTemplatesResponse
 
 		c.MustPost(
 			QueryGetProjectScriptTemplates,
 			&resp,
-			client.Var("projectId", projectID),
+			client.Var("projectId", project.ID),
 		)
 
 		assert.Len(t, resp.Project.ScriptTemplates, 3)
@@ -794,6 +866,7 @@ func TestScriptTemplates(t *testing.T) {
 		badID := uuid.New().String()
 
 		err := c.Post(
+
 			QueryGetProjectScriptTemplates,
 			&resp,
 			client.Var("projectId", badID),
@@ -805,9 +878,9 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Delete script template", func(t *testing.T) {
 		c := newClient()
 
-		projectID := createProject(c)
+		project := createProject(c)
 
-		templateID := createScriptTemplate(c, projectID)
+		templateID := createScriptTemplate(c, project.ID)
 
 		var resp DeleteScriptTemplateResponse
 
@@ -815,6 +888,232 @@ func TestScriptTemplates(t *testing.T) {
 
 		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
 	})
+}
+
+func TestAccounts(t *testing.T) {
+	t.Run("Get account", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+		account := project.Accounts[0]
+
+		var resp GetAccountResponse
+
+		c.MustPost(
+			QueryGetAccount,
+			&resp,
+			client.Var("accountId", account.ID),
+		)
+
+		assert.Equal(t, account.ID, resp.Account.ID)
+	})
+
+	t.Run("Get non-existent account", func(t *testing.T) {
+		c := newClient()
+
+		var resp GetAccountResponse
+
+		badID := uuid.New().String()
+
+		err := c.Post(
+			QueryGetAccount,
+			&resp,
+			client.Var("accountId", badID),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Update account draft code", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+		account := project.Accounts[0]
+
+		var respA GetAccountResponse
+
+		c.MustPost(
+			QueryGetAccount,
+			&respA,
+			client.Var("accountId", account.ID),
+		)
+
+		assert.Equal(t, "", respA.Account.DraftCode)
+
+		var respB UpdateAccountResponse
+
+		c.MustPost(
+			MutationUpdateAccountDraftCode,
+			&respB,
+			client.Var("accountId", account.ID),
+			client.Var("code", "bar"),
+		)
+
+		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
+	})
+
+	t.Run("Update account invalid deployed code", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+		account := project.Accounts[0]
+
+		var respA GetAccountResponse
+
+		c.MustPost(
+			QueryGetAccount,
+			&respA,
+			client.Var("accountId", account.ID),
+		)
+
+		assert.Equal(t, "", respA.Account.DeployedCode)
+
+		var respB UpdateAccountResponse
+
+		err := c.Post(
+			MutationUpdateAccountDeployedCode,
+			&respB,
+			client.Var("accountId", account.ID),
+			client.Var("code", "INVALID CADENCE"),
+		)
+
+		assert.Error(t, err)
+		assert.Equal(t, "", respB.UpdateAccount.DeployedCode)
+	})
+
+	t.Run("Update account deployed code", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		account := project.Accounts[0]
+
+		var respA GetAccountResponse
+
+		c.MustPost(
+			QueryGetAccount,
+			&respA,
+			client.Var("accountId", account.ID),
+		)
+
+		assert.Equal(t, "", respA.Account.DeployedCode)
+
+		var respB UpdateAccountResponse
+
+		const contract = "pub contract Foo {}"
+
+		c.MustPost(
+			MutationUpdateAccountDeployedCode,
+			&respB,
+			client.Var("accountId", account.ID),
+			client.Var("code", contract),
+		)
+
+		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+	})
+
+	t.Run("Update non-existent account", func(t *testing.T) {
+		c := newClient()
+
+		var resp UpdateAccountResponse
+
+		badID := uuid.New().String()
+
+		err := c.Post(
+			MutationUpdateAccountDraftCode,
+			&resp,
+			client.Var("accountId", badID),
+			client.Var("script", "bar"),
+		)
+
+		assert.Error(t, err)
+	})
+}
+
+const counterContract = `
+  pub contract Counting {
+
+      pub event CountIncremented(count: Int)
+
+      pub resource Counter {
+          pub var count: Int
+
+          init() {
+              self.count = 0
+          }
+
+          pub fun add(_ count: Int) {
+              self.count = self.count + count
+              emit CountIncremented(count: self.count)
+          }
+      }
+
+      pub fun createCounter(): @Counter {
+          return <-create Counter()
+      }
+  }
+`
+
+// generateAddTwoToCounterScript generates a script that increments a counter.
+// If no counter exists, it is created.
+func generateAddTwoToCounterScript(counterAddress string) string {
+	return fmt.Sprintf(
+		`
+            import 0x%s
+
+            transaction {
+
+                prepare(signer: Account) {
+                    if signer.storage[Counting.Counter] == nil {
+                        let existing <- signer.storage[Counting.Counter] <- Counting.createCounter()
+                        destroy existing
+
+                        signer.published[&Counting.Counter] = &signer.storage[Counting.Counter] as &Counting.Counter
+                    }
+
+                    signer.published[&Counting.Counter]?.add(2)
+                }
+            }
+        `,
+		counterAddress,
+	)
+}
+
+func TestContractInteraction(t *testing.T) {
+	c := newClient()
+
+	project := createProject(c)
+
+	accountA := project.Accounts[0]
+	accountB := project.Accounts[1]
+
+	var respA UpdateAccountResponse
+
+	const contract = "pub contract Foo { pub var bar: Int }"
+
+	c.MustPost(
+		MutationUpdateAccountDeployedCode,
+		&respA,
+		client.Var("accountId", accountA.ID),
+		client.Var("code", counterContract),
+	)
+
+	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
+
+	addScript := generateAddTwoToCounterScript(accountA.Address)
+
+	var respB CreateTransactionExecutionResponse
+
+	c.MustPost(
+		MutationCreateTransactionExecution,
+		&respB,
+		client.Var("projectId", project.ID),
+		client.Var("script", addScript),
+		client.Var("signers", []string{accountB.Address}),
+	)
+
+	assert.Empty(t, respB.CreateTransactionExecution.Error)
+
 }
 
 func newClient() *client.Client {
@@ -834,24 +1133,16 @@ func newClientWithResolve(resolver *playground.Resolver) *client.Client {
 	)
 }
 
-func createProject(c *client.Client) string {
-	var resp struct {
-		CreateProject struct{ ID string }
-	}
+func createProject(c *client.Client) Project {
+	var resp CreateProjectResponse
 
 	c.MustPost(MutationCreateProject, &resp)
 
-	return resp.CreateProject.ID
+	return resp.CreateProject
 }
 
-func createTransactionTemplate(c *client.Client, projectID string) string {
-	var resp struct {
-		CreateTransactionTemplate struct {
-			ID     string
-			Script string
-			Index  int
-		}
-	}
+func createTransactionTemplate(c *client.Client, projectID string) TransactionTemplate {
+	var resp CreateTransactionTemplateResponse
 
 	c.MustPost(
 		MutationCreateTransactionTemplate,
@@ -860,7 +1151,7 @@ func createTransactionTemplate(c *client.Client, projectID string) string {
 		client.Var("script", "foo"),
 	)
 
-	return resp.CreateTransactionTemplate.ID
+	return resp.CreateTransactionTemplate
 }
 
 func createScriptTemplate(c *client.Client, projectID string) string {

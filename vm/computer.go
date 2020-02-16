@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
@@ -28,7 +29,11 @@ func NewComputer(store storage.Store) *Computer {
 	}
 }
 
-func (c *Computer) ExecuteTransaction(projectID uuid.UUID, script string) (*virtualmachine.TransactionResult, state.Delta, error) {
+func (c *Computer) ExecuteTransaction(
+	projectID uuid.UUID,
+	script string,
+	signers []model.Address,
+) (*virtualmachine.TransactionResult, state.Delta, error) {
 	ledger, err := c.getOrCreateLedger(projectID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get ledger for project")
@@ -36,11 +41,15 @@ func (c *Computer) ExecuteTransaction(projectID uuid.UUID, script string) (*virt
 
 	view := ledger.NewView()
 
+	scriptAccounts := make([]flow.Address, len(signers))
+	for i, signer := range signers {
+		scriptAccounts[i] = flow.Address(signer)
+	}
+
 	result, err := c.blockContext.ExecuteTransaction(view, &flow.TransactionBody{
-		Nonce:  rand.Uint64(),
-		Script: []byte(script),
-		// TODO: include accounts
-		ScriptAccounts: nil,
+		Nonce:          rand.Uint64(),
+		Script:         []byte(script),
+		ScriptAccounts: scriptAccounts,
 	})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "vm failed to execute transaction")
