@@ -7,8 +7,10 @@ require (
 	github.com/dapperlabs/flow-go v0.3.2-0.20200215005507-cd1167437238
 	github.com/dapperlabs/flow-go-sdk v0.4.0
 	github.com/dapperlabs/flow-go/language v0.3.2-0.20200215005507-cd1167437238
+	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/pkg/errors v0.8.1
+	github.com/rs/cors v1.6.0
 	github.com/stretchr/testify v1.4.0
 	github.com/vektah/gqlparser v1.2.0
 )
