@@ -11,6 +11,11 @@ type Event struct {
 	Values []*XDRValue `json:"values"`
 }
 
+type NewProject struct {
+	Accounts             []string `json:"accounts"`
+	TransactionTemplates []string `json:"transactionTemplates"`
+}
+
 type NewScriptExecution struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`

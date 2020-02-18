@@ -59,7 +59,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateProject              func(childComplexity int) int
+		CreateProject              func(childComplexity int, input model.NewProject) int
 		CreateScriptExecution      func(childComplexity int, input model.NewScriptExecution) int
 		CreateScriptTemplate       func(childComplexity int, input model.NewScriptTemplate) int
 		CreateTransactionExecution func(childComplexity int, input model.NewTransactionExecution) int
@@ -120,7 +120,7 @@ type ComplexityRoot struct {
 }
 
 type MutationResolver interface {
-	CreateProject(ctx context.Context) (*model.Project, error)
+	CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error)
 	UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error)
 	CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error)
 	UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error)
@@ -210,7 +210,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Mutation.CreateProject(childComplexity), true
+		args, err := ec.field_Mutation_createProject_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateProject(childComplexity, args["input"].(model.NewProject)), true
 
 	case "Mutation.createScriptExecution":
 		if e.complexity.Mutation.CreateScriptExecution == nil {
@@ -647,6 +652,11 @@ type Query {
   scriptTemplate(id: UUID!): ScriptTemplate!
 }
 
+input NewProject {
+  accounts: [String!]!
+  transactionTemplates: [String!]!
+}
+
 input UpdateAccount {
   id: UUID!
   draftCode: String
@@ -687,7 +697,7 @@ input NewScriptExecution {
 }
 
 type Mutation {
-  createProject: Project!
+  createProject(input: NewProject!): Project!
 
   updateAccount(input: UpdateAccount!): Account!
 
@@ -708,6 +718,20 @@ type Mutation {
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_createProject_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.NewProject
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNNewProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewProject(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_createScriptExecution_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1179,10 +1203,17 @@ func (ec *executionContext) _Mutation_createProject(ctx context.Context, field g
 		IsMethod: true,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createProject_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateProject(rctx)
+		return ec.resolvers.Mutation().CreateProject(rctx, args["input"].(model.NewProject))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3794,6 +3825,30 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewProject(ctx context.Context, obj interface{}) (model.NewProject, error) {
+	var it model.NewProject
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "accounts":
+			var err error
+			it.Accounts, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "transactionTemplates":
+			var err error
+			it.TransactionTemplates, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewScriptExecution(ctx context.Context, obj interface{}) (model.NewScriptExecution, error) {
 	var it model.NewScriptExecution
 	var asMap = obj.(map[string]interface{})
@@ -4876,6 +4931,10 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNNewProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewProject(ctx context.Context, v interface{}) (model.NewProject, error) {
+	return ec.unmarshalInputNewProject(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNNewScriptExecution2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewScriptExecution(ctx context.Context, v interface{}) (model.NewScriptExecution, error) {
