@@ -341,6 +341,8 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
+// TODO: update tests for new createProject semantics
+
 func TestProjects(t *testing.T) {
 	t.Run("Create project", func(t *testing.T) {
 		c := newClient()

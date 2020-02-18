@@ -47,7 +47,7 @@ type mutationResolver struct {
 	*Resolver
 }
 
-func (r *mutationResolver) CreateProject(ctx context.Context) (*model.Project, error) {
+func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	proj := &model.Project{
 		ID: uuid.New(),
 	}
@@ -57,12 +57,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context) (*model.Project, e
 		return nil, errors.Wrap(err, "failed to store project")
 	}
 
-	// TODO: clean this up
-	for i := 0; i < 3; i++ {
+	for i, code := range input.Accounts {
 		acc := model.Account{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Index:     i,
+			DraftCode: code,
 		}
 
 		script, _ := templates.CreateAccount(nil, nil)
@@ -90,6 +90,19 @@ func (r *mutationResolver) CreateProject(ctx context.Context) (*model.Project, e
 		err = r.store.InsertAccount(&acc)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to store account")
+		}
+	}
+
+	for _, script := range input.TransactionTemplates {
+		tpl := &model.TransactionTemplate{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Script:    script,
+		}
+
+		err = r.store.InsertTransactionTemplate(tpl)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to store transaction template")
 		}
 	}
 

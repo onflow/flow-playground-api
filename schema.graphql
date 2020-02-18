@@ -61,6 +61,11 @@ type Query {
   scriptTemplate(id: UUID!): ScriptTemplate!
 }
 
+input NewProject {
+  accounts: [String!]!
+  transactionTemplates: [String!]!
+}
+
 input UpdateAccount {
   id: UUID!
   draftCode: String
@@ -101,7 +106,7 @@ input NewScriptExecution {
 }
 
 type Mutation {
-  createProject: Project!
+  createProject(input: NewProject!): Project!
 
   updateAccount(input: UpdateAccount!): Account!
 
