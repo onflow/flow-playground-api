@@ -273,7 +273,51 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 }
 
 func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
-	panic("not implemented")
+	var proj model.Project
+
+	err := r.store.GetProject(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	result, err := r.computer.ExecuteScript(input.ProjectID, input.Script)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to execute script")
+	}
+
+	exe := model.ScriptExecution{
+		ID:        uuid.New(),
+		ProjectID: input.ProjectID,
+		Script:    input.Script,
+		Logs:      result.Logs,
+	}
+
+	if result.Error != nil {
+		runtimeErr := result.Error.Error()
+		exe.Error = &runtimeErr
+	}
+
+	value, err := language.ConvertValue(result.Value)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to convert script result")
+	}
+
+	encValue, err := encoding.Encode(value)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encode script value")
+	}
+
+	exe.Value = model.XDRValue{
+		Type:  value.Type().ID(),
+		Value: fmt.Sprintf("%x", encValue),
+	}
+
+	err = r.store.InsertScriptExecution(&exe)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to insert script execution record")
+	}
+
+	return &exe, nil
 }
 
 func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {

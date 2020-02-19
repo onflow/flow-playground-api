@@ -10,7 +10,11 @@ type ScriptTemplate struct {
 }
 
 type ScriptExecution struct {
-	ID     uuid.UUID
-	Index  int
-	Script string
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+	Index     int
+	Script    string
+	Value     XDRValue
+	Error     *string
+	Logs      []string
 }
