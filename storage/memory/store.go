@@ -13,7 +13,7 @@ import (
 
 type Store struct {
 	mut                   sync.RWMutex
-	projects              map[uuid.UUID]model.Project
+	projects              map[uuid.UUID]model.InternalProject
 	accounts              map[uuid.UUID]model.Account
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
@@ -24,7 +24,7 @@ type Store struct {
 func NewStore() *Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
-		projects:              make(map[uuid.UUID]model.Project),
+		projects:              make(map[uuid.UUID]model.InternalProject),
 		accounts:              make(map[uuid.UUID]model.Account),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
@@ -33,7 +33,7 @@ func NewStore() *Store {
 	}
 }
 
-func (s *Store) InsertProject(proj *model.Project) error {
+func (s *Store) InsertProject(proj *model.InternalProject) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -42,7 +42,7 @@ func (s *Store) InsertProject(proj *model.Project) error {
 	return nil
 }
 
-func (s *Store) GetProject(id uuid.UUID, proj *model.Project) error {
+func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 

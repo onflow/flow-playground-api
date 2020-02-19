@@ -3,6 +3,8 @@ scalar Address
 
 type Project {
   id: UUID!
+  privateId: UUID
+  publicId: UUID!
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
