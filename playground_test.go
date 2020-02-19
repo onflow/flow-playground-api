@@ -18,19 +18,27 @@ import (
 type Project struct {
 	ID       string
 	Accounts []struct {
-		ID      string
-		Address string
+		ID        string
+		Address   string
+		DraftCode string
 	}
+	TransactionTemplates []TransactionTemplate
 }
 
 const MutationCreateProject = `
-mutation {
-  createProject {
+mutation($accounts: [String!], $transactionTemplates: [String!]) {
+  createProject(input: { accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
-	accounts {
-	  id 
-	  address
-	}
+    accounts {
+      id
+      address
+      draftCode
+    }
+    transactionTemplates {
+      id
+      script
+      index
+    }
   }
 }
 `
@@ -43,10 +51,10 @@ const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {
     id
-	accounts {
-	  id
-	  address
-	}
+    accounts {
+      id
+      address
+    }
   }
 }
 `
@@ -107,9 +115,9 @@ const QueryGetAccount = `
 query($accountId: UUID!) {
   account(id: $accountId) {
     id
-	address
-	draftCode
-	deployedCode
+    address
+    draftCode
+    deployedCode
   }
 }
 `
@@ -127,9 +135,9 @@ const MutationUpdateAccountDraftCode = `
 mutation($accountId: UUID!, $code: String!) {
   updateAccount(input: { id: $accountId, draftCode: $code }) {
     id
-	address
-	draftCode
-	deployedCode
+    address
+    draftCode
+    deployedCode
   }
 }
 `
@@ -138,9 +146,9 @@ const MutationUpdateAccountDeployedCode = `
 mutation($accountId: UUID!, $code: String!) {
   updateAccount(input: { id: $accountId, deployedCode: $code }) {
     id
-	address
-	draftCode
-	deployedCode
+    address
+    draftCode
+    deployedCode
   }
 }
 `
@@ -164,7 +172,7 @@ const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
     id
-	script
+    script
     index
   }
 }
@@ -179,7 +187,7 @@ query($templateId: UUID!) {
   transactionTemplate(id: $templateId) {
     id
     script
-	index
+    index
   }
 }
 `
@@ -196,7 +204,7 @@ const MutationUpdateTransactionTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
   updateTransactionTemplate(input: { id: $templateId, script: $script }) {
     id
-	script
+    script
     index
   }
 }
@@ -206,7 +214,7 @@ const MutationUpdateTransactionTemplateIndex = `
 mutation($templateId: UUID!, $index: Int!) {
   updateTransactionTemplate(input: { id: $templateId, index: $index }) {
     id
-	script
+    script
     index
   }
 }
@@ -235,12 +243,12 @@ mutation($projectId: UUID!, $script: String!, $signers: [Address!]) {
   createTransactionExecution(input: {
     projectId: $projectId,
     script: $script,
-	signers: $signers,
+    signers: $signers,
   }) {
     id
     script
     error
-	logs
+    logs
     events {
       type
       values {
@@ -272,8 +280,8 @@ const MutationCreateScriptTemplate = `
 mutation($projectId: UUID!, $script: String!) {
   createScriptTemplate(input: { projectId: $projectId, script: $script }) {
     id
-	script
-	index
+    script
+    index
   }
 }
 `
@@ -307,7 +315,7 @@ const MutationUpdateScriptTemplateScript = `
 mutation($templateId: UUID!, $script: String!) {
   updateScriptTemplate(input: { id: $templateId, script: $script }) {
     id
-	script
+    script
     index
   }
 }
@@ -317,7 +325,7 @@ const MutationUpdateScriptTemplateIndex = `
 mutation($templateId: UUID!, $index: Int!) {
   updateScriptTemplate(input: { id: $templateId, index: $index }) {
     id
-	script
+    script
     index
   }
 }
@@ -344,12 +352,15 @@ type DeleteScriptTemplateResponse struct {
 // TODO: update tests for new createProject semantics
 
 func TestProjects(t *testing.T) {
-	t.Run("Create project", func(t *testing.T) {
+	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
 
 		var resp CreateProjectResponse
 
-		c.MustPost(MutationCreateProject, &resp)
+		c.MustPost(
+			MutationCreateProject,
+			&resp,
+		)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
 
@@ -357,22 +368,91 @@ func TestProjects(t *testing.T) {
 		assert.Len(t, resp.CreateProject.Accounts, 3)
 	})
 
+	t.Run("Create project with 2 accounts", func(t *testing.T) {
+		c := newClient()
+
+		var resp CreateProjectResponse
+
+		accounts := []string{
+			"pub contract Foo {}",
+			"pub contract Bar {}",
+		}
+
+		c.MustPost(
+			MutationCreateProject,
+			&resp,
+			client.Var("accounts", accounts),
+		)
+
+		// project should still be created with 3 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, 3)
+
+		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
+		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
+		assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
+	})
+
+	t.Run("Create project with 4 accounts", func(t *testing.T) {
+		c := newClient()
+
+		var resp CreateProjectResponse
+
+		accounts := []string{
+			"pub contract Foo {}",
+			"pub contract Bar {}",
+			"pub contract Dog {}",
+			"pub contract Cat {}",
+		}
+
+		c.MustPost(
+			MutationCreateProject,
+			&resp,
+			client.Var("accounts", accounts),
+		)
+
+		// project should still be created with 3 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, 3)
+
+		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
+		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
+		assert.Equal(t, accounts[2], resp.CreateProject.Accounts[2].DraftCode)
+	})
+
+	t.Run("Create project with transaction templates", func(t *testing.T) {
+		c := newClient()
+
+		var resp CreateProjectResponse
+
+		templates := []string{
+			"transaction { execute { log(\"foo\") } }",
+			"transaction { execute { log(\"bar\") } }",
+		}
+
+		c.MustPost(
+			MutationCreateProject,
+			&resp,
+			client.Var("transactionTemplates", templates),
+		)
+
+		assert.Len(t, resp.CreateProject.TransactionTemplates, 2)
+		assert.Equal(t, templates[0], resp.CreateProject.TransactionTemplates[0].Script)
+		assert.Equal(t, templates[1], resp.CreateProject.TransactionTemplates[1].Script)
+	})
+
 	t.Run("Get project", func(t *testing.T) {
 		c := newClient()
 
-		var respA CreateProjectResponse
+		project := createProject(c)
 
-		c.MustPost(MutationCreateProject, &respA)
-
-		var respB GetProjectResponse
+		var resp GetProjectResponse
 
 		c.MustPost(
 			QueryGetProject,
-			&respB,
-			client.Var("projectId", respA.CreateProject.ID),
+			&resp,
+			client.Var("projectId", project.ID),
 		)
 
-		assert.Equal(t, respA.CreateProject.ID, respB.Project.ID)
+		assert.Equal(t, project.ID, resp.Project.ID)
 	})
 
 	t.Run("Get non-existent project", func(t *testing.T) {
@@ -1138,7 +1218,12 @@ func newClientWithResolve(resolver *playground.Resolver) *client.Client {
 func createProject(c *client.Client) Project {
 	var resp CreateProjectResponse
 
-	c.MustPost(MutationCreateProject, &resp)
+	c.MustPost(
+		MutationCreateProject,
+		&resp,
+		client.Var("accounts", []string{}),
+		client.Var("transactionTemplates", []string{}),
+	)
 
 	return resp.CreateProject
 }

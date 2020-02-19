@@ -57,12 +57,15 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		return nil, errors.Wrap(err, "failed to store project")
 	}
 
-	for i, code := range input.Accounts {
+	for i := 0; i < 3; i++ {
 		acc := model.Account{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Index:     i,
-			DraftCode: code,
+		}
+
+		if i < len(input.Accounts) {
+			acc.DraftCode = input.Accounts[i]
 		}
 
 		script, _ := templates.CreateAccount(nil, nil)

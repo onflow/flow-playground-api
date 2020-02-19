@@ -62,8 +62,8 @@ type Query {
 }
 
 input NewProject {
-  accounts: [String!]!
-  transactionTemplates: [String!]!
+  accounts: [String!]
+  transactionTemplates: [String!]
 }
 
 input UpdateAccount {
