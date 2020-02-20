@@ -48,6 +48,7 @@ type mutationResolver struct {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
+	maxAccounts := 4
 	proj := &model.Project{
 		ID: uuid.New(),
 	}
@@ -57,7 +58,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		return nil, errors.Wrap(err, "failed to store project")
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < maxAccounts; i++ {
 		acc := model.Account{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
