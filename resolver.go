@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/vm"
@@ -42,14 +43,19 @@ func (r *Resolver) Query() QueryResolver {
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
+func (r *Resolver) Store() storage.Store {
+	return r.store
+}
 
 type mutationResolver struct {
 	*Resolver
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	proj := &model.Project{
-		ID: uuid.New(),
+	proj := &model.InternalProject{
+		ID:        uuid.New(),
+		PrivateID: uuid.New(),
+		PublicID:  uuid.New(),
 	}
 
 	err := r.store.InsertProject(proj)
@@ -109,7 +115,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	return proj, nil
+	// return project with private ID
+	return proj.ExportPrivate(), nil
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
@@ -118,6 +125,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	err := r.store.GetAccount(input.ID, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	if !auth.HasProjectPermission(ctx, acc.ProjectID) {
+		return nil, errors.New("access denied")
 	}
 
 	// TODO: make deployment atomic
@@ -153,11 +164,15 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 		Script:    input.Script,
 	}
 
-	var proj model.Project
+	var proj model.InternalProject
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+		return nil, errors.New("access denied")
 	}
 
 	err = r.store.InsertTransactionTemplate(tpl)
@@ -171,7 +186,16 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
 	var tpl model.TransactionTemplate
 
-	err := r.store.UpdateTransactionTemplate(input, &tpl)
+	err := r.store.GetTransactionTemplate(input.ID, &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get transaction template")
+	}
+
+	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+		return nil, errors.New("access denied")
+	}
+
+	err = r.store.UpdateTransactionTemplate(input, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update transaction template")
 	}
@@ -180,7 +204,18 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 }
 
 func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	err := r.store.DeleteTransactionTemplate(id)
+	var tpl model.TransactionTemplate
+
+	err := r.store.GetTransactionTemplate(id, &tpl)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get transaction template")
+	}
+
+	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+		return uuid.Nil, errors.New("access denied")
+	}
+
+	err = r.store.DeleteTransactionTemplate(id)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to delete transaction template")
 	}
@@ -192,11 +227,15 @@ func (r *mutationResolver) CreateTransactionExecution(
 	ctx context.Context,
 	input model.NewTransactionExecution,
 ) (*model.TransactionExecution, error) {
-	var proj model.Project
+	var proj model.InternalProject
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+		return nil, errors.New("access denied")
 	}
 
 	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script, input.Signers)
@@ -262,11 +301,15 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		Script:    input.Script,
 	}
 
-	var proj model.Project
+	var proj model.InternalProject
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+		return nil, errors.New("access denied")
 	}
 
 	err = r.store.InsertScriptTemplate(tpl)
@@ -280,7 +323,16 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
 	var tpl model.ScriptTemplate
 
-	err := r.store.UpdateScriptTemplate(input, &tpl)
+	err := r.store.GetScriptTemplate(input.ID, &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script template")
+	}
+
+	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+		return nil, errors.New("access denied")
+	}
+
+	err = r.store.UpdateScriptTemplate(input, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update script template")
 	}
@@ -293,7 +345,18 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 }
 
 func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	err := r.store.DeleteScriptTemplate(id)
+	var tpl model.ScriptTemplate
+
+	err := r.store.GetScriptTemplate(id, &tpl)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get script template")
+	}
+
+	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+		return uuid.Nil, errors.New("access denied")
+	}
+
+	err = r.store.DeleteScriptTemplate(id)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to delete script template")
 	}
@@ -354,14 +417,15 @@ func (r *projectResolver) ScriptExecutions(ctx context.Context, obj *model.Proje
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	var proj model.Project
+	var proj model.InternalProject
 
 	err := r.store.GetProject(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	return &proj, nil
+	// do not return private ID
+	return proj.ExportPublic(), nil
 }
 
 func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Account, error) {
