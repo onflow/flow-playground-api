@@ -67,6 +67,8 @@ func (c *Computer) ClearCache() {
 }
 
 func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (Ledger, error) {
+	// TODO: check that cache is up-to-date
+
 	ledger, ok := c.ledgerCache[projectID]
 	if ok {
 		return ledger, nil
