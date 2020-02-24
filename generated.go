@@ -67,6 +67,7 @@ type ComplexityRoot struct {
 		DeleteScriptTemplate       func(childComplexity int, id uuid.UUID) int
 		DeleteTransactionTemplate  func(childComplexity int, id uuid.UUID) int
 		UpdateAccount              func(childComplexity int, input model.UpdateAccount) int
+		UpdateProject              func(childComplexity int, input model.UpdateProject) int
 		UpdateScriptTemplate       func(childComplexity int, input model.UpdateScriptTemplate) int
 		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
 	}
@@ -123,6 +124,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error)
+	UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error)
 	UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error)
 	CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error)
 	UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error)
@@ -302,6 +304,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateAccount(childComplexity, args["input"].(model.UpdateAccount)), true
+
+	case "Mutation.updateProject":
+		if e.complexity.Mutation.UpdateProject == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateProject_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateProject(childComplexity, args["input"].(model.UpdateProject)), true
 
 	case "Mutation.updateScriptTemplate":
 		if e.complexity.Mutation.UpdateScriptTemplate == nil {
@@ -675,6 +689,11 @@ input NewProject {
   transactionTemplates: [String!]
 }
 
+input UpdateProject {
+  id: UUID!
+  persist: Boolean
+}
+
 input UpdateAccount {
   id: UUID!
   draftCode: String
@@ -716,6 +735,7 @@ input NewScriptExecution {
 
 type Mutation {
   createProject(input: NewProject!): Project!
+  updateProject(input: UpdateProject!): Project!
 
   updateAccount(input: UpdateAccount!): Account!
 
@@ -841,6 +861,20 @@ func (ec *executionContext) field_Mutation_updateAccount_args(ctx context.Contex
 	var arg0 model.UpdateAccount
 	if tmp, ok := rawArgs["input"]; ok {
 		arg0, err = ec.unmarshalNUpdateAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateAccount(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateProject_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UpdateProject
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNUpdateProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateProject(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1232,6 +1266,50 @@ func (ec *executionContext) _Mutation_createProject(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateProject(rctx, args["input"].(model.NewProject))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Project)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNProject2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateProject(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateProject_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateProject(rctx, args["input"].(model.UpdateProject))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4070,6 +4148,30 @@ func (ec *executionContext) unmarshalInputUpdateAccount(ctx context.Context, obj
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateProject(ctx context.Context, obj interface{}) (model.UpdateProject, error) {
+	var it model.UpdateProject
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "persist":
+			var err error
+			it.Persist, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Context, obj interface{}) (model.UpdateScriptTemplate, error) {
 	var it model.UpdateScriptTemplate
 	var asMap = obj.(map[string]interface{})
@@ -4229,6 +4331,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createProject":
 			out.Values[i] = ec._Mutation_createProject(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateProject":
+			out.Values[i] = ec._Mutation_updateProject(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5178,6 +5285,10 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 
 func (ec *executionContext) unmarshalNUpdateAccount2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateAccount(ctx context.Context, v interface{}) (model.UpdateAccount, error) {
 	return ec.unmarshalInputUpdateAccount(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNUpdateProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateProject(ctx context.Context, v interface{}) (model.UpdateProject, error) {
+	return ec.unmarshalInputUpdateProject(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateScriptTemplate(ctx context.Context, v interface{}) (model.UpdateScriptTemplate, error) {

@@ -68,6 +68,11 @@ input NewProject {
   transactionTemplates: [String!]
 }
 
+input UpdateProject {
+  id: UUID!
+  persist: Boolean
+}
+
 input UpdateAccount {
   id: UUID!
   draftCode: String
@@ -109,6 +114,7 @@ input NewScriptExecution {
 
 type Mutation {
   createProject(input: NewProject!): Project!
+  updateProject(input: UpdateProject!): Project!
 
   updateAccount(input: UpdateAccount!): Account!
 

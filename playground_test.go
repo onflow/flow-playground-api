@@ -67,6 +67,20 @@ type GetProjectResponse struct {
 	Project Project
 }
 
+const MutationUpdateProjectPersist = `
+mutation($projectId: UUID!, $persist: Boolean!) {
+  updateProject(input: { id: $projectId, persist: $persist }) {
+    id
+  }
+}
+`
+
+type UpdateProjectResponse struct {
+	UpdateProject struct {
+		ID string
+	}
+}
+
 const QueryGetProjectTransactionTemplates = `
 query($projectId: UUID!) {
   project(id: $projectId) {
@@ -475,6 +489,41 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.Error(t, err)
+	})
+
+	t.Run("Persist project without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp UpdateProjectResponse
+
+		err := c.Post(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Persist project", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp UpdateProjectResponse
+
+		c.MustPost(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
+
+		assert.Equal(t, project.ID, resp.UpdateProject.ID)
 	})
 }
 

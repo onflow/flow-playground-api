@@ -11,6 +11,7 @@ import (
 
 type Store interface {
 	InsertProject(proj *model.InternalProject) error
+	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
 	InsertAccount(acc *model.Account) error

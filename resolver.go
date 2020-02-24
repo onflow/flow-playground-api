@@ -117,6 +117,25 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	// return project with private ID
 	return proj.ExportPrivate(), nil
 }
+func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
+	var proj model.InternalProject
+
+	err := r.store.GetProject(input.ID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
+		return nil, errors.New("access denied")
+	}
+
+	err = r.store.UpdateProject(input, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project")
+	}
+
+	return proj.ExportPublic(), nil
+}
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 	var acc model.Account
