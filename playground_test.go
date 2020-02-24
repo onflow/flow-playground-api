@@ -1440,7 +1440,7 @@ func newClient() *client.Client {
 
 func newClientWithResolver(resolver *playground.Resolver) *client.Client {
 	router := chi.NewRouter()
-	router.Use(auth.Middleware(resolver.Store()))
+	router.Use(auth.Middleware())
 
 	router.Handle(
 		"/",

@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
-
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 var projectsCtxKey = &contextKey{"projects"}
@@ -18,35 +15,25 @@ type contextKey struct {
 }
 
 type projects struct {
-	store   storage.Store
 	cookies []*http.Cookie
 }
 
-func (p *projects) hasPermission(projectID uuid.UUID) bool {
-	expectedCookieName := fmt.Sprintf("proj-%s", projectID.String())
+func (p *projects) hasPermission(project *model.InternalProject) bool {
+	expectedCookieName := projectCookieKey(project.ID.String())
+
 	for _, cookie := range p.cookies {
 		if cookie.Name == expectedCookieName {
-			var proj model.InternalProject
-
-			err := p.store.GetProject(projectID, &proj)
-			if err != nil {
-				// TODO: handle this differently?
-				return false
-			}
-
-			// TODO: okay to compare strings here?
-			return proj.PrivateID.String() == cookie.Value
+			return project.PrivateID.String() == cookie.Value
 		}
 	}
 
 	return false
 }
 
-func Middleware(store storage.Store) func(http.Handler) http.Handler {
+func Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			projects := &projects{
-				store:   store,
 				cookies: r.Cookies(),
 			}
 
@@ -58,14 +45,18 @@ func Middleware(store storage.Store) func(http.Handler) http.Handler {
 	}
 }
 
-func HasProjectPermission(ctx context.Context, projectID uuid.UUID) bool {
+func HasProjectPermission(ctx context.Context, project *model.InternalProject) bool {
 	projects, _ := ctx.Value(projectsCtxKey).(*projects)
-	return projects.hasPermission(projectID)
+	return projects.hasPermission(project)
 }
 
 func ProjectCookie(projectID, projectPrivateID string) *http.Cookie {
 	return &http.Cookie{
-		Name:  fmt.Sprintf("proj-%s", projectID),
+		Name:  projectCookieKey(projectID),
 		Value: projectPrivateID,
 	}
+}
+
+func projectCookieKey(projectID string) string {
+	return fmt.Sprintf("proj-%s", projectID)
 }

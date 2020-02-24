@@ -38,7 +38,7 @@ func main() {
 		Debug:            true,
 	}).Handler)
 
-	router.Use(auth.Middleware(store))
+	router.Use(auth.Middleware())
 
 	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))

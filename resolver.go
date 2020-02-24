@@ -45,9 +45,6 @@ func (r *Resolver) Query() QueryResolver {
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
-func (r *Resolver) Store() storage.Store {
-	return r.store
-}
 
 type mutationResolver struct {
 	*Resolver
@@ -129,7 +126,14 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	if !auth.HasProjectPermission(ctx, acc.ProjectID) {
+	var proj model.InternalProject
+
+	err = r.store.GetProject(acc.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -173,7 +177,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -193,7 +197,14 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get transaction template")
 	}
 
-	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+	var proj model.InternalProject
+
+	err = r.store.GetProject(tpl.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -213,7 +224,14 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.Nil, errors.Wrap(err, "failed to get transaction template")
 	}
 
-	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+	var proj model.InternalProject
+
+	err = r.store.GetProject(tpl.ProjectID, &proj)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
@@ -236,7 +254,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -310,7 +328,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, input.ProjectID) {
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -330,7 +348,14 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get script template")
 	}
 
-	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+	var proj model.InternalProject
+
+	err = r.store.GetProject(tpl.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -354,7 +379,14 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 		return uuid.Nil, errors.Wrap(err, "failed to get script template")
 	}
 
-	if !auth.HasProjectPermission(ctx, tpl.ProjectID) {
+	var proj model.InternalProject
+
+	err = r.store.GetProject(tpl.ProjectID, &proj)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if !auth.HasProjectPermission(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
