@@ -19,6 +19,8 @@ import (
 
 // THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
+const MaxAccounts = 4
+
 type Resolver struct {
 	store    storage.Store
 	computer *vm.Computer
@@ -63,7 +65,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		return nil, errors.Wrap(err, "failed to store project")
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < MaxAccounts; i++ {
 		acc := model.Account{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
