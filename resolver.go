@@ -280,6 +280,10 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
+	if len(input.Script) == 0 {
+		return nil, errors.New("cannot execute empty script")
+	}
+
 	result, err := r.computer.ExecuteScript(input.ProjectID, input.Script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
