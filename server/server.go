@@ -10,6 +10,7 @@ import (
 	"github.com/rs/cors"
 
 	"github.com/dapperlabs/flow-playground-api"
+	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
@@ -36,6 +37,8 @@ func main() {
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)
+
+	router.Use(auth.Middleware())
 
 	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))

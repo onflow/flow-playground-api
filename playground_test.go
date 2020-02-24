@@ -6,18 +6,21 @@ import (
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/handler"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api"
+	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 type Project struct {
-	ID       string
-	Accounts []struct {
+	ID        string
+	PrivateID string
+	Accounts  []struct {
 		ID        string
 		Address   string
 		DraftCode string
@@ -29,6 +32,7 @@ const MutationCreateProject = `
 mutation($accounts: [String!], $transactionTemplates: [String!]) {
   createProject(input: { accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
+    privateId
     accounts {
       id
       address
@@ -349,8 +353,6 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
-// TODO: update tests for new createProject semantics
-
 func TestProjects(t *testing.T) {
 	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
@@ -363,9 +365,10 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
+		assert.NotEmpty(t, resp.CreateProject.PrivateID)
 
-		// project should be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 	})
 
 	t.Run("Create project with 2 accounts", func(t *testing.T) {
@@ -384,8 +387,8 @@ func TestProjects(t *testing.T) {
 			client.Var("accounts", accounts),
 		)
 
-		// project should still be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should still be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -410,8 +413,8 @@ func TestProjects(t *testing.T) {
 			client.Var("accounts", accounts),
 		)
 
-		// project should still be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should still be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -453,6 +456,9 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.Equal(t, project.ID, resp.Project.ID)
+
+		// private ID should not be returned from query
+		assert.Empty(t, resp.Project.PrivateID)
 	})
 
 	t.Run("Get non-existent project", func(t *testing.T) {
@@ -473,6 +479,24 @@ func TestProjects(t *testing.T) {
 }
 
 func TestTransactionTemplates(t *testing.T) {
+	t.Run("Create transaction template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionTemplateResponse
+
+		err := c.Post(
+			MutationCreateTransactionTemplate,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", "foo"),
+		)
+
+		assert.Error(t, err)
+		assert.Empty(t, resp.CreateTransactionTemplate.ID)
+	})
+
 	t.Run("Create transaction template", func(t *testing.T) {
 		c := newClient()
 
@@ -485,6 +509,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.NotEmpty(t, resp.CreateTransactionTemplate.ID)
@@ -503,6 +528,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		var respB GetTransactionTemplateResponse
@@ -533,6 +559,35 @@ func TestTransactionTemplates(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Update transaction template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var respA CreateTransactionTemplateResponse
+
+		c.MustPost(
+			MutationCreateTransactionTemplate,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
+
+		templateID := respA.CreateTransactionTemplate.ID
+
+		var respB UpdateTransactionTemplateResponse
+
+		err := c.Post(
+			MutationUpdateTransactionTemplateScript,
+			&respB,
+			client.Var("templateId", templateID),
+			client.Var("script", "bar"),
+		)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("Update transaction template", func(t *testing.T) {
 		c := newClient()
 
@@ -545,6 +600,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateTransactionTemplate.ID
@@ -556,6 +612,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respB,
 			client.Var("templateId", templateID),
 			client.Var("script", "bar"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.UpdateTransactionTemplate.ID)
@@ -575,6 +632,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respC,
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respC.UpdateTransactionTemplate.ID)
@@ -604,9 +662,9 @@ func TestTransactionTemplates(t *testing.T) {
 
 		project := createProject(c)
 
-		templateA := createTransactionTemplate(c, project.ID)
-		templateB := createTransactionTemplate(c, project.ID)
-		templateC := createTransactionTemplate(c, project.ID)
+		templateA := createTransactionTemplate(c, project)
+		templateB := createTransactionTemplate(c, project)
+		templateC := createTransactionTemplate(c, project)
 
 		var resp GetProjectTransactionTemplatesResponse
 
@@ -642,16 +700,40 @@ func TestTransactionTemplates(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Delete transaction template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		template := createTransactionTemplate(c, project)
+
+		var resp DeleteTransactionTemplateResponse
+
+		err := c.Post(
+			MutationDeleteTransactionTemplate,
+			&resp,
+			client.Var("templateId", template.ID),
+		)
+
+		assert.Error(t, err)
+		assert.Empty(t, resp.DeleteTransactionTemplate)
+	})
+
 	t.Run("Delete transaction template", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(c)
 
-		template := createTransactionTemplate(c, project.ID)
+		template := createTransactionTemplate(c, project)
 
 		var resp DeleteTransactionTemplateResponse
 
-		c.MustPost(MutationDeleteTransactionTemplate, &resp, client.Var("templateId", template.ID))
+		c.MustPost(
+			MutationDeleteTransactionTemplate,
+			&resp,
+			client.Var("templateId", template.ID),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
 
 		assert.Equal(t, template.ID, resp.DeleteTransactionTemplate)
 	})
@@ -675,7 +757,7 @@ func TestTransactionExecutions(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Create simple execution", func(t *testing.T) {
+	t.Run("Create execution without permission", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(c)
@@ -690,7 +772,26 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 		)
-		assert.NoError(t, err)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Create execution", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = "transaction { execute { log(\"Hello, World!\") } }"
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Error)
 		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
@@ -711,6 +812,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -718,9 +820,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x04
+		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
 
 		var respB CreateTransactionExecutionResponse
 
@@ -729,15 +831,16 @@ func TestTransactionExecutions(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x05
+		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -746,7 +849,7 @@ func TestTransactionExecutions(t *testing.T) {
 		computer := vm.NewComputer(store)
 		resolver := playground.NewResolver(store, computer)
 
-		c := newClientWithResolve(resolver)
+		c := newClientWithResolver(resolver)
 
 		project := createProject(c)
 
@@ -759,6 +862,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -766,9 +870,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x04
+		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -780,19 +884,38 @@ func TestTransactionExecutions(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x05
+		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
 	})
 }
 
 func TestScriptTemplates(t *testing.T) {
+	t.Run("Create script template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptTemplateResponse
+
+		err := c.Post(
+			MutationCreateScriptTemplate,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", "foo"),
+		)
+
+		assert.Error(t, err)
+		assert.Empty(t, resp.CreateScriptTemplate.ID)
+	})
+
 	t.Run("Create script template", func(t *testing.T) {
 		c := newClient()
 
@@ -805,6 +928,7 @@ func TestScriptTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.NotEmpty(t, resp.CreateScriptTemplate.ID)
@@ -823,6 +947,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		var respB GetScriptTemplateResponse
@@ -853,6 +978,35 @@ func TestScriptTemplates(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Update script template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var respA CreateScriptTemplateResponse
+
+		c.MustPost(
+			MutationCreateScriptTemplate,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
+
+		templateID := respA.CreateScriptTemplate.ID
+
+		var respB UpdateScriptTemplateResponse
+
+		err := c.Post(
+			MutationUpdateScriptTemplateScript,
+			&respB,
+			client.Var("templateId", templateID),
+			client.Var("script", "bar"),
+		)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("Update script template", func(t *testing.T) {
 		c := newClient()
 
@@ -865,6 +1019,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateScriptTemplate.ID
@@ -876,6 +1031,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respB,
 			client.Var("templateId", templateID),
 			client.Var("script", "bar"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.UpdateScriptTemplate.ID)
@@ -889,6 +1045,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respC,
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
@@ -918,9 +1075,9 @@ func TestScriptTemplates(t *testing.T) {
 
 		project := createProject(c)
 
-		templateIDA := createScriptTemplate(c, project.ID)
-		templateIDB := createScriptTemplate(c, project.ID)
-		templateIDC := createScriptTemplate(c, project.ID)
+		templateIDA := createScriptTemplate(c, project)
+		templateIDB := createScriptTemplate(c, project)
+		templateIDC := createScriptTemplate(c, project)
 
 		var resp GetProjectScriptTemplatesResponse
 
@@ -957,16 +1114,39 @@ func TestScriptTemplates(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Delete script template without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		templateID := createScriptTemplate(c, project)
+
+		var resp DeleteScriptTemplateResponse
+
+		err := c.Post(
+			MutationDeleteScriptTemplate,
+			&resp,
+			client.Var("templateId", templateID),
+		)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("Delete script template", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(c)
 
-		templateID := createScriptTemplate(c, project.ID)
+		templateID := createScriptTemplate(c, project)
 
 		var resp DeleteScriptTemplateResponse
 
-		c.MustPost(MutationDeleteScriptTemplate, &resp, client.Var("templateId", templateID))
+		c.MustPost(
+			MutationDeleteScriptTemplate,
+			&resp,
+			client.Var("templateId", templateID),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
 
 		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
 	})
@@ -1006,6 +1186,34 @@ func TestAccounts(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Update account draft code without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+		account := project.Accounts[0]
+
+		var respA GetAccountResponse
+
+		c.MustPost(
+			QueryGetAccount,
+			&respA,
+			client.Var("accountId", account.ID),
+		)
+
+		assert.Equal(t, "", respA.Account.DraftCode)
+
+		var respB UpdateAccountResponse
+
+		err := c.Post(
+			MutationUpdateAccountDraftCode,
+			&respB,
+			client.Var("accountId", account.ID),
+			client.Var("code", "bar"),
+		)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("Update account draft code", func(t *testing.T) {
 		c := newClient()
 
@@ -1029,6 +1237,7 @@ func TestAccounts(t *testing.T) {
 			&respB,
 			client.Var("accountId", account.ID),
 			client.Var("code", "bar"),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
@@ -1063,6 +1272,27 @@ func TestAccounts(t *testing.T) {
 		assert.Equal(t, "", respB.UpdateAccount.DeployedCode)
 	})
 
+	t.Run("Update account deployed code without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		account := project.Accounts[0]
+
+		var resp UpdateAccountResponse
+
+		const contract = "pub contract Foo {}"
+
+		err := c.Post(
+			MutationUpdateAccountDeployedCode,
+			&resp,
+			client.Var("accountId", account.ID),
+			client.Var("code", contract),
+		)
+
+		assert.Error(t, err)
+	})
+
 	t.Run("Update account deployed code", func(t *testing.T) {
 		c := newClient()
 
@@ -1089,6 +1319,7 @@ func TestAccounts(t *testing.T) {
 			&respB,
 			client.Var("accountId", account.ID),
 			client.Var("code", contract),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
@@ -1171,13 +1402,12 @@ func TestContractInteraction(t *testing.T) {
 
 	var respA UpdateAccountResponse
 
-	const contract = "pub contract Foo { pub var bar: Int }"
-
 	c.MustPost(
 		MutationUpdateAccountDeployedCode,
 		&respA,
 		client.Var("accountId", accountA.ID),
 		client.Var("code", counterContract),
+		client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 	)
 
 	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
@@ -1192,6 +1422,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("projectId", project.ID),
 		client.Var("script", addScript),
 		client.Var("signers", []string{accountB.Address}),
+		client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 	)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
@@ -1204,15 +1435,21 @@ func newClient() *client.Client {
 
 	resolver := playground.NewResolver(store, computer)
 
-	return newClientWithResolve(resolver)
+	return newClientWithResolver(resolver)
 }
 
-func newClientWithResolve(resolver *playground.Resolver) *client.Client {
-	return client.New(
+func newClientWithResolver(resolver *playground.Resolver) *client.Client {
+	router := chi.NewRouter()
+	router.Use(auth.Middleware())
+
+	router.Handle(
+		"/",
 		handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
 		),
 	)
+
+	return client.New(router)
 }
 
 func createProject(c *client.Client) Project {
@@ -1228,20 +1465,21 @@ func createProject(c *client.Client) Project {
 	return resp.CreateProject
 }
 
-func createTransactionTemplate(c *client.Client, projectID string) TransactionTemplate {
+func createTransactionTemplate(c *client.Client, project Project) TransactionTemplate {
 	var resp CreateTransactionTemplateResponse
 
 	c.MustPost(
 		MutationCreateTransactionTemplate,
 		&resp,
-		client.Var("projectId", projectID),
+		client.Var("projectId", project.ID),
 		client.Var("script", "foo"),
+		client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 	)
 
 	return resp.CreateTransactionTemplate
 }
 
-func createScriptTemplate(c *client.Client, projectID string) string {
+func createScriptTemplate(c *client.Client, project Project) string {
 	var resp struct {
 		CreateScriptTemplate struct {
 			ID     string
@@ -1253,8 +1491,9 @@ func createScriptTemplate(c *client.Client, projectID string) string {
 	c.MustPost(
 		MutationCreateScriptTemplate,
 		&resp,
-		client.Var("projectId", projectID),
+		client.Var("projectId", project.ID),
 		client.Var("script", "foo"),
+		client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
 	)
 
 	return resp.CreateScriptTemplate.ID

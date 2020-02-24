@@ -10,8 +10,8 @@ import (
 )
 
 type Store interface {
-	InsertProject(proj *model.Project) error
-	GetProject(id uuid.UUID, proj *model.Project) error
+	InsertProject(proj *model.InternalProject) error
+	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
 	InsertAccount(acc *model.Account) error
 	GetAccount(id uuid.UUID, acc *model.Account) error
