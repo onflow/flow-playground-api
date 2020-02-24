@@ -367,8 +367,8 @@ func TestProjects(t *testing.T) {
 		assert.NotEmpty(t, resp.CreateProject.ID)
 		assert.NotEmpty(t, resp.CreateProject.PrivateID)
 
-		// project should be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 	})
 
 	t.Run("Create project with 2 accounts", func(t *testing.T) {
@@ -387,8 +387,8 @@ func TestProjects(t *testing.T) {
 			client.Var("accounts", accounts),
 		)
 
-		// project should still be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should still be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -413,8 +413,8 @@ func TestProjects(t *testing.T) {
 			client.Var("accounts", accounts),
 		)
 
-		// project should still be created with 3 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, 3)
+		// project should still be created with 4 default accounts
+		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -820,9 +820,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x04
+		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
 
 		var respB CreateTransactionExecutionResponse
 
@@ -838,9 +838,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x05
+		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -870,9 +870,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x04
+		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000004", eventA.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -891,9 +891,9 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x05
+		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventB.Values[0].Value)
+		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
 	})
 }
 
