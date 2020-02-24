@@ -55,6 +55,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		ID:        uuid.New(),
 		PrivateID: uuid.New(),
 		PublicID:  uuid.New(),
+		Persist:   false,
 	}
 
 	err := r.store.InsertProject(proj)

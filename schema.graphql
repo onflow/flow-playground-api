@@ -5,6 +5,7 @@ type Project {
   id: UUID!
   privateId: UUID
   publicId: UUID!
+  persist: Boolean
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
