@@ -43,6 +43,11 @@ type UpdateAccount struct {
 	DeployedCode *string   `json:"deployedCode"`
 }
 
+type UpdateProject struct {
+	ID      uuid.UUID `json:"id"`
+	Persist *bool     `json:"persist"`
+}
+
 type UpdateScriptTemplate struct {
 	ID     uuid.UUID `json:"id"`
 	Index  *int      `json:"index"`

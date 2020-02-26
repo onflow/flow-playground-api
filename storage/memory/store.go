@@ -44,6 +44,26 @@ func (s *Store) InsertProject(proj *model.InternalProject) error {
 	return nil
 }
 
+func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	p, ok := s.projects[input.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	if input.Persist != nil {
+		p.Persist = *input.Persist
+	}
+
+	s.projects[input.ID] = p
+
+	*proj = p
+
+	return nil
+}
+
 func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()

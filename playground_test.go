@@ -20,6 +20,7 @@ import (
 type Project struct {
 	ID        string
 	PrivateID string
+	Persist   bool
 	Accounts  []struct {
 		ID        string
 		Address   string
@@ -33,6 +34,7 @@ mutation($accounts: [String!], $transactionTemplates: [String!]) {
   createProject(input: { accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
     privateId
+    persist
     accounts {
       id
       address
@@ -65,6 +67,22 @@ query($projectId: UUID!) {
 
 type GetProjectResponse struct {
 	Project Project
+}
+
+const MutationUpdateProjectPersist = `
+mutation($projectId: UUID!, $persist: Boolean!) {
+  updateProject(input: { id: $projectId, persist: $persist }) {
+    id
+    persist
+  }
+}
+`
+
+type UpdateProjectResponse struct {
+	UpdateProject struct {
+		ID      string
+		Persist bool
+	}
 }
 
 const QueryGetProjectTransactionTemplates = `
@@ -369,6 +387,9 @@ func TestProjects(t *testing.T) {
 
 		// project should be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+
+		// project should not be persisted
+		assert.False(t, resp.CreateProject.Persist)
 	})
 
 	t.Run("Create project with 2 accounts", func(t *testing.T) {
@@ -475,6 +496,42 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.Error(t, err)
+	})
+
+	t.Run("Persist project without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp UpdateProjectResponse
+
+		err := c.Post(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Persist project", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp UpdateProjectResponse
+
+		c.MustPost(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+			client.AddCookie(auth.ProjectCookie(project.ID, project.PrivateID)),
+		)
+
+		assert.Equal(t, project.ID, resp.UpdateProject.ID)
+		assert.True(t, resp.UpdateProject.Persist)
 	})
 }
 
