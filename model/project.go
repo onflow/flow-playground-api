@@ -1,8 +1,6 @@
 package model
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 )
 
@@ -12,7 +10,6 @@ type InternalProject struct {
 	PublicID         uuid.UUID
 	TransactionCount int
 	Persist          bool
-	LastUpdated      time.Time
 }
 
 func (p *InternalProject) ExportPrivate() *Project {
