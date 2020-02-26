@@ -388,7 +388,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 }
 
 func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
-	var proj model.Project
+	var proj model.InternalProject
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
