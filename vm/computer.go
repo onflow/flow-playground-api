@@ -91,3 +91,22 @@ func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (Ledger, error) {
 
 	return ledger, nil
 }
+
+func (c *Computer) ExecuteScript(
+	projectID uuid.UUID,
+	script string,
+) (*virtualmachine.ScriptResult, error) {
+	ledger, err := c.getOrCreateLedger(projectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get ledger for project")
+	}
+
+	view := ledger.NewView()
+
+	result, err := c.blockContext.ExecuteScript(view, []byte(script))
+	if err != nil {
+		return nil, errors.Wrap(err, "vm failed to execute script")
+	}
+
+	return result, nil
+}
