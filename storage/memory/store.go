@@ -18,6 +18,7 @@ type Store struct {
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
+	scriptExecutions      map[uuid.UUID]model.ScriptExecution
 	registerDeltas        []model.RegisterDelta
 }
 
@@ -29,6 +30,7 @@ func NewStore() *Store {
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
+		scriptExecutions:      make(map[uuid.UUID]model.ScriptExecution),
 		registerDeltas:        make([]model.RegisterDelta, 0),
 	}
 }
@@ -409,6 +411,51 @@ func (s *Store) DeleteScriptTemplate(id uuid.UUID) error {
 	}
 
 	delete(s.scriptTemplates, id)
+
+	return nil
+}
+
+func (s *Store) InsertScriptExecution(exe *model.ScriptExecution) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	var exes []*model.ScriptExecution
+	err := s.getScriptExecutionsForProject(exe.ProjectID, &exes)
+	if err != nil {
+		return err
+	}
+
+	count := len(exes)
+
+	// set index to one after last
+	exe.Index = count
+
+	s.scriptExecutions[exe.ID] = *exe
+
+	return nil
+}
+
+func (s *Store) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getScriptExecutionsForProject(projectID, exes)
+}
+
+func (s *Store) getScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
+	res := make([]*model.ScriptExecution, 0)
+
+	for _, exe := range s.scriptExecutions {
+		if exe.ProjectID == projectID {
+			e := exe
+			res = append(res, &e)
+		}
+	}
+
+	// sort results by index
+	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
+
+	*exes = res
 
 	return nil
 }

@@ -35,6 +35,9 @@ type Store interface {
 	GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error
 	DeleteScriptTemplate(id uuid.UUID) error
 
+	InsertScriptExecution(exe *model.ScriptExecution) error
+	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
+
 	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error
 }
