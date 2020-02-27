@@ -18,14 +18,25 @@ func (p *InternalProject) ExportPrivate() *Project {
 		PrivateID: &p.PrivateID,
 		PublicID:  p.PublicID,
 		Persist:   p.Persist,
+		Mutable:   true,
 	}
 }
 
-func (p *InternalProject) ExportPublic() *Project {
+func (p *InternalProject) ExportPublicMutable() *Project {
 	return &Project{
 		ID:       p.ID,
 		PublicID: p.PublicID,
 		Persist:  p.Persist,
+		Mutable:  true,
+	}
+}
+
+func (p *InternalProject) ExportPublicImmutable() *Project {
+	return &Project{
+		ID:       p.ID,
+		PublicID: p.PublicID,
+		Persist:  p.Persist,
+		Mutable:  false,
 	}
 }
 
@@ -34,4 +45,5 @@ type Project struct {
 	PrivateID *uuid.UUID
 	PublicID  uuid.UUID
 	Persist   bool
+	Mutable   bool
 }
