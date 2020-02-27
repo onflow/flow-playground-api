@@ -42,7 +42,13 @@ func main() {
 
 	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+	router.HandleFunc("/ping", ping)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
+}
+
+func ping(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	w.Write([]byte("ok"))
 }
