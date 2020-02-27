@@ -54,6 +54,9 @@ type ScriptTemplate {
 type ScriptExecution {
   id: UUID!
   script: String!
+  error: String,
+  value: XDRValue!,
+  logs: [String!]!,
 }
 
 type Query {
