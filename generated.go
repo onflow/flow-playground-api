@@ -75,6 +75,7 @@ type ComplexityRoot struct {
 	Project struct {
 		Accounts              func(childComplexity int) int
 		ID                    func(childComplexity int) int
+		Mutable               func(childComplexity int) int
 		Persist               func(childComplexity int) int
 		PrivateID             func(childComplexity int) int
 		PublicID              func(childComplexity int) int
@@ -358,6 +359,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Project.ID(childComplexity), true
+
+	case "Project.mutable":
+		if e.complexity.Project.Mutable == nil {
+			break
+		}
+
+		return e.complexity.Project.Mutable(childComplexity), true
 
 	case "Project.persist":
 		if e.complexity.Project.Persist == nil {
@@ -659,6 +667,7 @@ type Project {
   privateId: UUID
   publicId: UUID!
   persist: Boolean
+  mutable: Boolean
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
@@ -1888,6 +1897,40 @@ func (ec *executionContext) _Project_persist(ctx context.Context, field graphql.
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Persist, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Project_mutable(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Project",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mutable, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4605,6 +4648,8 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "persist":
 			out.Values[i] = ec._Project_persist(ctx, field, obj)
+		case "mutable":
+			out.Values[i] = ec._Project_mutable(ctx, field, obj)
 		case "accounts":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
