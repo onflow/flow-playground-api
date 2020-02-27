@@ -1,5 +1,7 @@
 SHORT_COMMIT := $(shell git rev-parse --short HEAD)
+CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
+K8S_YAMLS_LOCATION := ./k8s
 
 .PHONY: generate
 generate:
@@ -34,7 +36,7 @@ deploy-staging: update-deployment-image apply-staging-files monitor-rollout
 .PHONY: apply-staging-files
 apply-staging-files:
 	kconfig=$$(uuidgen); \
-	echo "$$KUBECONFIG_STAGING" > $$kconfig; \
+	echo "$$KUBECONFIG_STAGING_2" > $$kconfig; \
 	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep staging); \
 	echo "$$files" | xargs -I {} kubectl --kubeconfig=$$kconfig apply -f {}
 
@@ -52,7 +54,6 @@ apply-production-files:
 
 # Deployment YAMLs must have 'deployment' in their name.
 .PHONY: update-deployment-image
-update-deployment-image: CONTAINER=flow-playground-api
 update-deployment-image:
 	@files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep deployment); \
 	for i in $$files; do \
