@@ -92,8 +92,11 @@ type ComplexityRoot struct {
 	}
 
 	ScriptExecution struct {
+		Error  func(childComplexity int) int
 		ID     func(childComplexity int) int
+		Logs   func(childComplexity int) int
 		Script func(childComplexity int) int
+		Value  func(childComplexity int) int
 	}
 
 	ScriptTemplate struct {
@@ -453,6 +456,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.TransactionTemplate(childComplexity, args["id"].(uuid.UUID)), true
 
+	case "ScriptExecution.error":
+		if e.complexity.ScriptExecution.Error == nil {
+			break
+		}
+
+		return e.complexity.ScriptExecution.Error(childComplexity), true
+
 	case "ScriptExecution.id":
 		if e.complexity.ScriptExecution.ID == nil {
 			break
@@ -460,12 +470,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ScriptExecution.ID(childComplexity), true
 
+	case "ScriptExecution.logs":
+		if e.complexity.ScriptExecution.Logs == nil {
+			break
+		}
+
+		return e.complexity.ScriptExecution.Logs(childComplexity), true
+
 	case "ScriptExecution.script":
 		if e.complexity.ScriptExecution.Script == nil {
 			break
 		}
 
 		return e.complexity.ScriptExecution.Script(childComplexity), true
+
+	case "ScriptExecution.value":
+		if e.complexity.ScriptExecution.Value == nil {
+			break
+		}
+
+		return e.complexity.ScriptExecution.Value(childComplexity), true
 
 	case "ScriptTemplate.id":
 		if e.complexity.ScriptTemplate.ID == nil {
@@ -683,6 +707,9 @@ type ScriptTemplate {
 type ScriptExecution {
   id: UUID!
   script: String!
+  error: String,
+  value: XDRValue!,
+  logs: [String!]!,
 }
 
 type Query {
@@ -2367,6 +2394,114 @@ func (ec *executionContext) _ScriptExecution_script(ctx context.Context, field g
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ScriptExecution_error(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ScriptExecution",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Error, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ScriptExecution_value(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ScriptExecution",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.XDRValue)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNXDRValue2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValue(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ScriptExecution_logs(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ScriptExecution",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Logs, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ScriptTemplate_id(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
@@ -4633,6 +4768,18 @@ func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.Select
 			}
 		case "script":
 			out.Values[i] = ec._ScriptExecution_script(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "error":
+			out.Values[i] = ec._ScriptExecution_error(ctx, field, obj)
+		case "value":
+			out.Values[i] = ec._ScriptExecution_value(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "logs":
+			out.Values[i] = ec._ScriptExecution_logs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
