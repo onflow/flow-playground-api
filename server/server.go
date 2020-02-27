@@ -5,11 +5,13 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
-	"github.com/dapperlabs/flow-playground-api"
+	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
@@ -28,6 +30,9 @@ func main() {
 
 	resolver := playground.NewResolver(store, computer)
 
+	// Register gql metrics
+	prometheus.Register()
+
 	router := chi.NewRouter()
 
 	// Add CORS middleware around every request
@@ -42,6 +47,8 @@ func main() {
 
 	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+	router.Handle("/metrics", promhttp.Handler())
+
 	router.HandleFunc("/ping", ping)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
