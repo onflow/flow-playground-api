@@ -70,6 +70,7 @@ type Query {
 input NewProject {
   accounts: [String!]
   transactionTemplates: [String!]
+  scriptTemplates: [String!]
 }
 
 input UpdateProject {

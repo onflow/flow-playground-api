@@ -115,6 +115,19 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
+	for _, script := range input.ScriptTemplates {
+		tpl := &model.ScriptTemplate{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Script:    script,
+		}
+
+		err = r.store.InsertScriptTemplate(tpl)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to store script template")
+		}
+	}
+
 	// return project with private ID
 	return proj.ExportPrivate(), nil
 }

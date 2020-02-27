@@ -723,6 +723,7 @@ type Query {
 input NewProject {
   accounts: [String!]
   transactionTemplates: [String!]
+  scriptTemplates: [String!]
 }
 
 input UpdateProject {
@@ -4185,6 +4186,12 @@ func (ec *executionContext) unmarshalInputNewProject(ctx context.Context, obj in
 		case "transactionTemplates":
 			var err error
 			it.TransactionTemplates, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "scriptTemplates":
+			var err error
+			it.ScriptTemplates, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}

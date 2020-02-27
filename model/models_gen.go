@@ -14,6 +14,7 @@ type Event struct {
 type NewProject struct {
 	Accounts             []string `json:"accounts"`
 	TransactionTemplates []string `json:"transactionTemplates"`
+	ScriptTemplates      []string `json:"scriptTemplates"`
 }
 
 type NewScriptExecution struct {
