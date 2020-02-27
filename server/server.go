@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -28,6 +29,9 @@ func main() {
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)
+
+	// Register gql metrics
+	prometheus.Register()
 
 	router := chi.NewRouter()
 
