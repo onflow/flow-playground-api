@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
@@ -18,11 +19,19 @@ import (
 )
 
 const defaultPort = "8080"
+const defaultAllowedOrigins = "http://localhost:3000"
 
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
+	}
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	var allowedOriginList []string
+	if allowedOrigins == "" {
+		allowedOriginList = []string{defaultAllowedOrigins}
+	} else {
+		allowedOriginList = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	}
 
 	store := memory.NewStore()
@@ -38,7 +47,7 @@ func main() {
 	// Add CORS middleware around every request
 	// See https://github.com/rs/cors for full option listing
 	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedOrigins:   allowedOriginList,
 		AllowCredentials: true,
 		Debug:            true,
 	}).Handler)

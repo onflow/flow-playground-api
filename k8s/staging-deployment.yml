@@ -95,9 +95,9 @@ spec:
               containerPort: 8080
 
           # Environment variables
-          # env:
-          #   - name: KEY
-          #     value: VALUE
+          env:
+            - name: ALLOWED_ORIGINS
+              value: "https://play.staging.onflow.org"
 
           # Readiness and Liveness probes
           readinessProbe:
@@ -159,7 +159,7 @@ spec:
 # K8s docs: https://kubernetes.io/docs/concepts/services-networking/ingress
 
 # Technically the API is still in beta1
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 
 metadata:
