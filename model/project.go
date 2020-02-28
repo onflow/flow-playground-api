@@ -20,6 +20,7 @@ func (p *InternalProject) ExportPrivate() *Project {
 		PublicID:  p.PublicID,
 		ParentID:  p.ParentID,
 		Persist:   p.Persist,
+		Mutable:   true,
 	}
 }
 
