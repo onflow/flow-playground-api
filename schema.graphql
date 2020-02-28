@@ -7,6 +7,7 @@ type Project {
   publicId: UUID!
   parentId: UUID
   persist: Boolean
+  mutable: Boolean
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
