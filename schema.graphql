@@ -5,7 +5,9 @@ type Project {
   id: UUID!
   privateId: UUID
   publicId: UUID!
+  parentId: UUID
   persist: Boolean
+  mutable: Boolean
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
@@ -54,9 +56,9 @@ type ScriptTemplate {
 type ScriptExecution {
   id: UUID!
   script: String!
-  error: String,
-  value: XDRValue!,
-  logs: [String!]!,
+  error: String
+  value: XDRValue!
+  logs: [String!]!
 }
 
 type Query {
@@ -68,6 +70,7 @@ type Query {
 }
 
 input NewProject {
+  parentId: UUID
   accounts: [String!]
   transactionTemplates: [String!]
   scriptTemplates: [String!]
