@@ -55,6 +55,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		ID:        uuid.New(),
 		PrivateID: uuid.New(),
 		PublicID:  uuid.New(),
+		ParentID:  input.ParentID,
 		Persist:   false,
 	}
 
@@ -131,6 +132,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	// return project with private ID
 	return proj.ExportPrivate(), nil
 }
+
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
 	var proj model.InternalProject
 
@@ -148,7 +150,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to update project")
 	}
 
-	return proj.ExportPublic(), nil
+	return proj.ExportPublicMutable(), nil
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
@@ -539,8 +541,11 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	// do not return private ID
-	return proj.ExportPublic(), nil
+	if auth.HasProjectPermission(ctx, &proj) {
+		return proj.ExportPublicMutable(), nil
+	}
+
+	return proj.ExportPublicImmutable(), nil
 }
 
 func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Account, error) {
