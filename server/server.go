@@ -44,20 +44,22 @@ func main() {
 
 	router := chi.NewRouter()
 
-	// Add CORS middleware around every request
-	// See https://github.com/rs/cors for full option listing
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   allowedOriginList,
-		AllowCredentials: true,
-		Debug:            true,
-	}).Handler)
-
-	router.Use(auth.Middleware())
-
 	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
-	router.Handle("/metrics", promhttp.Handler())
 
+	router.Route("/query", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   allowedOriginList,
+			AllowCredentials: true,
+			Debug:            true,
+		}).Handler)
+
+		r.Use(auth.Middleware())
+		r.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+	})
+
+	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
