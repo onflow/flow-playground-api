@@ -1,6 +1,7 @@
 package model
 
 import (
+	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 )
 
@@ -42,6 +43,10 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 		Persist:  p.Persist,
 		Mutable:  false,
 	}
+}
+
+func (p *InternalProject) NameKey() *datastore.Key {
+	return datastore.NameKey("InternalProject", p.ID.String(), nil)
 }
 
 type Project struct {

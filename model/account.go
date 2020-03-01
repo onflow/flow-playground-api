@@ -1,6 +1,7 @@
 package model
 
 import (
+	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 )
 
@@ -11,4 +12,8 @@ type Account struct {
 	Address      Address
 	DraftCode    string
 	DeployedCode string
+}
+
+func (a *Account) NameKey() *datastore.Key {
+	return datastore.NameKey("Account", a.ID.String(), nil)
 }
