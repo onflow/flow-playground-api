@@ -98,6 +98,8 @@ spec:
           env:
             - name: ALLOWED_ORIGINS
               value: "https://play.onflow.org"
+            - name: GQL_PLAYGROUND
+              value: "false"
 
           # Readiness and Liveness probes
           readinessProbe:
