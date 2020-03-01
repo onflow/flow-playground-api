@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
@@ -33,6 +34,8 @@ func main() {
 	} else {
 		allowedOriginList = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	}
+	// If cannot parse, just assume false
+	gqlPlayground, _ := strconv.ParseBool(os.Getenv("GQL_PLAYGROUND"))
 
 	store := memory.NewStore()
 	computer := vm.NewComputer(store)
@@ -44,20 +47,24 @@ func main() {
 
 	router := chi.NewRouter()
 
-	// Add CORS middleware around every request
-	// See https://github.com/rs/cors for full option listing
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   allowedOriginList,
-		AllowCredentials: true,
-		Debug:            true,
-	}).Handler)
+	if gqlPlayground {
+		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
+	}
 
-	router.Use(auth.Middleware())
+	router.Route("/query", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   allowedOriginList,
+			AllowCredentials: true,
+			Debug:            gqlPlayground,
+		}).Handler)
 
-	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+		r.Use(auth.Middleware())
+		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+	})
+
 	router.Handle("/metrics", promhttp.Handler())
-
 	router.HandleFunc("/ping", ping)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
