@@ -1,3 +1,4 @@
+// TODO Lots of places that could use transactions in this file
 package datastore
 
 import (
@@ -135,7 +136,7 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 	return d.put(acc)
 }
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
-	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, accs)
 }
 func (d *Datastore) DeleteAccount(id uuid.UUID) error {
@@ -145,6 +146,12 @@ func (d *Datastore) DeleteAccount(id uuid.UUID) error {
 // Transaction Templates
 
 func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
+	tpls := []*model.TransactionTemplate{}
+	err := d.GetTransactionTemplatesForProject(tpl.ProjectID, &tpls)
+	if err != nil {
+		return err
+	}
+	tpl.Index = len(tpls)
 	return d.put(tpl)
 }
 func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
@@ -168,7 +175,7 @@ func (d *Datastore) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionT
 	return d.get(tpl)
 }
 func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
-	q := datastore.NewQuery("TransactionTemplate").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("TransactionTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, tpls)
 }
 func (d *Datastore) DeleteTransactionTemplate(id uuid.UUID) error {
@@ -194,13 +201,19 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, 
 	return d.InsertRegisterDelta(exe.ProjectID, delta)
 }
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	q := datastore.NewQuery("TransactionExecution").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("TransactionExecution").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, exes)
 }
 
 // Script Templates
 
 func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
+	tpls := []*model.ScriptTemplate{}
+	err := d.GetScriptTemplatesForProject(tpl.ProjectID, &tpls)
+	if err != nil {
+		return err
+	}
+	tpl.Index = len(tpls)
 	return d.put(tpl)
 }
 func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
@@ -224,7 +237,7 @@ func (d *Datastore) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) e
 	return d.get(tpl)
 }
 func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
-	q := datastore.NewQuery("ScriptTemplate").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("ScriptTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, tpls)
 }
 func (d *Datastore) DeleteScriptTemplate(id uuid.UUID) error {
@@ -237,7 +250,7 @@ func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
 	return d.put(exe)
 }
 func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
-	q := datastore.NewQuery("ScriptExecution").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("ScriptExecution").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, exes)
 }
 
@@ -268,7 +281,7 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) 
 }
 func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
 	reg := []model.RegisterDelta{}
-	q := datastore.NewQuery("RegisterDelta").Filter("ProjectID=", projectID).Order("Index")
+	q := datastore.NewQuery("RegisterDelta").Filter("ProjectID=", projectID.String()).Order("Index")
 	err := d.getAll(q, &reg)
 	if err != nil {
 		return err
