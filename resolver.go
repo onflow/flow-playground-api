@@ -190,7 +190,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 			return nil, errors.Wrap(err, "failed to store register delta")
 		}
 
-		contracts := parseDeployedContracts(result.Events)
+		contracts, err := parseDeployedContracts(result.Events)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse deployed contracts")
+		}
 
 		input.DeployedContracts = &contracts
 	}
@@ -596,10 +599,13 @@ func (r *transactionExecutionResolver) Signers(ctx context.Context, obj *model.T
 
 const AccountCodeUpdatedEvent = "flow.AccountCodeUpdated"
 
-func parseDeployedContracts(events []runtime.Event) []string {
+func parseDeployedContracts(events []runtime.Event) ([]string, error) {
 	for _, event := range events {
 		if event.Type.ID() == AccountCodeUpdatedEvent {
-			value, _ := language.ConvertValue(event.Fields[2])
+			value, err := language.ConvertValue(event.Fields[2])
+			if err != nil {
+				return nil, err
+			}
 			arrayValue := value.(language.VariableSizedArray)
 
 			contracts := make([]string, len(arrayValue.Values))
@@ -608,9 +614,9 @@ func parseDeployedContracts(events []runtime.Event) []string {
 				contracts[i] = contractValue.(language.String).ToGoValue().(string)
 			}
 
-			return contracts
+			return contracts, nil
 		}
 	}
 
-	return nil
+	return nil, nil
 }
