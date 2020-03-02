@@ -101,7 +101,6 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to store account")
 		}
-		fmt.Println("INSERTING", i, acc.ProjectID.String())
 	}
 
 	for _, script := range input.TransactionTemplates {
@@ -490,11 +489,6 @@ func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*
 	err := r.store.GetAccountsForProject(obj.ID, &accs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get accounts")
-	}
-
-	fmt.Println("ACCOUNTS", len(accs))
-	for _, a := range accs {
-		fmt.Println("ACC PROJ ID", a.ProjectID.String())
 	}
 
 	return accs, nil
