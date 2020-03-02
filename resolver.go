@@ -332,7 +332,9 @@ func (r *mutationResolver) CreateTransactionExecution(
 				}
 
 				values[j] = &model.XDRValue{
-					Type:  value.Type().ID(),
+					// Type:  value.Type().ID(),
+					// TODO: serialize events as JSON
+					Type:  "UNTYPED",
 					Value: fmt.Sprintf("%x", encValue),
 				}
 			}
