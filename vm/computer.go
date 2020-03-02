@@ -21,9 +21,14 @@ type Computer struct {
 }
 
 func NewComputer(store storage.Store) *Computer {
+	rt := runtime.NewInterpreterRuntime()
+	vm := virtualmachine.New(rt)
+
+	blockContext := vm.NewBlockContext(&flow.Header{Number: 0})
+
 	return &Computer{
 		store:        store,
-		blockContext: virtualmachine.New(runtime.NewInterpreterRuntime()).NewBlockContext(&flow.Header{Number: 0}),
+		blockContext: blockContext,
 		// TODO: cache eviction
 		ledgerCache: make(map[uuid.UUID]Ledger),
 	}

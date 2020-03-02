@@ -97,8 +97,8 @@ github.com/dapperlabs/flow-go/language v0.3.1 h1:/xLUg2+4mbDEWU3mrmBdctQ60ehZstl
 github.com/dapperlabs/flow-go/language v0.3.1/go.mod h1:8Z/N3qFJSM1+J8z4O8mXHYbshadkSBfcLzJeeU7vvj4=
 github.com/dapperlabs/flow-go/language v0.3.2-0.20200214013519-e4d529c98be3 h1:Gky0CUNXrPNOHb3/pukVdKD5o9W0Uqh4PiZd4ErLyg4=
 github.com/dapperlabs/flow-go/language v0.3.2-0.20200214013519-e4d529c98be3/go.mod h1:8Z/N3qFJSM1+J8z4O8mXHYbshadkSBfcLzJeeU7vvj4=
-github.com/dapperlabs/flow-go/language v0.3.2-0.20200215005507-cd1167437238 h1:4MhbbnbT3fH2O/fjHCl+BXUDt6/dj8+nwz6BnSREyOg=
-github.com/dapperlabs/flow-go/language v0.3.2-0.20200215005507-cd1167437238/go.mod h1:8Z/N3qFJSM1+J8z4O8mXHYbshadkSBfcLzJeeU7vvj4=
+github.com/dapperlabs/flow-go/language v0.3.2-0.20200302001426-968f1c2e9df3 h1:TzWjdBfvNL1yu7FG/5XVIEZdP8tFVEU00rpmhpspcbk=
+github.com/dapperlabs/flow-go/language v0.3.2-0.20200302001426-968f1c2e9df3/go.mod h1:8Z/N3qFJSM1+J8z4O8mXHYbshadkSBfcLzJeeU7vvj4=
 github.com/dapperlabs/flow-go/protobuf v0.3.1/go.mod h1:oaMV7AdCz45OC/zPUvCcruE+8XLGiHS92VWas9dV6A8=
 github.com/dapperlabs/flow-go/protobuf v0.3.2-0.20200214013519-e4d529c98be3/go.mod h1:oaMV7AdCz45OC/zPUvCcruE+8XLGiHS92VWas9dV6A8=
 github.com/dave/jennifer v1.4.0/go.mod h1:fIb+770HOpJ2fmN9EPPKOqm1vMGhB+TwXKMZhrIygKg=

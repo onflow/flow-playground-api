@@ -47,10 +47,11 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Account struct {
-		Address      func(childComplexity int) int
-		DeployedCode func(childComplexity int) int
-		DraftCode    func(childComplexity int) int
-		ID           func(childComplexity int) int
+		Address           func(childComplexity int) int
+		DeployedCode      func(childComplexity int) int
+		DeployedContracts func(childComplexity int) int
+		DraftCode         func(childComplexity int) int
+		ID                func(childComplexity int) int
 	}
 
 	Event struct {
@@ -186,6 +187,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Account.DeployedCode(childComplexity), true
+
+	case "Account.deployedContracts":
+		if e.complexity.Account.DeployedContracts == nil {
+			break
+		}
+
+		return e.complexity.Account.DeployedContracts(childComplexity), true
 
 	case "Account.draftCode":
 		if e.complexity.Account.DraftCode == nil {
@@ -689,6 +697,7 @@ type Account {
   address: Address!
   draftCode: String!
   deployedCode: String!
+  deployedContracts: [String!]!
 }
 
 type TransactionTemplate {
@@ -1219,6 +1228,43 @@ func (ec *executionContext) _Account_deployedCode(ctx context.Context, field gra
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Account_deployedContracts(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Account",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DeployedContracts, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Event_type(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
@@ -4546,6 +4592,11 @@ func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "deployedCode":
 			out.Values[i] = ec._Account_deployedCode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deployedContracts":
+			out.Values[i] = ec._Account_deployedContracts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
