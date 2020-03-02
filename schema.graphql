@@ -20,6 +20,7 @@ type Account {
   address: Address!
   draftCode: String!
   deployedCode: String!
+  deployedContracts: [String!]!
 }
 
 type TransactionTemplate {
