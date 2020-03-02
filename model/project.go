@@ -46,7 +46,7 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 }
 
 func (p *InternalProject) NameKey() *datastore.Key {
-	return datastore.NameKey("InternalProject", p.ID.String(), nil)
+	return datastore.NameKey("Project", p.ID.String(), nil)
 }
 
 type Project struct {

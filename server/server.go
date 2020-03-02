@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
@@ -14,6 +16,8 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
@@ -34,7 +38,20 @@ func main() {
 		allowedOriginList = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	}
 
-	store := memory.NewStore()
+	storeBackend := os.Getenv("STORE_BACKEND")
+	var store storage.Store
+	if strings.EqualFold(storeBackend, "datastore") {
+		var err error
+		projectID := os.Getenv("DATASTORE_PROJECT_ID")
+		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{DatastoreProjectID: projectID, DatastoreTimeout: time.Second * 5})
+		if err != nil {
+			// If datastore is expected, panic when we can't init
+			panic(err)
+		}
+	} else {
+		store = memory.NewStore()
+	}
+
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)

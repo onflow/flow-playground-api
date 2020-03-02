@@ -1,5 +1,3 @@
-// Package datastore is a Google Cloud Datastore implementation of a Firehose
-// offset backend.
 package datastore
 
 import (
@@ -15,10 +13,9 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
-// DatastoreConfig is the configuration required to connect to Datastore.
-type DatastoreConfig struct {
+// Config is the configuration required to connect to Datastore.
+type Config struct {
 	DatastoreProjectID string
-	DatastoreOffsetKey string
 	DatastoreTimeout   time.Duration
 }
 
@@ -27,7 +24,7 @@ const (
 )
 
 type Datastore struct {
-	conf     *DatastoreConfig
+	conf     *Config
 	dsClient *datastore.Client
 }
 
@@ -36,7 +33,7 @@ type Datastore struct {
 // This function will return an error if it fails to connect to Datastore.
 func NewDatastore(
 	ctx context.Context,
-	conf *DatastoreConfig,
+	conf *Config,
 ) (storage.Store, error) {
 	if conf.DatastoreProjectID == "" {
 		return nil, errors.New("missing env var: DATASTORE_PROJECT_ID")

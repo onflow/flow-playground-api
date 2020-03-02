@@ -22,7 +22,7 @@ type Store struct {
 	registerDeltas        []model.RegisterDelta
 }
 
-func NewStore() *Store {
+func NewStore() storage.Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
 		projects:              make(map[uuid.UUID]model.InternalProject),
