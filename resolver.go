@@ -8,6 +8,7 @@ import (
 	"github.com/dapperlabs/flow-go-sdk/templates"
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/encoding"
+	"github.com/dapperlabs/flow-go/language/runtime"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -188,6 +189,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to store register delta")
 		}
+
+		contracts := parseDeployedContracts(result.Events)
+
+		input.DeployedContracts = &contracts
 	}
 
 	err = r.store.UpdateAccount(input, &acc)
@@ -585,4 +590,25 @@ type transactionExecutionResolver struct{ *Resolver }
 
 func (r *transactionExecutionResolver) Signers(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
 	panic("not implemented")
+}
+
+const AccountCodeUpdatedEvent = "flow.AccountCodeUpdated"
+
+func parseDeployedContracts(events []runtime.Event) []string {
+	for _, event := range events {
+		if event.Type.ID() == AccountCodeUpdatedEvent {
+			value, _ := language.ConvertValue(event.Fields[2])
+			arrayValue := value.(language.VariableSizedArray)
+
+			contracts := make([]string, len(arrayValue.Values))
+
+			for i, contractValue := range arrayValue.Values {
+				contracts[i] = contractValue.(language.String).ToGoValue().(string)
+			}
+
+			return contracts
+		}
+	}
+
+	return nil
 }

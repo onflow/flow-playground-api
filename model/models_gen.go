@@ -39,12 +39,6 @@ type NewTransactionTemplate struct {
 	Script    string    `json:"script"`
 }
 
-type UpdateAccount struct {
-	ID           uuid.UUID `json:"id"`
-	DraftCode    *string   `json:"draftCode"`
-	DeployedCode *string   `json:"deployedCode"`
-}
-
 type UpdateProject struct {
 	ID      uuid.UUID `json:"id"`
 	Persist *bool     `json:"persist"`

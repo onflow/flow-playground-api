@@ -118,6 +118,10 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) err
 		a.DeployedCode = *input.DeployedCode
 	}
 
+	if input.DeployedContracts != nil {
+		a.DeployedContracts = *input.DeployedContracts
+	}
+
 	s.accounts[input.ID] = a
 
 	*acc = a
