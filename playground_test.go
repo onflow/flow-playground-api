@@ -1,8 +1,12 @@
 package playground_test
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/handler"
@@ -11,8 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dapperlabs/flow-playground-api"
+	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
@@ -1487,7 +1493,21 @@ func TestContractInteraction(t *testing.T) {
 }
 
 func newClient() *client.Client {
-	store := memory.NewStore()
+	var store storage.Store
+	// TODO: Should eventually start up the emulator and run all tests with datastore backend
+	if strings.EqualFold(os.Getenv("STORE_BACKEND"), "datastore") {
+		var err error
+		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
+			DatastoreProjectID: "dl-flow",
+			DatastoreTimeout:   time.Second * 5,
+		})
+		if err != nil {
+			// If datastore is expected, panic when we can't init
+			panic(err)
+		}
+	} else {
+		store = memory.NewStore()
+	}
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)
