@@ -17,21 +17,25 @@ import (
 type Computer struct {
 	store        storage.Store
 	blockContext virtualmachine.BlockContext
-	ledgerCache  map[uuid.UUID]Ledger
+	cache        *LedgerCache
 }
 
-func NewComputer(store storage.Store) *Computer {
+func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
 	vm := virtualmachine.New(rt)
 
 	blockContext := vm.NewBlockContext(&flow.Header{Number: 0})
 
+	cache, err := NewLedgerCache(cacheSize)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to instantiate LRU cache")
+	}
+
 	return &Computer{
 		store:        store,
 		blockContext: blockContext,
-		// TODO: cache eviction
-		ledgerCache: make(map[uuid.UUID]Ledger),
-	}
+		cache:        cache,
+	}, nil
 }
 
 func (c *Computer) ExecuteTransaction(
@@ -39,12 +43,12 @@ func (c *Computer) ExecuteTransaction(
 	script string,
 	signers []model.Address,
 ) (*virtualmachine.TransactionResult, state.Delta, error) {
-	ledger, err := c.getOrCreateLedger(projectID)
+	ledgerItem, err := c.getOrCreateLedger(projectID)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	view := ledger.NewView()
+	view := ledgerItem.ledger.NewView()
 
 	scriptAccounts := make([]flow.Address, len(signers))
 	for i, signer := range signers {
@@ -62,51 +66,70 @@ func (c *Computer) ExecuteTransaction(
 
 	delta := view.Delta()
 
-	ledger.ApplyDelta(delta)
+	ledgerItem.ledger.ApplyDelta(delta)
+	ledgerItem.count++
+
+	c.cache.Set(projectID, ledgerItem)
 
 	return result, delta, nil
 }
 
 func (c *Computer) ClearCache() {
-	c.ledgerCache = make(map[uuid.UUID]Ledger)
+	c.cache.Clear()
 }
 
-func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (Ledger, error) {
-	// TODO: check that cache is up-to-date
-
-	ledger, ok := c.ledgerCache[projectID]
-	if ok {
-		return ledger, nil
+func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, error) {
+	var proj model.InternalProject
+	err := c.store.GetProject(projectID, &proj)
+	if err != nil {
+		return LedgerCacheItem{}, errors.Wrap(err, "failed to load project")
 	}
 
-	ledger = make(Ledger)
+	if proj.TransactionCount == 0 {
+		return LedgerCacheItem{
+			ledger: make(Ledger),
+			count:  0,
+		}, nil
+	}
+
+	ledgerItem, ok := c.cache.Get(projectID)
+	if ok && ledgerItem.count == proj.TransactionCount {
+		return ledgerItem, nil
+	}
+
+	ledger := make(Ledger)
 
 	var deltas []state.Delta
 
-	err := c.store.GetRegisterDeltasForProject(projectID, &deltas)
+	err = c.store.GetRegisterDeltasForProject(projectID, &deltas)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load register deltas for project")
+		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
 	}
 
 	for _, delta := range deltas {
 		ledger.ApplyDelta(delta)
 	}
 
-	c.ledgerCache[projectID] = ledger
+	ledgerItem = LedgerCacheItem{
+		ledger: ledger,
+		count:  proj.TransactionCount,
+	}
 
-	return ledger, nil
+	c.cache.Set(projectID, ledgerItem)
+
+	return ledgerItem, nil
 }
 
 func (c *Computer) ExecuteScript(
 	projectID uuid.UUID,
 	script string,
 ) (*virtualmachine.ScriptResult, error) {
-	ledger, err := c.getOrCreateLedger(projectID)
+	ledgerItem, err := c.getOrCreateLedger(projectID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	view := ledger.NewView()
+	view := ledgerItem.ledger.NewView()
 
 	result, err := c.blockContext.ExecuteScript(view, []byte(script))
 	if err != nil {
