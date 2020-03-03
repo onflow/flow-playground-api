@@ -9,9 +9,11 @@ import (
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/encoding"
 	"github.com/dapperlabs/flow-go/language/runtime"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	encoding2 "github.com/dapperlabs/flow-playground-api/encoding"
 	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -340,6 +342,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 					return nil, errors.Wrap(err, "failed to convert event value")
 				}
 
+				fmt.Println(encoding2.Encode(value))
+
 				encValue, err := encoding.Encode(value)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to encode event value")
@@ -450,21 +454,24 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	if result.Error != nil {
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
-	}
+	} else {
+		value, err := language.ConvertValue(result.Value)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to convert script result")
+		}
 
-	value, err := language.ConvertValue(result.Value)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert script result")
-	}
+		fmt.Println(encoding2.ConvertValue(result.Value))
 
-	encValue, err := encoding.Encode(value)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode script value")
-	}
+		encValue, err := encoding.Encode(value)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to encode script value")
+		}
 
-	exe.Value = model.XDRValue{
-		Type:  value.Type().ID(),
-		Value: fmt.Sprintf("%x", encValue),
+		exe.Value = model.XDRValue{
+			// Type:  value.Type().ID(),
+			Value: fmt.Sprintf("%x", encValue),
+		}
+
 	}
 
 	err = r.store.InsertScriptExecution(&exe)
