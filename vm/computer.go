@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
@@ -106,8 +105,6 @@ func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, erro
 	if err != nil {
 		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
 	}
-
-	fmt.Println("REBUILDING CACHE", deltas)
 
 	for _, delta := range deltas {
 		ledger.ApplyDelta(delta)
