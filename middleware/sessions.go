@@ -119,7 +119,7 @@ func MockProjectSessionCookie(projectID, projectPrivateID string) *http.Cookie {
 	r := &http.Request{}
 	w := httptest.NewRecorder()
 
-	session, _ := store.Get(r, projectsSessionName)
+	session, _ := store.Get(r, projectSessionName)
 
 	session.Values[projectID] = projectPrivateID
 
