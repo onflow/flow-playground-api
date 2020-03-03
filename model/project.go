@@ -49,8 +49,12 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 	}
 }
 
+func projectNameKey(id uuid.UUID) *datastore.Key {
+	return datastore.NameKey("Project", id.String(), nil)
+}
+
 func (p *InternalProject) NameKey() *datastore.Key {
-	return datastore.NameKey("Project", p.ID.String(), nil)
+	return projectNameKey(p.ID)
 }
 
 func (p *InternalProject) Load(ps []datastore.Property) error {
@@ -130,4 +134,13 @@ type Project struct {
 	ParentID  *uuid.UUID
 	Persist   bool
 	Mutable   bool
+}
+
+type ProjectChildID struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func NewProjectChildID(id uuid.UUID, projectID uuid.UUID) ProjectChildID {
+	return ProjectChildID{ID: id, ProjectID: projectID}
 }

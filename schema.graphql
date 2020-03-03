@@ -65,9 +65,9 @@ type ScriptExecution {
 type Query {
   project(id: UUID!): Project!
 
-  account(id: UUID!): Account!
-  transactionTemplate(id: UUID!): TransactionTemplate!
-  scriptTemplate(id: UUID!): ScriptTemplate!
+  account(id: UUID!, projectId: UUID!): Account!
+  transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
+  scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
 
 input NewProject {
@@ -84,6 +84,7 @@ input UpdateProject {
 
 input UpdateAccount {
   id: UUID!
+  projectId: UUID!
   draftCode: String
   deployedCode: String
 }
@@ -95,6 +96,7 @@ input NewTransactionTemplate {
 
 input UpdateTransactionTemplate {
   id: UUID!
+  projectId: UUID!
   index: Int
   script: String
 }
@@ -112,6 +114,7 @@ input NewScriptTemplate {
 
 input UpdateScriptTemplate {
   id: UUID!
+  projectId: UUID!
   index: Int
   script: String
 }
@@ -129,12 +132,12 @@ type Mutation {
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
-  deleteTransactionTemplate(id: UUID!): UUID!
+  deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
   createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
-  deleteScriptTemplate(id: UUID!): UUID!
+  deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 

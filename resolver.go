@@ -67,9 +67,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	for i := 0; i < MaxAccounts; i++ {
 		acc := model.Account{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-			Index:     i,
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+			},
+			Index: i,
 		}
 
 		if i < len(input.Accounts) {
@@ -106,9 +108,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	for _, script := range input.TransactionTemplates {
 		tpl := &model.TransactionTemplate{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-			Script:    script,
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+			},
+			Script: script,
 		}
 
 		err = r.store.InsertTransactionTemplate(tpl)
@@ -119,9 +123,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	for _, script := range input.ScriptTemplates {
 		tpl := &model.ScriptTemplate{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-			Script:    script,
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+			},
+			Script: script,
 		}
 
 		err = r.store.InsertScriptTemplate(tpl)
@@ -157,14 +163,9 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 	var acc model.Account
 
-	err := r.store.GetAccount(input.ID, &acc)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get account")
-	}
-
 	var proj model.InternalProject
 
-	err = r.store.GetProject(acc.ProjectID, &proj)
+	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -208,9 +209,11 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	tpl := &model.TransactionTemplate{
-		ID:        uuid.New(),
-		ProjectID: input.ProjectID,
-		Script:    input.Script,
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: input.ProjectID,
+		},
+		Script: input.Script,
 	}
 
 	var proj model.InternalProject
@@ -235,14 +238,9 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
 	var tpl model.TransactionTemplate
 
-	err := r.store.GetTransactionTemplate(input.ID, &tpl)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get transaction template")
-	}
-
 	var proj model.InternalProject
 
-	err = r.store.GetProject(tpl.ProjectID, &proj)
+	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -259,17 +257,10 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 	return &tpl, nil
 }
 
-func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	var tpl model.TransactionTemplate
-
-	err := r.store.GetTransactionTemplate(id, &tpl)
-	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get transaction template")
-	}
-
+func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject
 
-	err = r.store.GetProject(tpl.ProjectID, &proj)
+	err := r.store.GetProject(projectID, &proj)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
@@ -278,7 +269,7 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.Nil, errors.New("access denied")
 	}
 
-	err = r.store.DeleteTransactionTemplate(id)
+	err = r.store.DeleteTransactionTemplate(model.NewProjectChildID(id, projectID))
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to delete transaction template")
 	}
@@ -307,10 +298,12 @@ func (r *mutationResolver) CreateTransactionExecution(
 	}
 
 	exe := model.TransactionExecution{
-		ID:        uuid.New(),
-		ProjectID: input.ProjectID,
-		Script:    input.Script,
-		Logs:      result.Logs,
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: input.ProjectID,
+		},
+		Script: input.Script,
+		Logs:   result.Logs,
 	}
 
 	if result.Error != nil {
@@ -361,9 +354,11 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
 	tpl := &model.ScriptTemplate{
-		ID:        uuid.New(),
-		ProjectID: input.ProjectID,
-		Script:    input.Script,
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: input.ProjectID,
+		},
+		Script: input.Script,
 	}
 
 	var proj model.InternalProject
@@ -388,14 +383,9 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
 	var tpl model.ScriptTemplate
 
-	err := r.store.GetScriptTemplate(input.ID, &tpl)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get script template")
-	}
-
 	var proj model.InternalProject
 
-	err = r.store.GetProject(tpl.ProjectID, &proj)
+	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -430,10 +420,12 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	}
 
 	exe := model.ScriptExecution{
-		ID:        uuid.New(),
-		ProjectID: input.ProjectID,
-		Script:    input.Script,
-		Logs:      result.Logs,
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: input.ProjectID,
+		},
+		Script: input.Script,
+		Logs:   result.Logs,
 	}
 
 	if result.Error != nil {
@@ -464,17 +456,10 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	return &exe, nil
 }
 
-func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	var tpl model.ScriptTemplate
-
-	err := r.store.GetScriptTemplate(id, &tpl)
-	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get script template")
-	}
-
+func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject
 
-	err = r.store.GetProject(tpl.ProjectID, &proj)
+	err := r.store.GetProject(projectID, &proj)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
@@ -483,7 +468,7 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 		return uuid.Nil, errors.New("access denied")
 	}
 
-	err = r.store.DeleteScriptTemplate(id)
+	err = r.store.DeleteScriptTemplate(model.NewProjectChildID(id, projectID))
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to delete script template")
 	}
@@ -558,10 +543,10 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	return proj.ExportPublicImmutable(), nil
 }
 
-func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Account, error) {
+func (r *queryResolver) Account(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
 	var acc model.Account
 
-	err := r.store.GetAccount(id, &acc)
+	err := r.store.GetAccount(model.NewProjectChildID(id, projectID), &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
 	}
@@ -569,10 +554,10 @@ func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Accou
 	return &acc, nil
 }
 
-func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error) {
+func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
 	var tpl model.TransactionTemplate
 
-	err := r.store.GetTransactionTemplate(id, &tpl)
+	err := r.store.GetTransactionTemplate(model.NewProjectChildID(id, projectID), &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get transaction template")
 	}
@@ -580,10 +565,10 @@ func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (
 	return &tpl, nil
 }
 
-func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID) (*model.ScriptTemplate, error) {
+func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
 	var tpl model.ScriptTemplate
 
-	err := r.store.GetScriptTemplate(id, &tpl)
+	err := r.store.GetScriptTemplate(model.NewProjectChildID(id, projectID), &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get script template")
 	}

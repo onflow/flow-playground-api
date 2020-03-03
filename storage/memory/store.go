@@ -87,11 +87,11 @@ func (s *Store) InsertAccount(acc *model.Account) error {
 	return nil
 }
 
-func (s *Store) GetAccount(id uuid.UUID, acc *model.Account) error {
+func (s *Store) GetAccount(id model.ProjectChildID, acc *model.Account) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	p, ok := s.accounts[id]
+	p, ok := s.accounts[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -154,16 +154,16 @@ func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Accoun
 	return nil
 }
 
-func (s *Store) DeleteAccount(id uuid.UUID) error {
+func (s *Store) DeleteAccount(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.accounts[id]
+	_, ok := s.accounts[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.accounts, id)
+	delete(s.accounts, id.ID)
 
 	return nil
 }
@@ -215,11 +215,11 @@ func (s *Store) UpdateTransactionTemplate(
 	return nil
 }
 
-func (s *Store) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error {
+func (s *Store) GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	t, ok := s.transactionTemplates[id]
+	t, ok := s.transactionTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -254,16 +254,16 @@ func (s *Store) getTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*
 	return nil
 }
 
-func (s *Store) DeleteTransactionTemplate(id uuid.UUID) error {
+func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.transactionTemplates[id]
+	_, ok := s.transactionTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.transactionTemplates, id)
+	delete(s.transactionTemplates, id.ID)
 
 	return nil
 }
@@ -366,11 +366,11 @@ func (s *Store) UpdateScriptTemplate(
 	return nil
 }
 
-func (s *Store) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error {
+func (s *Store) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	t, ok := s.scriptTemplates[id]
+	t, ok := s.scriptTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -405,16 +405,16 @@ func (s *Store) getScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model
 	return nil
 }
 
-func (s *Store) DeleteScriptTemplate(id uuid.UUID) error {
+func (s *Store) DeleteScriptTemplate(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.scriptTemplates[id]
+	_, ok := s.scriptTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.scriptTemplates, id)
+	delete(s.scriptTemplates, id.ID)
 
 	return nil
 }

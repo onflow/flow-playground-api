@@ -45,15 +45,17 @@ type UpdateProject struct {
 }
 
 type UpdateScriptTemplate struct {
-	ID     uuid.UUID `json:"id"`
-	Index  *int      `json:"index"`
-	Script *string   `json:"script"`
+	ID        uuid.UUID `json:"id"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Index     *int      `json:"index"`
+	Script    *string   `json:"script"`
 }
 
 type UpdateTransactionTemplate struct {
-	ID     uuid.UUID `json:"id"`
-	Index  *int      `json:"index"`
-	Script *string   `json:"script"`
+	ID        uuid.UUID `json:"id"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Index     *int      `json:"index"`
+	Script    *string   `json:"script"`
 }
 
 type XDRValue struct {

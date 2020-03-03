@@ -7,8 +7,7 @@ import (
 )
 
 type Account struct {
-	ID                uuid.UUID
-	ProjectID         uuid.UUID
+	ProjectChildID
 	Index             int
 	Address           Address
 	DraftCode         string
@@ -18,13 +17,14 @@ type Account struct {
 
 type UpdateAccount struct {
 	ID                uuid.UUID `json:"id"`
+	ProjectID         uuid.UUID `json:"projectId"`
 	DraftCode         *string   `json:"draftCode"`
 	DeployedCode      *string   `json:"deployedCode"`
 	DeployedContracts *[]string
 }
 
 func (a *Account) NameKey() *datastore.Key {
-	return datastore.NameKey("Account", a.ID.String(), nil)
+	return datastore.NameKey("Account", a.ID.String(), projectNameKey(a.ProjectID))
 }
 
 func (a *Account) Load(ps []datastore.Property) error {
