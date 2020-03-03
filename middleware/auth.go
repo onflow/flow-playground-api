@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/gorilla/sessions"
 
@@ -13,52 +14,19 @@ import (
 type ctxKey string
 
 var (
-	projectsCtxKey = ctxKey("projects")
-	httpCtxKey     = ctxKey("http")
-	sessionCtxKey  = ctxKey("session")
+	httpCtxKey    = ctxKey("http")
+	sessionCtxKey = ctxKey("session")
 )
 
-type projects struct {
-	cookies []*http.Cookie
-}
+const (
+	projectsSessionName = "flow-playground"
+	sessionMaxAge       = 157680000 // 5 years in seconds
+)
 
-func (p *projects) hasPermission(project *model.InternalProject) bool {
-	expectedCookieName := projectCookieKey(project.ID.String())
+func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
+	session := getSession(ctx, projectsSessionName)
 
-	for _, cookie := range p.cookies {
-		if cookie.Name == expectedCookieName {
-			return project.PrivateID.String() == cookie.Value
-		}
-	}
-
-	return false
-}
-
-func Middleware() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			projectsContext := &projects{
-				cookies: r.Cookies(),
-			}
-
-			httpContext := HTTPContext{
-				W: &w,
-				R: r,
-			}
-
-			ctx := context.WithValue(r.Context(), httpCtxKey, httpContext)
-			ctx = context.WithValue(r.Context(), projectsCtxKey, projectsContext)
-
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func HasProjectPermission(ctx context.Context, project *model.InternalProject) bool {
-	session := GetSession(ctx, "FLOW_PLAYGROUND")
-
-	privateID, ok := session.Values[project.ID.String()]
+	privateID, ok := session.Values[proj.ID.String()]
 	if !ok {
 		return false
 	}
@@ -68,54 +36,65 @@ func HasProjectPermission(ctx context.Context, project *model.InternalProject) b
 		return false
 	}
 
-	return privateIDStr == project.PrivateID.String()
+	return privateIDStr == proj.PrivateID.String()
 }
 
-func ProjectCookie(projectID, projectPrivateID string) *http.Cookie {
-	return &http.Cookie{
-		Name:  projectCookieKey(projectID),
-		Value: projectPrivateID,
+func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error {
+	session := getSession(ctx, projectsSessionName)
+
+	// Setting userID cookie value
+	session.Values[proj.ID.String()] = proj.PrivateID.String()
+
+	err := saveSession(ctx, session)
+	if err != nil {
+		return err
 	}
+
+	return nil
 }
 
-func projectCookieKey(projectID string) string {
-	return fmt.Sprintf("proj-%s", projectID)
-}
-
-type HTTPContext struct {
+type httpContext struct {
 	W *http.ResponseWriter
 	R *http.Request
 }
 
-// GetSession returns a cached session of the given name
-func GetSession(ctx context.Context, name string) *sessions.Session {
+// getSession returns a cached session of the given name.
+func getSession(ctx context.Context, name string) *sessions.Session {
 	store := ctx.Value(sessionCtxKey).(*sessions.CookieStore)
-	httpContext := ctx.Value(httpCtxKey).(HTTPContext)
+	httpContext := ctx.Value(httpCtxKey).(httpContext)
 
-	// Ignore err because a session is always returned even if one doesn't exist
-	session, _ := store.Get(httpContext.R, name)
+	fmt.Println("COOKIES", httpContext.R.Cookies())
+
+	// ignore error because a session is always returned even if one does not exist
+	session, err := store.Get(httpContext.R, name)
+
+	fmt.Println("GOT SESSION", session.Values)
+	fmt.Println("GOT SESSION ERROR", err)
 
 	return session
 }
 
-// SaveSession saves the session by writing it to the response
-func SaveSession(ctx context.Context, session *sessions.Session) error {
-	httpContext := ctx.Value(httpCtxKey).(HTTPContext)
+// saveSession saves a session by writing it to the HTTP response.
+func saveSession(ctx context.Context, session *sessions.Session) error {
+	httpContext := ctx.Value(httpCtxKey).(httpContext)
+
+	session.Options = &sessions.Options{MaxAge: sessionMaxAge}
 
 	err := session.Save(httpContext.R, *httpContext.W)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
-// InjectHTTPMiddleware handles injecting the ResponseWriter and Request structs
-// into context so that resolver methods can use these to set and read cookies. It also passes a // CookieStore initialized in `server.go` into context for facilitated cookie handling.
-func InjectHTTPMiddleware(store *sessions.CookieStore) func(http.Handler) http.Handler {
+// ProjectSessions injects middleware for managing project sessions into an HTTP handler.
+//
+// Sessions will be stored using the provided sessions.CookieStore instance.
+func ProjectSessions(store *sessions.CookieStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			httpContext := HTTPContext{
-				W: &w,
-				R: r,
-			}
+			httpContext := httpContext{W: &w, R: r}
 
 			ctx := context.WithValue(r.Context(), httpCtxKey, httpContext)
 			ctx = context.WithValue(ctx, sessionCtxKey, store)
@@ -125,4 +104,34 @@ func InjectHTTPMiddleware(store *sessions.CookieStore) func(http.Handler) http.H
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+const mockSessionKey = "1bbcf50e2e5f3e2d1801db50742f6a97"
+
+func mockCookieStore() *sessions.CookieStore {
+	return sessions.NewCookieStore([]byte(mockSessionKey))
+}
+
+// MockProjectSessions returns project sessions middleware to be used for testing.
+func MockProjectSessions() func(http.Handler) http.Handler {
+	return ProjectSessions(mockCookieStore())
+}
+
+// MockProjectSessionCookie returns a session cookie that provides access to the given project.
+func MockProjectSessionCookie(projectID, projectPrivateID string) *http.Cookie {
+	store := mockCookieStore()
+
+	r := &http.Request{}
+	w := httptest.NewRecorder()
+
+	session, _ := store.Get(r, projectsSessionName)
+
+	session.Values[projectID] = projectPrivateID
+
+	err := session.Save(r, w)
+	if err != nil {
+		panic(err)
+	}
+
+	return w.Result().Cookies()[0]
 }
