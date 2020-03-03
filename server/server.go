@@ -12,7 +12,6 @@ import (
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
-	"github.com/gorilla/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
@@ -28,6 +27,7 @@ const (
 	defaultPort           = "8080"
 	defaultAllowedOrigins = "http://localhost:3000"
 	defaultSessionKey     = "428ce08c21b93e5f0eca24fbeb0c7673"
+	defaultSessionMaxAge  = 157680000 // 5 years in seconds
 )
 
 func main() {
@@ -86,10 +86,7 @@ func main() {
 			Debug:            gqlPlayground,
 		}).Handler)
 
-		// TODO: config with secret
-		sessionStore := sessions.NewCookieStore([]byte(sessionKey))
-
-		router.Use(middleware.ProjectSessions(sessionStore))
+		router.Use(middleware.ProjectSessions([]byte(sessionKey), defaultSessionMaxAge))
 
 		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
 	})
