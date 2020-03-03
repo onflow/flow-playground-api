@@ -94,15 +94,24 @@ func (d *Datastore) InsertProject(proj *model.InternalProject) error {
 	return d.put(proj)
 }
 func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
 	proj.ID = input.ID
-	err := d.get(proj)
-	if err != nil {
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+		if input.Persist != nil {
+			proj.Persist = *input.Persist
+		}
+		_, err = tx.Put(proj.NameKey(), proj)
 		return err
-	}
-	if input.Persist != nil {
-		proj.Persist = *input.Persist
-	}
-	return d.put(proj)
+	})
+
+	return txErr
 }
 
 func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error {
@@ -121,19 +130,28 @@ func (d *Datastore) GetAccount(id uuid.UUID, acc *model.Account) error {
 	return d.get(acc)
 }
 func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	acc.ID = input.ID
-	err := d.get(acc)
-	if err != nil {
-		return err
-	}
-	if input.DraftCode != nil {
-		acc.DraftCode = *input.DraftCode
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
 
-	if input.DeployedCode != nil {
-		acc.DeployedCode = *input.DeployedCode
-	}
-	return d.put(acc)
+	acc.ID = input.ID
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		err := tx.Get(acc.NameKey(), acc)
+		if err != nil {
+			return err
+		}
+		if input.DraftCode != nil {
+			acc.DraftCode = *input.DraftCode
+		}
+
+		if input.DeployedCode != nil {
+			acc.DeployedCode = *input.DeployedCode
+		}
+		_, err = tx.Put(acc.NameKey(), acc)
+		return err
+	})
+
+	return txErr
 }
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
 	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
@@ -155,20 +173,28 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 	return d.put(tpl)
 }
 func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
 	tpl.ID = input.ID
-	err := d.get(tpl)
-	if err != nil {
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		err := tx.Get(tpl.NameKey(), tpl)
+		if err != nil {
+			return err
+		}
+		if input.Index != nil {
+			tpl.Index = *input.Index
+		}
+
+		if input.Script != nil {
+			tpl.Script = *input.Script
+		}
+		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
-	}
-	if input.Index != nil {
-		tpl.Index = *input.Index
-	}
+	})
 
-	if input.Script != nil {
-		tpl.Script = *input.Script
-	}
-
-	return d.put(tpl)
+	return txErr
 }
 func (d *Datastore) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error {
 	tpl.ID = id
@@ -217,20 +243,30 @@ func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	return d.put(tpl)
 }
 func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
 	tpl.ID = input.ID
-	err := d.get(tpl)
-	if err != nil {
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		err := tx.Get(tpl.NameKey(), tpl)
+		if err != nil {
+			return err
+		}
+
+		if input.Index != nil {
+			tpl.Index = *input.Index
+		}
+
+		if input.Script != nil {
+			tpl.Script = *input.Script
+		}
+		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
-	}
+	})
 
-	if input.Index != nil {
-		tpl.Index = *input.Index
-	}
-
-	if input.Script != nil {
-		tpl.Script = *input.Script
-	}
-	return d.put(tpl)
+	return txErr
 }
 func (d *Datastore) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error {
 	tpl.ID = id
@@ -257,27 +293,37 @@ func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*
 // Register Deltas
 
 func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
 	proj := &model.InternalProject{
 		ID: projectID,
 	}
-	err := d.get(proj)
-	if err != nil {
-		return err
-	}
-	index := proj.TransactionCount + 1
 
-	regDelta := model.RegisterDelta{
-		ProjectID: projectID,
-		Index:     index,
-		Delta:     delta,
-	}
-	err = d.put(&regDelta)
-	if err != nil {
-		return err
-	}
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
-	proj.TransactionCount = index
-	return d.put(proj)
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+		index := proj.TransactionCount + 1
+
+		regDelta := &model.RegisterDelta{
+			ProjectID: projectID,
+			Index:     index,
+			Delta:     delta,
+		}
+		_, err = tx.Put(regDelta.NameKey(), regDelta)
+		if err != nil {
+			return err
+		}
+
+		proj.TransactionCount = index
+		_, err = tx.Put(proj.NameKey(), proj)
+		return err
+	})
+
+	return txErr
 }
 func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
 	reg := []model.RegisterDelta{}
