@@ -15,17 +15,8 @@ type InternalProject struct {
 	Persist          bool
 }
 
-func (p *InternalProject) ExportPrivate() *Project {
-	return &Project{
-		ID:        p.ID,
-		PrivateID: &p.PrivateID,
-		PublicID:  p.PublicID,
-		ParentID:  p.ParentID,
-		Persist:   p.Persist,
-		Mutable:   true,
-	}
-}
-
+// ExportPublicMutable converts the internal project to its public representation
+// and marks it as mutable.
 func (p *InternalProject) ExportPublicMutable() *Project {
 	return &Project{
 		ID:       p.ID,
@@ -36,6 +27,8 @@ func (p *InternalProject) ExportPublicMutable() *Project {
 	}
 }
 
+// ExportPublicImmutable converts the internal project to its public representation
+// and marks it as immutable.
 func (p *InternalProject) ExportPublicImmutable() *Project {
 	return &Project{
 		ID:       p.ID,
@@ -121,10 +114,9 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 }
 
 type Project struct {
-	ID        uuid.UUID
-	PrivateID *uuid.UUID
-	PublicID  uuid.UUID
-	ParentID  *uuid.UUID
-	Persist   bool
-	Mutable   bool
+	ID       uuid.UUID
+	PublicID uuid.UUID
+	ParentID *uuid.UUID
+	Persist  bool
+	Mutable  bool
 }

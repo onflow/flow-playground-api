@@ -23,8 +23,9 @@ import (
 const MaxAccounts = 4
 
 type Resolver struct {
-	store    storage.Store
-	computer *vm.Computer
+	store              storage.Store
+	computer           *vm.Computer
+	lastCreatedProject *model.InternalProject
 }
 
 func NewResolver(store storage.Store, computer *vm.Computer) *Resolver {
@@ -45,6 +46,10 @@ func (r *Resolver) Query() QueryResolver {
 }
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
+}
+
+func (r *Resolver) LastCreatedProject() *model.InternalProject {
+	return r.lastCreatedProject
 }
 
 type mutationResolver struct {
@@ -135,8 +140,9 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		return nil, errors.Wrap(err, "failed to save project in session")
 	}
 
-	// return project with private ID
-	return proj.ExportPrivate(), nil
+	r.lastCreatedProject = proj
+
+	return proj.ExportPublicMutable(), nil
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {

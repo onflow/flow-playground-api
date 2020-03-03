@@ -39,7 +39,6 @@ const MutationCreateProject = `
 mutation($accounts: [String!], $transactionTemplates: [String!]) {
   createProject(input: { accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
-    privateId
     persist
     accounts {
       id
@@ -389,7 +388,6 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
-		assert.NotEmpty(t, resp.CreateProject.PrivateID)
 
 		// project should be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
@@ -483,9 +481,6 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.Equal(t, project.ID, resp.Project.ID)
-
-		// private ID should not be returned from query
-		assert.Empty(t, resp.Project.PrivateID)
 	})
 
 	t.Run("Get non-existent project", func(t *testing.T) {
@@ -1492,8 +1487,22 @@ func TestContractInteraction(t *testing.T) {
 
 }
 
-func newClient() *client.Client {
+type Client struct {
+	client   *client.Client
+	resolver *playground.Resolver
+}
+
+func (c *Client) Post(query string, response interface{}, options ...client.Option) error {
+	return c.client.Post(query, response, options...)
+}
+
+func (c *Client) MustPost(query string, response interface{}, options ...client.Option) {
+	c.client.MustPost(query, response, options...)
+}
+
+func newClient() *Client {
 	var store storage.Store
+
 	// TODO: Should eventually start up the emulator and run all tests with datastore backend
 	if strings.EqualFold(os.Getenv("STORE_BACKEND"), "datastore") {
 		var err error
@@ -1508,6 +1517,7 @@ func newClient() *client.Client {
 	} else {
 		store = memory.NewStore()
 	}
+
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)
@@ -1515,7 +1525,7 @@ func newClient() *client.Client {
 	return newClientWithResolver(resolver)
 }
 
-func newClientWithResolver(resolver *playground.Resolver) *client.Client {
+func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router := chi.NewRouter()
 	router.Use(middleware.MockProjectSessions())
 
@@ -1526,10 +1536,13 @@ func newClientWithResolver(resolver *playground.Resolver) *client.Client {
 		),
 	)
 
-	return client.New(router)
+	return &Client{
+		client:   client.New(router),
+		resolver: resolver,
+	}
 }
 
-func createProject(c *client.Client) Project {
+func createProject(c *Client) Project {
 	var resp CreateProjectResponse
 
 	c.MustPost(
@@ -1539,10 +1552,15 @@ func createProject(c *client.Client) Project {
 		client.Var("transactionTemplates", []string{}),
 	)
 
-	return resp.CreateProject
+	proj := resp.CreateProject
+	internalProj := c.resolver.LastCreatedProject()
+
+	proj.PrivateID = internalProj.PrivateID.String()
+
+	return proj
 }
 
-func createTransactionTemplate(c *client.Client, project Project) TransactionTemplate {
+func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
 	var resp CreateTransactionTemplateResponse
 
 	c.MustPost(
@@ -1556,7 +1574,7 @@ func createTransactionTemplate(c *client.Client, project Project) TransactionTem
 	return resp.CreateTransactionTemplate
 }
 
-func createScriptTemplate(c *client.Client, project Project) string {
+func createScriptTemplate(c *Client, project Project) string {
 	var resp struct {
 		CreateScriptTemplate struct {
 			ID     string
