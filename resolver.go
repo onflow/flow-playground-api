@@ -58,11 +58,11 @@ type mutationResolver struct {
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	proj := &model.InternalProject{
-		ID:        uuid.New(),
-		PrivateID: uuid.New(),
-		PublicID:  uuid.New(),
-		ParentID:  input.ParentID,
-		Persist:   false,
+		ID:       uuid.New(),
+		Secret:   uuid.New(),
+		PublicID: uuid.New(),
+		ParentID: input.ParentID,
+		Persist:  false,
 	}
 
 	err := r.store.InsertProject(proj)
