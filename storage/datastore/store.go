@@ -125,8 +125,8 @@ func (d *Datastore) InsertAccount(acc *model.Account) error {
 
 // Accounts
 
-func (d *Datastore) GetAccount(id uuid.UUID, acc *model.Account) error {
-	acc.ID = id
+func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.Account) error {
+	acc.ProjectChildID = id
 	return d.get(acc)
 }
 func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
@@ -157,8 +157,8 @@ func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Ac
 	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, accs)
 }
-func (d *Datastore) DeleteAccount(id uuid.UUID) error {
-	return d.delete(&model.Account{ID: id})
+func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
+	return d.delete(&model.Account{ProjectChildID: id})
 }
 
 // Transaction Templates
@@ -213,16 +213,16 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 
 	return txErr
 }
-func (d *Datastore) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error {
-	tpl.ID = id
+func (d *Datastore) GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error {
+	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
 func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
 	q := datastore.NewQuery("TransactionTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, tpls)
 }
-func (d *Datastore) DeleteTransactionTemplate(id uuid.UUID) error {
-	return d.delete(&model.TransactionTemplate{ID: id})
+func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
+	return d.delete(&model.TransactionTemplate{ProjectChildID: id})
 }
 
 // Transaction Executions
@@ -319,16 +319,16 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 
 	return txErr
 }
-func (d *Datastore) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error {
-	tpl.ID = id
+func (d *Datastore) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error {
+	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
 func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
 	q := datastore.NewQuery("ScriptTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, tpls)
 }
-func (d *Datastore) DeleteScriptTemplate(id uuid.UUID) error {
-	return d.delete(&model.ScriptTemplate{ID: id})
+func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
+	return d.delete(&model.ScriptTemplate{ProjectChildID: id})
 }
 
 // Script Executions
