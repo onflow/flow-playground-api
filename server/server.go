@@ -12,6 +12,7 @@ import (
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
@@ -24,10 +25,10 @@ import (
 )
 
 const (
-	defaultPort           = "8080"
-	defaultAllowedOrigins = "http://localhost:3000"
-	defaultSessionKey     = "428ce08c21b93e5f0eca24fbeb0c7673"
-	defaultSessionMaxAge  = 157680000 // 5 years in seconds
+	defaultPort                     = "8080"
+	defaultAllowedOrigins           = "http://localhost:3000"
+	defaultSessionAuthenticationKey = "428ce08c21b93e5f0eca24fbeb0c7673"
+	defaultSessionMaxAge            = 157680000 // 5 years in seconds
 )
 
 func main() {
@@ -59,9 +60,9 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	sessionKey := os.Getenv("SESSION_KEY")
-	if sessionKey == "" {
-		sessionKey = defaultSessionKey
+	sessionAuthenticationKey := os.Getenv("SESSION_KEY")
+	if sessionAuthenticationKey == "" {
+		sessionAuthenticationKey = defaultSessionAuthenticationKey
 	}
 
 	computer := vm.NewComputer(store)
@@ -86,7 +87,10 @@ func main() {
 			Debug:            gqlPlayground,
 		}).Handler)
 
-		router.Use(middleware.ProjectSessions([]byte(sessionKey), defaultSessionMaxAge))
+		cookieStore := sessions.NewCookieStore([]byte(sessionAuthenticationKey))
+		cookieStore.MaxAge(defaultSessionMaxAge)
+
+		router.Use(middleware.ProjectSessions(cookieStore))
 
 		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
 	})
