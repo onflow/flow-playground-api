@@ -29,6 +29,7 @@ const (
 	defaultAllowedOrigins           = "http://localhost:3000"
 	defaultSessionAuthenticationKey = "428ce08c21b93e5f0eca24fbeb0c7673"
 	defaultSessionMaxAge            = 157680000 // 5 years in seconds
+	defaultLedgerCacheSize          = 128       // number of ledgers to store in cache
 )
 
 func main() {
@@ -65,7 +66,22 @@ func main() {
 		sessionAuthenticationKey = defaultSessionAuthenticationKey
 	}
 
-	computer := vm.NewComputer(store)
+	var ledgerCacheSize int
+	ledgerCacheSizeStr := os.Getenv("LEDGER_CACHE_SIZE")
+	if ledgerCacheSizeStr == "" {
+		ledgerCacheSize = defaultLedgerCacheSize
+	} else {
+		var err error
+		ledgerCacheSize, err = strconv.Atoi(ledgerCacheSizeStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	computer, err := vm.NewComputer(store, ledgerCacheSize)
+	if err != nil {
+		panic(err)
+	}
 
 	resolver := playground.NewResolver(store, computer)
 

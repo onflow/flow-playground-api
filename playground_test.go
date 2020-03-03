@@ -904,7 +904,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer := vm.NewComputer(store)
+		computer, _ := vm.NewComputer(store, 128)
 		resolver := playground.NewResolver(store, computer)
 
 		c := newClientWithResolver(resolver)
@@ -1518,7 +1518,7 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer := vm.NewComputer(store)
+	computer, _ := vm.NewComputer(store, 128)
 
 	resolver := playground.NewResolver(store, computer)
 
