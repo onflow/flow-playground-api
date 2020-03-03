@@ -8,7 +8,7 @@ import (
 
 type InternalProject struct {
 	ID               uuid.UUID
-	PrivateID        uuid.UUID
+	Secret           uuid.UUID
 	PublicID         uuid.UUID
 	ParentID         *uuid.UUID
 	TransactionCount int
@@ -46,7 +46,7 @@ func (p *InternalProject) NameKey() *datastore.Key {
 func (p *InternalProject) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID               string
-		PrivateID        string
+		Secret           string
 		PublicID         string
 		ParentID         *string
 		TransactionCount int
@@ -60,7 +60,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	if err := p.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
-	if err := p.PrivateID.UnmarshalText([]byte(tmp.PrivateID)); err != nil {
+	if err := p.Secret.UnmarshalText([]byte(tmp.Secret)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
 	if err := p.PublicID.UnmarshalText([]byte(tmp.PublicID)); err != nil {
@@ -91,8 +91,8 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 			Value: p.ID.String(),
 		},
 		{
-			Name:  "PrivateID",
-			Value: p.PrivateID.String(),
+			Name:  "Secret",
+			Value: p.Secret.String(),
 		},
 		{
 			Name:  "PublicID",

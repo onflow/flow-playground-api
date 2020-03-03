@@ -49,17 +49,17 @@ func ProjectSessions(sessionKey []byte, maxAge int) func(http.Handler) http.Hand
 func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 	session := getSession(ctx, projectSessionName)
 
-	privateID, ok := session.Values[proj.ID.String()]
+	secret, ok := session.Values[proj.ID.String()]
 	if !ok {
 		return false
 	}
 
-	privateIDStr, ok := privateID.(string)
+	secretStr, ok := secret.(string)
 	if !ok {
 		return false
 	}
 
-	return privateIDStr == proj.PrivateID.String()
+	return secretStr == proj.Secret.String()
 }
 
 // AddProjectToSession adds the given project to the current session.
@@ -69,7 +69,7 @@ func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error
 	session := getSession(ctx, projectSessionName)
 
 	// Setting userID cookie value
-	session.Values[proj.ID.String()] = proj.PrivateID.String()
+	session.Values[proj.ID.String()] = proj.Secret.String()
 
 	err := saveSession(ctx, session)
 	if err != nil {
@@ -113,7 +113,7 @@ func MockProjectSessions() func(http.Handler) http.Handler {
 }
 
 // MockProjectSessionCookie returns a session cookie that provides access to the given project.
-func MockProjectSessionCookie(projectID, projectPrivateID string) *http.Cookie {
+func MockProjectSessionCookie(projectID, secret string) *http.Cookie {
 	store := sessions.NewCookieStore([]byte(mockSessionKey))
 
 	r := &http.Request{}
@@ -121,7 +121,7 @@ func MockProjectSessionCookie(projectID, projectPrivateID string) *http.Cookie {
 
 	session, _ := store.Get(r, projectSessionName)
 
-	session.Values[projectID] = projectPrivateID
+	session.Values[projectID] = secret
 
 	err := session.Save(r, w)
 	if err != nil {
