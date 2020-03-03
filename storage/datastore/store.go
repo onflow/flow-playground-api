@@ -164,13 +164,30 @@ func (d *Datastore) DeleteAccount(id uuid.UUID) error {
 // Transaction Templates
 
 func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
-	tpls := []*model.TransactionTemplate{}
-	err := d.GetTransactionTemplatesForProject(tpl.ProjectID, &tpls)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		proj := &model.InternalProject{
+			ID: tpl.ProjectID,
+		}
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+		tpl.Index = proj.TransactionTemplateCount
+		proj.TransactionTemplateCount++
+
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
+			[]interface{}{proj, tpl},
+		)
 		return err
-	}
-	tpl.Index = len(tpls)
-	return d.put(tpl)
+	})
+
+	return txErr
+
 }
 func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
@@ -211,20 +228,38 @@ func (d *Datastore) DeleteTransactionTemplate(id uuid.UUID) error {
 // Transaction Executions
 
 func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
-	exes := []*model.TransactionExecution{}
-	err := d.GetTransactionExecutionsForProject(exe.ProjectID, &exes)
-	if err != nil {
-		return err
-	}
-	index := len(exes)
-	exe.Index = index
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
 
-	err = d.put(exe)
-	if err != nil {
-		return err
-	}
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
-	return d.InsertRegisterDelta(exe.ProjectID, delta)
+		proj := &model.InternalProject{
+			ID: exe.ProjectID,
+		}
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+		exe.Index = proj.TransactionExecutionCount
+
+		regDelta := &model.RegisterDelta{
+			ProjectID: proj.ID,
+			Index:     proj.TransactionCount,
+			Delta:     delta,
+		}
+
+		proj.TransactionExecutionCount++
+		proj.TransactionCount++
+
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), exe.NameKey(), regDelta.NameKey()},
+			[]interface{}{proj, exe, regDelta},
+		)
+		return err
+	})
+
+	return txErr
+
 }
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	q := datastore.NewQuery("TransactionExecution").Filter("ProjectID=", projectID.String()).Order("Index")
@@ -234,13 +269,29 @@ func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes
 // Script Templates
 
 func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
-	tpls := []*model.ScriptTemplate{}
-	err := d.GetScriptTemplatesForProject(tpl.ProjectID, &tpls)
-	if err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		proj := &model.InternalProject{
+			ID: tpl.ProjectID,
+		}
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+		tpl.Index = proj.ScriptTemplateCount
+		proj.ScriptTemplateCount++
+
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
+			[]interface{}{proj, tpl},
+		)
+
 		return err
-	}
-	tpl.Index = len(tpls)
-	return d.put(tpl)
+	})
+
+	return txErr
 }
 func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
@@ -306,20 +357,18 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) 
 		if err != nil {
 			return err
 		}
-		index := proj.TransactionCount + 1
 
 		regDelta := &model.RegisterDelta{
 			ProjectID: projectID,
-			Index:     index,
+			Index:     proj.TransactionCount,
 			Delta:     delta,
 		}
-		_, err = tx.Put(regDelta.NameKey(), regDelta)
-		if err != nil {
-			return err
-		}
+		proj.TransactionCount++
 
-		proj.TransactionCount = index
-		_, err = tx.Put(proj.NameKey(), proj)
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), regDelta.NameKey()},
+			[]interface{}{proj, regDelta},
+		)
 		return err
 	})
 

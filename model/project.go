@@ -7,12 +7,15 @@ import (
 )
 
 type InternalProject struct {
-	ID               uuid.UUID
-	PrivateID        uuid.UUID
-	PublicID         uuid.UUID
-	ParentID         *uuid.UUID
-	TransactionCount int
-	Persist          bool
+	ID                        uuid.UUID
+	PrivateID                 uuid.UUID
+	PublicID                  uuid.UUID
+	ParentID                  *uuid.UUID
+	TransactionCount          int
+	TransactionExecutionCount int
+	TransactionTemplateCount  int
+	ScriptTemplateCount       int
+	Persist                   bool
 }
 
 func (p *InternalProject) ExportPrivate() *Project {
