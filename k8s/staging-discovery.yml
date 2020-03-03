@@ -1,0 +1,112 @@
+## Service
+# -----------------------------------------------------------------------------
+# Cluster local service (no LB)
+#
+# K8s docs: https://kubernetes.io/docs/concepts/services-networking/service/
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: flow-playground-api-v1
+  namespace: flow
+
+  labels:
+    app: flow-playground-api
+    env: staging
+    owner: Kan
+    version: v1
+
+spec:
+  type: ClusterIP
+  selector:
+    app: flow-playground-api
+    env: staging
+    version: v1
+
+  ports:
+    - name: web
+      protocol: TCP
+      port: 8080
+      targetPort: web # reference to the name of the port in your container config
+
+---
+## Ingress
+# -----------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: flow-playground-api
+  namespace: flow
+  labels:
+    app: flow-playground-api
+    env: staging
+    owner: Kan
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "autoincrement"
+spec:
+  rules:
+    - host: playground.staging.flow.dapperlabs.com
+      http:
+        paths:
+          - backend:
+              serviceName: flow-playground-api-v1
+              servicePort: web
+---
+## Disruption Budget
+# -----------------------------------------------------------------------------
+# A disruption budget stops the scheduler from accidentally nuking all your pods
+# during maintenance or other cluster admin tasks. When the cluster goes to kill
+# a pod, it will respect this budget
+# This is NOT the same as a deployment rolling update strategy. Deployment do NOT
+# consult this disruption budget when doing a deploy
+# For example, if your deployment is in the middle of a rolling deploy, and there is
+# only one pod running while the new one is getting ready to launch, and the cluster
+# decides to do maintenance on the node running the one pod, this budget will prevent
+# the pod from being deleted until one more is running.
+
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: flow-playground-api-v1
+  namespace: flow
+  labels:
+    app: flow-playground-api
+    owner: Kan
+    env: staging
+    version: v1
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: flow-playground-api
+      env: staging
+      version: v1
+
+---
+## Horizontal Pod Autoscaler
+# -----------------------------------------------------------------------------
+# The default HPO object provided by k8s deals only with CPU, but is a decent
+# starting point for autoscaling
+# Min replicas should not be less than 2
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: flow-playground-api-v1
+  namespace: flow
+  labels:
+    app: flow-playground-api
+    owner: Kan
+    env: staging
+    version: v1
+spec:
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 80
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: flow-playground-api-v1
