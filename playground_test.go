@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	playground "github.com/dapperlabs/flow-playground-api"
-	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
@@ -533,7 +533,7 @@ func TestProjects(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("persist", true),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, project.ID, resp.UpdateProject.ID)
@@ -572,7 +572,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.NotEmpty(t, resp.CreateTransactionTemplate.ID)
@@ -591,7 +591,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		var respB GetTransactionTemplateResponse
@@ -634,7 +634,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateTransactionTemplate.ID
@@ -663,7 +663,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateTransactionTemplate.ID
@@ -675,7 +675,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respB,
 			client.Var("templateId", templateID),
 			client.Var("script", "bar"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.UpdateTransactionTemplate.ID)
@@ -695,7 +695,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respC,
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respC.UpdateTransactionTemplate.ID)
@@ -795,7 +795,7 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationDeleteTransactionTemplate,
 			&resp,
 			client.Var("templateId", template.ID),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, template.ID, resp.DeleteTransactionTemplate)
@@ -853,7 +853,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Error)
@@ -875,7 +875,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -894,7 +894,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
@@ -925,7 +925,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -947,7 +947,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
@@ -991,7 +991,7 @@ func TestScriptTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.NotEmpty(t, resp.CreateScriptTemplate.ID)
@@ -1010,7 +1010,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		var respB GetScriptTemplateResponse
@@ -1053,7 +1053,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateScriptTemplate.ID
@@ -1082,7 +1082,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("script", "foo"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		templateID := respA.CreateScriptTemplate.ID
@@ -1094,7 +1094,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respB,
 			client.Var("templateId", templateID),
 			client.Var("script", "bar"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.UpdateScriptTemplate.ID)
@@ -1108,7 +1108,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respC,
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
@@ -1208,7 +1208,7 @@ func TestScriptTemplates(t *testing.T) {
 			MutationDeleteScriptTemplate,
 			&resp,
 			client.Var("templateId", templateID),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
@@ -1300,7 +1300,7 @@ func TestAccounts(t *testing.T) {
 			&respB,
 			client.Var("accountId", account.ID),
 			client.Var("code", "bar"),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
@@ -1382,7 +1382,7 @@ func TestAccounts(t *testing.T) {
 			&respB,
 			client.Var("accountId", account.ID),
 			client.Var("code", contract),
-			client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 		)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
@@ -1470,7 +1470,7 @@ func TestContractInteraction(t *testing.T) {
 		&respA,
 		client.Var("accountId", accountA.ID),
 		client.Var("code", counterContract),
-		client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 	)
 
 	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
@@ -1485,7 +1485,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("projectId", project.ID),
 		client.Var("script", addScript),
 		client.Var("signers", []string{accountB.Address}),
-		client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 	)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
@@ -1517,7 +1517,7 @@ func newClient() *client.Client {
 
 func newClientWithResolver(resolver *playground.Resolver) *client.Client {
 	router := chi.NewRouter()
-	router.Use(middleware.Middleware())
+	router.Use(middleware.MockProjectSessions())
 
 	router.Handle(
 		"/",
@@ -1550,7 +1550,7 @@ func createTransactionTemplate(c *client.Client, project Project) TransactionTem
 		&resp,
 		client.Var("projectId", project.ID),
 		client.Var("script", "foo"),
-		client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 	)
 
 	return resp.CreateTransactionTemplate
@@ -1570,7 +1570,7 @@ func createScriptTemplate(c *client.Client, project Project) string {
 		&resp,
 		client.Var("projectId", project.ID),
 		client.Var("script", "foo"),
-		client.AddCookie(middleware.ProjectCookie(project.ID, project.PrivateID)),
+		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.PrivateID)),
 	)
 
 	return resp.CreateScriptTemplate.ID

@@ -24,8 +24,11 @@ import (
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
-const defaultPort = "8080"
-const defaultAllowedOrigins = "http://localhost:3000"
+const (
+	defaultPort           = "8080"
+	defaultAllowedOrigins = "http://localhost:3000"
+	defaultSessionKey     = "428ce08c21b93e5f0eca24fbeb0c7673"
+)
 
 func main() {
 	port := os.Getenv("PORT")
@@ -56,6 +59,11 @@ func main() {
 		store = memory.NewStore()
 	}
 
+	sessionKey := os.Getenv("SESSION_KEY")
+	if sessionKey == "" {
+		sessionKey = defaultSessionKey
+	}
+
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)
@@ -79,7 +87,7 @@ func main() {
 		}).Handler)
 
 		// TODO: config with secret
-		sessionStore := sessions.NewCookieStore([]byte{1, 2, 3, 4})
+		sessionStore := sessions.NewCookieStore([]byte(sessionKey))
 
 		router.Use(middleware.ProjectSessions(sessionStore))
 
