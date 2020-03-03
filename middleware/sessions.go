@@ -17,7 +17,7 @@ var (
 	sessionCtxKey = ctxKey("session")
 )
 
-const projectsSessionName = "flow-playground"
+const projectSessionName = "flow-playground"
 
 type httpContext struct {
 	W *http.ResponseWriter
@@ -47,7 +47,7 @@ func ProjectSessions(sessionKey []byte, maxAge int) func(http.Handler) http.Hand
 
 // ProjectInSession returns true if the given project is authorized in the current session.
 func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
-	session := getSession(ctx, projectsSessionName)
+	session := getSession(ctx, projectSessionName)
 
 	privateID, ok := session.Values[proj.ID.String()]
 	if !ok {
@@ -66,7 +66,7 @@ func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 //
 // This function re-saves the session and updates the session cookie with a new max age.
 func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error {
-	session := getSession(ctx, projectsSessionName)
+	session := getSession(ctx, projectSessionName)
 
 	// Setting userID cookie value
 	session.Values[proj.ID.String()] = proj.PrivateID.String()
