@@ -98,6 +98,8 @@ spec:
           env:
             - name: ALLOWED_ORIGINS
               value: "https://play.staging.onflow.org"
+            - name: GQL_PLAYGROUND
+              value: "true"
 
           # Readiness and Liveness probes
           readinessProbe:
@@ -151,72 +153,27 @@ spec:
 ---
 ## Ingress
 # -----------------------------------------------------------------------------
-# This describes routing information to Traefik
-#
-# For a list of all available annotations, see
-# https://docs.traefik.io/configuration/backends/kubernetes/
-#
-# K8s docs: https://kubernetes.io/docs/concepts/services-networking/ingress
-
-# Technically the API is still in beta1
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
-
 metadata:
   name: flow-playground-api
   namespace: flow
-
   labels:
     app: flow-playground-api
     env: staging
     owner: Kan
-
   annotations:
-    kubernetes.io/ingress.class: traefik
-
-    # Security headers - sensible defaults and tunable examples
-
-    # Enforce TLS
-    ingress.kubernetes.io/hsts-max-age: "2592000" # 30d
-    ingress.kubernetes.io/hsts-include-subdomains: "true"
-    
-    # Force non-SSL over
-    ingress.kubernetes.io/force-hsts: "true"
-
-    # Tell browsers to block several XSS methods
-    ingress.kubernetes.io/browser-xss-filter: "true"
-
-    # Prevent browsers from mistaking the response content type
-    ingress.kubernetes.io/content-type-nosniff: "true"
-
-    # Indicate we don't want to be in an iframe (stop clickjacking attacks):
-    # DENY -> ever; SAMEORIGIN -> unless it's a site in our own domain doing it
-    ingress.kubernetes.io/custom-frame-options-value: "DENY"
-
-    # Control Referrer information leaks to other origins 
-    ingress.kubernetes.io/referrer-policy: "strict-origin-when-cross-origin"
-
-    # Content-Security-Policy - Very powerful for security, but often requires tuning.
-    #                           The gold standard is " default-src 'none'; script-src 'self' "
-    #                           plus any additional specific content you need.  CSP violations
-    #                           will appear in the browser console, so you can lock down then
-    #                           open it up as needed.
-
-    # ex: only allow resources from own origin (a decent starting point)
-    #ingress.kubernetes.io/content-security-policy: "default-src 'self'"
-
-    # ex: more lax, allow but restrict external content to https, only allow js from self
-    #ingress.kubernetes.io/content-security-policy: "default-src https:; script-src 'self'"
-    
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "autoincrement"
 spec:
   rules:
-    - host: playground-api.staging.onflow.org
+    - host: playground.staging.flow.dapperlabs.com
       http:
         paths:
           - backend:
-
               serviceName: flow-playground-api-v1
-              servicePort: web # reference to the name in your service config
+              servicePort: web
 ---
 ## Disruption Budget
 # -----------------------------------------------------------------------------

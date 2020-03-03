@@ -22,7 +22,7 @@ type Store struct {
 	registerDeltas        []model.RegisterDelta
 }
 
-func NewStore() *Store {
+func NewStore() storage.Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
 		projects:              make(map[uuid.UUID]model.InternalProject),
@@ -116,6 +116,10 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) err
 
 	if input.DeployedCode != nil {
 		a.DeployedCode = *input.DeployedCode
+	}
+
+	if input.DeployedContracts != nil {
+		a.DeployedContracts = *input.DeployedContracts
 	}
 
 	s.accounts[input.ID] = a

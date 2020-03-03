@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
@@ -15,6 +18,8 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/middleware"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
@@ -34,8 +39,23 @@ func main() {
 	} else {
 		allowedOriginList = strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 	}
+	// If cannot parse, just assume false
+	gqlPlayground, _ := strconv.ParseBool(os.Getenv("GQL_PLAYGROUND"))
 
-	store := memory.NewStore()
+	storeBackend := os.Getenv("STORE_BACKEND")
+	var store storage.Store
+	if strings.EqualFold(storeBackend, "datastore") {
+		var err error
+		projectID := os.Getenv("DATASTORE_PROJECT_ID")
+		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{DatastoreProjectID: projectID, DatastoreTimeout: time.Second * 5})
+		if err != nil {
+			// If datastore is expected, panic when we can't init
+			panic(err)
+		}
+	} else {
+		store = memory.NewStore()
+	}
+
 	computer := vm.NewComputer(store)
 
 	resolver := playground.NewResolver(store, computer)
@@ -45,22 +65,28 @@ func main() {
 
 	router := chi.NewRouter()
 
-	// Add CORS middleware around every request
-	// See https://github.com/rs/cors for full option listing
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   allowedOriginList,
-		AllowCredentials: true,
-		Debug:            true,
-	}).Handler)
+	if gqlPlayground {
+		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
+	}
 
-	sessionStore := sessions.NewCookieStore([]byte{1, 2, 3, 4})
+	router.Route("/query", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   allowedOriginList,
+			AllowCredentials: true,
+			Debug:            gqlPlayground,
+		}).Handler)
 
-	router.Use(middleware.InjectHTTPMiddleware(sessionStore))
+		// TODO: config with secret
+		sessionStore := sessions.NewCookieStore([]byte{1, 2, 3, 4})
 
-	router.Handle("/", handler.Playground("GraphQL playground", "/query"))
-	router.Handle("/query", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+		router.Use(middleware.ProjectSessions(sessionStore))
+
+		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+	})
+
 	router.Handle("/metrics", promhttp.Handler())
-
 	router.HandleFunc("/ping", ping)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
