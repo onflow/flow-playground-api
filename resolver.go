@@ -161,9 +161,10 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	var acc model.Account
-
-	var proj model.InternalProject
+	var (
+		acc  model.Account
+		proj model.InternalProject
+	)
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
@@ -174,10 +175,15 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.New("access denied")
 	}
 
+	err = r.store.GetAccount(model.NewProjectChildID(input.ID, proj.ID), &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
 	// TODO: make deployment atomic
 	if input.DeployedCode != nil {
 		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
-		result, delta, err := r.computer.ExecuteTransaction(acc.ProjectID, script, []model.Address{acc.Address})
+		result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, script, []model.Address{acc.Address})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
