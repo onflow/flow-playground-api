@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/vm"
@@ -129,6 +129,16 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
+	session := middleware.GetSession(ctx, "FLOW_PLAYGROUND")
+
+	// Setting userID cookie value
+	session.Values[proj.ID.String()] = proj.PrivateID.String()
+
+	// Save session
+	if err := middleware.SaveSession(ctx, session); err != nil {
+		return nil, fmt.Errorf("Failed to save project in session with error: %s", err)
+	}
+
 	// return project with private ID
 	return proj.ExportPrivate(), nil
 }
@@ -141,7 +151,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -168,7 +178,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -212,7 +222,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -239,7 +249,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -266,7 +276,7 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
@@ -289,7 +299,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -363,7 +373,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -390,7 +400,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -469,7 +479,7 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.HasProjectPermission(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
@@ -541,7 +551,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if auth.HasProjectPermission(ctx, &proj) {
+	if middleware.HasProjectPermission(ctx, &proj) {
 		return proj.ExportPublicMutable(), nil
 	}
 
