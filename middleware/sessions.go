@@ -26,11 +26,8 @@ type httpContext struct {
 
 // ProjectSessions injects middleware for managing project sessions into an HTTP handler.
 //
-// Sessions will be stored using the provided sessions.CookieStore instance.
-func ProjectSessions(sessionKey []byte, maxAge int) func(http.Handler) http.Handler {
-	store := sessions.NewCookieStore(sessionKey)
-	store.MaxAge(maxAge)
-
+// Sessions are stored using the provided sessions.CookieStore instance.
+func ProjectSessions(store *sessions.CookieStore) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			httpContext := httpContext{W: &w, R: r}
@@ -46,6 +43,9 @@ func ProjectSessions(sessionKey []byte, maxAge int) func(http.Handler) http.Hand
 }
 
 // ProjectInSession returns true if the given project is authorized in the current session.
+//
+// A project is authorized in a session if the session contains a reference to the
+// project's secret.
 func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 	session := getSession(ctx, projectSessionName)
 
@@ -62,13 +62,12 @@ func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 	return secretStr == proj.Secret.String()
 }
 
-// AddProjectToSession adds the given project to the current session.
+// AddProjectToSession adds the given project's secret to the current session.
 //
 // This function re-saves the session and updates the session cookie with a new max age.
 func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error {
 	session := getSession(ctx, projectSessionName)
 
-	// Setting userID cookie value
 	session.Values[proj.ID.String()] = proj.Secret.String()
 
 	err := saveSession(ctx, session)
@@ -102,19 +101,20 @@ func saveSession(ctx context.Context, session *sessions.Session) error {
 	return nil
 }
 
-const (
-	mockSessionKey    = "1bbcf50e2e5f3e2d1801db50742f6a97"
-	mockSessionMaxAge = 3600
-)
+const mockSessionAuthenticationKey = "1bbcf50e2e5f3e2d1801db50742f6a97"
+
+func mockCookieStore() *sessions.CookieStore {
+	return sessions.NewCookieStore([]byte(mockSessionAuthenticationKey))
+}
 
 // MockProjectSessions returns project sessions middleware to be used for testing.
 func MockProjectSessions() func(http.Handler) http.Handler {
-	return ProjectSessions([]byte(mockSessionKey), mockSessionMaxAge)
+	return ProjectSessions(mockCookieStore())
 }
 
 // MockProjectSessionCookie returns a session cookie that provides access to the given project.
 func MockProjectSessionCookie(projectID, secret string) *http.Cookie {
-	store := sessions.NewCookieStore([]byte(mockSessionKey))
+	store := mockCookieStore()
 
 	r := &http.Request{}
 	w := httptest.NewRecorder()
