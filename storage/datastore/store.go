@@ -157,9 +157,28 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 	return txErr
 }
 
-func (d *Datastore) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
-	// TODO:
-	panic("TODO")
+func (d *Datastore) UpdateAccountState(account *model.InternalAccount) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	acc := &model.InternalAccount{
+		ProjectChildID: model.ProjectChildID{
+			ID:        account.ID,
+			ProjectID: account.ProjectID,
+		},
+	}
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		err := tx.Get(acc.NameKey(), acc)
+		if err != nil {
+			return err
+		}
+		acc.State = account.State
+		_, err = tx.Put(acc.NameKey(), acc)
+		return err
+	})
+
+	return txErr
 }
 
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {

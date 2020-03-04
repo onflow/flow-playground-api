@@ -247,7 +247,7 @@ func (r *mutationResolver) updateAccountState(projectID uuid.UUID, state vm.Acco
 			account.State[key] = value
 		}
 
-		err := r.store.UpdateAccountState(account.ID, account.State)
+		err := r.store.UpdateAccountState(account)
 		if err != nil {
 			return err
 		}

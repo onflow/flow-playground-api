@@ -130,9 +130,9 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 	return nil
 }
 
-func (s *Store) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
-	account := s.accounts[accountID]
-	account.State = state
+func (s *Store) UpdateAccountState(input *model.InternalAccount) error {
+	account := s.accounts[input.ID]
+	account.State = input.State
 
 	return nil
 }
