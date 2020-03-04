@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -93,6 +93,7 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 func (d *Datastore) InsertProject(proj *model.InternalProject) error {
 	return d.put(proj)
 }
+
 func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
 	proj.ID = input.ID
 	err := d.get(proj)
@@ -120,6 +121,7 @@ func (d *Datastore) GetAccount(id uuid.UUID, acc *model.Account) error {
 	acc.ID = id
 	return d.get(acc)
 }
+
 func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
 	acc.ID = input.ID
 	err := d.get(acc)
@@ -135,10 +137,17 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 	}
 	return d.put(acc)
 }
+
+func (d *Datastore) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
+	// TODO:
+	panic("TODO")
+}
+
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
 	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, accs)
 }
+
 func (d *Datastore) DeleteAccount(id uuid.UUID) error {
 	return d.delete(&model.Account{ID: id})
 }
