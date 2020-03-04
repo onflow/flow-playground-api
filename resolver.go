@@ -2,7 +2,7 @@ package playground
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -10,8 +10,9 @@ import (
 	"github.com/dapperlabs/flow-go-sdk"
 	"github.com/dapperlabs/flow-go-sdk/templates"
 	"github.com/dapperlabs/flow-go/language"
-	"github.com/dapperlabs/flow-go/language/encoding"
 	"github.com/dapperlabs/flow-go/language/runtime"
+
+	"github.com/dapperlabs/flow-playground-api/encoding"
 	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -72,7 +73,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	}
 
 	for i := 0; i < MaxAccounts; i++ {
-		acc := model.Account{
+		acc := model.InternalAccount{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Index:     i,
@@ -169,7 +170,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	var acc model.Account
+	var acc model.InternalAccount
 
 	err := r.store.GetAccount(input.ID, &acc)
 	if err != nil {
@@ -223,11 +224,11 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to update account")
 	}
 
-	return &acc, nil
+	return acc.Export(), nil
 }
 
 func (r *mutationResolver) updateAccountState(projectID uuid.UUID, state vm.AccountState) error {
-	var accounts []*model.Account
+	var accounts []*model.InternalAccount
 
 	err := r.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
@@ -369,24 +370,20 @@ func (r *mutationResolver) CreateTransactionExecution(
 		events := make([]model.Event, len(result.Events))
 		for i, event := range result.Events {
 
-			values := make([]*model.XDRValue, len(event.Fields))
+			values := make([]string, len(event.Fields))
 			for j, field := range event.Fields {
-				value, err := language.ConvertValue(field)
+
+				value, err := encoding.ConvertValue(field)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to convert event value")
 				}
 
-				encValue, err := encoding.Encode(value)
+				encoded, err := json.Marshal(value)
 				if err != nil {
-					return nil, errors.Wrap(err, "failed to encode event value")
+					return nil, errors.Wrap(err, "failed to JSON encode event value")
 				}
 
-				values[j] = &model.XDRValue{
-					// Type:  value.Type().ID(),
-					// TODO: serialize events as JSON
-					Type:  "UNTYPED",
-					Value: fmt.Sprintf("%x", encValue),
-				}
+				values[j] = string(encoded)
 			}
 
 			events[i] = model.Event{
@@ -486,21 +483,18 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	if result.Error != nil {
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
-	}
+	} else {
+		value, err := encoding.ConvertValue(result.Value)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to convert value")
+		}
 
-	value, err := language.ConvertValue(result.Value)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert script result")
-	}
+		enc, err := json.Marshal(value)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to encode to JSON")
+		}
 
-	encValue, err := encoding.Encode(value)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode script value")
-	}
-
-	exe.Value = model.XDRValue{
-		Type:  value.Type().ID(),
-		Value: fmt.Sprintf("%x", encValue),
+		exe.Value = string(enc)
 	}
 
 	err = r.store.InsertScriptExecution(&exe)
@@ -541,14 +535,25 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*model.Account, error) {
-	var accs []*model.Account
+	var accs []*model.InternalAccount
 
 	err := r.store.GetAccountsForProject(obj.ID, &accs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
-	return accs, nil
+	exportedAccs := make([]*model.Account, len(accs))
+
+	for i, acc := range accs {
+		exported, err := acc.ExportWithJSONState()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to export")
+		}
+
+		exportedAccs[i] = exported
+	}
+
+	return exportedAccs, nil
 }
 
 func (r *projectResolver) TransactionTemplates(ctx context.Context, obj *model.Project) ([]*model.TransactionTemplate, error) {
@@ -606,14 +611,19 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 }
 
 func (r *queryResolver) Account(ctx context.Context, id uuid.UUID) (*model.Account, error) {
-	var acc model.Account
+	var acc model.InternalAccount
 
 	err := r.store.GetAccount(id, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	return &acc, nil
+	exported, err := acc.ExportWithJSONState()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to export")
+	}
+
+	return exported, nil
 }
 
 func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID) (*model.TransactionTemplate, error) {

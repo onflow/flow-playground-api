@@ -67,7 +67,7 @@ type ScriptExecution struct {
 	ProjectID uuid.UUID
 	Index     int
 	Script    string
-	Value     XDRValue
+	Value     string
 	Error     *string
 	Logs      []string
 }
@@ -82,7 +82,7 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 		ProjectID string
 		Index     int
 		Script    string
-		Value     XDRValue
+		Value     string
 		Error     *string
 		Logs      []string
 	}{}
