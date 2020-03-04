@@ -3,12 +3,13 @@ package vm
 import (
 	"math/rand"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
-	"github.com/dapperlabs/flow-go/engine/execution/execution/virtualmachine"
-	"github.com/dapperlabs/flow-go/language/runtime"
-	"github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/dapperlabs/flow-go/engine/execution/computation/virtualmachine"
+	"github.com/dapperlabs/flow-go/engine/execution/state"
+	"github.com/dapperlabs/flow-go/language/runtime"
+	"github.com/dapperlabs/flow-go/model/flow"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -24,7 +25,7 @@ func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
 	vm := virtualmachine.New(rt)
 
-	blockContext := vm.NewBlockContext(&flow.Header{Number: 0})
+	blockContext := vm.NewBlockContext(&flow.Header{Height: 0})
 
 	cache, err := NewLedgerCache(cacheSize)
 	if err != nil {
@@ -38,14 +39,22 @@ func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
 	}, nil
 }
 
+
+type AccountState map[model.Address]map[string][]byte
+
 func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
 	script string,
 	signers []model.Address,
-) (*virtualmachine.TransactionResult, state.Delta, error) {
+) (
+	*virtualmachine.TransactionResult,
+	state.Delta,
+	AccountState,
+	error,
+) {
 	ledgerItem, err := c.getOrCreateLedger(projectID)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to get ledger for project")
+		return nil, nil, nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
 	view := ledgerItem.ledger.NewView()
@@ -55,13 +64,31 @@ func (c *Computer) ExecuteTransaction(
 		scriptAccounts[i] = flow.Address(signer)
 	}
 
-	result, err := c.blockContext.ExecuteTransaction(view, &flow.TransactionBody{
+	transactionBody := flow.TransactionBody{
 		Nonce:          rand.Uint64(),
 		Script:         []byte(script),
 		ScriptAccounts: scriptAccounts,
-	})
+	}
+
+	data := AccountState{}
+
+	valueHandler := func(owner, controller, key, value []byte) {
+		address := model.Address(flow.BytesToAddress(owner))
+
+		if _, ok := data[address]; !ok {
+			data[address] = map[string][]byte{}
+		}
+
+		data[address][string(key)] = value
+	}
+
+	setValueHandler := func(context *virtualmachine.TransactionContext) {
+		context.OnSetValueHandler = valueHandler
+	}
+
+	result, err := c.blockContext.ExecuteTransaction(view, &transactionBody, setValueHandler)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "vm failed to execute transaction")
+		return nil, nil, nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
 
 	delta := view.Delta()
@@ -71,7 +98,7 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledgerItem)
 
-	return result, delta, nil
+	return result, delta, data, nil
 }
 
 func (c *Computer) ClearCache() {
