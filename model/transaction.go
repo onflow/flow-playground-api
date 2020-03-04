@@ -12,14 +12,13 @@ import (
 )
 
 type TransactionTemplate struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Index     int
-	Script    string
+	ProjectChildID
+	Index  int
+	Script string
 }
 
 func (t *TransactionTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionTemplate", t.ID.String(), nil)
+	return datastore.NameKey("TransactionTemplate", t.ID.String(), ProjectNameKey(t.ProjectID))
 }
 
 func (t *TransactionTemplate) Load(ps []datastore.Property) error {
@@ -68,8 +67,7 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 }
 
 type TransactionExecution struct {
-	ID               uuid.UUID
-	ProjectID        uuid.UUID
+	ProjectChildID
 	Index            int
 	Script           string
 	SignerAccountIDs []uuid.UUID
@@ -79,7 +77,7 @@ type TransactionExecution struct {
 }
 
 func (t *TransactionExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionExecution", t.ID.String(), nil)
+	return datastore.NameKey("TransactionExecution", t.ID.String(), ProjectNameKey(t.ProjectID))
 }
 
 func (t *TransactionExecution) Load(ps []datastore.Property) error {
@@ -183,7 +181,7 @@ type RegisterDelta struct {
 }
 
 func (r *RegisterDelta) NameKey() *datastore.Key {
-	return datastore.NameKey("RegisterDelta", fmt.Sprintf("%s-%d", r.ProjectID.String(), r.Index), nil)
+	return datastore.NameKey("RegisterDelta", fmt.Sprintf("%s-%d", r.ProjectID.String(), r.Index), ProjectNameKey(r.ProjectID))
 }
 
 func (r *RegisterDelta) Load(ps []datastore.Property) error {

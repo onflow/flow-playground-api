@@ -14,8 +14,7 @@ import (
 )
 
 type InternalAccount struct {
-	ID                uuid.UUID
-	ProjectID         uuid.UUID
+	ProjectChildID
 	Index             int
 	Address           Address
 	DraftCode         string
@@ -26,13 +25,14 @@ type InternalAccount struct {
 
 type UpdateAccount struct {
 	ID                uuid.UUID `json:"id"`
+	ProjectID         uuid.UUID `json:"projectId"`
 	DraftCode         *string   `json:"draftCode"`
 	DeployedCode      *string   `json:"deployedCode"`
 	DeployedContracts *[]string
 }
 
 func (a *InternalAccount) NameKey() *datastore.Key {
-	return datastore.NameKey("Account", a.ID.String(), nil)
+	return datastore.NameKey("Account", a.ID.String(), ProjectNameKey(a.ProjectID))
 }
 
 func (a *InternalAccount) Load(ps []datastore.Property) error {
@@ -43,6 +43,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		Address      []byte
 		DraftCode    string
 		DeployedCode string
+		State        string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -55,6 +56,11 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	if err := a.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+
+	if err := json.Unmarshal([]byte(tmp.State), &a.State); err != nil {
+		return errors.Wrap(err, "failed to decode State")
+	}
+
 	a.Index = tmp.Index
 	copy(a.Address[:], tmp.Address[:])
 	a.DraftCode = tmp.DraftCode
@@ -63,6 +69,10 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 }
 
 func (a *InternalAccount) Save() ([]datastore.Property, error) {
+	state, err := json.Marshal(a.State)
+	if err != nil {
+		return nil, err
+	}
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -87,6 +97,11 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		{
 			Name:  "DeployedCode",
 			Value: a.DeployedCode,
+		},
+		{
+			Name:    "State",
+			Value:   string(state),
+			NoIndex: true,
 		},
 	}, nil
 }

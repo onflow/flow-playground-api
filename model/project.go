@@ -45,18 +45,26 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 	}
 }
 
+func ProjectNameKey(id uuid.UUID) *datastore.Key {
+	return datastore.NameKey("Project", id.String(), nil)
+}
+
 func (p *InternalProject) NameKey() *datastore.Key {
-	return datastore.NameKey("Project", p.ID.String(), nil)
+	return ProjectNameKey(p.ID)
 }
 
 func (p *InternalProject) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID               string
-		Secret           string
-		PublicID         string
-		ParentID         *string
-		TransactionCount int
-		Persist          bool
+		ID                        string
+		Secret                    string
+		PublicID                  string
+		ParentID                  *string
+		Seed                      int
+		TransactionCount          int
+		TransactionExecutionCount int
+		TransactionTemplateCount  int
+		ScriptTemplateCount       int
+		Persist                   bool
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -79,8 +87,11 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	} else {
 		p.ParentID = nil
 	}
-
+	p.Seed = tmp.Seed
 	p.TransactionCount = tmp.TransactionCount
+	p.TransactionExecutionCount = tmp.TransactionExecutionCount
+	p.TransactionTemplateCount = tmp.TransactionTemplateCount
+	p.ScriptTemplateCount = tmp.ScriptTemplateCount
 	p.Persist = tmp.Persist
 
 	return nil
@@ -110,8 +121,24 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 			Value: parentID,
 		},
 		{
+			Name:  "Seed",
+			Value: p.Seed,
+		},
+		{
 			Name:  "TransactionCount",
 			Value: p.TransactionCount,
+		},
+		{
+			Name:  "TransactionExecutionCount",
+			Value: p.TransactionExecutionCount,
+		},
+		{
+			Name:  "TransactionTemplateCount",
+			Value: p.TransactionTemplateCount,
+		},
+		{
+			Name:  "ScriptTemplateCount",
+			Value: p.ScriptTemplateCount,
 		},
 		{
 			Name:  "Persist",
@@ -127,4 +154,13 @@ type Project struct {
 	Seed     int
 	Persist  bool
 	Mutable  bool
+}
+
+type ProjectChildID struct {
+	ID        uuid.UUID
+	ProjectID uuid.UUID
+}
+
+func NewProjectChildID(id uuid.UUID, projectID uuid.UUID) ProjectChildID {
+	return ProjectChildID{ID: id, ProjectID: projectID}
 }
