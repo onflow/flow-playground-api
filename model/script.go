@@ -9,6 +9,7 @@ import (
 type ScriptTemplate struct {
 	ID        uuid.UUID
 	ProjectID uuid.UUID
+	Title     string
 	Index     int
 	Script    string
 }

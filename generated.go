@@ -83,6 +83,7 @@ type ComplexityRoot struct {
 		ScriptExecutions      func(childComplexity int) int
 		ScriptTemplates       func(childComplexity int) int
 		Seed                  func(childComplexity int) int
+		Title                 func(childComplexity int) int
 		TransactionExecutions func(childComplexity int) int
 		TransactionTemplates  func(childComplexity int) int
 	}
@@ -106,6 +107,7 @@ type ComplexityRoot struct {
 		ID     func(childComplexity int) int
 		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
+		Title  func(childComplexity int) int
 	}
 
 	TransactionExecution struct {
@@ -121,6 +123,7 @@ type ComplexityRoot struct {
 		ID     func(childComplexity int) int
 		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
+		Title  func(childComplexity int) int
 	}
 
 	XDRValue struct {
@@ -418,6 +421,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Project.Seed(childComplexity), true
 
+	case "Project.title":
+		if e.complexity.Project.Title == nil {
+			break
+		}
+
+		return e.complexity.Project.Title(childComplexity), true
+
 	case "Project.transactionExecutions":
 		if e.complexity.Project.TransactionExecutions == nil {
 			break
@@ -536,6 +546,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ScriptTemplate.Script(childComplexity), true
 
+	case "ScriptTemplate.title":
+		if e.complexity.ScriptTemplate.Title == nil {
+			break
+		}
+
+		return e.complexity.ScriptTemplate.Title(childComplexity), true
+
 	case "TransactionExecution.error":
 		if e.complexity.TransactionExecution.Error == nil {
 			break
@@ -598,6 +615,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TransactionTemplate.Script(childComplexity), true
+
+	case "TransactionTemplate.title":
+		if e.complexity.TransactionTemplate.Title == nil {
+			break
+		}
+
+		return e.complexity.TransactionTemplate.Title(childComplexity), true
 
 	case "XDRValue.type":
 		if e.complexity.XDRValue.Type == nil {
@@ -682,6 +706,7 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
+  title: String!
   seed: Int!
   persist: Boolean
   mutable: Boolean
@@ -703,6 +728,7 @@ type Account {
 type TransactionTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -728,6 +754,7 @@ type Event {
 type ScriptTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -749,6 +776,7 @@ type Query {
 
 input NewProject {
   parentId: UUID
+  title: String!
   seed: Int!
   accounts: [String!]
   transactionTemplates: [String!]
@@ -757,6 +785,7 @@ input NewProject {
 
 input UpdateProject {
   id: UUID!
+  title: String
   persist: Boolean
 }
 
@@ -773,6 +802,7 @@ input NewTransactionTemplate {
 
 input UpdateTransactionTemplate {
   id: UUID!
+  title: String
   index: Int
   script: String
 }
@@ -790,6 +820,7 @@ input NewScriptTemplate {
 
 input UpdateScriptTemplate {
   id: UUID!
+  title: String
   index: Int
   script: String
 }
@@ -1934,6 +1965,43 @@ func (ec *executionContext) _Project_parentId(ctx context.Context, field graphql
 	return ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Project_title(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Project",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Project_seed(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -2716,6 +2784,43 @@ func (ec *executionContext) _ScriptTemplate_index(ctx context.Context, field gra
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ScriptTemplate_title(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ScriptTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _ScriptTemplate_script(ctx context.Context, field graphql.CollectedField, obj *model.ScriptTemplate) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -3044,6 +3149,43 @@ func (ec *executionContext) _TransactionTemplate_index(ctx context.Context, fiel
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TransactionTemplate_title(ctx context.Context, field graphql.CollectedField, obj *model.TransactionTemplate) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "TransactionTemplate",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Title, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TransactionTemplate_script(ctx context.Context, field graphql.CollectedField, obj *model.TransactionTemplate) (ret graphql.Marshaler) {
@@ -4320,6 +4462,12 @@ func (ec *executionContext) unmarshalInputNewProject(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "seed":
 			var err error
 			it.Seed, err = ec.unmarshalNInt2int(ctx, v)
@@ -4494,6 +4642,12 @@ func (ec *executionContext) unmarshalInputUpdateProject(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "persist":
 			var err error
 			it.Persist, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -4515,6 +4669,12 @@ func (ec *executionContext) unmarshalInputUpdateScriptTemplate(ctx context.Conte
 		case "id":
 			var err error
 			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4545,6 +4705,12 @@ func (ec *executionContext) unmarshalInputUpdateTransactionTemplate(ctx context.
 		case "id":
 			var err error
 			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4757,6 +4923,11 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "parentId":
 			out.Values[i] = ec._Project_parentId(ctx, field, obj)
+		case "title":
+			out.Values[i] = ec._Project_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "seed":
 			out.Values[i] = ec._Project_seed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -4983,6 +5154,11 @@ func (ec *executionContext) _ScriptTemplate(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "title":
+			out.Values[i] = ec._ScriptTemplate_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "script":
 			out.Values[i] = ec._ScriptTemplate_script(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5075,6 +5251,11 @@ func (ec *executionContext) _TransactionTemplate(ctx context.Context, sel ast.Se
 			}
 		case "index":
 			out.Values[i] = ec._TransactionTemplate_index(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "title":
+			out.Values[i] = ec._TransactionTemplate_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
