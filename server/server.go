@@ -105,8 +105,11 @@ func main() {
 
 		cookieStore := sessions.NewCookieStore([]byte(sessionAuthenticationKey))
 		cookieStore.MaxAge(defaultSessionMaxAge)
+		cookieStore.Options.HttpOnly = true
+		cookieStore.Options.Secure = true
+		cookieStore.Options.SameSite = http.SameSiteNoneMode
 
-		router.Use(middleware.ProjectSessions(cookieStore))
+		r.Use(middleware.ProjectSessions(cookieStore))
 
 		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
 	})
