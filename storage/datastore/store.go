@@ -139,6 +139,7 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 }
 
 func (d *Datastore) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
+	// TODO:
 	panic("TODO")
 }
 
