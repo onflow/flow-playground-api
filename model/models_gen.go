@@ -12,12 +12,22 @@ type Event struct {
 }
 
 type NewProject struct {
-	ParentID             *uuid.UUID `json:"parentId"`
-	Title                string     `json:"title"`
-	Seed                 int        `json:"seed"`
-	Accounts             []string   `json:"accounts"`
-	TransactionTemplates []string   `json:"transactionTemplates"`
-	ScriptTemplates      []string   `json:"scriptTemplates"`
+	ParentID             *uuid.UUID                       `json:"parentId"`
+	Title                string                           `json:"title"`
+	Seed                 int                              `json:"seed"`
+	Accounts             []string                         `json:"accounts"`
+	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
+	ScriptTemplates      []*NewProjectScriptTemplate      `json:"scriptTemplates"`
+}
+
+type NewProjectScriptTemplate struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
+}
+
+type NewProjectTransactionTemplate struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
 }
 
 type NewScriptExecution struct {
@@ -26,8 +36,8 @@ type NewScriptExecution struct {
 }
 
 type NewScriptTemplate struct {
-	Title     string    `json:"title"`
 	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
 	Script    string    `json:"script"`
 }
 
@@ -38,8 +48,8 @@ type NewTransactionExecution struct {
 }
 
 type NewTransactionTemplate struct {
-	Title     string    `json:"title"`
 	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
 	Script    string    `json:"script"`
 }
 

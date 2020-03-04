@@ -78,8 +78,18 @@ input NewProject {
   title: String!
   seed: Int!
   accounts: [String!]
-  transactionTemplates: [String!]
-  scriptTemplates: [String!]
+  transactionTemplates: [NewProjectTransactionTemplate!]
+  scriptTemplates: [NewProjectScriptTemplate!]
+}
+
+input NewProjectTransactionTemplate {
+  title: String!
+  script: String!
+}
+
+input NewProjectScriptTemplate {
+  title: String!
+  script: String!
 }
 
 input UpdateProject {
@@ -95,8 +105,8 @@ input UpdateAccount {
 }
 
 input NewTransactionTemplate {
-  title: String!
   projectId: UUID!
+  title: String!
   script: String!
 }
 
@@ -114,8 +124,8 @@ input NewTransactionExecution {
 }
 
 input NewScriptTemplate {
-  title: String!
   projectId: UUID!
+  title: String!
   script: String!
 }
 
