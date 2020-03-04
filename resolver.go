@@ -12,7 +12,7 @@ import (
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/runtime"
 
-	encoding2 "github.com/dapperlabs/flow-playground-api/encoding"
+	"github.com/dapperlabs/flow-playground-api/encoding"
 	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -373,7 +373,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 			values := make([]string, len(event.Fields))
 			for j, field := range event.Fields {
 
-				value, err := encoding2.ConvertValue(field)
+				value, err := encoding.ConvertValue(field)
 				if err != nil {
 					return nil, errors.Wrap(err, "failed to convert event value")
 				}
@@ -484,7 +484,7 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
 	} else {
-		value, err := encoding2.ConvertValue(result.Value)
+		value, err := encoding.ConvertValue(result.Value)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert value")
 		}
