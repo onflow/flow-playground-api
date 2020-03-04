@@ -3,6 +3,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -134,6 +135,7 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 	defer cancel()
 
 	acc.ID = input.ID
+	acc.ProjectID = input.ProjectID
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(acc.NameKey(), acc)
@@ -154,7 +156,7 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 	return txErr
 }
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
-	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("Account").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, accs)
 }
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
@@ -179,6 +181,7 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 		tpl.Index = proj.TransactionTemplateCount
 		proj.TransactionTemplateCount++
 
+		fmt.Println("CREATING WITH INDEX", tpl.Index, proj.ID, proj.TransactionTemplateCount)
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
 			[]interface{}{proj, tpl},
@@ -194,6 +197,7 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 	defer cancel()
 
 	tpl.ID = input.ID
+	tpl.ProjectID = input.ProjectID
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(tpl.NameKey(), tpl)
@@ -202,11 +206,13 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 		}
 		if input.Index != nil {
 			tpl.Index = *input.Index
+			fmt.Println("SETTING INDEX", *input.Index)
 		}
 
 		if input.Script != nil {
 			tpl.Script = *input.Script
 		}
+
 		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
 	})
@@ -218,7 +224,7 @@ func (d *Datastore) GetTransactionTemplate(id model.ProjectChildID, tpl *model.T
 	return d.get(tpl)
 }
 func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
-	q := datastore.NewQuery("TransactionTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("TransactionTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
 func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
@@ -262,7 +268,7 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, 
 
 }
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	q := datastore.NewQuery("TransactionExecution").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("TransactionExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)
 }
 
@@ -298,7 +304,7 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 	defer cancel()
 
 	tpl.ID = input.ID
-
+	tpl.ProjectID = input.ProjectID
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(tpl.NameKey(), tpl)
@@ -324,7 +330,7 @@ func (d *Datastore) GetScriptTemplate(id model.ProjectChildID, tpl *model.Script
 	return d.get(tpl)
 }
 func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
-	q := datastore.NewQuery("ScriptTemplate").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("ScriptTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
 func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
@@ -337,7 +343,7 @@ func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
 	return d.put(exe)
 }
 func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
-	q := datastore.NewQuery("ScriptExecution").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("ScriptExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)
 }
 
@@ -376,7 +382,7 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) 
 }
 func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
 	reg := []model.RegisterDelta{}
-	q := datastore.NewQuery("RegisterDelta").Filter("ProjectID=", projectID.String()).Order("Index")
+	q := datastore.NewQuery("RegisterDelta").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	err := d.getAll(q, &reg)
 	if err != nil {
 		return err
