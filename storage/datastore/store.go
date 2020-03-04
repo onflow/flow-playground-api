@@ -111,18 +111,18 @@ func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error 
 	return d.get(proj)
 }
 
-func (d *Datastore) InsertAccount(acc *model.Account) error {
+func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
 	return d.put(acc)
 }
 
 // Accounts
 
-func (d *Datastore) GetAccount(id uuid.UUID, acc *model.Account) error {
+func (d *Datastore) GetAccount(id uuid.UUID, acc *model.InternalAccount) error {
 	acc.ID = id
 	return d.get(acc)
 }
 
-func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	acc.ID = input.ID
 	err := d.get(acc)
 	if err != nil {
@@ -143,13 +143,13 @@ func (d *Datastore) UpdateAccountState(accountID uuid.UUID, state map[string][]b
 	panic("TODO")
 }
 
-func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
 	q := datastore.NewQuery("Account").Filter("ProjectID=", projectID.String()).Order("Index")
 	return d.getAll(q, accs)
 }
 
 func (d *Datastore) DeleteAccount(id uuid.UUID) error {
-	return d.delete(&model.Account{ID: id})
+	return d.delete(&model.InternalAccount{ID: id})
 }
 
 // Transaction Templates

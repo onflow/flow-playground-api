@@ -147,6 +147,7 @@ query($accountId: UUID!) {
     address
     draftCode
     deployedCode
+    state
   }
 }
 `
@@ -157,6 +158,7 @@ type GetAccountResponse struct {
 		Address      string
 		DraftCode    string
 		DeployedCode string
+		State string
 	}
 }
 
@@ -280,10 +282,7 @@ mutation($projectId: UUID!, $script: String!, $signers: [Address!]) {
     logs
     events {
       type
-      values {
-        type
-        value
-      }
+      values
     }
   }
 }
@@ -297,10 +296,7 @@ type CreateTransactionExecutionResponse struct {
 		Logs   []string
 		Events []struct {
 			Type   string
-			Values []struct {
-				Type  string
-				Value string
-			}
+			Values []string
 		}
 	}
 }
@@ -887,7 +883,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
+		assert.Equal(t, `"0000000000000000000000000000000000000005"`, eventA.Values[0])
 
 		var respB CreateTransactionExecutionResponse
 
@@ -905,7 +901,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
+		assert.Equal(t, `"0000000000000000000000000000000000000006"`, eventB.Values[0])
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -937,7 +933,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0].Value)
+		assert.Equal(t, `"0000000000000000000000000000000000000005"`, eventA.Values[0])
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -958,7 +954,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0].Value)
+		assert.Equal(t, `"0000000000000000000000000000000000000006"`, eventB.Values[0])
 	})
 }
 
@@ -1491,14 +1487,6 @@ func TestContractInteraction(t *testing.T) {
 	)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
-
-	var resp GetAccountResponse
-
-	c.MustPost(
-		QueryGetAccount,
-		&resp,
-		client.Var("accountId", accountA.ID),
-	)
 }
 
 type Client struct {
