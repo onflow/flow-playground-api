@@ -25,6 +25,7 @@ import (
 
 type Project struct {
 	ID       string
+	Title    string
 	Seed     int
 	Persist  bool
 	Accounts []struct {
@@ -37,9 +38,10 @@ type Project struct {
 }
 
 const MutationCreateProject = `
-mutation($seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
-  createProject(input: { seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
+mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
+  createProject(input: { title: $title, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
+    title
     seed
     persist
     accounts {
@@ -49,6 +51,7 @@ mutation($seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
     }
     transactionTemplates {
       id
+      title
       script
       index
     }
@@ -195,14 +198,16 @@ type UpdateAccountResponse struct {
 
 type TransactionTemplate struct {
 	ID     string
+	Title  string
 	Script string
 	Index  int
 }
 
 const MutationCreateTransactionTemplate = `
-mutation($projectId: UUID!, $script: String!) {
-  createTransactionTemplate(input: { projectId: $projectId, script: $script }) {
+mutation($projectId: UUID!, $title: String!, $script: String!) {
+  createTransactionTemplate(input: { projectId: $projectId, title: $title, script: $script }) {
     id
+    title
     script
     index
   }
@@ -302,21 +307,25 @@ type CreateTransactionExecutionResponse struct {
 }
 
 const MutationCreateScriptTemplate = `
-mutation($projectId: UUID!, $script: String!) {
-  createScriptTemplate(input: { projectId: $projectId, script: $script }) {
+mutation($projectId: UUID!, $title: String!, $script: String!) {
+  createScriptTemplate(input: { projectId: $projectId, title: $title, script: $script }) {
     id
+    title
     script
     index
   }
 }
 `
 
+type ScriptTemplate struct {
+	ID     string
+	Title  string
+	Script string
+	Index  int
+}
+
 type CreateScriptTemplateResponse struct {
-	CreateScriptTemplate struct {
-		ID     string
-		Script string
-		Index  int
-	}
+	CreateScriptTemplate ScriptTemplate
 }
 
 const QueryGetScriptTemplate = `
@@ -329,11 +338,7 @@ query($templateId: UUID!, $projectId: UUID!) {
 `
 
 type GetScriptTemplateResponse struct {
-	ScriptTemplate struct {
-		ID     string
-		Script string
-		Index  int
-	}
+	ScriptTemplate ScriptTemplate
 }
 
 const MutationUpdateScriptTemplateScript = `
@@ -383,6 +388,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 		)
 
@@ -409,6 +415,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
@@ -436,6 +443,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
@@ -453,21 +461,31 @@ func TestProjects(t *testing.T) {
 
 		var resp CreateProjectResponse
 
-		templates := []string{
-			"transaction { execute { log(\"foo\") } }",
-			"transaction { execute { log(\"bar\") } }",
+		templates := []struct {
+			Title  string `json:"title"`
+			Script string `json:"script"`
+		}{
+			{
+				"foo", "transaction { execute { log(\"foo\") } }",
+			},
+			{
+				"bar", "transaction { execute { log(\"bar\") } }",
+			},
 		}
 
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("transactionTemplates", templates),
 		)
 
 		assert.Len(t, resp.CreateProject.TransactionTemplates, 2)
-		assert.Equal(t, templates[0], resp.CreateProject.TransactionTemplates[0].Script)
-		assert.Equal(t, templates[1], resp.CreateProject.TransactionTemplates[1].Script)
+		assert.Equal(t, templates[0].Title, resp.CreateProject.TransactionTemplates[0].Title)
+		assert.Equal(t, templates[0].Script, resp.CreateProject.TransactionTemplates[0].Script)
+		assert.Equal(t, templates[1].Title, resp.CreateProject.TransactionTemplates[1].Title)
+		assert.Equal(t, templates[1].Script, resp.CreateProject.TransactionTemplates[1].Script)
 	})
 
 	t.Run("Get project", func(t *testing.T) {
@@ -551,7 +569,8 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationCreateTransactionTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -569,12 +588,14 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationCreateTransactionTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.NotEmpty(t, resp.CreateTransactionTemplate.ID)
-		assert.Equal(t, "foo", resp.CreateTransactionTemplate.Script)
+		assert.Equal(t, "foo", resp.CreateTransactionTemplate.Title)
+		assert.Equal(t, "bar", resp.CreateTransactionTemplate.Script)
 	})
 
 	t.Run("Get transaction template", func(t *testing.T) {
@@ -588,7 +609,8 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -635,7 +657,8 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -648,7 +671,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.Var("script", "bar"),
+			client.Var("script", "orange"),
 		)
 
 		assert.Error(t, err)
@@ -665,7 +688,8 @@ func TestTransactionTemplates(t *testing.T) {
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -678,13 +702,13 @@ func TestTransactionTemplates(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.Var("script", "bar"),
+			client.Var("script", "orange"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.UpdateTransactionTemplate.ID)
 		assert.Equal(t, respA.CreateTransactionTemplate.Index, respB.UpdateTransactionTemplate.Index)
-		assert.Equal(t, "bar", respB.UpdateTransactionTemplate.Script)
+		assert.Equal(t, "orange", respB.UpdateTransactionTemplate.Script)
 
 		var respC struct {
 			UpdateTransactionTemplate struct {
@@ -982,7 +1006,8 @@ func TestScriptTemplates(t *testing.T) {
 			MutationCreateScriptTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -1000,12 +1025,14 @@ func TestScriptTemplates(t *testing.T) {
 			MutationCreateScriptTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.NotEmpty(t, resp.CreateScriptTemplate.ID)
-		assert.Equal(t, "foo", resp.CreateScriptTemplate.Script)
+		assert.Equal(t, "foo", resp.CreateScriptTemplate.Title)
+		assert.Equal(t, "bar", resp.CreateScriptTemplate.Script)
 	})
 
 	t.Run("Get script template", func(t *testing.T) {
@@ -1019,7 +1046,8 @@ func TestScriptTemplates(t *testing.T) {
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -1066,7 +1094,8 @@ func TestScriptTemplates(t *testing.T) {
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -1079,7 +1108,7 @@ func TestScriptTemplates(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.Var("script", "bar"),
+			client.Var("script", "orange"),
 		)
 
 		assert.Error(t, err)
@@ -1096,7 +1125,8 @@ func TestScriptTemplates(t *testing.T) {
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("script", "foo"),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
@@ -1109,13 +1139,13 @@ func TestScriptTemplates(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.Var("script", "bar"),
+			client.Var("script", "orange"),
 			client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.UpdateScriptTemplate.ID)
 		assert.Equal(t, respA.CreateScriptTemplate.Index, respB.UpdateScriptTemplate.Index)
-		assert.Equal(t, "bar", respB.UpdateScriptTemplate.Script)
+		assert.Equal(t, "orange", respB.UpdateScriptTemplate.Script)
 
 		var respC UpdateScriptTemplateResponse
 
@@ -1591,6 +1621,7 @@ func createProject(c *Client) Project {
 	c.MustPost(
 		MutationCreateProject,
 		&resp,
+		client.Var("title", "foo"),
 		client.Var("seed", 42),
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
@@ -1611,7 +1642,8 @@ func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
 		MutationCreateTransactionTemplate,
 		&resp,
 		client.Var("projectId", project.ID),
-		client.Var("script", "foo"),
+		client.Var("title", "foo"),
+		client.Var("script", "bar"),
 		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 
@@ -1619,19 +1651,14 @@ func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
 }
 
 func createScriptTemplate(c *Client, project Project) string {
-	var resp struct {
-		CreateScriptTemplate struct {
-			ID     string
-			Script string
-			Index  int
-		}
-	}
+	var resp CreateScriptTemplateResponse
 
 	c.MustPost(
 		MutationCreateScriptTemplate,
 		&resp,
 		client.Var("projectId", project.ID),
-		client.Var("script", "foo"),
+		client.Var("title", "foo"),
+		client.Var("script", "bar"),
 		client.AddCookie(middleware.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 

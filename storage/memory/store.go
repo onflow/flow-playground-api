@@ -54,6 +54,10 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 		return storage.ErrNotFound
 	}
 
+	if input.Title != nil {
+		p.Title = *input.Title
+	}
+
 	if input.Persist != nil {
 		p.Persist = *input.Persist
 	}
@@ -208,6 +212,10 @@ func (s *Store) UpdateTransactionTemplate(
 		return storage.ErrNotFound
 	}
 
+	if input.Title != nil {
+		t.Title = *input.Title
+	}
+
 	if input.Index != nil {
 		t.Index = *input.Index
 	}
@@ -357,6 +365,10 @@ func (s *Store) UpdateScriptTemplate(
 	t, ok := s.scriptTemplates[input.ID]
 	if !ok {
 		return storage.ErrNotFound
+	}
+
+	if input.Title != nil {
+		t.Title = *input.Title
 	}
 
 	if input.Index != nil {

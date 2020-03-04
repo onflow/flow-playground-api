@@ -13,6 +13,7 @@ import (
 
 type TransactionTemplate struct {
 	ProjectChildID
+	Title  string
 	Index  int
 	Script string
 }
@@ -25,6 +26,7 @@ func (t *TransactionTemplate) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID        string
 		ProjectID string
+		Title     string
 		Index     int
 		Script    string
 	}{}
@@ -39,6 +41,7 @@ func (t *TransactionTemplate) Load(ps []datastore.Property) error {
 	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+	t.Title = tmp.Title
 	t.Index = tmp.Index
 	t.Script = tmp.Script
 	return nil
@@ -53,6 +56,10 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 		{
 			Name:  "ProjectID",
 			Value: t.ProjectID.String(),
+		},
+		{
+			Name:  "Title",
+			Value: t.Title,
 		},
 		{
 			Name:  "Index",

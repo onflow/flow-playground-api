@@ -11,6 +11,7 @@ type InternalProject struct {
 	Secret                    uuid.UUID
 	PublicID                  uuid.UUID
 	ParentID                  *uuid.UUID
+	Title                     string
 	Seed                      int
 	TransactionCount          int
 	TransactionExecutionCount int
@@ -59,6 +60,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 		Secret                    string
 		PublicID                  string
 		ParentID                  *string
+		Title                     string
 		Seed                      int
 		TransactionCount          int
 		TransactionExecutionCount int
@@ -87,6 +89,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	} else {
 		p.ParentID = nil
 	}
+	p.Title = tmp.Title
 	p.Seed = tmp.Seed
 	p.TransactionCount = tmp.TransactionCount
 	p.TransactionExecutionCount = tmp.TransactionExecutionCount
@@ -121,6 +124,10 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 			Value: parentID,
 		},
 		{
+			Name:  "Title",
+			Value: p.Title,
+		},
+		{
 			Name:  "Seed",
 			Value: p.Seed,
 		},
@@ -152,6 +159,7 @@ type Project struct {
 	PublicID uuid.UUID
 	ParentID *uuid.UUID
 	Seed     int
+	Title    string
 	Persist  bool
 	Mutable  bool
 }
