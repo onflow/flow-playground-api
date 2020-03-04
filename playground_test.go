@@ -38,7 +38,7 @@ type Project struct {
 }
 
 const MutationCreateProject = `
-mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
+mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
   createProject(input: { title: $title, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
     title
@@ -51,6 +51,7 @@ mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplat
     }
     transactionTemplates {
       id
+      title
       script
       index
     }
@@ -464,9 +465,16 @@ func TestProjects(t *testing.T) {
 
 		var resp CreateProjectResponse
 
-		templates := []string{
-			"transaction { execute { log(\"foo\") } }",
-			"transaction { execute { log(\"bar\") } }",
+		templates := []struct {
+			Title  string `json:"title"`
+			Script string `json:"script"`
+		}{
+			{
+				"foo", "transaction { execute { log(\"foo\") } }",
+			},
+			{
+				"bar", "transaction { execute { log(\"bar\") } }",
+			},
 		}
 
 		c.MustPost(
@@ -478,8 +486,10 @@ func TestProjects(t *testing.T) {
 		)
 
 		assert.Len(t, resp.CreateProject.TransactionTemplates, 2)
-		assert.Equal(t, templates[0], resp.CreateProject.TransactionTemplates[0].Script)
-		assert.Equal(t, templates[1], resp.CreateProject.TransactionTemplates[1].Script)
+		assert.Equal(t, templates[0].Title, resp.CreateProject.TransactionTemplates[0].Title)
+		assert.Equal(t, templates[0].Script, resp.CreateProject.TransactionTemplates[0].Script)
+		assert.Equal(t, templates[1].Title, resp.CreateProject.TransactionTemplates[1].Title)
+		assert.Equal(t, templates[1].Script, resp.CreateProject.TransactionTemplates[1].Script)
 	})
 
 	t.Run("Get project", func(t *testing.T) {

@@ -111,11 +111,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	for _, script := range input.TransactionTemplates {
+	for _, tpl := range input.TransactionTemplates {
 		tpl := &model.TransactionTemplate{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
-			Script:    script,
+			Title:     tpl.Title,
+			Script:    tpl.Script,
 		}
 
 		err = r.store.InsertTransactionTemplate(tpl)
@@ -124,11 +125,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	for _, script := range input.ScriptTemplates {
+	for _, tpl := range input.ScriptTemplates {
 		tpl := &model.ScriptTemplate{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
-			Script:    script,
+			Title:     tpl.Title,
+			Script:    tpl.Script,
 		}
 
 		err = r.store.InsertScriptTemplate(tpl)
