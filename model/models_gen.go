@@ -12,11 +12,22 @@ type Event struct {
 }
 
 type NewProject struct {
-	ParentID             *uuid.UUID `json:"parentId"`
-	Seed                 int        `json:"seed"`
-	Accounts             []string   `json:"accounts"`
-	TransactionTemplates []string   `json:"transactionTemplates"`
-	ScriptTemplates      []string   `json:"scriptTemplates"`
+	ParentID             *uuid.UUID                       `json:"parentId"`
+	Title                string                           `json:"title"`
+	Seed                 int                              `json:"seed"`
+	Accounts             []string                         `json:"accounts"`
+	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
+	ScriptTemplates      []*NewProjectScriptTemplate      `json:"scriptTemplates"`
+}
+
+type NewProjectScriptTemplate struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
+}
+
+type NewProjectTransactionTemplate struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
 }
 
 type NewScriptExecution struct {
@@ -26,6 +37,7 @@ type NewScriptExecution struct {
 
 type NewScriptTemplate struct {
 	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
 	Script    string    `json:"script"`
 }
 
@@ -37,16 +49,19 @@ type NewTransactionExecution struct {
 
 type NewTransactionTemplate struct {
 	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
 	Script    string    `json:"script"`
 }
 
 type UpdateProject struct {
 	ID      uuid.UUID `json:"id"`
+	Title   *string   `json:"title"`
 	Persist *bool     `json:"persist"`
 }
 
 type UpdateScriptTemplate struct {
 	ID        uuid.UUID `json:"id"`
+	Title     *string   `json:"title"`
 	ProjectID uuid.UUID `json:"projectId"`
 	Index     *int      `json:"index"`
 	Script    *string   `json:"script"`
@@ -54,6 +69,7 @@ type UpdateScriptTemplate struct {
 
 type UpdateTransactionTemplate struct {
 	ID        uuid.UUID `json:"id"`
+	Title     *string   `json:"title"`
 	ProjectID uuid.UUID `json:"projectId"`
 	Index     *int      `json:"index"`
 	Script    *string   `json:"script"`

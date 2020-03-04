@@ -64,6 +64,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		PublicID: uuid.New(),
 		ParentID: input.ParentID,
 		Seed:     input.Seed,
+		Title:    input.Title,
 		Persist:  false,
 	}
 
@@ -115,13 +116,14 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	for _, script := range input.TransactionTemplates {
+	for _, tpl := range input.TransactionTemplates {
 		tpl := &model.TransactionTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
 			},
-			Script: script,
+			Title:  tpl.Title,
+			Script: tpl.Script,
 		}
 
 		err = r.store.InsertTransactionTemplate(tpl)
@@ -130,13 +132,14 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	for _, script := range input.ScriptTemplates {
+	for _, tpl := range input.ScriptTemplates {
 		tpl := &model.ScriptTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
 			},
-			Script: script,
+			Title:  tpl.Title,
+			Script: tpl.Script,
 		}
 
 		err = r.store.InsertScriptTemplate(tpl)
@@ -262,6 +265,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 			ID:        uuid.New(),
 			ProjectID: input.ProjectID,
 		},
+		Title:  input.Title,
 		Script: input.Script,
 	}
 
@@ -408,6 +412,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 			ID:        uuid.New(),
 			ProjectID: input.ProjectID,
 		},
+		Title:  input.Title,
 		Script: input.Script,
 	}
 

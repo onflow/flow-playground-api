@@ -7,6 +7,7 @@ import (
 
 type ScriptTemplate struct {
 	ProjectChildID
+	Title  string
 	Index  int
 	Script string
 }
@@ -19,6 +20,7 @@ func (s *ScriptTemplate) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID        string
 		ProjectID string
+		Title     string
 		Index     int
 		Script    string
 	}{}
@@ -33,6 +35,7 @@ func (s *ScriptTemplate) Load(ps []datastore.Property) error {
 	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+	s.Title = tmp.Title
 	s.Index = tmp.Index
 	s.Script = tmp.Script
 	return nil
@@ -47,6 +50,10 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 		{
 			Name:  "ProjectID",
 			Value: s.ProjectID.String(),
+		},
+		{
+			Name:  "Title",
+			Value: s.Title,
 		},
 		{
 			Name:  "Index",
