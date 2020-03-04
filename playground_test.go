@@ -883,7 +883,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0])
+		assert.Equal(t, `"0000000000000000000000000000000000000005"`, eventA.Values[0])
 
 		var respB CreateTransactionExecutionResponse
 
@@ -901,7 +901,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0])
+		assert.Equal(t, `"0000000000000000000000000000000000000006"`, eventB.Values[0])
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -933,7 +933,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000005", eventA.Values[0])
+		assert.Equal(t, `"0000000000000000000000000000000000000005"`, eventA.Values[0])
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -954,7 +954,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.Equal(t, "0000000000000000000000000000000000000006", eventB.Values[0])
+		assert.Equal(t, `"0000000000000000000000000000000000000006"`, eventB.Values[0])
 	})
 }
 

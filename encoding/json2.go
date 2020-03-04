@@ -91,7 +91,7 @@ func ConvertValue(value runtime.Value) (Value, error) {
 		return convertDictionaryValue(v)
 
 	case interpreter.AddressValue:
-		return fmt.Sprintf("%x", v), nil
+		return v.Hex(), nil
 
 	case *interpreter.StorageReferenceValue:
 		return fmt.Sprintf("Ref(%s, %s)", v.TargetStorageAddress, v.TargetKey), nil
