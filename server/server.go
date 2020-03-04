@@ -105,6 +105,9 @@ func main() {
 
 		cookieStore := sessions.NewCookieStore([]byte(sessionAuthenticationKey))
 		cookieStore.MaxAge(defaultSessionMaxAge)
+		cookieStore.Options.HttpOnly = true
+		cookieStore.Options.Secure = true
+		cookieStore.Options.SameSite = http.SameSiteNoneMode
 
 		r.Use(middleware.ProjectSessions(cookieStore))
 
