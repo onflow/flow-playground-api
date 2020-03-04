@@ -11,6 +11,7 @@ type InternalProject struct {
 	Secret                    uuid.UUID
 	PublicID                  uuid.UUID
 	ParentID                  *uuid.UUID
+	Seed                      int
 	TransactionCount          int
 	TransactionExecutionCount int
 	TransactionTemplateCount  int
