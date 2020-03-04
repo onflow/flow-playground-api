@@ -15,11 +15,11 @@ type Store interface {
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
-	InsertAccount(acc *model.Account) error
-	GetAccount(id uuid.UUID, acc *model.Account) error
-	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
+	InsertAccount(acc *model.InternalAccount) error
+	GetAccount(id uuid.UUID, acc *model.InternalAccount) error
+	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
 	UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error
-	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
+	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id uuid.UUID) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
