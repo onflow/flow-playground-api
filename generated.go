@@ -52,6 +52,7 @@ type ComplexityRoot struct {
 		DeployedContracts func(childComplexity int) int
 		DraftCode         func(childComplexity int) int
 		ID                func(childComplexity int) int
+		State             func(childComplexity int) int
 	}
 
 	Event struct {
@@ -121,11 +122,6 @@ type ComplexityRoot struct {
 		ID     func(childComplexity int) int
 		Index  func(childComplexity int) int
 		Script func(childComplexity int) int
-	}
-
-	XDRValue struct {
-		Type  func(childComplexity int) int
-		Value func(childComplexity int) int
 	}
 }
 
@@ -208,6 +204,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Account.ID(childComplexity), true
+
+	case "Account.state":
+		if e.complexity.Account.State == nil {
+			break
+		}
+
+		return e.complexity.Account.State(childComplexity), true
 
 	case "Event.type":
 		if e.complexity.Event.Type == nil {
@@ -599,20 +602,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionTemplate.Script(childComplexity), true
 
-	case "XDRValue.type":
-		if e.complexity.XDRValue.Type == nil {
-			break
-		}
-
-		return e.complexity.XDRValue.Type(childComplexity), true
-
-	case "XDRValue.value":
-		if e.complexity.XDRValue.Value == nil {
-			break
-		}
-
-		return e.complexity.XDRValue.Value(childComplexity), true
-
 	}
 	return 0, false
 }
@@ -698,6 +687,7 @@ type Account {
   draftCode: String!
   deployedCode: String!
   deployedContracts: [String!]!
+  state: String!
 }
 
 type TransactionTemplate {
@@ -715,14 +705,9 @@ type TransactionExecution {
   logs: [String!]!,
 }
 
-type XDRValue {
-  type: String!
-  value: String!
-}
-
 type Event {
   type: String!
-  values: [XDRValue!]!
+  values: [String!]!
 }
 
 type ScriptTemplate {
@@ -735,7 +720,7 @@ type ScriptExecution {
   id: UUID!
   script: String!
   error: String
-  value: XDRValue!
+  value: String!
   logs: [String!]!
 }
 
@@ -1268,6 +1253,43 @@ func (ec *executionContext) _Account_deployedContracts(ctx context.Context, fiel
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Account_state(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Account",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.State, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Event_type(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -1336,10 +1358,10 @@ func (ec *executionContext) _Event_values(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.XDRValue)
+	res := resTmp.([]string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNXDRValue2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValueᚄ(ctx, field.Selections, res)
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createProject(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2599,10 +2621,10 @@ func (ec *executionContext) _ScriptExecution_value(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.XDRValue)
+	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNXDRValue2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValue(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ScriptExecution_logs(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
@@ -3066,80 +3088,6 @@ func (ec *executionContext) _TransactionTemplate_script(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Script, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _XDRValue_type(ctx context.Context, field graphql.CollectedField, obj *model.XDRValue) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "XDRValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _XDRValue_value(ctx context.Context, field graphql.CollectedField, obj *model.XDRValue) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "XDRValue",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Value, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4610,6 +4558,11 @@ func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "state":
+			out.Values[i] = ec._Account_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5080,38 +5033,6 @@ func (ec *executionContext) _TransactionTemplate(ctx context.Context, sel ast.Se
 			}
 		case "script":
 			out.Values[i] = ec._TransactionTemplate_script(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var xDRValueImplementors = []string{"XDRValue"}
-
-func (ec *executionContext) _XDRValue(ctx context.Context, sel ast.SelectionSet, obj *model.XDRValue) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.RequestContext, sel, xDRValueImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("XDRValue")
-		case "type":
-			out.Values[i] = ec._XDRValue_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "value":
-			out.Values[i] = ec._XDRValue_value(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5657,57 +5578,6 @@ func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapper
 
 func (ec *executionContext) unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateTransactionTemplate(ctx context.Context, v interface{}) (model.UpdateTransactionTemplate, error) {
 	return ec.unmarshalInputUpdateTransactionTemplate(ctx, v)
-}
-
-func (ec *executionContext) marshalNXDRValue2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValue(ctx context.Context, sel ast.SelectionSet, v model.XDRValue) graphql.Marshaler {
-	return ec._XDRValue(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNXDRValue2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValueᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.XDRValue) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		rctx := &graphql.ResolverContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithResolverContext(ctx, rctx)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNXDRValue2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValue(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNXDRValue2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐXDRValue(ctx context.Context, sel ast.SelectionSet, v *model.XDRValue) graphql.Marshaler {
-	if v == nil {
-		if !ec.HasError(graphql.GetResolverContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._XDRValue(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
