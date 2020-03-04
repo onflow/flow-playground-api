@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -17,7 +18,7 @@ var (
 	sessionCtxKey = ctxKey("session")
 )
 
-const projectSessionName = "flow-playground"
+const projectSecretKeyName = "project-secret"
 
 type httpContext struct {
 	W *http.ResponseWriter
@@ -47,9 +48,9 @@ func ProjectSessions(store *sessions.CookieStore) func(http.Handler) http.Handle
 // A project is authorized in a session if the session contains a reference to the
 // project's secret.
 func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
-	session := getSession(ctx, projectSessionName)
+	session := getSession(ctx, getProjectSessionName(proj))
 
-	secret, ok := session.Values[proj.ID.String()]
+	secret, ok := session.Values[projectSecretKeyName]
 	if !ok {
 		return false
 	}
@@ -66,9 +67,9 @@ func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 //
 // This function re-saves the session and updates the session cookie with a new max age.
 func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error {
-	session := getSession(ctx, projectSessionName)
+	session := getSession(ctx, getProjectSessionName(proj))
 
-	session.Values[proj.ID.String()] = proj.Secret.String()
+	session.Values[projectSecretKeyName] = proj.Secret.String()
 
 	err := saveSession(ctx, session)
 	if err != nil {
@@ -101,6 +102,14 @@ func saveSession(ctx context.Context, session *sessions.Session) error {
 	return nil
 }
 
+func getProjectSessionName(proj *model.InternalProject) string {
+	return getProjectSessionNameFromString(proj.ID.String())
+}
+
+func getProjectSessionNameFromString(projectID string) string {
+	return fmt.Sprintf("flow-%s", projectID)
+}
+
 const mockSessionAuthenticationKey = "1bbcf50e2e5f3e2d1801db50742f6a97"
 
 func mockCookieStore() *sessions.CookieStore {
@@ -119,9 +128,9 @@ func MockProjectSessionCookie(projectID, secret string) *http.Cookie {
 	r := &http.Request{}
 	w := httptest.NewRecorder()
 
-	session, _ := store.Get(r, projectSessionName)
+	session, _ := store.Get(r, getProjectSessionNameFromString(projectID))
 
-	session.Values[projectID] = secret
+	session.Values[projectSecretKeyName] = secret
 
 	err := session.Save(r, w)
 	if err != nil {
