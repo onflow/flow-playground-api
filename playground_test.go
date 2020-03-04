@@ -25,7 +25,7 @@ import (
 
 type Project struct {
 	ID       string
-	Secret   string
+	Seed     int
 	Persist  bool
 	Accounts []struct {
 		ID        string
@@ -33,12 +33,14 @@ type Project struct {
 		DraftCode string
 	}
 	TransactionTemplates []TransactionTemplate
+	Secret               string
 }
 
 const MutationCreateProject = `
-mutation($accounts: [String!], $transactionTemplates: [String!]) {
-  createProject(input: { accounts: $accounts, transactionTemplates: $transactionTemplates }) {
+mutation($seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
+  createProject(input: { seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
+    seed
     persist
     accounts {
       id
@@ -385,9 +387,11 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("seed", 42),
 		)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
+		assert.Equal(t, 42, resp.CreateProject.Seed)
 
 		// project should be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
@@ -409,6 +413,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
 
@@ -435,6 +440,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
 
@@ -459,6 +465,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("seed", 42),
 			client.Var("transactionTemplates", templates),
 		)
 
@@ -1548,6 +1555,7 @@ func createProject(c *Client) Project {
 	c.MustPost(
 		MutationCreateProject,
 		&resp,
+		client.Var("seed", 42),
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
 	)
