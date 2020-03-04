@@ -82,6 +82,7 @@ type ComplexityRoot struct {
 		PublicID              func(childComplexity int) int
 		ScriptExecutions      func(childComplexity int) int
 		ScriptTemplates       func(childComplexity int) int
+		Seed                  func(childComplexity int) int
 		TransactionExecutions func(childComplexity int) int
 		TransactionTemplates  func(childComplexity int) int
 	}
@@ -410,6 +411,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Project.ScriptTemplates(childComplexity), true
 
+	case "Project.seed":
+		if e.complexity.Project.Seed == nil {
+			break
+		}
+
+		return e.complexity.Project.Seed(childComplexity), true
+
 	case "Project.transactionExecutions":
 		if e.complexity.Project.TransactionExecutions == nil {
 			break
@@ -674,6 +682,7 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
+  seed: Int!
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
@@ -740,6 +749,7 @@ type Query {
 
 input NewProject {
   parentId: UUID
+  seed: Int!
   accounts: [String!]
   transactionTemplates: [String!]
   scriptTemplates: [String!]
@@ -1922,6 +1932,43 @@ func (ec *executionContext) _Project_parentId(ctx context.Context, field graphql
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Project_seed(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Project",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Seed, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Project_persist(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -4273,6 +4320,12 @@ func (ec *executionContext) unmarshalInputNewProject(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
+		case "seed":
+			var err error
+			it.Seed, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "accounts":
 			var err error
 			it.Accounts, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
@@ -4704,6 +4757,11 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "parentId":
 			out.Values[i] = ec._Project_parentId(ctx, field, obj)
+		case "seed":
+			out.Values[i] = ec._Project_seed(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "persist":
 			out.Values[i] = ec._Project_persist(ctx, field, obj)
 		case "mutable":

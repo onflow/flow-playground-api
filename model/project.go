@@ -11,6 +11,7 @@ type InternalProject struct {
 	Secret           uuid.UUID
 	PublicID         uuid.UUID
 	ParentID         *uuid.UUID
+	Seed             int
 	TransactionCount int
 	Persist          bool
 }
@@ -23,6 +24,7 @@ func (p *InternalProject) ExportPublicMutable() *Project {
 		PublicID: p.PublicID,
 		ParentID: p.ParentID,
 		Persist:  p.Persist,
+		Seed:     p.Seed,
 		Mutable:  true,
 	}
 }
@@ -35,6 +37,7 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 		PublicID: p.PublicID,
 		ParentID: p.ParentID,
 		Persist:  p.Persist,
+		Seed:     p.Seed,
 		Mutable:  false,
 	}
 }
@@ -76,6 +79,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 
 	p.TransactionCount = tmp.TransactionCount
 	p.Persist = tmp.Persist
+
 	return nil
 }
 
@@ -117,6 +121,7 @@ type Project struct {
 	ID       uuid.UUID
 	PublicID uuid.UUID
 	ParentID *uuid.UUID
+	Seed     int
 	Persist  bool
 	Mutable  bool
 }
