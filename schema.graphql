@@ -95,6 +95,7 @@ input UpdateAccount {
 }
 
 input NewTransactionTemplate {
+  title: String!
   projectId: UUID!
   script: String!
 }
@@ -113,6 +114,7 @@ input NewTransactionExecution {
 }
 
 input NewScriptTemplate {
+  title: String!
   projectId: UUID!
   script: String!
 }
