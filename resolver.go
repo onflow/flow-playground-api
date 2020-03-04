@@ -495,8 +495,6 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		}
 
 		exe.Value = string(enc)
-
-		println(string(enc))
 	}
 
 	err = r.store.InsertScriptExecution(&exe)
