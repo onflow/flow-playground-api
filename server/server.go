@@ -12,19 +12,25 @@ import (
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
+	"github.com/gorilla/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
 	playground "github.com/dapperlabs/flow-playground-api"
-	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
-const defaultPort = "8080"
-const defaultAllowedOrigins = "http://localhost:3000"
+const (
+	defaultPort                     = "8080"
+	defaultAllowedOrigins           = "http://localhost:3000"
+	defaultSessionAuthenticationKey = "428ce08c21b93e5f0eca24fbeb0c7673"
+	defaultSessionMaxAge            = 157680000 // 5 years in seconds
+	defaultLedgerCacheSize          = 128       // number of ledgers to store in cache
+)
 
 func main() {
 	port := os.Getenv("PORT")
@@ -55,7 +61,27 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer := vm.NewComputer(store)
+	sessionAuthenticationKey := os.Getenv("SESSION_KEY")
+	if sessionAuthenticationKey == "" {
+		sessionAuthenticationKey = defaultSessionAuthenticationKey
+	}
+
+	var ledgerCacheSize int
+	ledgerCacheSizeStr := os.Getenv("LEDGER_CACHE_SIZE")
+	if ledgerCacheSizeStr == "" {
+		ledgerCacheSize = defaultLedgerCacheSize
+	} else {
+		var err error
+		ledgerCacheSize, err = strconv.Atoi(ledgerCacheSizeStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	computer, err := vm.NewComputer(store, ledgerCacheSize)
+	if err != nil {
+		panic(err)
+	}
 
 	resolver := playground.NewResolver(store, computer)
 
@@ -77,7 +103,15 @@ func main() {
 			Debug:            gqlPlayground,
 		}).Handler)
 
-		r.Use(auth.Middleware())
+		cookieStore := sessions.NewCookieStore([]byte(sessionAuthenticationKey))
+		cookieStore.MaxAge(defaultSessionMaxAge)
+
+		// cookieStore.Options.Secure = true
+		cookieStore.Options.HttpOnly = true
+		cookieStore.Options.SameSite = http.SameSiteNoneMode
+
+		r.Use(middleware.ProjectSessions(cookieStore))
+
 		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
 	})
 

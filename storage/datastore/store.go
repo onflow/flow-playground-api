@@ -3,14 +3,13 @@ package datastore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -94,6 +93,7 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 func (d *Datastore) InsertProject(proj *model.InternalProject) error {
 	return d.put(proj)
 }
+
 func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
@@ -120,17 +120,18 @@ func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error 
 	return d.get(proj)
 }
 
-func (d *Datastore) InsertAccount(acc *model.Account) error {
+func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
 	return d.put(acc)
 }
 
 // Accounts
 
-func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.Account) error {
+func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
 	acc.ProjectChildID = id
 	return d.get(acc)
 }
-func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+
+func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -155,12 +156,19 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 
 	return txErr
 }
-func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+
+func (d *Datastore) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
+	// TODO:
+	panic("TODO")
+}
+
+func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
 	q := datastore.NewQuery("Account").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, accs)
 }
+
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
-	return d.delete(&model.Account{ProjectChildID: id})
+	return d.delete(&model.InternalAccount{ProjectChildID: id})
 }
 
 // Transaction Templates
@@ -181,7 +189,6 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 		tpl.Index = proj.TransactionTemplateCount
 		proj.TransactionTemplateCount++
 
-		fmt.Println("CREATING WITH INDEX", tpl.Index, proj.ID, proj.TransactionTemplateCount)
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
 			[]interface{}{proj, tpl},
@@ -206,7 +213,6 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 		}
 		if input.Index != nil {
 			tpl.Index = *input.Index
-			fmt.Println("SETTING INDEX", *input.Index)
 		}
 
 		if input.Script != nil {

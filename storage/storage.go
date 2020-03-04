@@ -3,8 +3,9 @@ package storage
 import (
 	"errors"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
 	"github.com/google/uuid"
+
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
@@ -14,10 +15,11 @@ type Store interface {
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
-	InsertAccount(acc *model.Account) error
-	GetAccount(id model.ProjectChildID, acc *model.Account) error
-	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
-	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
+	InsertAccount(acc *model.InternalAccount) error
+	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
+	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
+	UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error
+	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
