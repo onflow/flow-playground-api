@@ -3,9 +3,9 @@ scalar Address
 
 type Project {
   id: UUID!
-  privateId: UUID
   publicId: UUID!
   parentId: UUID
+  seed: Int!
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
@@ -21,6 +21,7 @@ type Account {
   draftCode: String!
   deployedCode: String!
   deployedContracts: [String!]!
+  state: String!
 }
 
 type TransactionTemplate {
@@ -38,14 +39,9 @@ type TransactionExecution {
   logs: [String!]!,
 }
 
-type XDRValue {
-  type: String!
-  value: String!
-}
-
 type Event {
   type: String!
-  values: [XDRValue!]!
+  values: [String!]!
 }
 
 type ScriptTemplate {
@@ -58,7 +54,7 @@ type ScriptExecution {
   id: UUID!
   script: String!
   error: String
-  value: XDRValue!
+  value: String!
   logs: [String!]!
 }
 
@@ -72,6 +68,7 @@ type Query {
 
 input NewProject {
   parentId: UUID
+  seed: Int!
   accounts: [String!]
   transactionTemplates: [String!]
   scriptTemplates: [String!]

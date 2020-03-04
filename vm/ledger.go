@@ -1,6 +1,6 @@
 package vm
 
-import "github.com/dapperlabs/flow-go/engine/execution/execution/state"
+import "github.com/dapperlabs/flow-go/engine/execution/state"
 
 type Ledger map[string][]byte
 
