@@ -7,8 +7,8 @@ import (
 )
 
 type Event struct {
-	Type   string      `json:"type"`
-	Values []*XDRValue `json:"values"`
+	Type   string   `json:"type"`
+	Values []string `json:"values"`
 }
 
 type NewProject struct {
@@ -55,9 +55,4 @@ type UpdateTransactionTemplate struct {
 	ID     uuid.UUID `json:"id"`
 	Index  *int      `json:"index"`
 	Script *string   `json:"script"`
-}
-
-type XDRValue struct {
-	Type  string `json:"type"`
-	Value string `json:"value"`
 }
