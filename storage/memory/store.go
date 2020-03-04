@@ -4,8 +4,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
 	"github.com/google/uuid"
+
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -14,7 +15,7 @@ import (
 type Store struct {
 	mut                   sync.RWMutex
 	projects              map[uuid.UUID]model.InternalProject
-	accounts              map[uuid.UUID]model.Account
+	accounts              map[uuid.UUID]model.InternalAccount
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
@@ -26,7 +27,7 @@ func NewStore() storage.Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
 		projects:              make(map[uuid.UUID]model.InternalProject),
-		accounts:              make(map[uuid.UUID]model.Account),
+		accounts:              make(map[uuid.UUID]model.InternalAccount),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
@@ -82,7 +83,7 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	return nil
 }
 
-func (s *Store) InsertAccount(acc *model.Account) error {
+func (s *Store) InsertAccount(acc *model.InternalAccount) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -91,11 +92,11 @@ func (s *Store) InsertAccount(acc *model.Account) error {
 	return nil
 }
 
-func (s *Store) GetAccount(id uuid.UUID, acc *model.Account) error {
+func (s *Store) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	p, ok := s.accounts[id]
+	p, ok := s.accounts[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -105,7 +106,7 @@ func (s *Store) GetAccount(id uuid.UUID, acc *model.Account) error {
 	return nil
 }
 
-func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -133,15 +134,22 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) err
 	return nil
 }
 
-func (s *Store) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+func (s *Store) UpdateAccountState(input *model.InternalAccount) error {
+	account := s.accounts[input.ID]
+	account.State = input.State
+
+	return nil
+}
+
+func (s *Store) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
 	return s.getAccountsForProject(projectID, accs)
 }
 
-func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
-	res := make([]*model.Account, 0)
+func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
+	res := make([]*model.InternalAccount, 0)
 
 	for _, acc := range s.accounts {
 		if acc.ProjectID == projectID {
@@ -158,16 +166,16 @@ func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Accoun
 	return nil
 }
 
-func (s *Store) DeleteAccount(id uuid.UUID) error {
+func (s *Store) DeleteAccount(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.accounts[id]
+	_, ok := s.accounts[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.accounts, id)
+	delete(s.accounts, id.ID)
 
 	return nil
 }
@@ -223,11 +231,11 @@ func (s *Store) UpdateTransactionTemplate(
 	return nil
 }
 
-func (s *Store) GetTransactionTemplate(id uuid.UUID, tpl *model.TransactionTemplate) error {
+func (s *Store) GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	t, ok := s.transactionTemplates[id]
+	t, ok := s.transactionTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -262,16 +270,16 @@ func (s *Store) getTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*
 	return nil
 }
 
-func (s *Store) DeleteTransactionTemplate(id uuid.UUID) error {
+func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.transactionTemplates[id]
+	_, ok := s.transactionTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.transactionTemplates, id)
+	delete(s.transactionTemplates, id.ID)
 
 	return nil
 }
@@ -378,11 +386,11 @@ func (s *Store) UpdateScriptTemplate(
 	return nil
 }
 
-func (s *Store) GetScriptTemplate(id uuid.UUID, tpl *model.ScriptTemplate) error {
+func (s *Store) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	t, ok := s.scriptTemplates[id]
+	t, ok := s.scriptTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
@@ -417,16 +425,16 @@ func (s *Store) getScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model
 	return nil
 }
 
-func (s *Store) DeleteScriptTemplate(id uuid.UUID) error {
+func (s *Store) DeleteScriptTemplate(id model.ProjectChildID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	_, ok := s.scriptTemplates[id]
+	_, ok := s.scriptTemplates[id.ID]
 	if !ok {
 		return storage.ErrNotFound
 	}
 
-	delete(s.scriptTemplates, id)
+	delete(s.scriptTemplates, id.ID)
 
 	return nil
 }

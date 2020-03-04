@@ -5,27 +5,28 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/datastore"
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 )
 
 type TransactionTemplate struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Title     string
-	Index     int
-	Script    string
+	ProjectChildID
+	Title  string
+	Index  int
+	Script string
 }
 
 func (t *TransactionTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionTemplate", t.ID.String(), nil)
+	return datastore.NameKey("TransactionTemplate", t.ID.String(), ProjectNameKey(t.ProjectID))
 }
 
 func (t *TransactionTemplate) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID        string
 		ProjectID string
+		Title     string
 		Index     int
 		Script    string
 	}{}
@@ -40,6 +41,7 @@ func (t *TransactionTemplate) Load(ps []datastore.Property) error {
 	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+	t.Title = tmp.Title
 	t.Index = tmp.Index
 	t.Script = tmp.Script
 	return nil
@@ -56,6 +58,10 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 			Value: t.ProjectID.String(),
 		},
 		{
+			Name:  "Title",
+			Value: t.Title,
+		},
+		{
 			Name:  "Index",
 			Value: t.Index,
 		},
@@ -68,8 +74,7 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 }
 
 type TransactionExecution struct {
-	ID               uuid.UUID
-	ProjectID        uuid.UUID
+	ProjectChildID
 	Index            int
 	Script           string
 	SignerAccountIDs []uuid.UUID
@@ -79,7 +84,7 @@ type TransactionExecution struct {
 }
 
 func (t *TransactionExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionExecution", t.ID.String(), nil)
+	return datastore.NameKey("TransactionExecution", t.ID.String(), ProjectNameKey(t.ProjectID))
 }
 
 func (t *TransactionExecution) Load(ps []datastore.Property) error {
@@ -183,7 +188,7 @@ type RegisterDelta struct {
 }
 
 func (r *RegisterDelta) NameKey() *datastore.Key {
-	return datastore.NameKey("RegisterDelta", fmt.Sprintf("%s-%d", r.ProjectID.String(), r.Index), nil)
+	return datastore.NameKey("RegisterDelta", fmt.Sprintf("%s-%d", r.ProjectID.String(), r.Index), ProjectNameKey(r.ProjectID))
 }
 
 func (r *RegisterDelta) Load(ps []datastore.Property) error {
