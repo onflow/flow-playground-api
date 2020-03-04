@@ -18,7 +18,7 @@ type Store interface {
 	InsertAccount(acc *model.InternalAccount) error
 	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
 	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
-	UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error
+	UpdateAccountState(account *model.InternalAccount) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
 
