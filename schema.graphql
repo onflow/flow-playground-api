@@ -5,6 +5,7 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
+  title: String!
   seed: Int!
   persist: Boolean
   mutable: Boolean
@@ -26,6 +27,7 @@ type Account {
 type TransactionTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -51,6 +53,7 @@ type Event {
 type ScriptTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -72,6 +75,7 @@ type Query {
 
 input NewProject {
   parentId: UUID
+  title: String!
   seed: Int!
   accounts: [String!]
   transactionTemplates: [String!]
@@ -80,6 +84,7 @@ input NewProject {
 
 input UpdateProject {
   id: UUID!
+  title: String
   persist: Boolean
 }
 
@@ -96,6 +101,7 @@ input NewTransactionTemplate {
 
 input UpdateTransactionTemplate {
   id: UUID!
+  title: String
   index: Int
   script: String
 }
@@ -113,6 +119,7 @@ input NewScriptTemplate {
 
 input UpdateScriptTemplate {
   id: UUID!
+  title: String
   index: Int
   script: String
 }

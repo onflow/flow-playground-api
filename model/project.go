@@ -12,6 +12,7 @@ type InternalProject struct {
 	PublicID         uuid.UUID
 	ParentID         *uuid.UUID
 	Seed             int
+	Title            string
 	TransactionCount int
 	Persist          bool
 }
@@ -122,6 +123,7 @@ type Project struct {
 	PublicID uuid.UUID
 	ParentID *uuid.UUID
 	Seed     int
+	Title    string
 	Persist  bool
 	Mutable  bool
 }

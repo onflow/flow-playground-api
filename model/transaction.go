@@ -13,6 +13,7 @@ import (
 type TransactionTemplate struct {
 	ID        uuid.UUID
 	ProjectID uuid.UUID
+	Title     string
 	Index     int
 	Script    string
 }

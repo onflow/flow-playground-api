@@ -25,6 +25,7 @@ import (
 
 type Project struct {
 	ID       string
+	Title    string
 	Seed     int
 	Persist  bool
 	Accounts []struct {
@@ -37,9 +38,10 @@ type Project struct {
 }
 
 const MutationCreateProject = `
-mutation($seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
-  createProject(input: { seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
+mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [String!]) {
+  createProject(input: { title: $title, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
+    title
     seed
     persist
     accounts {
@@ -387,6 +389,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 		)
 
@@ -413,6 +416,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
@@ -440,6 +444,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
@@ -465,6 +470,7 @@ func TestProjects(t *testing.T) {
 		c.MustPost(
 			MutationCreateProject,
 			&resp,
+			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("transactionTemplates", templates),
 		)
@@ -1555,6 +1561,7 @@ func createProject(c *Client) Project {
 	c.MustPost(
 		MutationCreateProject,
 		&resp,
+		client.Var("title", "foo"),
 		client.Var("seed", 42),
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
