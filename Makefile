@@ -25,6 +25,9 @@ docker-push:
 	docker push gcr.io/dl-flow/playground-api:latest
 	docker push "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)"
 
+.PHONY: start-datastore-emulator
+start-datastore-emulator:
+	gcloud beta emulators datastore start --no-store-on-disk
 
 #----------------------------------------------------------------------
 # CD COMMANDS
