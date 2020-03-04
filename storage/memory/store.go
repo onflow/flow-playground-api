@@ -4,8 +4,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/dapperlabs/flow-go/engine/execution/execution/state"
 	"github.com/google/uuid"
+
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -125,6 +126,13 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.Account) err
 	s.accounts[input.ID] = a
 
 	*acc = a
+
+	return nil
+}
+
+func (s *Store) UpdateAccountState(accountID uuid.UUID, state map[string][]byte) error {
+	account := s.accounts[accountID]
+	account.State = state
 
 	return nil
 }

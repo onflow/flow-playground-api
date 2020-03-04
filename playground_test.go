@@ -1492,6 +1492,13 @@ func TestContractInteraction(t *testing.T) {
 
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
 
+	var resp GetAccountResponse
+
+	c.MustPost(
+		QueryGetAccount,
+		&resp,
+		client.Var("accountId", accountA.ID),
+	)
 }
 
 type Client struct {
