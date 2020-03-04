@@ -24,7 +24,7 @@ type UpdateAccount struct {
 }
 
 func (a *Account) NameKey() *datastore.Key {
-	return datastore.NameKey("Account", a.ID.String(), projectNameKey(a.ProjectID))
+	return datastore.NameKey("Account", a.ID.String(), ProjectNameKey(a.ProjectID))
 }
 
 func (a *Account) Load(ps []datastore.Property) error {

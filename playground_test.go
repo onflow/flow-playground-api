@@ -648,6 +648,7 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&respB,
+			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("script", "bar"),
 		)

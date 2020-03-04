@@ -12,7 +12,7 @@ type ScriptTemplate struct {
 }
 
 func (s *ScriptTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptTemplate", s.ID.String(), projectNameKey(s.ProjectID))
+	return datastore.NameKey("ScriptTemplate", s.ID.String(), ProjectNameKey(s.ProjectID))
 }
 
 func (s *ScriptTemplate) Load(ps []datastore.Property) error {
@@ -70,7 +70,7 @@ type ScriptExecution struct {
 }
 
 func (s *ScriptExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptExecution", s.ID.String(), projectNameKey(s.ProjectID))
+	return datastore.NameKey("ScriptExecution", s.ID.String(), ProjectNameKey(s.ProjectID))
 }
 
 func (s *ScriptExecution) Load(ps []datastore.Property) error {
