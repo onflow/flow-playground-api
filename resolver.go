@@ -62,6 +62,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		Secret:   uuid.New(),
 		PublicID: uuid.New(),
 		ParentID: input.ParentID,
+		Seed:     input.Seed,
 		Persist:  false,
 	}
 

@@ -5,6 +5,7 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
+  seed: Int!
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
@@ -71,6 +72,7 @@ type Query {
 
 input NewProject {
   parentId: UUID
+  seed: Int!
   accounts: [String!]
   transactionTemplates: [String!]
   scriptTemplates: [String!]

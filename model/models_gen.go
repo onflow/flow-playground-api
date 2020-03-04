@@ -13,6 +13,7 @@ type Event struct {
 
 type NewProject struct {
 	ParentID             *uuid.UUID `json:"parentId"`
+	Seed                 int        `json:"seed"`
 	Accounts             []string   `json:"accounts"`
 	TransactionTemplates []string   `json:"transactionTemplates"`
 	ScriptTemplates      []string   `json:"scriptTemplates"`
