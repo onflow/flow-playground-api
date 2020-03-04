@@ -223,6 +223,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 	tpl := &model.TransactionTemplate{
 		ID:        uuid.New(),
 		ProjectID: input.ProjectID,
+		Title:     input.Title,
 		Script:    input.Script,
 	}
 
@@ -376,6 +377,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 	tpl := &model.ScriptTemplate{
 		ID:        uuid.New(),
 		ProjectID: input.ProjectID,
+		Title:     input.Title,
 		Script:    input.Script,
 	}
 

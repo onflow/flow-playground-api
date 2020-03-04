@@ -796,6 +796,7 @@ input UpdateAccount {
 }
 
 input NewTransactionTemplate {
+  title: String!
   projectId: UUID!
   script: String!
 }
@@ -814,6 +815,7 @@ input NewTransactionExecution {
 }
 
 input NewScriptTemplate {
+  title: String!
   projectId: UUID!
   script: String!
 }
@@ -4528,6 +4530,12 @@ func (ec *executionContext) unmarshalInputNewScriptTemplate(ctx context.Context,
 
 	for k, v := range asMap {
 		switch k {
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "projectId":
 			var err error
 			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
@@ -4582,6 +4590,12 @@ func (ec *executionContext) unmarshalInputNewTransactionTemplate(ctx context.Con
 
 	for k, v := range asMap {
 		switch k {
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "projectId":
 			var err error
 			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
