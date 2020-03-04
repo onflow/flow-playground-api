@@ -8,24 +8,15 @@ import (
 
 type InternalProject struct {
 	ID               uuid.UUID
-	PrivateID        uuid.UUID
+	Secret           uuid.UUID
 	PublicID         uuid.UUID
 	ParentID         *uuid.UUID
 	TransactionCount int
 	Persist          bool
 }
 
-func (p *InternalProject) ExportPrivate() *Project {
-	return &Project{
-		ID:        p.ID,
-		PrivateID: &p.PrivateID,
-		PublicID:  p.PublicID,
-		ParentID:  p.ParentID,
-		Persist:   p.Persist,
-		Mutable:   true,
-	}
-}
-
+// ExportPublicMutable converts the internal project to its public representation
+// and marks it as mutable.
 func (p *InternalProject) ExportPublicMutable() *Project {
 	return &Project{
 		ID:       p.ID,
@@ -36,6 +27,8 @@ func (p *InternalProject) ExportPublicMutable() *Project {
 	}
 }
 
+// ExportPublicImmutable converts the internal project to its public representation
+// and marks it as immutable.
 func (p *InternalProject) ExportPublicImmutable() *Project {
 	return &Project{
 		ID:       p.ID,
@@ -53,7 +46,7 @@ func (p *InternalProject) NameKey() *datastore.Key {
 func (p *InternalProject) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID               string
-		PrivateID        string
+		Secret           string
 		PublicID         string
 		ParentID         *string
 		TransactionCount int
@@ -67,7 +60,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	if err := p.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
-	if err := p.PrivateID.UnmarshalText([]byte(tmp.PrivateID)); err != nil {
+	if err := p.Secret.UnmarshalText([]byte(tmp.Secret)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
 	if err := p.PublicID.UnmarshalText([]byte(tmp.PublicID)); err != nil {
@@ -98,8 +91,8 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 			Value: p.ID.String(),
 		},
 		{
-			Name:  "PrivateID",
-			Value: p.PrivateID.String(),
+			Name:  "Secret",
+			Value: p.Secret.String(),
 		},
 		{
 			Name:  "PublicID",
@@ -121,10 +114,9 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 }
 
 type Project struct {
-	ID        uuid.UUID
-	PrivateID *uuid.UUID
-	PublicID  uuid.UUID
-	ParentID  *uuid.UUID
-	Persist   bool
-	Mutable   bool
+	ID       uuid.UUID
+	PublicID uuid.UUID
+	ParentID *uuid.UUID
+	Persist  bool
+	Mutable  bool
 }
