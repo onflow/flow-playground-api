@@ -100,6 +100,12 @@ spec:
               value: "https://play.onflow.org"
             - name: GQL_PLAYGROUND
               value: "false"
+            - name: STORE_BACKEND
+              value: "datastore"
+            - name: DATASTORE_PROJECT_ID
+              value: "flow-developer-playground"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
 
           # Readiness and Liveness probes
           readinessProbe:
@@ -117,3 +123,11 @@ spec:
             limits:
               cpu: "200m"
               memory: "512Mi"
+          volumeMounts:
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
+
+          volumes:
+            - name: google-cloud-key
+              secret:
+                secretName: datastore-key
