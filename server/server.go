@@ -106,7 +106,7 @@ func main() {
 		cookieStore := sessions.NewCookieStore([]byte(sessionAuthenticationKey))
 		cookieStore.MaxAge(defaultSessionMaxAge)
 
-		router.Use(middleware.ProjectSessions(cookieStore))
+		r.Use(middleware.ProjectSessions(cookieStore))
 
 		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
 	})
