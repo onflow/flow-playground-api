@@ -7,13 +7,16 @@ import (
 )
 
 type InternalProject struct {
-	ID               uuid.UUID
-	Secret           uuid.UUID
-	PublicID         uuid.UUID
-	ParentID         *uuid.UUID
-	Seed             int
-	TransactionCount int
-	Persist          bool
+	ID                        uuid.UUID
+	Secret                    uuid.UUID
+	PublicID                  uuid.UUID
+	ParentID                  *uuid.UUID
+	Seed                      int
+	TransactionCount          int
+	TransactionExecutionCount int
+	TransactionTemplateCount  int
+	ScriptTemplateCount       int
+	Persist                   bool
 }
 
 // ExportPublicMutable converts the internal project to its public representation
