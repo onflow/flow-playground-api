@@ -14,6 +14,7 @@ type Account struct {
 	DraftCode         string
 	DeployedCode      string
 	DeployedContracts []string
+	State             map[string][]byte
 }
 
 type UpdateAccount struct {

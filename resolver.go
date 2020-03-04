@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+
 	"github.com/dapperlabs/flow-go-sdk"
 	"github.com/dapperlabs/flow-go-sdk/templates"
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/encoding"
 	"github.com/dapperlabs/flow-go/language/runtime"
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/vm"
@@ -23,8 +23,9 @@ import (
 const MaxAccounts = 4
 
 type Resolver struct {
-	store    storage.Store
-	computer *vm.Computer
+	store              storage.Store
+	computer           *vm.Computer
+	lastCreatedProject *model.InternalProject
 }
 
 func NewResolver(store storage.Store, computer *vm.Computer) *Resolver {
@@ -47,17 +48,22 @@ func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
 
+func (r *Resolver) LastCreatedProject() *model.InternalProject {
+	return r.lastCreatedProject
+}
+
 type mutationResolver struct {
 	*Resolver
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	proj := &model.InternalProject{
-		ID:        uuid.New(),
-		PrivateID: uuid.New(),
-		PublicID:  uuid.New(),
-		ParentID:  input.ParentID,
-		Persist:   false,
+		ID:       uuid.New(),
+		Secret:   uuid.New(),
+		PublicID: uuid.New(),
+		ParentID: input.ParentID,
+		Seed:     input.Seed,
+		Persist:  false,
 	}
 
 	err := r.store.InsertProject(proj)
@@ -77,7 +83,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 
 		script, _ := templates.CreateAccount(nil, nil)
-		result, delta, err := r.computer.ExecuteTransaction(acc.ProjectID, string(script), nil)
+		result, delta, state, err := r.computer.ExecuteTransaction(acc.ProjectID, string(script), nil)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
@@ -97,6 +103,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		address := model.Address(flow.BytesToAddress(addressValue.Bytes()))
 
 		acc.Address = address
+
+		acc.State = state[address]
 
 		err = r.store.InsertAccount(&acc)
 		if err != nil {
@@ -130,8 +138,14 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 	}
 
-	// return project with private ID
-	return proj.ExportPrivate(), nil
+	// add project to HTTP session
+	if err := middleware.AddProjectToSession(ctx, proj); err != nil {
+		return nil, errors.Wrap(err, "failed to save project in session")
+	}
+
+	r.lastCreatedProject = proj
+
+	return proj.ExportPublicMutable(), nil
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
@@ -142,7 +156,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -169,20 +183,26 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
 	// TODO: make deployment atomic
 	if input.DeployedCode != nil {
+
 		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
-		result, delta, err := r.computer.ExecuteTransaction(acc.ProjectID, script, []model.Address{acc.Address})
+		result, delta, state, err := r.computer.ExecuteTransaction(acc.ProjectID, script, []model.Address{acc.Address})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
 
 		if result.Error != nil {
 			return nil, errors.Wrap(result.Error, "failed to deploy account code")
+		}
+
+		err = r.updateAccountState(proj.ID, state)
+		if err != nil {
+			return nil, err
 		}
 
 		err = r.store.InsertRegisterDelta(acc.ProjectID, delta)
@@ -206,6 +226,28 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	return &acc, nil
 }
 
+func (r *mutationResolver) updateAccountState(projectID uuid.UUID, state vm.AccountState) error {
+	var accounts []*model.Account
+
+	err := r.store.GetAccountsForProject(projectID, &accounts)
+	if err != nil {
+		return errors.Wrap(err, "failed to get project accounts")
+	}
+
+	for _, account := range accounts {
+		for key, value := range state[account.Address] {
+			account.State[key] = value
+		}
+
+		err := r.store.UpdateAccountState(account.ID, account.State)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	tpl := &model.TransactionTemplate{
 		ID:        uuid.New(),
@@ -220,7 +262,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -247,7 +289,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -274,7 +316,7 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
@@ -297,18 +339,18 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
-	result, delta, err := r.computer.ExecuteTransaction(input.ProjectID, input.Script, input.Signers)
+	result, delta, state, err := r.computer.ExecuteTransaction(proj.ID, input.Script, input.Signers)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
 
 	exe := model.TransactionExecution{
 		ID:        uuid.New(),
-		ProjectID: input.ProjectID,
+		ProjectID: proj.ID,
 		Script:    input.Script,
 		Logs:      result.Logs,
 	}
@@ -316,6 +358,11 @@ func (r *mutationResolver) CreateTransactionExecution(
 	if result.Error != nil {
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
+	} else {
+		err = r.updateAccountState(proj.ID, state)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(result.Events) > 0 {
@@ -373,7 +420,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -400,7 +447,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return nil, errors.New("access denied")
 	}
 
@@ -479,7 +526,7 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !auth.HasProjectPermission(ctx, &proj) {
+	if !middleware.ProjectInSession(ctx, &proj) {
 		return uuid.Nil, errors.New("access denied")
 	}
 
@@ -551,7 +598,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if auth.HasProjectPermission(ctx, &proj) {
+	if middleware.ProjectInSession(ctx, &proj) {
 		return proj.ExportPublicMutable(), nil
 	}
 
