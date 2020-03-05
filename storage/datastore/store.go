@@ -108,9 +108,10 @@ func (d *Datastore) CreateProject(
 		for _, delta := range deltas {
 
 			regDelta := &model.RegisterDelta{
-				ProjectID: proj.ID,
-				Index:     proj.TransactionCount,
-				Delta:     delta,
+				ProjectID:         proj.ID,
+				Index:             proj.TransactionCount,
+				Delta:             delta,
+				IsAccountCreation: true,
 			}
 			proj.TransactionCount++
 
@@ -450,9 +451,9 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, 
 		}
 
 		regDelta := &model.RegisterDelta{
-			ProjectID: projectID,
-			Index:     proj.TransactionCount,
-			Delta:     delta,
+			ProjectID:         projectID,
+			Index:             proj.TransactionCount,
+			Delta:             delta,
 			IsAccountCreation: isAccountCreation,
 		}
 		proj.TransactionCount++
