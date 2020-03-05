@@ -237,8 +237,6 @@ func (r *RegisterDelta) Save() ([]datastore.Property, error) {
 
 	delta := w.Bytes()
 
-	fmt.Println("IS ACCOUNT CREATION", r.IsAccountCreation)
-
 	return []datastore.Property{
 		{
 			Name:  "ProjectID",
