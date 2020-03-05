@@ -70,10 +70,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	}
 
 	var (
-		deltas   []state.Delta
-		accounts []*model.InternalAccount
-		ttpls    []*model.TransactionTemplate
-		stpls    []*model.ScriptTemplate
+		deltas    []state.Delta
+		regDeltas []*model.RegisterDelta
+		accounts  []*model.InternalAccount
+		ttpls     []*model.TransactionTemplate
+		stpls     []*model.ScriptTemplate
 	)
 
 	for i := 0; i < MaxAccounts; i++ {
@@ -93,7 +94,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		result, delta, state, err := r.computer.ExecuteTransaction(
 			acc.ProjectID,
 			i,
-			func() ([]state.Delta, error) { return deltas, nil },
+			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
 			string(script),
 			nil,
 		)
@@ -106,6 +107,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 
 		deltas = append(deltas, delta)
+		regDeltas = append(regDeltas, &model.RegisterDelta{
+			ProjectID:         acc.ProjectID,
+			Index:             i,
+			Delta:             delta,
+			IsAccountCreation: true,
+		})
 
 		value, _ := language.ConvertValue(result.Events[0].Fields[0])
 		addressValue := value.(language.Address)
@@ -201,62 +208,65 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	// TODO: make deployment atomic
-	if input.DeployedCode != nil {
-
-		// Redeploy: clear all state
-		if acc.DeployedCode != "" {
-			err = r.store.ClearProjectState(proj.ID)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to clear project state")
-			}
-
-			r.computer.ClearCacheForProject(proj.ID)
-		}
-
-		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
-		result, delta, state, err := r.computer.ExecuteTransaction(
-			proj.ID,
-			proj.TransactionCount,
-			func() ([]state.Delta, error) {
-				var deltas []state.Delta
-				err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-				if err != nil {
-					return nil, err
-				}
-
-				return deltas, nil
-			},
-			script,
-			[]model.Address{acc.Address},
-		)
+	if input.DeployedCode == nil {
+		err = r.store.UpdateAccount(input, &acc)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to deploy account code")
+			return nil, errors.Wrap(err, "failed to update account")
 		}
 
-		if result.Error != nil {
-			return nil, errors.Wrap(result.Error, "failed to deploy account code")
-		}
-
-		err = r.updateAccountState(proj.ID, state)
-		if err != nil {
-			return nil, err
-		}
-
-		err = r.store.InsertRegisterDelta(acc.ProjectID, delta, false)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to store register delta")
-		}
-
-		contracts, err := parseDeployedContracts(result.Events)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse deployed contracts")
-		}
-
-		input.DeployedContracts = &contracts
+		return acc.Export(), nil
 	}
 
-	err = r.store.UpdateAccount(input, &acc)
+	transactionCount := proj.TransactionCount
+
+	// Redeploy: clear all state
+	if acc.DeployedCode != "" {
+		var err error
+		transactionCount, err = r.store.ClearProjectState(proj.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to clear project state")
+		}
+
+		r.computer.ClearCacheForProject(proj.ID)
+	}
+
+	script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
+	result, delta, state, err := r.computer.ExecuteTransaction(
+		proj.ID,
+		transactionCount,
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
+			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+			if err != nil {
+				return nil, err
+			}
+
+			return deltas, nil
+		},
+		script,
+		[]model.Address{acc.Address},
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to deploy account code")
+	}
+
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to deploy account code")
+	}
+
+	states, err := r.getAccountStates(proj.ID, state)
+	if err != nil {
+		return nil, err
+	}
+
+	contracts, err := parseDeployedContracts(result.Events)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse deployed contracts")
+	}
+
+	input.DeployedContracts = &contracts
+
+	err = r.store.UpdateAccountAfterDeployment(input, states, delta, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update account")
 	}
@@ -264,26 +274,30 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	return acc.Export(), nil
 }
 
-func (r *mutationResolver) updateAccountState(projectID uuid.UUID, state vm.AccountState) error {
+func (r *mutationResolver) getAccountStates(projectID uuid.UUID, state vm.AccountState) (map[uuid.UUID]map[string][]byte, error) {
 	var accounts []*model.InternalAccount
 
 	err := r.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
-		return errors.Wrap(err, "failed to get project accounts")
+		return nil, errors.Wrap(err, "failed to get project accounts")
 	}
 
+	states := make(map[uuid.UUID]map[string][]byte)
+
 	for _, account := range accounts {
-		for key, value := range state[account.Address] {
+		stateDelta, ok := state[account.Address]
+		if !ok {
+			continue
+		}
+
+		for key, value := range stateDelta {
 			account.State[key] = value
 		}
 
-		err := r.store.UpdateAccountState(account)
-		if err != nil {
-			return err
-		}
+		states[account.ID] = account.State
 	}
 
-	return nil
+	return states, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -375,8 +389,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
-		func() ([]state.Delta, error) {
-			var deltas []state.Delta
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err
@@ -400,46 +414,27 @@ func (r *mutationResolver) CreateTransactionExecution(
 		Logs:   result.Logs,
 	}
 
+	var states map[uuid.UUID]map[string][]byte
+
 	if result.Error != nil {
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
 	} else {
-		err = r.updateAccountState(proj.ID, state)
+		var err error
+		states, err = r.getAccountStates(proj.ID, state)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if len(result.Events) > 0 {
-		events := make([]model.Event, len(result.Events))
-		for i, event := range result.Events {
-
-			values := make([]string, len(event.Fields))
-			for j, field := range event.Fields {
-
-				value, err := encoding.ConvertValue(field)
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to convert event value")
-				}
-
-				encoded, err := json.Marshal(value)
-				if err != nil {
-					return nil, errors.Wrap(err, "failed to JSON encode event value")
-				}
-
-				values[j] = string(encoded)
-			}
-
-			events[i] = model.Event{
-				Type:   string(event.Type.ID()),
-				Values: values,
-			}
-		}
-
-		exe.Events = events
+	events, err := parseEvents(result.Events)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse events")
 	}
 
-	err = r.store.InsertTransactionExecution(&exe, delta)
+	exe.Events = events
+
+	err = r.store.InsertTransactionExecution(&exe, states, delta)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert transaction execution record")
 	}
@@ -513,8 +508,8 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	result, err := r.computer.ExecuteScript(
 		input.ProjectID,
 		proj.TransactionCount,
-		func() ([]state.Delta, error) {
-			var deltas []state.Delta
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err
@@ -726,4 +721,34 @@ func parseDeployedContracts(events []runtime.Event) ([]string, error) {
 	}
 
 	return nil, nil
+}
+
+func parseEvents(rtEvents []runtime.Event) ([]model.Event, error) {
+	events := make([]model.Event, len(rtEvents))
+
+	for i, event := range rtEvents {
+
+		values := make([]string, len(event.Fields))
+		for j, field := range event.Fields {
+
+			value, err := encoding.ConvertValue(field)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to convert event value")
+			}
+
+			encoded, err := json.Marshal(value)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to JSON encode event value")
+			}
+
+			values[j] = string(encoded)
+		}
+
+		events[i] = model.Event{
+			Type:   string(event.Type.ID()),
+			Values: values,
+		}
+	}
+
+	return events, nil
 }

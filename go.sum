@@ -104,6 +104,8 @@ github.com/dapperlabs/flow-go v0.3.2-0.20200225001519-9a07bfb642cb h1:4kAfR7S/i0
 github.com/dapperlabs/flow-go v0.3.2-0.20200225001519-9a07bfb642cb/go.mod h1:cvrp2t4KQLghzmE38pGchCN4ACZSFX2PR3R8oyshZFs=
 github.com/dapperlabs/flow-go v0.3.2-0.20200304030936-8fe37748d2c6 h1:59Qu89LyQyWaUU66HguyTZ//vGtahz1jLAez/8TGjco=
 github.com/dapperlabs/flow-go v0.3.2-0.20200304030936-8fe37748d2c6/go.mod h1:rKkRpOLcpIejYX65MZz9cBzFeokNmyUMXOQowaKV+0w=
+github.com/dapperlabs/flow-go v0.3.2-0.20200305073159-a81fad3320f0 h1:MkniAAMaoZhYmc/7OK7Nu2viOPg5ji0W7eVrKf3XtFU=
+github.com/dapperlabs/flow-go v0.3.2-0.20200305073159-a81fad3320f0/go.mod h1:0AS1cWeKD+SpUS2W2FEh+fccbO7Cy2FLdF2aqNqR/w4=
 github.com/dapperlabs/flow-go-sdk v0.4.0 h1:P6dQnPggF1ES5kYIK4cJhlEFXZj4M5hCt5nFFSg3lQA=
 github.com/dapperlabs/flow-go-sdk v0.4.0/go.mod h1:oE6o75yLuAe7+vVufL8sOO1+eagfYydFAw++fzZ43r4=
 github.com/dapperlabs/flow-go-sdk v0.4.1 h1:IFlgkVgMMRSEwq/q/0BGIh3Xgr8dOg1yfBcO4I52A0o=
@@ -645,6 +647,7 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpPAyBWyWuQ=
 github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d h1:gZZadD8H+fF+n9CmNhYL1Y0dJB+kLOmKd7FbPJLeGHs=
 github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d/go.mod h1:9OrXJhf154huy1nPWmuSrkgjPUtUNhA+Zmy+6AESzuA=

@@ -149,6 +149,10 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
+	return s.updateAccount(input, acc)
+}
+
+func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	a, ok := s.accounts[input.ID]
 	if !ok {
 		return storage.ErrNotFound
@@ -173,12 +177,40 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 	return nil
 }
 
-func (s *Store) UpdateAccountState(input *model.InternalAccount) error {
+func (s *Store) UpdateAccountAfterDeployment(
+	input model.UpdateAccount,
+	states map[uuid.UUID]map[string][]byte,
+	delta state.Delta,
+	acc *model.InternalAccount,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	account := s.accounts[input.ID]
-	account.State = input.State
+	err := s.updateAccount(input, acc)
+	if err != nil {
+		return err
+	}
+
+	for accountID, state := range states {
+		err = s.updateAccountState(accountID, state)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.insertRegisterDelta(input.ProjectID, delta, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) updateAccountState(id uuid.UUID, state map[string][]byte) error {
+	account := s.accounts[id]
+	account.State = state
+
+	s.accounts[id] = account
 
 	return nil
 }
@@ -330,7 +362,11 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	return nil
 }
 
-func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
+func (s *Store) InsertTransactionExecution(
+	exe *model.TransactionExecution,
+	states map[uuid.UUID]map[string][]byte,
+	delta state.Delta,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -346,6 +382,13 @@ func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delt
 	exe.Index = count
 
 	s.transactionExecutions[exe.ID] = *exe
+
+	for accountID, state := range states {
+		err = s.updateAccountState(accountID, state)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = s.insertRegisterDelta(exe.ProjectID, delta, false)
 	if err != nil {
@@ -564,14 +607,14 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAc
 	return nil
 }
 
-func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
+func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	res := make([]state.Delta, 0)
+	res := make([]*model.RegisterDelta, 0)
 
 	for _, delta := range s.registerDeltas[projectID] {
-		res = append(res, delta.Delta)
+		res = append(res, &delta)
 	}
 
 	*deltas = res
@@ -579,9 +622,11 @@ func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state
 	return nil
 }
 
-func (s *Store) ClearProjectState(projectID uuid.UUID) error {
+func (s *Store) ClearProjectState(projectID uuid.UUID) (int, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
+
+	// clear deployed code from accounts
 
 	for accountID, account := range s.accounts {
 		if account.ProjectID != projectID {
@@ -593,6 +638,8 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 		s.accounts[accountID] = account
 	}
+
+	// erase all register deltas except for account creation deltas
 
 	currentRegisterDeltas := s.registerDeltas[projectID]
 	newRegisterDeltas := make([]model.RegisterDelta, 0)
@@ -608,11 +655,13 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 	s.registerDeltas[projectID] = newRegisterDeltas
 
-	newRegisterDeltaCount := len(newRegisterDeltas)
+	// update transaction count
 
 	project := s.projects[projectID]
-	project.TransactionCount = newRegisterDeltaCount
+	project.TransactionCount = len(newRegisterDeltas)
 	s.projects[projectID] = project
+
+	// delete all transaction executions
 
 	for txExecutionID, txExecution := range s.transactionExecutions {
 		if txExecution.ProjectID != projectID {
@@ -622,6 +671,8 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 		delete(s.transactionExecutions, txExecutionID)
 	}
 
+	// delete all scripts executions
+
 	for scriptExecutionID, scriptExecution := range s.scriptExecutions {
 		if scriptExecution.ProjectID != projectID {
 			continue
@@ -630,5 +681,5 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 		delete(s.scriptExecutions, scriptExecutionID)
 	}
 
-	return nil
+	return project.TransactionCount, nil
 }
