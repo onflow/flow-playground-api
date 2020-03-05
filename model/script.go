@@ -2,25 +2,25 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 type ScriptTemplate struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Index     int
-	Script    string
+	ProjectChildID
+	Title  string
+	Index  int
+	Script string
 }
 
 func (s *ScriptTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptTemplate", s.ID.String(), nil)
+	return datastore.NameKey("ScriptTemplate", s.ID.String(), ProjectNameKey(s.ProjectID))
 }
 
 func (s *ScriptTemplate) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID        string
 		ProjectID string
+		Title     string
 		Index     int
 		Script    string
 	}{}
@@ -35,6 +35,7 @@ func (s *ScriptTemplate) Load(ps []datastore.Property) error {
 	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+	s.Title = tmp.Title
 	s.Index = tmp.Index
 	s.Script = tmp.Script
 	return nil
@@ -51,6 +52,10 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 			Value: s.ProjectID.String(),
 		},
 		{
+			Name:  "Title",
+			Value: s.Title,
+		},
+		{
 			Name:  "Index",
 			Value: s.Index,
 		},
@@ -63,17 +68,16 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 }
 
 type ScriptExecution struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Index     int
-	Script    string
-	Value     XDRValue
-	Error     *string
-	Logs      []string
+	ProjectChildID
+	Index  int
+	Script string
+	Value  string
+	Error  *string
+	Logs   []string
 }
 
 func (s *ScriptExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptExecution", s.ID.String(), nil)
+	return datastore.NameKey("ScriptExecution", s.ID.String(), ProjectNameKey(s.ProjectID))
 }
 
 func (s *ScriptExecution) Load(ps []datastore.Property) error {
@@ -82,7 +86,7 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 		ProjectID string
 		Index     int
 		Script    string
-		Value     XDRValue
+		Value     string
 		Error     *string
 		Logs      []string
 	}{}
@@ -106,6 +110,11 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 }
 
 func (s *ScriptExecution) Save() ([]datastore.Property, error) {
+	logs := []interface{}{}
+	for _, log := range s.Logs {
+		logs = append(logs, log)
+	}
+
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -134,7 +143,7 @@ func (s *ScriptExecution) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:  "Logs",
-			Value: s.Logs,
+			Value: logs,
 		},
 	}, nil
 }
