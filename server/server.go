@@ -76,7 +76,7 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer, err := vm.NewComputer(store, conf.LedgerCacheSize)
+	computer, err := vm.NewComputer(conf.LedgerCacheSize)
 	if err != nil {
 		panic(err)
 	}
