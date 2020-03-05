@@ -44,7 +44,7 @@ spec:
       annotations:
         # Set to "false" to opt out of prometheus scrapes
         # Prometheus still needs a port called "metrics" (below) to scrape properly
-        prometheus.io/scrape: "false"
+        prometheus.io/scrape: "true"
 
         ###
         #  TODO
