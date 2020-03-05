@@ -106,7 +106,11 @@ spec:
               value: "flow-developer-playground"
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/key.json
-
+            - name: SESSION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: playground-secrets
+                  key: session-key
           # Readiness and Liveness probes
           readinessProbe:
             initialDelaySeconds: 1
