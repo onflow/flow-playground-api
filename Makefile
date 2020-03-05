@@ -58,7 +58,6 @@ deploy-production: update-deployment-image apply-production-files monitor-rollou
 # Production YAMLs must have 'production' in their name.
 .PHONY: apply-production-files
 apply-production-files:
-	kconfig=$$(uuidgen); \
 	echo "$$KUBECONFIG_PRODUCTION_2" > ${KUBECONFIG}; \
 	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep production); \
 	echo "$$files" | xargs -I {} kubectl --kubeconfig=${KUBECONFIG} apply -f {}
@@ -76,3 +75,8 @@ update-deployment-image:
 .PHONY: monitor-rollout
 monitor-rollout:
 	kubectl --kubeconfig=${KUBECONFIG} rollout status deployments.apps flow-playground-api-v1
+
+.PHONY: delete-deployment-production
+delete-deployment-production:
+	echo "$$KUBECONFIG_PRODUCTION_2" > ${KUBECONFIG}; \
+	kubectl --kubeconfig=${KUBECONFIG} delete deploy flow-playground-api-v1

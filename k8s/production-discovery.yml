@@ -1,4 +1,3 @@
-
 ## Service
 # -----------------------------------------------------------------------------
 # Cluster local service (no LB)
@@ -9,27 +8,27 @@ apiVersion: v1
 kind: Service
 
 metadata:
-    name: flow-playground-api-v1
-    namespace: flow
+  name: flow-playground-api-v1
+  namespace: flow
 
-    labels:
+  labels:
     app: flow-playground-api
     env: production
     owner: Kan
     version: v1
 
 spec:
-    type: ClusterIP
-    selector:
+  type: ClusterIP
+  selector:
     app: flow-playground-api
     env: production
     version: v1
 
-    ports:
+  ports:
     - name: web
-        protocol: TCP
-        port: 8080
-        targetPort: web # reference to the name of the port in your container config
+      protocol: TCP
+      port: 8080
+      targetPort: web # reference to the name of the port in your container config
 
 ---
 ## Ingress
@@ -37,24 +36,24 @@ spec:
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
-    name: flow-playground-api
-    namespace: flow
-    labels:
+  name: flow-playground-api
+  namespace: flow
+  labels:
     app: flow-playground-api
     env: production
     owner: Kan
-    annotations:
+  annotations:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/affinity: "cookie"
     nginx.ingress.kubernetes.io/session-cookie-name: "autoincrement"
 spec:
-    rules:
+  rules:
     - host: playground.flow.dapperlabs.com
-        http:
+      http:
         paths:
-            - backend:
-                serviceName: flow-playground-api-v1
-                servicePort: web
+          - backend:
+              serviceName: flow-playground-api-v1
+              servicePort: web
 ---
 ## Disruption Budget
 # -----------------------------------------------------------------------------
@@ -71,20 +70,20 @@ spec:
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:
-    name: flow-playground-api-v1
-    namespace: flow
-    labels:
+  name: flow-playground-api-v1
+  namespace: flow
+  labels:
     app: flow-playground-api
     owner: Kan
     env: production
     version: v1
 spec:
-    minAvailable: 1
-    selector:
+  minAvailable: 1
+  selector:
     matchLabels:
-        app: flow-playground-api
-        env: production
-        version: v1
+      app: flow-playground-api
+      env: production
+      version: v1
 
 ---
 ## Horizontal Pod Autoscaler
@@ -96,19 +95,18 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-    name: flow-playground-api-v1
-    namespace: flow
-    labels:
+  name: flow-playground-api-v1
+  namespace: flow
+  labels:
     app: flow-playground-api
     owner: Kan
     env: production
     version: v1
 spec:
-    minReplicas: 2
-    maxReplicas: 8
-    targetCPUUtilizationPercentage: 80
-    scaleTargetRef:
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 80
+  scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: flow-playground-api-v1
-    
