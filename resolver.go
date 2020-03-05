@@ -186,10 +186,8 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	var (
-		acc  model.InternalAccount
-		proj model.InternalProject
-	)
+
+	var proj model.InternalProject
 
 	err := r.store.GetProject(input.ProjectID, &proj)
 	if err != nil {
@@ -200,6 +198,8 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.New("access denied")
 	}
 
+	var acc model.InternalAccount
+
 	err = r.store.GetAccount(model.NewProjectChildID(input.ID, proj.ID), &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
@@ -207,6 +207,16 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	// TODO: make deployment atomic
 	if input.DeployedCode != nil {
+
+		// Redeploy: clear all state
+		if acc.DeployedCode != "" {
+			err = r.store.ClearProjectState(proj.ID)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to clear project state")
+			}
+
+			r.computer.ClearCacheForProject(proj.ID)
+		}
 
 		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
 		result, delta, state, err := r.computer.ExecuteTransaction(
@@ -237,7 +247,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 			return nil, err
 		}
 
-		err = r.store.InsertRegisterDelta(acc.ProjectID, delta)
+		err = r.store.InsertRegisterDelta(acc.ProjectID, delta, false)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to store register delta")
 		}

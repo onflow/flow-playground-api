@@ -39,3 +39,7 @@ func (l *LedgerCache) Set(id uuid.UUID, ledger LedgerCacheItem) {
 func (l *LedgerCache) Clear() {
 	l.cache.Purge()
 }
+
+func (l *LedgerCache) Delete(id uuid.UUID) {
+	l.cache.Remove(id)
+}

@@ -182,9 +182,10 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 }
 
 type RegisterDelta struct {
-	ProjectID uuid.UUID
-	Index     int
-	Delta     state.Delta
+	ProjectID         uuid.UUID
+	Index             int
+	Delta             state.Delta
+	IsAccountCreation bool
 }
 
 func (r *RegisterDelta) NameKey() *datastore.Key {
