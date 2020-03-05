@@ -165,3 +165,7 @@ func (c *Computer) ExecuteScript(
 
 	return result, nil
 }
+
+func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
+	c.cache.Delete(projectID)
+}
