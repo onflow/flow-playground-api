@@ -10,11 +10,13 @@ import (
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/middleware"
@@ -90,6 +92,10 @@ func main() {
 		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
 	}
 
+	logger := logrus.StandardLogger()
+	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
+	entry := logrus.NewEntry(logger)
+
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
@@ -111,7 +117,10 @@ func main() {
 
 		r.Use(middleware.ProjectSessions(cookieStore))
 
-		r.Handle("/", handler.GraphQL(playground.NewExecutableSchema(playground.Config{Resolvers: resolver})))
+		r.Handle("/", handler.GraphQL(
+			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
+			handler.RequestMiddleware(middleware.ErrorMiddleware(entry)),
+		))
 	})
 
 	router.Handle("/metrics", promhttp.Handler())
