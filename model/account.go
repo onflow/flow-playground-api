@@ -108,7 +108,7 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:  "DeployedContracts",
-			Value: a.DeployedContracts,
+			Value: deployedContracts,
 		},
 		{
 			Name:    "State",
