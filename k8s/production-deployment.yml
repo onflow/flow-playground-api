@@ -130,7 +130,7 @@ spec:
             - name: google-cloud-key
               mountPath: /var/secrets/google
 
-          volumes:
-            - name: google-cloud-key
-              secret:
-                secretName: datastore-key
+      volumes:
+        - name: google-cloud-key
+          secret:
+            secretName: datastore-key
