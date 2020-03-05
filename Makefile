@@ -14,7 +14,11 @@ test:
 
 .PHONY: run
 run:
-	GO111MODULE=on go run server/server.go
+	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false GO111MODULE=on go run server/server.go
+
+.PHONY: run-datastore
+run-datastore:
+	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore FLOW_DATASTORE_GCPPROJECTID=flow-developer-playground FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false GO111MODULE=on go run server/server.go
 
 .PHONY: docker-build
 docker-build:

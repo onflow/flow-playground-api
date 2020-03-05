@@ -22,6 +22,21 @@ make run
 
 When running locally, the GraphQL playground is available at [http://localhost:8080/](http://localhost:8080/).
 
+### Running with Datastore emulator
+
+Install the [Google Cloud Datastore Emulator](https://cloud.google.com/datastore/docs/tools/datastore-emulator). 
+
+Start the Datastore emulator:
+```shell script
+gcloud beta emulators datastore start
+```
+
+In a separate process, run the server with the `run-datastore` target:
+
+```shell script
+make run-datastore
+```
+
 ### Configuration options
 
 The following environment variables can be used to configure the API. Default values are shown below:
