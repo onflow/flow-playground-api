@@ -161,7 +161,7 @@ type GetAccountResponse struct {
 		Address      string
 		DraftCode    string
 		DeployedCode string
-		State string
+		State        string
 	}
 }
 
@@ -943,7 +943,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer, _ := vm.NewComputer(store, 128)
+		computer, _ := vm.NewComputer(128)
 		resolver := playground.NewResolver(store, computer)
 
 		c := newClientWithResolver(resolver)
@@ -1577,7 +1577,7 @@ func newClient() *Client {
 	var store storage.Store
 
 	// TODO: Should eventually start up the emulator and run all tests with datastore backend
-	if strings.EqualFold(os.Getenv("STORE_BACKEND"), "datastore") {
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
 		var err error
 		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
 			DatastoreProjectID: "dl-flow",
@@ -1591,7 +1591,7 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer, _ := vm.NewComputer(store, 128)
+	computer, _ := vm.NewComputer(128)
 
 	resolver := playground.NewResolver(store, computer)
 
