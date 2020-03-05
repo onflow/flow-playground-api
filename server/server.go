@@ -120,6 +120,8 @@ func main() {
 		r.Handle("/", handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
 			handler.RequestMiddleware(middleware.ErrorMiddleware(entry)),
+			handler.RequestMiddleware(prometheus.RequestMiddleware()),
+			handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 		))
 	})
 
