@@ -150,6 +150,11 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 		if input.DeployedCode != nil {
 			acc.DeployedCode = *input.DeployedCode
 		}
+
+		if input.DeployedContracts != nil {
+			acc.DeployedContracts = *input.DeployedContracts
+		}
+
 		_, err = tx.Put(acc.NameKey(), acc)
 		return err
 	})
