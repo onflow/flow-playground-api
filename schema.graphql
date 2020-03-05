@@ -5,6 +5,7 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
+  title: String!
   seed: Int!
   persist: Boolean
   mutable: Boolean
@@ -21,11 +22,13 @@ type Account {
   draftCode: String!
   deployedCode: String!
   deployedContracts: [String!]!
+  state: String!
 }
 
 type TransactionTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -38,19 +41,15 @@ type TransactionExecution {
   logs: [String!]!,
 }
 
-type XDRValue {
-  type: String!
-  value: String!
-}
-
 type Event {
   type: String!
-  values: [XDRValue!]!
+  values: [String!]!
 }
 
 type ScriptTemplate {
   id: UUID!
   index: Int!
+  title: String!
   script: String!
 }
 
@@ -58,44 +57,60 @@ type ScriptExecution {
   id: UUID!
   script: String!
   error: String
-  value: XDRValue!
+  value: String!
   logs: [String!]!
 }
 
 type Query {
   project(id: UUID!): Project!
 
-  account(id: UUID!): Account!
-  transactionTemplate(id: UUID!): TransactionTemplate!
-  scriptTemplate(id: UUID!): ScriptTemplate!
+  account(id: UUID!, projectId: UUID!): Account!
+  transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
+  scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
 
 input NewProject {
   parentId: UUID
+  title: String!
   seed: Int!
   accounts: [String!]
-  transactionTemplates: [String!]
-  scriptTemplates: [String!]
+  transactionTemplates: [NewProjectTransactionTemplate!]
+  scriptTemplates: [NewProjectScriptTemplate!]
+}
+
+input NewProjectTransactionTemplate {
+  title: String!
+  script: String!
+}
+
+input NewProjectScriptTemplate {
+  title: String!
+  script: String!
 }
 
 input UpdateProject {
   id: UUID!
+  title: String
   persist: Boolean
 }
 
 input UpdateAccount {
   id: UUID!
+  projectId: UUID!
   draftCode: String
   deployedCode: String
 }
 
 input NewTransactionTemplate {
   projectId: UUID!
+  title: String!
   script: String!
 }
 
 input UpdateTransactionTemplate {
   id: UUID!
+  title: String
+  projectId: UUID!
   index: Int
   script: String
 }
@@ -108,11 +123,14 @@ input NewTransactionExecution {
 
 input NewScriptTemplate {
   projectId: UUID!
+  title: String!
   script: String!
 }
 
 input UpdateScriptTemplate {
   id: UUID!
+  title: String
+  projectId: UUID!
   index: Int
   script: String
 }
@@ -130,12 +148,12 @@ type Mutation {
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
-  deleteTransactionTemplate(id: UUID!): UUID!
+  deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
   createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
 
   createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
-  deleteScriptTemplate(id: UUID!): UUID!
+  deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 

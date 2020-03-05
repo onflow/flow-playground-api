@@ -96,10 +96,16 @@ spec:
 
           # Environment variables
           env:
-            - name: ALLOWED_ORIGINS
+            - name: FLOW_ALLOWEDORIGINS
               value: "https://play.staging.onflow.org"
-            - name: GQL_PLAYGROUND
+            - name: FLOW_DEBUG
               value: "true"
+            - name: FLOW_STORAGEBACKEND
+              value: "datastore"
+            - name: FLOW_DATASTORE_GCPPROJECTID
+              value: "flow-developer-playground"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
 
           # Readiness and Liveness probes
           readinessProbe:
@@ -112,8 +118,16 @@ spec:
           # Resource requests and constraints
           resources:
             requests:
-              cpu: "50m" # 0.05 CPUs, or 5% CPU
-              memory: "256Mi"
-            limits:
-              cpu: "200m"
+              cpu: "200m" # 0.1 CPUs, or 10% CPU
               memory: "512Mi"
+            limits:
+              cpu: "800m"
+              memory: "1024Mi"
+          volumeMounts:
+            - name: google-cloud-key
+              mountPath: /var/secrets/google
+
+      volumes:
+        - name: google-cloud-key
+          secret:
+            secretName: datastore-key
