@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -34,6 +35,40 @@ func NewStore() storage.Store {
 		scriptExecutions:      make(map[uuid.UUID]model.ScriptExecution),
 		registerDeltas:        make([]model.RegisterDelta, 0),
 	}
+}
+
+func (s *Store) CreateProject(
+	proj *model.InternalProject,
+	deltas []state.Delta,
+	accounts []*model.InternalAccount,
+	ttpls []*model.TransactionTemplate,
+	stpls []*model.ScriptTemplate) error {
+	fmt.Println("asdfasd")
+	if err := s.InsertProject(proj); err != nil {
+		return err
+	}
+	for _, delta := range deltas {
+		if err := s.InsertRegisterDelta(proj.ID, delta); err != nil {
+			return err
+		}
+	}
+	for _, account := range accounts {
+		if err := s.InsertAccount(account); err != nil {
+			return err
+		}
+	}
+	for _, ttpl := range ttpls {
+		if err := s.InsertTransactionTemplate(ttpl); err != nil {
+			return err
+		}
+	}
+	for _, stpl := range stpls {
+		if err := s.InsertScriptTemplate(stpl); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Store) InsertProject(proj *model.InternalProject) error {

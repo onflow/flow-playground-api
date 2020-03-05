@@ -9,6 +9,7 @@ import (
 
 	"github.com/dapperlabs/flow-go-sdk"
 	"github.com/dapperlabs/flow-go-sdk/templates"
+	"github.com/dapperlabs/flow-go/engine/execution/state"
 	"github.com/dapperlabs/flow-go/language"
 	"github.com/dapperlabs/flow-go/language/runtime"
 
@@ -68,9 +69,16 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		Persist:  false,
 	}
 
+	var (
+		deltas   []state.Delta
+		accounts []*model.InternalAccount
+		ttpls    []*model.TransactionTemplate
+		stpls    []*model.ScriptTemplate
+	)
+
 	err := r.store.InsertProject(proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to store project")
+		return nil, errors.Wrap(err, "failed to insert account")
 	}
 
 	for i := 0; i < MaxAccounts; i++ {
@@ -87,7 +95,13 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 
 		script, _ := templates.CreateAccount(nil, nil)
-		result, delta, state, err := r.computer.ExecuteTransaction(acc.ProjectID, string(script), nil)
+		result, delta, state, err := r.computer.ExecuteTransaction(
+			acc.ProjectID,
+			i,
+			func() ([]state.Delta, error) { return deltas, nil },
+			string(script),
+			nil,
+		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
@@ -96,10 +110,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			return nil, errors.Wrap(result.Error, "failed to deploy account code")
 		}
 
-		err = r.store.InsertRegisterDelta(acc.ProjectID, delta)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to store register delta")
-		}
+		deltas = append(deltas, delta)
 
 		value, _ := language.ConvertValue(result.Events[0].Fields[0])
 		addressValue := value.(language.Address)
@@ -110,14 +121,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 		acc.State = state[address]
 
-		err = r.store.InsertAccount(&acc)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to store account")
-		}
+		accounts = append(accounts, &acc)
+
 	}
 
 	for _, tpl := range input.TransactionTemplates {
-		tpl := &model.TransactionTemplate{
+		ttpl := &model.TransactionTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -126,14 +135,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			Script: tpl.Script,
 		}
 
-		err = r.store.InsertTransactionTemplate(tpl)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to store transaction template")
-		}
+		ttpls = append(ttpls, ttpl)
 	}
 
 	for _, tpl := range input.ScriptTemplates {
-		tpl := &model.ScriptTemplate{
+		stpl := &model.ScriptTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -142,10 +148,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			Script: tpl.Script,
 		}
 
-		err = r.store.InsertScriptTemplate(tpl)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to store script template")
-		}
+		stpls = append(stpls, stpl)
+	}
+	err = r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	// add project to HTTP session
@@ -202,7 +209,21 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	if input.DeployedCode != nil {
 
 		script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
-		result, delta, state, err := r.computer.ExecuteTransaction(acc.ProjectID, script, []model.Address{acc.Address})
+		result, delta, state, err := r.computer.ExecuteTransaction(
+			proj.ID,
+			proj.TransactionCount,
+			func() ([]state.Delta, error) {
+				var deltas []state.Delta
+				err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+				if err != nil {
+					return nil, err
+				}
+
+				return deltas, nil
+			},
+			script,
+			[]model.Address{acc.Address},
+		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
@@ -345,7 +366,21 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.New("access denied")
 	}
 
-	result, delta, state, err := r.computer.ExecuteTransaction(proj.ID, input.Script, input.Signers)
+	result, delta, state, err := r.computer.ExecuteTransaction(
+		proj.ID,
+		proj.TransactionCount,
+		func() ([]state.Delta, error) {
+			var deltas []state.Delta
+			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+			if err != nil {
+				return nil, err
+			}
+
+			return deltas, nil
+		},
+		input.Script,
+		input.Signers,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
@@ -469,7 +504,20 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	result, err := r.computer.ExecuteScript(input.ProjectID, input.Script)
+	result, err := r.computer.ExecuteScript(
+		input.ProjectID,
+		proj.TransactionCount,
+		func() ([]state.Delta, error) {
+			var deltas []state.Delta
+			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+			if err != nil {
+				return nil, err
+			}
+
+			return deltas, nil
+		},
+		input.Script,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
