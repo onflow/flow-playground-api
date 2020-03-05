@@ -39,11 +39,12 @@ func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
 	}, nil
 }
 
-
 type AccountState map[model.Address]map[string][]byte
 
 func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
+	transactionCount int,
+	getRegisterDeltas func() ([]state.Delta, error),
 	script string,
 	signers []model.Address,
 ) (
@@ -52,7 +53,7 @@ func (c *Computer) ExecuteTransaction(
 	AccountState,
 	error,
 ) {
-	ledgerItem, err := c.getOrCreateLedger(projectID)
+	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "failed to get ledger for project")
 	}
@@ -105,14 +106,12 @@ func (c *Computer) ClearCache() {
 	c.cache.Clear()
 }
 
-func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, error) {
-	var proj model.InternalProject
-	err := c.store.GetProject(projectID, &proj)
-	if err != nil {
-		return LedgerCacheItem{}, errors.Wrap(err, "failed to load project")
-	}
-
-	if proj.TransactionCount == 0 {
+func (c *Computer) getOrCreateLedger(
+	projectID uuid.UUID,
+	transactionCount int,
+	getRegisterDeltas func() ([]state.Delta, error),
+) (LedgerCacheItem, error) {
+	if transactionCount == 0 {
 		return LedgerCacheItem{
 			ledger: make(Ledger),
 			count:  0,
@@ -120,15 +119,13 @@ func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, erro
 	}
 
 	ledgerItem, ok := c.cache.Get(projectID)
-	if ok && ledgerItem.count == proj.TransactionCount {
+	if ok && ledgerItem.count == transactionCount {
 		return ledgerItem, nil
 	}
 
 	ledger := make(Ledger)
 
-	var deltas []state.Delta
-
-	err = c.store.GetRegisterDeltasForProject(projectID, &deltas)
+	deltas, err := getRegisterDeltas()
 	if err != nil {
 		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
 	}
@@ -139,7 +136,7 @@ func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, erro
 
 	ledgerItem = LedgerCacheItem{
 		ledger: ledger,
-		count:  proj.TransactionCount,
+		count:  transactionCount,
 	}
 
 	c.cache.Set(projectID, ledgerItem)
@@ -149,9 +146,11 @@ func (c *Computer) getOrCreateLedger(projectID uuid.UUID) (LedgerCacheItem, erro
 
 func (c *Computer) ExecuteScript(
 	projectID uuid.UUID,
+	transactionCount int,
+	getRegisterDeltas func() ([]state.Delta, error),
 	script string,
 ) (*virtualmachine.ScriptResult, error) {
-	ledgerItem, err := c.getOrCreateLedger(projectID)
+	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}

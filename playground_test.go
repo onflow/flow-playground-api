@@ -161,7 +161,7 @@ type GetAccountResponse struct {
 		Address      string
 		DraftCode    string
 		DeployedCode string
-		State string
+		State        string
 	}
 }
 

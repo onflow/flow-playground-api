@@ -90,6 +90,61 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 
 // Projects
 
+func (d *Datastore) CreateProject(
+	proj *model.InternalProject,
+	deltas []state.Delta,
+	accounts []*model.InternalAccount,
+	ttpls []*model.TransactionTemplate,
+	stpls []*model.ScriptTemplate) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	entitiesToPut := []interface{}{proj}
+	keys := []*datastore.Key{proj.NameKey()}
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		// _, err := tx.Put(proj.NameKey(), proj)
+
+		for _, delta := range deltas {
+
+			regDelta := &model.RegisterDelta{
+				ProjectID: proj.ID,
+				Index:     proj.TransactionCount,
+				Delta:     delta,
+			}
+			proj.TransactionCount++
+
+			entitiesToPut = append(entitiesToPut, regDelta)
+			keys = append(keys, regDelta.NameKey())
+		}
+		for _, acc := range accounts {
+			entitiesToPut = append(entitiesToPut, acc)
+			keys = append(keys, acc.NameKey())
+		}
+
+		for _, ttpl := range ttpls {
+			ttpl.Index = proj.TransactionTemplateCount
+			proj.TransactionTemplateCount++
+			entitiesToPut = append(entitiesToPut, ttpl)
+			keys = append(keys, ttpl.NameKey())
+
+		}
+
+		for _, stpl := range stpls {
+			stpl.Index = proj.ScriptTemplateCount
+			proj.ScriptTemplateCount++
+			entitiesToPut = append(entitiesToPut, stpl)
+			keys = append(keys, stpl.NameKey())
+
+		}
+
+		_, err := tx.PutMulti(keys, entitiesToPut)
+
+		return err
+	})
+	return txErr
+}
+
 func (d *Datastore) InsertProject(proj *model.InternalProject) error {
 	return d.put(proj)
 }
