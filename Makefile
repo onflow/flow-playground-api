@@ -12,6 +12,10 @@ generate:
 test:
 	GO111MODULE=on go test ./...
 
+.PHONY: test-datastore
+test-datastore:
+	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./...
+
 .PHONY: run
 run:
 	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false GO111MODULE=on go run server/server.go
