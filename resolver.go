@@ -70,10 +70,11 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	}
 
 	var (
-		deltas   []state.Delta
-		accounts []*model.InternalAccount
-		ttpls    []*model.TransactionTemplate
-		stpls    []*model.ScriptTemplate
+		deltas    []state.Delta
+		regDeltas []*model.RegisterDelta
+		accounts  []*model.InternalAccount
+		ttpls     []*model.TransactionTemplate
+		stpls     []*model.ScriptTemplate
 	)
 
 	for i := 0; i < MaxAccounts; i++ {
@@ -93,7 +94,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		result, delta, state, err := r.computer.ExecuteTransaction(
 			acc.ProjectID,
 			i,
-			func() ([]state.Delta, error) { return deltas, nil },
+			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
 			string(script),
 			nil,
 		)
@@ -106,6 +107,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		}
 
 		deltas = append(deltas, delta)
+		regDeltas = append(regDeltas, &model.RegisterDelta{
+			ProjectID:         acc.ProjectID,
+			Index:             i,
+			Delta:             delta,
+			IsAccountCreation: true,
+		})
 
 		value, _ := language.ConvertValue(result.Events[0].Fields[0])
 		addressValue := value.(language.Address)
@@ -224,8 +231,8 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
-		func() ([]state.Delta, error) {
-			var deltas []state.Delta
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err
@@ -379,8 +386,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
-		func() ([]state.Delta, error) {
-			var deltas []state.Delta
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err
@@ -498,8 +505,8 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 	result, err := r.computer.ExecuteScript(
 		input.ProjectID,
 		proj.TransactionCount,
-		func() ([]state.Delta, error) {
-			var deltas []state.Delta
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err

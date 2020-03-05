@@ -607,14 +607,14 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAc
 	return nil
 }
 
-func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
+func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	res := make([]state.Delta, 0)
+	res := make([]*model.RegisterDelta, 0)
 
 	for _, delta := range s.registerDeltas[projectID] {
-		res = append(res, delta.Delta)
+		res = append(res, &delta)
 	}
 
 	*deltas = res
@@ -626,6 +626,8 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
+	// clear deployed code from accounts
+
 	for accountID, account := range s.accounts {
 		if account.ProjectID != projectID {
 			continue
@@ -636,6 +638,8 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 		s.accounts[accountID] = account
 	}
+
+	// erase all register deltas except for account creation deltas
 
 	currentRegisterDeltas := s.registerDeltas[projectID]
 	newRegisterDeltas := make([]model.RegisterDelta, 0)
@@ -651,11 +655,13 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 	s.registerDeltas[projectID] = newRegisterDeltas
 
-	newRegisterDeltaCount := len(newRegisterDeltas)
+	// update transaction count
 
 	project := s.projects[projectID]
-	project.TransactionCount = newRegisterDeltaCount
+	project.TransactionCount = len(newRegisterDeltas)
 	s.projects[projectID] = project
+
+	// delete all transaction executions
 
 	for txExecutionID, txExecution := range s.transactionExecutions {
 		if txExecution.ProjectID != projectID {
@@ -664,6 +670,8 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 		delete(s.transactionExecutions, txExecutionID)
 	}
+
+	// delete all scripts executions
 
 	for scriptExecutionID, scriptExecution := range s.scriptExecutions {
 		if scriptExecution.ProjectID != projectID {
