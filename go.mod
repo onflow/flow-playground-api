@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.40.0
 	github.com/99designs/gqlgen v0.10.2
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
+	github.com/TV4/logrus-stackdriver-formatter v0.1.0 // indirect
 	github.com/dapperlabs/flow-go v0.3.2-0.20200304030936-8fe37748d2c6
 	github.com/dapperlabs/flow-go-sdk v0.4.1
 	github.com/dapperlabs/flow-go/language v0.3.2-0.20200304030936-8fe37748d2c6
@@ -14,9 +15,12 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
+	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.3.0
 	github.com/rs/cors v1.6.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0
 	github.com/vektah/gqlparser v1.2.0
+	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 )
