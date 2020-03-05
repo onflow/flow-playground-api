@@ -162,28 +162,37 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 	return txErr
 }
 
-func (d *Datastore) UpdateAccountState(account *model.InternalAccount) error {
-	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
-	defer cancel()
+func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, states map[uuid.UUID]map[string][]byte, delta state.Delta, acc *model.InternalAccount) error {
+	// TODO: implement
+	return nil
+}
 
-	acc := &model.InternalAccount{
-		ProjectChildID: model.ProjectChildID{
-			ID:        account.ID,
-			ProjectID: account.ProjectID,
-		},
-	}
-	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+func (d *Datastore) UpdateAccountState(id uuid.UUID, state map[string][]byte) error {
+	// ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	// defer cancel()
+	//
+	// acc := &model.InternalAccount{
+	// 	ProjectChildID: model.ProjectChildID{
+	// 		ID:        account.ID,
+	// 		ProjectID: account.ProjectID,
+	// 	},
+	// }
+	// _, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+	//
+	// 	err := tx.Get(acc.NameKey(), acc)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	acc.State = account.State
+	// 	_, err = tx.Put(acc.NameKey(), acc)
+	// 	return err
+	// })
+	//
+	// return txErr
 
-		err := tx.Get(acc.NameKey(), acc)
-		if err != nil {
-			return err
-		}
-		acc.State = account.State
-		_, err = tx.Put(acc.NameKey(), acc)
-		return err
-	})
+	// TODO: implement
 
-	return txErr
+	return nil
 }
 
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
@@ -263,7 +272,7 @@ func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 // Transaction Executions
 
-func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
+func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, states map[uuid.UUID]map[string][]byte, delta state.Delta) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -395,9 +404,9 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, 
 		}
 
 		regDelta := &model.RegisterDelta{
-			ProjectID: projectID,
-			Index:     proj.TransactionCount,
-			Delta:     delta,
+			ProjectID:         projectID,
+			Index:             proj.TransactionCount,
+			Delta:             delta,
 			IsAccountCreation: isAccountCreation,
 		}
 		proj.TransactionCount++
