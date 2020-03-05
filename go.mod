@@ -7,7 +7,7 @@ require (
 	github.com/99designs/gqlgen v0.10.2
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
-	github.com/dapperlabs/flow-go v0.3.2-0.20200304030936-8fe37748d2c6
+	github.com/dapperlabs/flow-go v0.3.2-0.20200305073159-a81fad3320f0
 	github.com/dapperlabs/flow-go-sdk v0.4.1
 	github.com/dapperlabs/flow-go/language v0.3.2-0.20200304030936-8fe37748d2c6
 	github.com/go-chi/chi v3.3.2+incompatible
@@ -20,7 +20,7 @@ require (
 	github.com/prometheus/client_golang v1.3.0
 	github.com/rs/cors v1.6.0
 	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/vektah/gqlparser v1.2.0
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 )
