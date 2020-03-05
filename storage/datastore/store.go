@@ -434,7 +434,7 @@ func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*
 
 // Register Deltas
 
-func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -453,6 +453,7 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) 
 			ProjectID: projectID,
 			Index:     proj.TransactionCount,
 			Delta:     delta,
+			IsAccountCreation: isAccountCreation,
 		}
 		proj.TransactionCount++
 
@@ -475,5 +476,10 @@ func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]s
 	for _, d := range reg {
 		*deltas = append(*deltas, d.Delta)
 	}
+	return nil
+}
+
+func (s *Datastore) ClearProjectState(projectID uuid.UUID) error {
+	// TODO
 	return nil
 }
