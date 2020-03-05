@@ -622,7 +622,7 @@ func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*mode
 	return nil
 }
 
-func (s *Store) ClearProjectState(projectID uuid.UUID) error {
+func (s *Store) ClearProjectState(projectID uuid.UUID) (int, error) {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -681,5 +681,5 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 		delete(s.scriptExecutions, scriptExecutionID)
 	}
 
-	return nil
+	return project.TransactionCount, nil
 }

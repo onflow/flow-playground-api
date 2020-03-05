@@ -3,6 +3,7 @@ package playground
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -217,9 +218,12 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return acc.Export(), nil
 	}
 
+	transactionCount := proj.TransactionCount
+
 	// Redeploy: clear all state
 	if acc.DeployedCode != "" {
-		err = r.store.ClearProjectState(proj.ID)
+		var err error
+		transactionCount, err = r.store.ClearProjectState(proj.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
 		}
@@ -230,13 +234,22 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
-		proj.TransactionCount,
+		transactionCount,
 		func() ([]*model.RegisterDelta, error) {
 			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
 				return nil, err
 			}
+
+			for _, delta := range deltas {
+				fmt.Println("DELTA -- ", delta.Index)
+				fmt.Println("DELTA -- ", delta.Delta)
+				fmt.Println("DELTA -- ", delta.IsAccountCreation)
+				fmt.Println("---")
+			}
+
+			fmt.Println("GOT DELTAS", deltas)
 
 			return deltas, nil
 		},

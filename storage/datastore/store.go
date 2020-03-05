@@ -2,6 +2,7 @@ package datastore
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -111,9 +112,11 @@ func (d *Datastore) CreateProject(
 				Delta:             delta,
 				IsAccountCreation: true,
 			}
+
 			proj.TransactionCount++
 
 			entitiesToPut = append(entitiesToPut, regDelta)
+
 			keys = append(keys, regDelta.NameKey())
 		}
 
@@ -127,7 +130,6 @@ func (d *Datastore) CreateProject(
 			proj.TransactionTemplateCount++
 			entitiesToPut = append(entitiesToPut, ttpl)
 			keys = append(keys, ttpl.NameKey())
-
 		}
 
 		for _, stpl := range stpls {
@@ -204,6 +206,8 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 		}
 
 		if input.DeployedContracts != nil {
+			fmt.Println("UPDATING DEPLOYED CONTRACTS", input.DeployedContracts)
+
 			acc.DeployedContracts = *input.DeployedContracts
 		}
 
@@ -238,6 +242,11 @@ func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, stat
 			acc.DeployedContracts = *input.DeployedContracts
 		}
 
+		state, ok := states[acc.ID]
+		if ok {
+			acc.State = state
+		}
+
 		_, err = tx.Put(acc.NameKey(), acc)
 		if err != nil {
 			return err
@@ -246,6 +255,10 @@ func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, stat
 		// update account states
 
 		for accountID, state := range states {
+			if accountID == acc.ID {
+				continue
+			}
+
 			acc := &model.InternalAccount{
 				ProjectChildID: model.ProjectChildID{
 					ID:        accountID,
@@ -283,6 +296,8 @@ func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, stat
 			Delta:             delta,
 			IsAccountCreation: false,
 		}
+
+		fmt.Printf("%#+v\n", delta)
 
 		proj.TransactionCount++
 
@@ -563,13 +578,16 @@ func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*
 	if err != nil {
 		return err
 	}
+
 	for _, d := range reg {
-		*deltas = append(*deltas, &d)
+		dCopy := d
+		*deltas = append(*deltas, &dCopy)
 	}
+
 	return nil
 }
 
-func (d *Datastore) ClearProjectState(projectID uuid.UUID) error {
+func (d *Datastore) ClearProjectState(projectID uuid.UUID) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -579,35 +597,35 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) error {
 
 	err := d.get(proj)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var accs []*model.InternalAccount
 
 	err = d.GetAccountsForProject(proj.ID, &accs)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var deltas []*model.RegisterDelta
 
 	err = d.GetRegisterDeltasForProject(proj.ID, &deltas)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var txExes []*model.TransactionExecution
 
 	err = d.GetTransactionExecutionsForProject(proj.ID, &txExes)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var scriptExes []*model.ScriptExecution
 
 	err = d.GetScriptExecutionsForProject(proj.ID, &scriptExes)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
@@ -626,11 +644,10 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) error {
 
 		// erase all register deltas except for account creation deltas
 
-		preservedDeltaCount := 0
+		preservedDeltaCount := len(accs)
 
-		for _, delta := range deltas {
-			if delta.IsAccountCreation {
-				preservedDeltaCount++
+		for i, delta := range deltas {
+			if i < preservedDeltaCount {
 				continue
 			}
 
@@ -639,6 +656,8 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) error {
 				return err
 			}
 		}
+
+		fmt.Println("PRESERVED DELTA COUNT", preservedDeltaCount)
 
 		// update transaction count
 
@@ -670,5 +689,9 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) error {
 		return nil
 	})
 
-	return txErr
+	if txErr != nil {
+		return 0, txErr
+	}
+
+	return proj.TransactionCount, nil
 }
