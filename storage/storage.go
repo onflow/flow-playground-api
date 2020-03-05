@@ -57,7 +57,7 @@ type Store interface {
 
 	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error
-	ClearProjectState(projectID uuid.UUID) error
+	ClearProjectState(projectID uuid.UUID) (int, error)
 }
 
 var ErrNotFound = errors.New("entity not found")
