@@ -37,13 +37,14 @@ func (a *InternalAccount) NameKey() *datastore.Key {
 
 func (a *InternalAccount) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID           string
-		ProjectID    string
-		Index        int
-		Address      []byte
-		DraftCode    string
-		DeployedCode string
-		State        string
+		ID                string
+		ProjectID         string
+		Index             int
+		Address           []byte
+		DraftCode         string
+		DeployedCode      string
+		DeployedContracts []string
+		State             string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -65,6 +66,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	copy(a.Address[:], tmp.Address[:])
 	a.DraftCode = tmp.DraftCode
 	a.DeployedCode = tmp.DeployedCode
+	a.DeployedContracts = tmp.DeployedContracts
 	return nil
 }
 
@@ -73,6 +75,12 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	deployedContracts := []interface{}{}
+	for _, contract := range a.DeployedContracts {
+		deployedContracts = append(deployedContracts, contract)
+	}
+
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -97,6 +105,10 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		{
 			Name:  "DeployedCode",
 			Value: a.DeployedCode,
+		},
+		{
+			Name:  "DeployedContracts",
+			Value: deployedContracts,
 		},
 		{
 			Name:    "State",
