@@ -1,6 +1,8 @@
 package model
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 
@@ -194,9 +196,10 @@ func (r *RegisterDelta) NameKey() *datastore.Key {
 
 func (r *RegisterDelta) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ProjectID string
-		Index     int
-		Delta     string
+		ProjectID         string
+		Index             int
+		Delta             []byte
+		IsAccountCreation bool
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -208,17 +211,32 @@ func (r *RegisterDelta) Load(ps []datastore.Property) error {
 	}
 	r.Index = tmp.Index
 
-	if err := json.Unmarshal([]byte(tmp.Delta), &r.Delta); err != nil {
+	var delta state.Delta
+
+	decoder := gob.NewDecoder(bytes.NewReader(tmp.Delta))
+	err := decoder.Decode(&delta)
+	if err != nil {
 		return errors.Wrap(err, "failed to decode Delta")
 	}
+
+	r.Delta = delta
+
+	r.IsAccountCreation = tmp.IsAccountCreation
+
 	return nil
 }
 
 func (r *RegisterDelta) Save() ([]datastore.Property, error) {
-	delta, err := json.Marshal(r.Delta)
+	w := new(bytes.Buffer)
+
+	encoder := gob.NewEncoder(w)
+	err := encoder.Encode(&r.Delta)
 	if err != nil {
 		return nil, err
 	}
+
+	delta := w.Bytes()
+
 	return []datastore.Property{
 		{
 			Name:  "ProjectID",
@@ -230,8 +248,12 @@ func (r *RegisterDelta) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:    "Delta",
-			Value:   string(delta),
+			Value:   delta,
 			NoIndex: true,
+		},
+		{
+			Name:  "IsAccountCreation",
+			Value: r.IsAccountCreation,
 		},
 	}, nil
 }

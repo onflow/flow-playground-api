@@ -1,4 +1,3 @@
-// TODO Lots of places that could use transactions in this file
 package datastore
 
 import (
@@ -112,9 +111,11 @@ func (d *Datastore) CreateProject(
 				Delta:             delta,
 				IsAccountCreation: true,
 			}
+
 			proj.TransactionCount++
 
 			entitiesToPut = append(entitiesToPut, regDelta)
+
 			keys = append(keys, regDelta.NameKey())
 		}
 
@@ -128,7 +129,6 @@ func (d *Datastore) CreateProject(
 			proj.TransactionTemplateCount++
 			entitiesToPut = append(entitiesToPut, ttpl)
 			keys = append(keys, ttpl.NameKey())
-
 		}
 
 		for _, stpl := range stpls {
@@ -215,24 +215,92 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 	return txErr
 }
 
-func (d *Datastore) UpdateAccountState(account *model.InternalAccount) error {
+func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, states map[uuid.UUID]map[string][]byte, delta state.Delta, acc *model.InternalAccount) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
-	acc := &model.InternalAccount{
-		ProjectChildID: model.ProjectChildID{
-			ID:        account.ID,
-			ProjectID: account.ProjectID,
-		},
-	}
+	acc.ID = input.ID
+	acc.ProjectID = input.ProjectID
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(acc.NameKey(), acc)
 		if err != nil {
 			return err
 		}
-		acc.State = account.State
+		if input.DraftCode != nil {
+			acc.DraftCode = *input.DraftCode
+		}
+
+		if input.DeployedCode != nil {
+			acc.DeployedCode = *input.DeployedCode
+		}
+
+		if input.DeployedContracts != nil {
+			acc.DeployedContracts = *input.DeployedContracts
+		}
+
+		state, ok := states[acc.ID]
+		if ok {
+			acc.State = state
+		}
+
 		_, err = tx.Put(acc.NameKey(), acc)
+		if err != nil {
+			return err
+		}
+
+		// update account states
+
+		for accountID, state := range states {
+			if accountID == acc.ID {
+				continue
+			}
+
+			acc := &model.InternalAccount{
+				ProjectChildID: model.ProjectChildID{
+					ID:        accountID,
+					ProjectID: input.ProjectID,
+				},
+			}
+
+			err := tx.Get(acc.NameKey(), acc)
+			if err != nil {
+				return err
+			}
+
+			acc.State = state
+
+			_, err = tx.Put(acc.NameKey(), acc)
+			if err != nil {
+				return err
+			}
+		}
+
+		// insert register delta
+
+		proj := &model.InternalProject{
+			ID: input.ProjectID,
+		}
+
+		err = tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+
+		regDelta := &model.RegisterDelta{
+			ProjectID:         proj.ID,
+			Index:             proj.TransactionCount,
+			Delta:             delta,
+			IsAccountCreation: false,
+		}
+
+		proj.TransactionCount++
+
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), regDelta.NameKey()},
+			[]interface{}{proj, regDelta},
+		)
+
 		return err
 	})
 
@@ -302,25 +370,53 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 
 	return txErr
 }
+
 func (d *Datastore) GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error {
 	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
+
 func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
 	q := datastore.NewQuery("TransactionTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
+
 func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	return d.delete(&model.TransactionTemplate{ProjectChildID: id})
 }
 
 // Transaction Executions
 
-func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
+func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, states map[uuid.UUID]map[string][]byte, delta state.Delta) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		// update account states
+
+		for accountID, state := range states {
+			acc := &model.InternalAccount{
+				ProjectChildID: model.ProjectChildID{
+					ID:        accountID,
+					ProjectID: exe.ProjectID,
+				},
+			}
+
+			err := tx.Get(acc.NameKey(), acc)
+			if err != nil {
+				return err
+			}
+
+			acc.State = state
+
+			_, err = tx.Put(acc.NameKey(), acc)
+			if err != nil {
+				return err
+			}
+		}
+
+		// update register delta
 
 		proj := &model.InternalProject{
 			ID: exe.ProjectID,
@@ -382,6 +478,7 @@ func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 
 	return txErr
 }
+
 func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
@@ -408,14 +505,17 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 
 	return txErr
 }
+
 func (d *Datastore) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error {
 	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
+
 func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
 	q := datastore.NewQuery("ScriptTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
+
 func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
 	return d.delete(&model.ScriptTemplate{ProjectChildID: id})
 }
@@ -425,6 +525,7 @@ func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
 func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
 	return d.put(exe)
 }
+
 func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	q := datastore.NewQuery("ScriptExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)
@@ -464,20 +565,127 @@ func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, 
 
 	return txErr
 }
-func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error {
+
+func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error {
 	reg := []model.RegisterDelta{}
 	q := datastore.NewQuery("RegisterDelta").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	err := d.getAll(q, &reg)
 	if err != nil {
 		return err
 	}
+
 	for _, d := range reg {
-		*deltas = append(*deltas, d.Delta)
+		dCopy := d
+		*deltas = append(*deltas, &dCopy)
 	}
+
 	return nil
 }
 
-func (s *Datastore) ClearProjectState(projectID uuid.UUID) error {
-	// TODO
-	return nil
+func (d *Datastore) ClearProjectState(projectID uuid.UUID) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	proj := &model.InternalProject{
+		ID: projectID,
+	}
+
+	err := d.get(proj)
+	if err != nil {
+		return 0, err
+	}
+
+	var accs []*model.InternalAccount
+
+	err = d.GetAccountsForProject(proj.ID, &accs)
+	if err != nil {
+		return 0, err
+	}
+
+	var deltas []*model.RegisterDelta
+
+	err = d.GetRegisterDeltasForProject(proj.ID, &deltas)
+	if err != nil {
+		return 0, err
+	}
+
+	var txExes []*model.TransactionExecution
+
+	err = d.GetTransactionExecutionsForProject(proj.ID, &txExes)
+	if err != nil {
+		return 0, err
+	}
+
+	var scriptExes []*model.ScriptExecution
+
+	err = d.GetScriptExecutionsForProject(proj.ID, &scriptExes)
+	if err != nil {
+		return 0, err
+	}
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		// clear deployed code from accounts
+
+		for _, acc := range accs {
+			acc.DeployedCode = ""
+			acc.DeployedContracts = nil
+			acc.State = make(map[string][]byte)
+
+			_, err = tx.Put(acc.NameKey(), acc)
+			if err != nil {
+				return err
+			}
+		}
+
+		// erase all register deltas except for account creation deltas
+
+		preservedDeltaCount := len(accs)
+
+		for i, delta := range deltas {
+			if i < preservedDeltaCount {
+				continue
+			}
+
+			err := tx.Delete(delta.NameKey())
+			if err != nil {
+				return err
+			}
+		}
+
+		// update transaction count
+
+		proj.TransactionCount = preservedDeltaCount
+
+		_, err = tx.Put(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+
+		// delete all transaction executions
+
+		for _, txExe := range txExes {
+			err = tx.Delete(txExe.NameKey())
+			if err != nil {
+				return err
+			}
+		}
+
+		// delete all scripts executions
+
+		for _, scriptExe := range scriptExes {
+			err = tx.Delete(scriptExe.NameKey())
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if txErr != nil {
+		return 0, txErr
+	}
+
+	return proj.TransactionCount, nil
 }
