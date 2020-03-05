@@ -364,6 +364,10 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 			tpl.Script = *input.Script
 		}
 
+		if input.Title != nil {
+			tpl.Title = *input.Title
+		}
+
 		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
 	})
@@ -499,6 +503,11 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 		if input.Script != nil {
 			tpl.Script = *input.Script
 		}
+
+		if input.Title != nil {
+			tpl.Title = *input.Title
+		}
+
 		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
 	})
