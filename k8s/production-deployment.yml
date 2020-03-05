@@ -96,21 +96,20 @@ spec:
 
           # Environment variables
           env:
-            - name: ALLOWED_ORIGINS
+            - name: FLOW_ALLOWEDORIGINS
               value: "https://play.onflow.org"
-            - name: GQL_PLAYGROUND
-              value: "false"
-            - name: STORE_BACKEND
+            - name: FLOW_STORAGEBACKEND
               value: "datastore"
-            - name: DATASTORE_PROJECT_ID
+            - name: FLOW_DATASTORE_GCPPROJECTID
               value: "flow-developer-playground"
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /var/secrets/google/key.json
-            - name: SESSION_KEY
+            - name: FLOW_SESSIONAUTHKEY
               valueFrom:
                 secretKeyRef:
                   name: playground-secrets
                   key: session-key
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/key.json
+
           # Readiness and Liveness probes
           readinessProbe:
             initialDelaySeconds: 1
@@ -122,11 +121,11 @@ spec:
           # Resource requests and constraints
           resources:
             requests:
-              cpu: "50m" # 0.05 CPUs, or 5% CPU
-              memory: "256Mi"
-            limits:
-              cpu: "200m"
+              cpu: "200m" # 0.2 CPUs, or 20% CPU
               memory: "512Mi"
+            limits:
+              cpu: "800m"
+              memory: "1024Mi"
           volumeMounts:
             - name: google-cloud-key
               mountPath: /var/secrets/google
