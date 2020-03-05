@@ -110,6 +110,10 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
+	return s.updateAccount(input, acc)
+}
+
+func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	a, ok := s.accounts[input.ID]
 	if !ok {
 		return storage.ErrNotFound
@@ -134,12 +138,40 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 	return nil
 }
 
-func (s *Store) UpdateAccountState(input *model.InternalAccount) error {
+func (s *Store) UpdateAccountAfterDeployment(
+	input model.UpdateAccount,
+	states map[uuid.UUID]map[string][]byte,
+	delta state.Delta,
+	acc *model.InternalAccount,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	account := s.accounts[input.ID]
-	account.State = input.State
+	err := s.updateAccount(input, acc)
+	if err != nil {
+		return err
+	}
+
+	for accountID, state := range states {
+		err = s.updateAccountState(accountID, state)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.insertRegisterDelta(input.ProjectID, delta, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) updateAccountState(id uuid.UUID, state map[string][]byte) error {
+	account := s.accounts[id]
+	account.State = state
+
+	s.accounts[id] = account
 
 	return nil
 }
@@ -287,7 +319,11 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	return nil
 }
 
-func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error {
+func (s *Store) InsertTransactionExecution(
+	exe *model.TransactionExecution,
+	states map[uuid.UUID]map[string][]byte,
+	delta state.Delta,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -303,6 +339,13 @@ func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delt
 	exe.Index = count
 
 	s.transactionExecutions[exe.ID] = *exe
+
+	for accountID, state := range states {
+		err = s.updateAccountState(accountID, state)
+		if err != nil {
+			return err
+		}
+	}
 
 	err = s.insertRegisterDelta(exe.ProjectID, delta, false)
 	if err != nil {
@@ -503,10 +546,10 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAc
 	index := p.TransactionCount + 1
 
 	regDelta := model.RegisterDelta{
-		ProjectID: projectID,
-		Index:     index,
-		Delta:     delta,
-		IsAccountCreation:isAccountCreation,
+		ProjectID:         projectID,
+		Index:             index,
+		Delta:             delta,
+		IsAccountCreation: isAccountCreation,
 	}
 
 	s.registerDeltas[projectID] = append(s.registerDeltas[projectID], regDelta)
@@ -548,7 +591,6 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 		s.accounts[accountID] = account
 	}
 
-
 	currentRegisterDeltas := s.registerDeltas[projectID]
 	newRegisterDeltas := make([]model.RegisterDelta, 0)
 
@@ -587,4 +629,3 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 	return nil
 }
-

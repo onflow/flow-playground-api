@@ -18,7 +18,12 @@ type Store interface {
 	InsertAccount(acc *model.InternalAccount) error
 	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
 	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
-	UpdateAccountState(account *model.InternalAccount) error
+	UpdateAccountAfterDeployment(
+		input model.UpdateAccount,
+		states map[uuid.UUID]map[string][]byte,
+		delta state.Delta,
+		acc *model.InternalAccount,
+	) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
 
@@ -28,7 +33,11 @@ type Store interface {
 	GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error
 	DeleteTransactionTemplate(id model.ProjectChildID) error
 
-	InsertTransactionExecution(exe *model.TransactionExecution, delta state.Delta) error
+	InsertTransactionExecution(
+		exe *model.TransactionExecution,
+		states map[uuid.UUID]map[string][]byte,
+		delta state.Delta,
+	) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
 
 	InsertScriptTemplate(tpl *model.ScriptTemplate) error
