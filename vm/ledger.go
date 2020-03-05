@@ -12,10 +12,7 @@ func (l Ledger) NewView() *state.View {
 
 func (l Ledger) ApplyDelta(delta state.Delta) {
 	for key, value := range delta {
-		if value != nil {
-			l[key] = value
-		} else {
-			delete(l, key)
-		}
+		l[key] = value
+		// TODO: support delete
 	}
 }

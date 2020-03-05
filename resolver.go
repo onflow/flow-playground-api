@@ -3,7 +3,6 @@ package playground
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -241,15 +240,6 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 			if err != nil {
 				return nil, err
 			}
-
-			for _, delta := range deltas {
-				fmt.Println("DELTA -- ", delta.Index)
-				fmt.Println("DELTA -- ", delta.Delta)
-				fmt.Println("DELTA -- ", delta.IsAccountCreation)
-				fmt.Println("---")
-			}
-
-			fmt.Println("GOT DELTAS", deltas)
 
 			return deltas, nil
 		},

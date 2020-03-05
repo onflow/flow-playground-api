@@ -206,8 +206,6 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 		}
 
 		if input.DeployedContracts != nil {
-			fmt.Println("UPDATING DEPLOYED CONTRACTS", input.DeployedContracts)
-
 			acc.DeployedContracts = *input.DeployedContracts
 		}
 
@@ -296,8 +294,6 @@ func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, stat
 			Delta:             delta,
 			IsAccountCreation: false,
 		}
-
-		fmt.Printf("%#+v\n", delta)
 
 		proj.TransactionCount++
 
@@ -635,6 +631,7 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) (int, error) {
 		for _, acc := range accs {
 			acc.DeployedCode = ""
 			acc.DeployedContracts = nil
+			acc.State = make(map[string][]byte)
 
 			_, err = tx.Put(acc.NameKey(), acc)
 			if err != nil {
@@ -656,8 +653,6 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) (int, error) {
 				return err
 			}
 		}
-
-		fmt.Println("PRESERVED DELTA COUNT", preservedDeltaCount)
 
 		// update transaction count
 

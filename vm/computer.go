@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"fmt"
 	"math/rand"
 
 	"github.com/google/uuid"
@@ -97,8 +96,6 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledgerItem)
 
-	fmt.Println("CREATED DELTA", delta)
-
 	return result, delta, data, nil
 }
 
@@ -156,7 +153,6 @@ func (c *Computer) getOrCreateLedger(
 	}
 
 	for _, delta := range deltas {
-		fmt.Println("APPLYING DELTA", delta.Delta)
 		ledger.ApplyDelta(delta.Delta)
 	}
 
