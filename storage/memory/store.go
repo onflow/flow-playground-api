@@ -20,7 +20,7 @@ type Store struct {
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
 	scriptExecutions      map[uuid.UUID]model.ScriptExecution
-	registerDeltas        []model.RegisterDelta
+	registerDeltas        map[uuid.UUID][]model.RegisterDelta
 }
 
 func NewStore() storage.Store {
@@ -32,7 +32,7 @@ func NewStore() storage.Store {
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
 		scriptExecutions:      make(map[uuid.UUID]model.ScriptExecution),
-		registerDeltas:        make([]model.RegisterDelta, 0),
+		registerDeltas:        make(map[uuid.UUID][]model.RegisterDelta),
 	}
 }
 
@@ -135,6 +135,9 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 }
 
 func (s *Store) UpdateAccountState(input *model.InternalAccount) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
 	account := s.accounts[input.ID]
 	account.State = input.State
 
@@ -301,7 +304,7 @@ func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution, delt
 
 	s.transactionExecutions[exe.ID] = *exe
 
-	err = s.insertRegisterDelta(exe.ProjectID, delta)
+	err = s.insertRegisterDelta(exe.ProjectID, delta, false)
 	if err != nil {
 		return err
 	}
@@ -484,14 +487,14 @@ func (s *Store) getScriptExecutionsForProject(projectID uuid.UUID, exes *[]*mode
 	return nil
 }
 
-func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	return s.insertRegisterDelta(projectID, delta)
+	return s.insertRegisterDelta(projectID, delta, isAccountCreation)
 }
 
-func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta) error {
+func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
 	p, ok := s.projects[projectID]
 	if !ok {
 		return storage.ErrNotFound
@@ -503,9 +506,10 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta) erro
 		ProjectID: projectID,
 		Index:     index,
 		Delta:     delta,
+		IsAccountCreation:isAccountCreation,
 	}
 
-	s.registerDeltas = append(s.registerDeltas, regDelta)
+	s.registerDeltas[projectID] = append(s.registerDeltas[projectID], regDelta)
 
 	p.TransactionCount = index
 
@@ -520,12 +524,67 @@ func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state
 
 	res := make([]state.Delta, 0)
 
-	for _, delta := range s.registerDeltas {
-		if delta.ProjectID == projectID {
-			res = append(res, delta.Delta)
-		}
+	for _, delta := range s.registerDeltas[projectID] {
+		res = append(res, delta.Delta)
 	}
+
 	*deltas = res
 
 	return nil
 }
+
+func (s *Store) ClearProjectState(projectID uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	for accountID, account := range s.accounts {
+		if account.ProjectID != projectID {
+			continue
+		}
+
+		account.DeployedCode = ""
+		account.DeployedContracts = nil
+
+		s.accounts[accountID] = account
+	}
+
+
+	currentRegisterDeltas := s.registerDeltas[projectID]
+	newRegisterDeltas := make([]model.RegisterDelta, 0)
+
+	for _, registerDelta := range currentRegisterDeltas {
+		// only keep account deltas
+		if !registerDelta.IsAccountCreation {
+			continue
+		}
+
+		newRegisterDeltas = append(newRegisterDeltas, registerDelta)
+	}
+
+	s.registerDeltas[projectID] = newRegisterDeltas
+
+	newRegisterDeltaCount := len(newRegisterDeltas)
+
+	project := s.projects[projectID]
+	project.TransactionCount = newRegisterDeltaCount
+	s.projects[projectID] = project
+
+	for txExecutionID, txExecution := range s.transactionExecutions {
+		if txExecution.ProjectID != projectID {
+			continue
+		}
+
+		delete(s.transactionExecutions, txExecutionID)
+	}
+
+	for scriptExecutionID, scriptExecution := range s.scriptExecutions {
+		if scriptExecution.ProjectID != projectID {
+			continue
+		}
+
+		delete(s.scriptExecutions, scriptExecutionID)
+	}
+
+	return nil
+}
+
