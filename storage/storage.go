@@ -40,8 +40,9 @@ type Store interface {
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
 
-	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta) error
+	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]state.Delta) error
+	ClearProjectState(projectID uuid.UUID) error
 }
 
 var ErrNotFound = errors.New("entity not found")
