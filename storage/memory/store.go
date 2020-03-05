@@ -42,27 +42,33 @@ func (s *Store) CreateProject(
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
 
-	if err := s.InsertProject(proj); err != nil {
+	if err := s.insertProject(proj); err != nil {
 		return err
 	}
+
 	for _, delta := range deltas {
-		if err := s.InsertRegisterDelta(proj.ID, delta, true); err != nil {
+		if err := s.insertRegisterDelta(proj.ID, delta, true); err != nil {
 			return err
 		}
 	}
+
 	for _, account := range accounts {
-		if err := s.InsertAccount(account); err != nil {
+		if err := s.insertAccount(account); err != nil {
 			return err
 		}
 	}
+
 	for _, ttpl := range ttpls {
-		if err := s.InsertTransactionTemplate(ttpl); err != nil {
+		if err := s.insertTransactionTemplate(ttpl); err != nil {
 			return err
 		}
 	}
+
 	for _, stpl := range stpls {
-		if err := s.InsertScriptTemplate(stpl); err != nil {
+		if err := s.insertScriptTemplate(stpl); err != nil {
 			return err
 		}
 	}
@@ -70,12 +76,8 @@ func (s *Store) CreateProject(
 	return nil
 }
 
-func (s *Store) InsertProject(proj *model.InternalProject) error {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
+func (s *Store) insertProject(proj *model.InternalProject) error {
 	s.projects[proj.ID] = *proj
-
 	return nil
 }
 
@@ -121,8 +123,11 @@ func (s *Store) InsertAccount(acc *model.InternalAccount) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	s.accounts[acc.ID] = *acc
+	return s.insertAccount(acc)
+}
 
+func (s *Store) insertAccount(acc *model.InternalAccount) error {
+	s.accounts[acc.ID] = *acc
 	return nil
 }
 
@@ -221,6 +226,10 @@ func (s *Store) InsertTransactionTemplate(tpl *model.TransactionTemplate) error 
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
+	return s.insertTransactionTemplate(tpl)
+}
+
+func (s *Store) insertTransactionTemplate(tpl *model.TransactionTemplate) error {
 	var tpls []*model.TransactionTemplate
 	err := s.getTransactionTemplatesForProject(tpl.ProjectID, &tpls)
 	if err != nil {
@@ -375,6 +384,10 @@ func (s *Store) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
+	return s.insertScriptTemplate(tpl)
+}
+
+func (s *Store) insertScriptTemplate(tpl *model.ScriptTemplate) error {
 	var tpls []*model.ScriptTemplate
 	err := s.getScriptTemplatesForProject(tpl.ProjectID, &tpls)
 	if err != nil {
@@ -389,7 +402,6 @@ func (s *Store) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	s.scriptTemplates[tpl.ID] = *tpl
 
 	return nil
-
 }
 
 func (s *Store) UpdateScriptTemplate(

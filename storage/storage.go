@@ -11,10 +11,15 @@ import (
 )
 
 type Store interface {
-	InsertProject(proj *model.InternalProject) error
+	CreateProject(
+		proj *model.InternalProject,
+		registerDeltas []state.Delta,
+		accounts []*model.InternalAccount,
+		ttpl []*model.TransactionTemplate,
+		stpl []*model.ScriptTemplate,
+	) error
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
-	CreateProject(proj *model.InternalProject, registerDeltas []state.Delta, accounts []*model.InternalAccount, ttpl []*model.TransactionTemplate, stpl []*model.ScriptTemplate) error
 
 	InsertAccount(acc *model.InternalAccount) error
 	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
