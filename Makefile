@@ -60,7 +60,7 @@ deploy-production: update-deployment-image apply-production-files monitor-rollou
 apply-production-files:
 	kconfig=$$(uuidgen); \
 	echo "$$KUBECONFIG_PRODUCTION_2" > ${KUBECONFIG}; \
-	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep staging); \
+	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep production); \
 	echo "$$files" | xargs -I {} kubectl --kubeconfig=${KUBECONFIG} apply -f {}
 
 # Deployment YAMLs must have 'deployment' in their name.
