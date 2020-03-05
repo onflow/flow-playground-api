@@ -110,6 +110,11 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 }
 
 func (s *ScriptExecution) Save() ([]datastore.Property, error) {
+	logs := []interface{}{}
+	for _, log := range s.Logs {
+		logs = append(logs, log)
+	}
+
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -138,7 +143,7 @@ func (s *ScriptExecution) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:  "Logs",
-			Value: s.Logs,
+			Value: logs,
 		},
 	}, nil
 }
