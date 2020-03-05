@@ -41,7 +41,7 @@ type AccountState map[model.Address]map[string][]byte
 func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
 	transactionCount int,
-	getRegisterDeltas func() ([]state.Delta, error),
+	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
 	signers []model.Address,
 ) (
@@ -99,14 +99,39 @@ func (c *Computer) ExecuteTransaction(
 	return result, delta, data, nil
 }
 
+func (c *Computer) ExecuteScript(
+	projectID uuid.UUID,
+	transactionCount int,
+	getRegisterDeltas func() ([]*model.RegisterDelta, error),
+	script string,
+) (*virtualmachine.ScriptResult, error) {
+	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get ledger for project")
+	}
+
+	view := ledgerItem.ledger.NewView()
+
+	result, err := c.blockContext.ExecuteScript(view, []byte(script))
+	if err != nil {
+		return nil, errors.Wrap(err, "vm failed to execute script")
+	}
+
+	return result, nil
+}
+
 func (c *Computer) ClearCache() {
 	c.cache.Clear()
+}
+
+func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
+	c.cache.Delete(projectID)
 }
 
 func (c *Computer) getOrCreateLedger(
 	projectID uuid.UUID,
 	transactionCount int,
-	getRegisterDeltas func() ([]state.Delta, error),
+	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 ) (LedgerCacheItem, error) {
 	if transactionCount == 0 {
 		return LedgerCacheItem{
@@ -128,7 +153,7 @@ func (c *Computer) getOrCreateLedger(
 	}
 
 	for _, delta := range deltas {
-		ledger.ApplyDelta(delta)
+		ledger.ApplyDelta(delta.Delta)
 	}
 
 	ledgerItem = LedgerCacheItem{
@@ -139,29 +164,4 @@ func (c *Computer) getOrCreateLedger(
 	c.cache.Set(projectID, ledgerItem)
 
 	return ledgerItem, nil
-}
-
-func (c *Computer) ExecuteScript(
-	projectID uuid.UUID,
-	transactionCount int,
-	getRegisterDeltas func() ([]state.Delta, error),
-	script string,
-) (*virtualmachine.ScriptResult, error) {
-	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get ledger for project")
-	}
-
-	view := ledgerItem.ledger.NewView()
-
-	result, err := c.blockContext.ExecuteScript(view, []byte(script))
-	if err != nil {
-		return nil, errors.Wrap(err, "vm failed to execute script")
-	}
-
-	return result, nil
-}
-
-func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
-	c.cache.Delete(projectID)
 }
