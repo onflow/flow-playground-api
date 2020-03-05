@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 
@@ -43,12 +42,12 @@ func (s *Store) CreateProject(
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
-	fmt.Println("asdfasd")
+
 	if err := s.InsertProject(proj); err != nil {
 		return err
 	}
 	for _, delta := range deltas {
-		if err := s.InsertRegisterDelta(proj.ID, delta); err != nil {
+		if err := s.InsertRegisterDelta(proj.ID, delta, true); err != nil {
 			return err
 		}
 	}
@@ -538,10 +537,10 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAc
 	index := p.TransactionCount + 1
 
 	regDelta := model.RegisterDelta{
-		ProjectID: projectID,
-		Index:     index,
-		Delta:     delta,
-		IsAccountCreation:isAccountCreation,
+		ProjectID:         projectID,
+		Index:             index,
+		Delta:             delta,
+		IsAccountCreation: isAccountCreation,
 	}
 
 	s.registerDeltas[projectID] = append(s.registerDeltas[projectID], regDelta)
@@ -583,7 +582,6 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 		s.accounts[accountID] = account
 	}
 
-
 	currentRegisterDeltas := s.registerDeltas[projectID]
 	newRegisterDeltas := make([]model.RegisterDelta, 0)
 
@@ -622,4 +620,3 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) error {
 
 	return nil
 }
-
