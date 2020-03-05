@@ -99,12 +99,14 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 			Value: a.Address[:],
 		},
 		{
-			Name:  "DraftCode",
-			Value: a.DraftCode,
+			Name:    "DraftCode",
+			Value:   a.DraftCode,
+			NoIndex: true,
 		},
 		{
-			Name:  "DeployedCode",
-			Value: a.DeployedCode,
+			Name:    "DeployedCode",
+			Value:   a.DeployedCode,
+			NoIndex: true,
 		},
 		{
 			Name:  "DeployedContracts",
