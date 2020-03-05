@@ -12,16 +12,14 @@ import (
 	"github.com/dapperlabs/flow-go/model/flow"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 type Computer struct {
-	store        storage.Store
 	blockContext virtualmachine.BlockContext
 	cache        *LedgerCache
 }
 
-func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
+func NewComputer(cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
 	vm := virtualmachine.New(rt)
 
@@ -33,7 +31,6 @@ func NewComputer(store storage.Store, cacheSize int) (*Computer, error) {
 	}
 
 	return &Computer{
-		store:        store,
 		blockContext: blockContext,
 		cache:        cache,
 	}, nil

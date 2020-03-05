@@ -76,11 +76,6 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		stpls    []*model.ScriptTemplate
 	)
 
-	err := r.store.InsertProject(proj)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert account")
-	}
-
 	for i := 0; i < MaxAccounts; i++ {
 		acc := model.InternalAccount{
 			ProjectChildID: model.ProjectChildID{
@@ -150,7 +145,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 		stpls = append(stpls, stpl)
 	}
-	err = r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+
+	err := r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
 	}

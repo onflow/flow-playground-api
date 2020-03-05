@@ -103,7 +103,6 @@ func (d *Datastore) CreateProject(
 	keys := []*datastore.Key{proj.NameKey()}
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-		// _, err := tx.Put(proj.NameKey(), proj)
 
 		for _, delta := range deltas {
 
@@ -118,6 +117,7 @@ func (d *Datastore) CreateProject(
 			entitiesToPut = append(entitiesToPut, regDelta)
 			keys = append(keys, regDelta.NameKey())
 		}
+
 		for _, acc := range accounts {
 			entitiesToPut = append(entitiesToPut, acc)
 			keys = append(keys, acc.NameKey())
@@ -143,11 +143,8 @@ func (d *Datastore) CreateProject(
 
 		return err
 	})
-	return txErr
-}
 
-func (d *Datastore) InsertProject(proj *model.InternalProject) error {
-	return d.put(proj)
+	return txErr
 }
 
 func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
