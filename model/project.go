@@ -83,6 +83,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
 	if tmp.ParentID != nil && len(*tmp.ParentID) != 0 {
+		p.ParentID = new(uuid.UUID)
 		if err := p.ParentID.UnmarshalText([]byte(*tmp.ParentID)); err != nil {
 			return errors.Wrap(err, "failed to decode UUID")
 		}
