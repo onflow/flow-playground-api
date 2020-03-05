@@ -11,6 +11,7 @@ import (
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	"github.com/gorilla/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -96,7 +97,7 @@ func main() {
 	}
 
 	logger := logrus.StandardLogger()
-	// TODO: set format
+	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
 
 	router.Route("/query", func(r chi.Router) {
