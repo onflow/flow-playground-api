@@ -107,6 +107,8 @@ spec:
                 secretKeyRef:
                   name: playground-secrets
                   key: session-key
+            - name: FLOW_SESSIONCOOKIESSAMESITENONE
+              value: "true"
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/key.json
 
