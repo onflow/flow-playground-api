@@ -104,6 +104,8 @@ spec:
               value: "datastore"
             - name: FLOW_DATASTORE_GCPPROJECTID
               value: "flow-developer-playground"
+            - name: FLOW_SESSIONCOOKIESSAMESITENONE
+              value: "true"
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /var/secrets/google/key.json
 
