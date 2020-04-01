@@ -7,11 +7,11 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/cadence/runtime"
+	"github.com/dapperlabs/flow-go/engine/execution/computation/virtualmachine"
 	"github.com/dapperlabs/flow-go/engine/execution/state"
 	"github.com/dapperlabs/flow-go/model/flow"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/virtualmachine"
 )
 
 type Computer struct {
