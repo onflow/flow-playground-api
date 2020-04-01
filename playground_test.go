@@ -902,7 +902,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respA CreateTransactionExecutionResponse
 
-		const script = "transaction { execute { Account([], []) } }"
+		const script = "transaction { execute { AuthAccount([], []) } }"
 
 		c.MustPost(
 			MutationCreateTransactionExecution,
@@ -952,7 +952,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respA CreateTransactionExecutionResponse
 
-		const script = "transaction { execute { Account([], []) } }"
+		const script = "transaction { execute { AuthAccount([], []) } }"
 
 		c.MustPost(
 			MutationCreateTransactionExecution,
@@ -1507,7 +1507,7 @@ func generateAddTwoToCounterScript(counterAddress string) string {
 
             transaction {
 
-                prepare(signer: Account) {
+                prepare(signer: AuthAccount) {
                     if signer.storage[Counting.Counter] == nil {
                         let existing <- signer.storage[Counting.Counter] <- Counting.createCounter()
                         destroy existing

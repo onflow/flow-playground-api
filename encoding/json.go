@@ -3,14 +3,13 @@ package encoding
 import (
 	"fmt"
 
-	"github.com/dapperlabs/flow-go/language/runtime"
-	"github.com/dapperlabs/flow-go/language/runtime/interpreter"
+	"github.com/dapperlabs/cadence/runtime/interpreter"
 )
 
 type Value interface{}
 
 // ConvertValue converts a runtime value to its corresponding Go representation.
-func ConvertValue(value runtime.Value) (Value, error) {
+func ConvertValue(value interpreter.Value) (Value, error) {
 	switch v := value.(type) {
 	case interpreter.VoidValue:
 		return "void", nil
