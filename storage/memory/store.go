@@ -613,8 +613,9 @@ func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*mode
 
 	res := make([]*model.RegisterDelta, 0)
 
-	for _, delta := range s.registerDeltas[projectID] {
-		res = append(res, &delta)
+	for _, d := range s.registerDeltas[projectID] {
+		dCopy := d
+		res = append(res, &dCopy)
 	}
 
 	*deltas = res
