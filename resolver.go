@@ -7,11 +7,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/dapperlabs/cadence"
+	"github.com/dapperlabs/cadence/runtime"
 	"github.com/dapperlabs/flow-go-sdk"
 	"github.com/dapperlabs/flow-go-sdk/templates"
 	"github.com/dapperlabs/flow-go/engine/execution/state"
-	"github.com/dapperlabs/flow-go/language"
-	"github.com/dapperlabs/flow-go/language/runtime"
 
 	"github.com/dapperlabs/flow-playground-api/encoding"
 	"github.com/dapperlabs/flow-playground-api/middleware"
@@ -19,8 +19,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/vm"
 )
-
-// THIS CODE IS A STARTING POINT ONLY. IT WILL NOT BE UPDATED WITH SCHEMA CHANGES.
 
 const MaxAccounts = 4
 
@@ -114,8 +112,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			IsAccountCreation: true,
 		})
 
-		value, _ := language.ConvertValue(result.Events[0].Fields[0])
-		addressValue := value.(language.Address)
+		value := cadence.ConvertValue(result.Events[0].Fields[0])
+		addressValue := value.(cadence.Address)
 
 		address := model.Address(flow.BytesToAddress(addressValue.Bytes()))
 
@@ -704,16 +702,13 @@ const AccountCodeUpdatedEvent = "flow.AccountCodeUpdated"
 func parseDeployedContracts(events []runtime.Event) ([]string, error) {
 	for _, event := range events {
 		if event.Type.ID() == AccountCodeUpdatedEvent {
-			value, err := language.ConvertValue(event.Fields[2])
-			if err != nil {
-				return nil, err
-			}
-			arrayValue := value.(language.VariableSizedArray)
+			value := cadence.ConvertValue(event.Fields[2])
+			arrayValue := value.(cadence.Array)
 
 			contracts := make([]string, len(arrayValue.Values))
 
 			for i, contractValue := range arrayValue.Values {
-				contracts[i] = contractValue.(language.String).ToGoValue().(string)
+				contracts[i] = contractValue.(cadence.String).ToGoValue().(string)
 			}
 
 			return contracts, nil
@@ -731,7 +726,7 @@ func parseEvents(rtEvents []runtime.Event) ([]model.Event, error) {
 		values := make([]string, len(event.Fields))
 		for j, field := range event.Fields {
 
-			value, err := encoding.ConvertValue(field)
+			value, err := encoding.ConvertValue(field.Value)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to convert event value")
 			}

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	"cloud.google.com/go/datastore"
-	"github.com/dapperlabs/flow-go/language/runtime/interpreter"
+	"github.com/dapperlabs/cadence/runtime/interpreter"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
