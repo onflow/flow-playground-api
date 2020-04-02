@@ -134,6 +134,22 @@ func (a *InternalAccount) Export() *Account {
 }
 
 func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
+
+	exported := a.Export()
+
+	encoded, err := a.unmarshalAccountState()
+	if err != nil {
+		return nil, err
+	}
+
+	if encoded != nil {
+		exported.State = string(encoded)
+	}
+
+	return exported, nil
+}
+
+func (a *InternalAccount) unmarshalAccountState() ([]byte, error) {
 	state := make(map[string]encoding.Value, len(a.State))
 
 	for key, valueData := range a.State {
@@ -146,7 +162,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 		decoder := gob.NewDecoder(bytes.NewReader(valueData))
 		err := decoder.Decode(&interpreterValue)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to decode value")
+			return nil, nil
 		}
 
 		convertedValue, err := encoding.ConvertValue(interpreterValue)
@@ -162,10 +178,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 		return nil, errors.Wrap(err, "failed to encode to JSON")
 	}
 
-	exported := a.Export()
-	exported.State = string(encoded)
-
-	return exported, nil
+	return encoded, nil
 }
 
 type Account struct {
