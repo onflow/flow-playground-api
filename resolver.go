@@ -534,7 +534,7 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		runtimeErr := result.Error.Error()
 		exe.Error = &runtimeErr
 	} else {
-		value, err := encoding.ConvertValue(result.Value)
+		value, err := encoding.ConvertValue(result.Value.Value)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert value")
 		}
