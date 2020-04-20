@@ -1508,14 +1508,11 @@ func generateAddTwoToCounterScript(counterAddress string) string {
             transaction {
 
                 prepare(signer: AuthAccount) {
-                    if signer.storage[Counting.Counter] == nil {
-                        let existing <- signer.storage[Counting.Counter] <- Counting.createCounter()
-                        destroy existing
-
-                        signer.published[&Counting.Counter] = &signer.storage[Counting.Counter] as &Counting.Counter
+                    if signer.borrow<&Counting.Counter>(from: /storage/counter) == nil {
+                        signer.save(<-Counting.createCounter(), to: /storage/counter)
                     }
 
-                    signer.published[&Counting.Counter]?.add(2)
+                    signer.borrow<&Counting.Counter>(from: /storage/counter)!.add(2)
                 }
             }
         `,
