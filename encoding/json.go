@@ -94,6 +94,9 @@ func ConvertValue(value interpreter.Value) (Value, error) {
 
 	case *interpreter.StorageReferenceValue:
 		return fmt.Sprintf("Ref(%s, %s)", v.TargetStorageAddress, v.TargetKey), nil
+
+	case interpreter.LinkValue:
+		return fmt.Sprintf("Link<%s>(%s)", v.Type, v.TargetPath), nil
 	}
 
 	return nil, fmt.Errorf("cannot convert value of type %T", value)
