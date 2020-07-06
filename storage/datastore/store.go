@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-go/engine/execution/state"
+
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 // Config is the configuration required to connect to Datastore.
@@ -34,7 +34,7 @@ type Datastore struct {
 func NewDatastore(
 	ctx context.Context,
 	conf *Config,
-) (storage.Store, error) {
+) (*Datastore, error) {
 	if conf.DatastoreProjectID == "" {
 		return nil, errors.New("missing env var: DATASTORE_PROJECT_ID")
 	}
