@@ -7,7 +7,6 @@ require (
 	github.com/99designs/gqlgen v0.10.2
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
-	github.com/dapperlabs/cadence v0.0.0-20200423153910-490525478d03
 	github.com/dapperlabs/flow-go v0.4.1-0.20200706223454-3d945eae1b63
 	github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200706223454-3d945eae1b63 // indirect
 	github.com/go-chi/chi v3.3.2+incompatible
