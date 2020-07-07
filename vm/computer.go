@@ -79,6 +79,7 @@ func (c *Computer) ExecuteTransaction(
 
 	data := AccountState{}
 
+	// TODO: capture account resources
 	// valueHandler := func(owner, controller, key, value []byte) {
 	// 	// TODO: Remove address conversion
 	// 	address := model.NewAddressFromBytes(owner)
