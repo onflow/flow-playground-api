@@ -140,6 +140,11 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:ma
 github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/dapperlabs/flow-core-contracts/contracts v0.0.0-20200526041238-ad2360621a1a h1:8qta1Pfh3RbkcvRVOvO6/ACpZmP0W5sIaaoCUF8JOQM=
 github.com/dapperlabs/flow-core-contracts/contracts v0.0.0-20200526041238-ad2360621a1a/go.mod h1:6SQ2GUde3Wj3EIRFq9Vu12IhSx3PiY3nVxLOEVehlmY=
+github.com/dapperlabs/flow-go v0.4.1-0.20200706223454-3d945eae1b63 h1:AifjMh3gdQ3gD6e58qkNI8UHBxKi8eICMLguT5K5NVY=
+github.com/dapperlabs/flow-go v0.4.1-0.20200706223454-3d945eae1b63/go.mod h1:C3s0qW2deWAjzOl/jBKrpj56ihXgdqBEHiEuj02ifFw=
+github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200312195452-df4550a863b7/go.mod h1:6UyHoekg86OJnzTz9hp3Ubzp2ZkrDMFg2krGbVEiloU=
+github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200706223454-3d945eae1b63 h1:s2XViIwi0t2iRXYcAHHg3MXr0fj0mUYMQIFSKEwx/I4=
+github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200706223454-3d945eae1b63/go.mod h1:9RLfdwwRI3FVD/tm4Y8E9aqViRnCiXTcGgcmB8CsEVQ=
 github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
@@ -682,7 +687,6 @@ github.com/olekukonko/tablewriter v0.0.1/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXW
 github.com/olekukonko/tablewriter v0.0.2-0.20190409134802-7e037d187b0c/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
 github.com/onflow/cadence v0.3.0-beta1/go.mod h1:GaLQ7IsJi5bqpH66GprNs8uoQtperK/xbXXIOq11nZw=
 github.com/onflow/cadence v0.4.1-0.20200604185918-21edaa9bfcdd/go.mod h1:dgj1JPlSDeY6ZSqD/yCW06reFSt+19d/IFgQ1eE8Bfg=
-github.com/onflow/cadence v0.5.0-beta2/go.mod h1:dgj1JPlSDeY6ZSqD/yCW06reFSt+19d/IFgQ1eE8Bfg=
 github.com/onflow/cadence v0.5.0-beta3 h1:eW7X8FWYcJDUuB4W7Xl4dT31hB+71TjHGZzCF7JHB4Y=
 github.com/onflow/cadence v0.5.0-beta3/go.mod h1:dgj1JPlSDeY6ZSqD/yCW06reFSt+19d/IFgQ1eE8Bfg=
 github.com/onflow/cadence v0.5.0-beta4 h1:m3r4mEdHyfXyqDovgD5QaFQk4cZgD8CRsAjsHEGNwbY=
@@ -938,6 +942,7 @@ golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5/go.mod h1:yigFU9vqHzYiE8U
 golang.org/x/crypto v0.0.0-20190611184440-5c40567a22f8/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20190618222545-ea8f1a30c443/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
+golang.org/x/crypto v0.0.0-20191219195013-becbf705a915/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200117160349-530e935923ad h1:Jh8cai0fqIK+f6nG0UgPW5wFk8wmiMhM3AyciDBdtQg=
 golang.org/x/crypto v0.0.0-20200117160349-530e935923ad/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
