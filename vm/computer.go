@@ -1,29 +1,35 @@
 package vm
 
 import (
-	"math/rand"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/cadence/runtime"
-	"github.com/dapperlabs/flow-go/engine/execution/computation/virtualmachine"
-	"github.com/dapperlabs/flow-go/engine/execution/state"
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
+	"github.com/dapperlabs/flow-go/fvm"
 	"github.com/dapperlabs/flow-go/model/flow"
+	"github.com/onflow/cadence/runtime"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type Computer struct {
-	blockContext virtualmachine.BlockContext
-	cache        *LedgerCache
+	vm    *fvm.VirtualMachine
+	vmCtx fvm.Context
+	cache *LedgerCache
 }
 
 func NewComputer(cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
-	vm := virtualmachine.New(rt)
+	vm := fvm.New(rt)
 
-	blockContext := vm.NewBlockContext(&flow.Header{Height: 0})
+	vmCtx := fvm.NewContext(
+		fvm.WithChain(flow.MonotonicEmulator.Chain()),
+		fvm.WithRestrictedAccountCreation(false),
+		fvm.WithRestrictedDeployment(false),
+		fvm.WithTransactionProcessors([]fvm.TransactionProcessor{
+			fvm.NewTransactionInvocator(),
+		}),
+	)
 
 	cache, err := NewLedgerCache(cacheSize)
 	if err != nil {
@@ -31,8 +37,9 @@ func NewComputer(cacheSize int) (*Computer, error) {
 	}
 
 	return &Computer{
-		blockContext: blockContext,
-		cache:        cache,
+		vm:    vm,
+		vmCtx: vmCtx,
+		cache: cache,
 	}, nil
 }
 
@@ -45,8 +52,8 @@ func (c *Computer) ExecuteTransaction(
 	script string,
 	signers []model.Address,
 ) (
-	*virtualmachine.TransactionResult,
-	state.Delta,
+	*fvm.TransactionProcedure,
+	delta.Delta,
 	AccountState,
 	error,
 ) {
@@ -59,32 +66,37 @@ func (c *Computer) ExecuteTransaction(
 
 	scriptAccounts := make([]flow.Address, len(signers))
 	for i, signer := range signers {
-		scriptAccounts[i] = flow.Address(signer)
+		// TODO: Remove address conversion
+		scriptAccounts[i] = signer.ToFlowAddress()
 	}
 
-	transactionBody := flow.TransactionBody{
-		Nonce:          rand.Uint64(),
-		Script:         []byte(script),
-		ScriptAccounts: scriptAccounts,
+	txBody := flow.NewTransactionBody().
+		SetScript([]byte(script))
+
+	for _, authorizer := range scriptAccounts {
+		txBody.AddAuthorizer(authorizer)
 	}
 
 	data := AccountState{}
 
-	valueHandler := func(owner, controller, key, value []byte) {
-		address := model.Address(flow.BytesToAddress(owner))
+	// valueHandler := func(owner, controller, key, value []byte) {
+	// 	// TODO: Remove address conversion
+	// 	address := model.NewAddressFromBytes(owner)
+	//
+	// 	if _, ok := data[address]; !ok {
+	// 		data[address] = map[string][]byte{}
+	// 	}
+	//
+	// 	data[address][string(key)] = value
+	// }
+	//
+	// setValueHandler := func(context *fvm.Context) {
+	// 	context.OnSetValueHandler = valueHandler
+	// }
 
-		if _, ok := data[address]; !ok {
-			data[address] = map[string][]byte{}
-		}
+	tx := fvm.Transaction(txBody)
 
-		data[address][string(key)] = value
-	}
-
-	setValueHandler := func(context *virtualmachine.TransactionContext) {
-		context.OnSetValueHandler = valueHandler
-	}
-
-	result, err := c.blockContext.ExecuteTransaction(view, &transactionBody, setValueHandler)
+	err = c.vm.Run(c.vmCtx, tx, view)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
@@ -96,7 +108,7 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledgerItem)
 
-	return result, delta, data, nil
+	return tx, delta, data, nil
 }
 
 func (c *Computer) ExecuteScript(
@@ -104,7 +116,7 @@ func (c *Computer) ExecuteScript(
 	transactionCount int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
-) (*virtualmachine.ScriptResult, error) {
+) (*fvm.ScriptProcedure, error) {
 	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
@@ -112,12 +124,14 @@ func (c *Computer) ExecuteScript(
 
 	view := ledgerItem.ledger.NewView()
 
-	result, err := c.blockContext.ExecuteScript(view, []byte(script))
+	scriptProc := fvm.Script([]byte(script))
+
+	err = c.vm.Run(c.vmCtx, scriptProc, view)
 	if err != nil {
 		return nil, errors.Wrap(err, "vm failed to execute script")
 	}
 
-	return result, nil
+	return scriptProc, nil
 }
 
 func (c *Computer) ClearCache() {
