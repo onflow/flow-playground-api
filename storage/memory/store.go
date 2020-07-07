@@ -4,9 +4,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
-
-	"github.com/dapperlabs/flow-go/engine/execution/state"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -38,7 +37,7 @@ func NewStore() *Store {
 
 func (s *Store) CreateProject(
 	proj *model.InternalProject,
-	deltas []state.Delta,
+	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
@@ -180,7 +179,7 @@ func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAcco
 func (s *Store) UpdateAccountAfterDeployment(
 	input model.UpdateAccount,
 	states map[uuid.UUID]map[string][]byte,
-	delta state.Delta,
+	delta delta.Delta,
 	acc *model.InternalAccount,
 ) error {
 	s.mut.Lock()
@@ -365,7 +364,7 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 func (s *Store) InsertTransactionExecution(
 	exe *model.TransactionExecution,
 	states map[uuid.UUID]map[string][]byte,
-	delta state.Delta,
+	delta delta.Delta,
 ) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
@@ -576,14 +575,14 @@ func (s *Store) getScriptExecutionsForProject(projectID uuid.UUID, exes *[]*mode
 	return nil
 }
 
-func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
+func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
 	return s.insertRegisterDelta(projectID, delta, isAccountCreation)
 }
 
-func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
+func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
 	p, ok := s.projects[projectID]
 	if !ok {
 		return storage.ErrNotFound

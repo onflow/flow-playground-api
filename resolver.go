@@ -2,18 +2,15 @@ package playground
 
 import (
 	"context"
-	"encoding/json"
 
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
+	"github.com/onflow/cadence"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/flow-go-sdk"
+	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/cadence"
-	"github.com/dapperlabs/cadence/runtime"
-	"github.com/dapperlabs/flow-go-sdk"
-	"github.com/dapperlabs/flow-go-sdk/templates"
-	"github.com/dapperlabs/flow-go/engine/execution/state"
-
-	"github.com/dapperlabs/flow-playground-api/encoding"
 	"github.com/dapperlabs/flow-playground-api/middleware"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -68,7 +65,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 	}
 
 	var (
-		deltas    []state.Delta
+		deltas    []delta.Delta
 		regDeltas []*model.RegisterDelta
 		accounts  []*model.InternalAccount
 		ttpls     []*model.TransactionTemplate
@@ -94,14 +91,14 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			i,
 			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
 			string(script),
-			nil,
+			[]model.Address{model.NewAddressFromBytes(flow.HexToAddress("01").Bytes())},
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
 		}
 
-		if result.Error != nil {
-			return nil, errors.Wrap(result.Error, "failed to deploy account code")
+		if result.Err != nil {
+			return nil, errors.Wrap(result.Err, "failed to deploy account code")
 		}
 
 		deltas = append(deltas, delta)
@@ -112,10 +109,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			IsAccountCreation: true,
 		})
 
-		value := cadence.ConvertValue(result.Events[0].Fields[0])
-		addressValue := value.(cadence.Address)
-
-		address := model.Address(flow.BytesToAddress(addressValue.Bytes()))
+		addressValue := result.Events[0].Fields[0].(cadence.Address)
+		address := model.NewAddressFromBytes(addressValue.Bytes())
 
 		acc.Address = address
 
@@ -248,8 +243,8 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	if result.Error != nil {
-		return nil, errors.Wrap(result.Error, "failed to deploy account code")
+	if result.Err != nil {
+		return nil, errors.Wrap(result.Err, "failed to deploy account code")
 	}
 
 	states, err := r.getAccountStates(proj.ID, state)
@@ -414,8 +409,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 	var states map[uuid.UUID]map[string][]byte
 
-	if result.Error != nil {
-		runtimeErr := result.Error.Error()
+	if result.Err != nil {
+		runtimeErr := result.Err.Error()
 		exe.Error = &runtimeErr
 	} else {
 		var err error
@@ -530,18 +525,13 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		Logs:   result.Logs,
 	}
 
-	if result.Error != nil {
-		runtimeErr := result.Error.Error()
+	if result.Err != nil {
+		runtimeErr := result.Err.Error()
 		exe.Error = &runtimeErr
 	} else {
-		value, err := encoding.ConvertValue(result.Value.Value)
+		enc, err := jsoncdc.Encode(result.Value)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert value")
-		}
-
-		enc, err := json.Marshal(value)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to encode to JSON")
+			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
 		}
 
 		exe.Value = string(enc)
@@ -699,11 +689,10 @@ func (r *transactionExecutionResolver) Signers(ctx context.Context, obj *model.T
 
 const AccountCodeUpdatedEvent = "flow.AccountCodeUpdated"
 
-func parseDeployedContracts(events []runtime.Event) ([]string, error) {
+func parseDeployedContracts(events []cadence.Event) ([]string, error) {
 	for _, event := range events {
-		if event.Type.ID() == AccountCodeUpdatedEvent {
-			value := cadence.ConvertValue(event.Fields[2])
-			arrayValue := value.(cadence.Array)
+		if event.Type().ID() == AccountCodeUpdatedEvent {
+			arrayValue := event.Fields[2].(cadence.Array)
 
 			contracts := make([]string, len(arrayValue.Values))
 
@@ -718,29 +707,23 @@ func parseDeployedContracts(events []runtime.Event) ([]string, error) {
 	return nil, nil
 }
 
-func parseEvents(rtEvents []runtime.Event) ([]model.Event, error) {
+func parseEvents(rtEvents []cadence.Event) ([]model.Event, error) {
 	events := make([]model.Event, len(rtEvents))
 
 	for i, event := range rtEvents {
 
 		values := make([]string, len(event.Fields))
 		for j, field := range event.Fields {
-
-			value, err := encoding.ConvertValue(field.Value)
+			enc, err := jsoncdc.Encode(field)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to convert event value")
+				return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
 			}
 
-			encoded, err := json.Marshal(value)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to JSON encode event value")
-			}
-
-			values[j] = string(encoded)
+			values[j] = string(enc)
 		}
 
 		events[i] = model.Event{
-			Type:   string(event.Type.ID()),
+			Type:   event.Type().ID(),
 			Values: values,
 		}
 	}
