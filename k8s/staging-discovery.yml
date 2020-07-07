@@ -48,7 +48,7 @@ metadata:
     nginx.ingress.kubernetes.io/session-cookie-name: "autoincrement"
 spec:
   rules:
-    - host: playground.staging.flow.dapperlabs.com
+    - host: playground-staging.flow.dapperlabs.com
       http:
         paths:
           - backend:
