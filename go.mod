@@ -24,7 +24,3 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/vektah/gqlparser v1.2.0
 )
-
-replace github.com/dapperlabs/flow-go => ../flow-go
-
-replace github.com/dapperlabs/flow-go/crypto => ../flow-go/crypto
