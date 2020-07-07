@@ -145,6 +145,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 }
 
 func (a *InternalAccount) unmarshalAccountState() ([]byte, error) {
+	// TODO: decode account resources
 	// state := make(map[string]encoding.Value, len(a.State))
 	//
 	// for key, valueData := range a.State {
