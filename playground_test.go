@@ -17,7 +17,7 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
-	"github.com/dapperlabs/flow-playground-api/auth/legacy"
+	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
@@ -551,7 +551,7 @@ func TestProjects(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("persist", true),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, project.ID, resp.UpdateProject.ID)
@@ -592,7 +592,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "bar"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.NotEmpty(t, resp.CreateTransactionTemplate.ID)
@@ -613,7 +613,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "bar"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		var respB GetTransactionTemplateResponse
@@ -661,7 +661,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "apple"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		templateID := respA.CreateTransactionTemplate.ID
@@ -692,7 +692,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "apple"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		templateID := respA.CreateTransactionTemplate.ID
@@ -705,7 +705,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("script", "orange"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.UpdateTransactionTemplate.ID)
@@ -726,7 +726,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respC.UpdateTransactionTemplate.ID)
@@ -831,7 +831,7 @@ func TestTransactionTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", template.ID),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, template.ID, resp.DeleteTransactionTemplate)
@@ -889,7 +889,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Error)
@@ -912,7 +912,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -932,7 +932,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
@@ -965,7 +965,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Empty(t, respA.CreateTransactionExecution.Error)
@@ -988,7 +988,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
@@ -1034,7 +1034,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "bar"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.NotEmpty(t, resp.CreateScriptTemplate.ID)
@@ -1055,7 +1055,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "bar"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		var respB GetScriptTemplateResponse
@@ -1103,7 +1103,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "apple"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		templateID := respA.CreateScriptTemplate.ID
@@ -1134,7 +1134,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
 			client.Var("script", "apple"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		templateID := respA.CreateScriptTemplate.ID
@@ -1147,7 +1147,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("script", "orange"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.UpdateScriptTemplate.ID)
@@ -1162,7 +1162,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("index", 1),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
@@ -1267,7 +1267,7 @@ func TestScriptTemplates(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
@@ -1367,7 +1367,7 @@ func TestAccounts(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 			client.Var("code", "bar"),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
@@ -1454,7 +1454,7 @@ func TestAccounts(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 			client.Var("code", contract),
-			client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
@@ -1543,7 +1543,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("projectId", project.ID),
 		client.Var("accountId", accountA.ID),
 		client.Var("code", counterContract),
-		client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 
 	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
@@ -1558,7 +1558,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("projectId", project.ID),
 		client.Var("script", addScript),
 		client.Var("signers", []string{accountB.Address}),
-		client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
@@ -1607,7 +1607,7 @@ func newClient() *Client {
 func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router := chi.NewRouter()
 	router.Use(httpcontext.Middleware())
-	router.Use(legacy.MockProjectSessions())
+	router.Use(legacyauth.MockProjectSessions())
 
 	router.Handle(
 		"/",
@@ -1651,7 +1651,7 @@ func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
 		client.Var("projectId", project.ID),
 		client.Var("title", "foo"),
 		client.Var("script", "bar"),
-		client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 
 	return resp.CreateTransactionTemplate
@@ -1666,7 +1666,7 @@ func createScriptTemplate(c *Client, project Project) string {
 		client.Var("projectId", project.ID),
 		client.Var("title", "foo"),
 		client.Var("script", "bar"),
-		client.AddCookie(legacy.MockProjectSessionCookie(project.ID, project.Secret)),
+		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 	)
 
 	return resp.CreateScriptTemplate.ID
