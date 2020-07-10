@@ -1,0 +1,1 @@
+This package is a modified version of the [github.com/99designs/gqlgen/client](https://github.com/99designs/gqlgen/tree/8494028eac6a22ef26f71ff30a9eb5738a86adff/client) package.

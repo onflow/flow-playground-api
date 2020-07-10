@@ -47,8 +47,6 @@ type DatastoreConfig struct {
 	Timeout      time.Duration `default:"5s"`
 }
 
-const sessionCookieName = "flow-playground"
-
 func main() {
 	var conf Config
 
