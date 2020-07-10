@@ -652,7 +652,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
-		return proj.ExportPublicImmutable(), err
+		return proj.ExportPublicImmutable(), nil
 	}
 
 	return proj.ExportPublicMutable(), nil
