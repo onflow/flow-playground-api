@@ -16,6 +16,8 @@ type Authenticator struct {
 	store storage.Store
 }
 
+const sessionCookieName = "flow-playground"
+
 func NewAuthenticator(store storage.Store) *Authenticator {
 	return &Authenticator{
 		store: store,
@@ -23,7 +25,7 @@ func NewAuthenticator(store storage.Store) *Authenticator {
 }
 
 func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error) {
-	session := sessions.Get(ctx, "flow-playground")
+	session := sessions.Get(ctx, sessionCookieName)
 
 	var user *model.User
 	var err error
@@ -52,7 +54,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	var user *model.User
 	var err error
 
-	session := sessions.Get(ctx, "flow-playground")
+	session := sessions.Get(ctx, sessionCookieName)
 
 	if !session.IsNew {
 		user, err = a.getCurrentUser(session.ID)
