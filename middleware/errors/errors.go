@@ -1,4 +1,4 @@
-package middleware
+package errors
 
 import (
 	"context"
@@ -14,8 +14,8 @@ var (
 	errLoggerFieldsCtxKey = gqlErrCtxKeyType("error-logger-fields")
 )
 
-// ErrorMiddleware the catch all for GLQ request errors
-func ErrorMiddleware(entry *logrus.Entry) graphql.RequestMiddleware {
+// Middleware is a catch-all middleware for GLQ request errors.
+func Middleware(entry *logrus.Entry) graphql.RequestMiddleware {
 	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
 		debugFields := logrus.Fields{}
 		ctx = context.WithValue(ctx, errLoggerFieldsCtxKey, debugFields)
