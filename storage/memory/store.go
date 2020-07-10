@@ -13,6 +13,7 @@ import (
 
 type Store struct {
 	mut                   sync.RWMutex
+	users                 map[uuid.UUID]model.User
 	projects              map[uuid.UUID]model.InternalProject
 	accounts              map[uuid.UUID]model.InternalAccount
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
@@ -25,6 +26,7 @@ type Store struct {
 func NewStore() *Store {
 	return &Store{
 		mut:                   sync.RWMutex{},
+		users:                 make(map[uuid.UUID]model.User),
 		projects:              make(map[uuid.UUID]model.InternalProject),
 		accounts:              make(map[uuid.UUID]model.InternalAccount),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
@@ -33,6 +35,28 @@ func NewStore() *Store {
 		scriptExecutions:      make(map[uuid.UUID]model.ScriptExecution),
 		registerDeltas:        make(map[uuid.UUID][]model.RegisterDelta),
 	}
+}
+
+func (s *Store) InsertUser(user *model.User) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	s.users[user.ID] = *user
+	return nil
+}
+
+func (s *Store) GetUserBySessionID(sessionID uuid.UUID, user *model.User) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	for _, u := range s.users {
+		if u.CurrentSessionID != nil && *u.CurrentSessionID == sessionID {
+			*user = u
+			return nil
+		}
+	}
+
+	return storage.ErrNotFound
 }
 
 func (s *Store) CreateProject(
@@ -100,6 +124,22 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 	s.projects[input.ID] = p
 
 	*proj = p
+
+	return nil
+}
+
+func (s *Store) UpdateProjectOwner(id, userID uuid.UUID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	p, ok := s.projects[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	p.UserID = userID
+
+	s.projects[id] = p
 
 	return nil
 }
