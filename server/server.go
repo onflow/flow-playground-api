@@ -23,7 +23,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/sessions"
-	legacysessions "github.com/dapperlabs/flow-playground-api/sessions/legacy"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
@@ -87,20 +86,9 @@ func main() {
 		panic(err)
 	}
 
-	cookieOptions := sessions.CookieOptions{
-		MaxAge:   int(conf.SessionMaxAge.Seconds()),
-		Secure:   conf.SessionCookiesSecure,
-		HTTPOnly: conf.SessionCookiesHTTPOnly,
-	}
-
-	if conf.SessionCookiesSameSiteNone {
-		cookieOptions.SameSite = http.SameSiteNoneMode
-	}
-
 	sessionAuthKey := []byte(conf.SessionAuthKey)
 
-	sessionManager := sessions.NewManager(sessionCookieName, sessionAuthKey, cookieOptions)
-	authenticator := auth.NewAuthenticator(sessionManager, store)
+	authenticator := auth.NewAuthenticator(store)
 
 	resolver := playground.NewResolver(store, computer, authenticator)
 
@@ -137,7 +125,7 @@ func main() {
 		}
 
 		r.Use(httpcontext.Middleware())
-		r.Use(legacysessions.Middleware(cookieStore))
+		r.Use(sessions.Middleware(cookieStore))
 
 		r.Handle("/", handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),

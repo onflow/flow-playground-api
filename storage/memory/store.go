@@ -45,7 +45,7 @@ func (s *Store) InsertUser(user *model.User) error {
 	return nil
 }
 
-func (s *Store) GetUserBySessionID(sessionID uuid.UUID, user *model.User) error {
+func (s *Store) GetUserBySessionID(sessionID string, user *model.User) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 

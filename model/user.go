@@ -8,7 +8,7 @@ import (
 
 type User struct {
 	ID               uuid.UUID
-	CurrentSessionID *uuid.UUID
+	CurrentSessionID *string
 }
 
 func (u *User) NameKey() *datastore.Key {
@@ -29,24 +29,12 @@ func (u *User) Load(ps []datastore.Property) error {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
 
-	if tmp.CurrentSessionID != nil && len(*tmp.CurrentSessionID) != 0 {
-		u.CurrentSessionID = new(uuid.UUID)
-		if err := u.CurrentSessionID.UnmarshalText([]byte(*tmp.CurrentSessionID)); err != nil {
-			return errors.Wrap(err, "failed to decode UUID")
-		}
-	} else {
-		u.CurrentSessionID = nil
-	}
+	u.CurrentSessionID = tmp.CurrentSessionID
 
 	return nil
 }
 
 func (u *User) Save() ([]datastore.Property, error) {
-	currentSessionID := new(string)
-	if u.CurrentSessionID != nil {
-		*currentSessionID = (*u.CurrentSessionID).String()
-	}
-
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -54,7 +42,7 @@ func (u *User) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:  "CurrentSessionID",
-			Value: currentSessionID,
+			Value: u.CurrentSessionID,
 		},
 	}, nil
 }
