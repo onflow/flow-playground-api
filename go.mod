@@ -11,6 +11,7 @@ require (
 	github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200706223454-3d945eae1b63 // indirect
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -24,3 +25,5 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/vektah/gqlparser v1.2.0
 )
+
+replace github.com/dapperlabs/flow-go => ../flow-go

@@ -92,7 +92,7 @@ func (d *Datastore) InsertUser(user *model.User) error {
 	return d.put(user)
 }
 
-func (d *Datastore) GetUserBySessionID(sessionID uuid.UUID, user *model.User) error {
+func (d *Datastore) GetUserBySessionID(sessionID string, user *model.User) error {
 	user.CurrentSessionID = &sessionID
 	return d.get(user)
 }

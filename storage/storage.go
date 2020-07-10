@@ -11,7 +11,7 @@ import (
 
 type Store interface {
 	InsertUser(user *model.User) error
-	GetUserBySessionID(sessionID uuid.UUID, user *model.User) error
+	GetUserBySessionID(sessionID string, user *model.User) error
 
 	CreateProject(
 		proj *model.InternalProject,
