@@ -86,6 +86,22 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 	return d.dsClient.Delete(ctx, src.NameKey())
 }
 
+// Users
+
+func (d *Datastore) InsertUser(user *model.User) error {
+	return d.put(user)
+}
+
+func (d *Datastore) GetUserBySessionID(sessionID uuid.UUID, user *model.User) error {
+	user.CurrentSessionID = &sessionID
+	return d.get(user)
+}
+
+func (d *Datastore) GetUser(id uuid.UUID, user *model.User) error {
+	user.ID = id
+	return d.get(user)
+}
+
 // Projects
 
 func (d *Datastore) CreateProject(
@@ -167,16 +183,37 @@ func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.Interna
 	return txErr
 }
 
+func (d *Datastore) UpdateProjectOwner(id, userID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		var proj model.InternalProject
+
+		err := tx.Get(model.ProjectNameKey(id), &proj)
+		if err != nil {
+			return err
+		}
+
+		proj.UserID = userID
+
+		_, err = tx.Put(proj.NameKey(), &proj)
+		return err
+	})
+
+	return txErr
+}
+
 func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	proj.ID = id
 	return d.get(proj)
 }
 
+// Accounts
+
 func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
 	return d.put(acc)
 }
-
-// Accounts
 
 func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
 	acc.ProjectChildID = id
