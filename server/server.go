@@ -47,6 +47,8 @@ type DatastoreConfig struct {
 	Timeout      time.Duration `default:"5s"`
 }
 
+const sessionName = "flow-playground"
+
 func main() {
 	var conf Config
 
@@ -86,7 +88,7 @@ func main() {
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
 
-	authenticator := auth.NewAuthenticator(store)
+	authenticator := auth.NewAuthenticator(store, sessionName)
 
 	resolver := playground.NewResolver(store, computer, authenticator)
 

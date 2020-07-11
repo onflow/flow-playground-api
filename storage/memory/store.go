@@ -45,18 +45,18 @@ func (s *Store) InsertUser(user *model.User) error {
 	return nil
 }
 
-func (s *Store) GetUserBySessionID(sessionID string, user *model.User) error {
+func (s *Store) GetUser(id uuid.UUID, user *model.User) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
 
-	for _, u := range s.users {
-		if u.CurrentSessionID != nil && *u.CurrentSessionID == sessionID {
-			*user = u
-			return nil
-		}
+	u, ok := s.users[id]
+	if !ok {
+		return storage.ErrNotFound
 	}
 
-	return storage.ErrNotFound
+	*user = u
+
+	return nil
 }
 
 func (s *Store) CreateProject(

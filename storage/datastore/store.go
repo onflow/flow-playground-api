@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 // Config is the configuration required to connect to Datastore.
@@ -91,27 +90,6 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 
 func (d *Datastore) InsertUser(user *model.User) error {
 	return d.put(user)
-}
-
-func (d *Datastore) GetUserBySessionID(sessionID string, user *model.User) error {
-	user.CurrentSessionID = &sessionID
-
-	q := datastore.NewQuery("User").Filter("CurrentSessionID =", sessionID).Limit(1)
-
-	var users []model.User
-
-	err := d.getAll(q, &users)
-	if err != nil {
-		return err
-	}
-
-	if len(users) != 1 {
-		return storage.ErrNotFound
-	}
-
-	*user = users[0]
-
-	return nil
 }
 
 func (d *Datastore) GetUser(id uuid.UUID, user *model.User) error {

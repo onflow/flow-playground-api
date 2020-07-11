@@ -950,7 +950,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 		computer, _ := vm.NewComputer(128)
-		authenticator := auth.NewAuthenticator(store)
+		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(store, computer, authenticator)
 
 		c := newClientWithResolver(resolver)
@@ -1573,6 +1573,8 @@ func TestLegacyAuthMigration(t *testing.T) {
 
 	var resp UpdateProjectResponse
 
+	oldSessionCookie := c.SessionCookie()
+
 	// clear session cookie before making request
 	c.ClearSessionCookie()
 
@@ -1587,8 +1589,20 @@ func TestLegacyAuthMigration(t *testing.T) {
 	assert.Equal(t, project.ID, resp.UpdateProject.ID)
 	assert.True(t, resp.UpdateProject.Persist)
 
-	// session cookie should be set again
-	assert.NotNil(t, c.SessionCookie())
+	// a new session cookie should be set
+	require.NotNil(t, c.SessionCookie())
+	assert.NotEqual(t, oldSessionCookie.Value, c.SessionCookie().Value)
+
+	c.MustPost(
+		MutationUpdateProjectPersist,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("persist", false),
+		client.AddCookie(c.SessionCookie()),
+	)
+
+	assert.Equal(t, project.ID, resp.UpdateProject.ID)
+	assert.False(t, resp.UpdateProject.Persist)
 }
 
 type Client struct {
@@ -1602,9 +1616,10 @@ func (c *Client) Post(query string, response interface{}, options ...client.Opti
 
 	err := c.client.Post(w, query, response, options...)
 
-	cookies := w.Result().Cookies()
-	if len(cookies) == 1 {
-		c.sessionCookie = cookies[0]
+	for _, cookie := range w.Result().Cookies() {
+		if cookie.Name == sessionName {
+			c.sessionCookie = cookie
+		}
 	}
 
 	return err
@@ -1624,6 +1639,8 @@ func (c *Client) SessionCookie() *http.Cookie {
 func (c *Client) ClearSessionCookie() {
 	c.sessionCookie = nil
 }
+
+const sessionName = "flow-playground-test"
 
 func newClient() *Client {
 	var store storage.Store
@@ -1646,7 +1663,7 @@ func newClient() *Client {
 
 	computer, _ := vm.NewComputer(128)
 
-	authenticator := auth.NewAuthenticator(store)
+	authenticator := auth.NewAuthenticator(store, sessionName)
 
 	resolver := playground.NewResolver(store, computer, authenticator)
 

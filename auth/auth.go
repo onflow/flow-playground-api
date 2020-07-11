@@ -13,30 +13,34 @@ import (
 )
 
 type Authenticator struct {
-	store storage.Store
+	store       storage.Store
+	sessionName string
 }
 
-const sessionCookieName = "flow-playground"
+const userIDKey = "userID"
 
-func NewAuthenticator(store storage.Store) *Authenticator {
+func NewAuthenticator(store storage.Store, sessionName string) *Authenticator {
 	return &Authenticator{
-		store: store,
+		store:       store,
+		sessionName: sessionName,
 	}
 }
 
 func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error) {
-	session := sessions.Get(ctx, sessionCookieName)
+	session := sessions.Get(ctx, a.sessionName)
 
 	var user *model.User
 	var err error
 
 	if session.IsNew {
-		user, err = a.createNewUserWithSessionID(session.ID)
+		user, err = a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
+
+		session.Values[userIDKey] = user.ID.String()
 	} else {
-		user, err = a.getCurrentUser(session.ID)
+		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to load user from session")
 		}
@@ -54,10 +58,10 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	var user *model.User
 	var err error
 
-	session := sessions.Get(ctx, sessionCookieName)
+	session := sessions.Get(ctx, a.sessionName)
 
 	if !session.IsNew {
-		user, err = a.getCurrentUser(session.ID)
+		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
 		if err != nil {
 			return errors.New("access denied")
 		}
@@ -73,10 +77,12 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	}
 
 	if a.hasLegacyProjectAccess(ctx, proj) {
-		err = a.migrateLegacyProjectAccess(user, session.ID, proj)
+		user, err = a.migrateLegacyProjectAccess(user, proj)
 		if err != nil {
 			return errors.New("access denied")
 		}
+
+		session.Values[userIDKey] = user.ID.String()
 
 		err = sessions.Save(ctx, session)
 		if err != nil {
@@ -89,10 +95,17 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	return errors.New("access denied")
 }
 
-func (a *Authenticator) getCurrentUser(sessionID string) (*model.User, error) {
+func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
 	var user model.User
 
-	err := a.store.GetUserBySessionID(sessionID, &user)
+	var userID uuid.UUID
+
+	err := userID.UnmarshalText([]byte(userIDStr))
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.store.GetUser(userID, &user)
 	if err != nil {
 		return nil, err
 	}
@@ -108,28 +121,27 @@ func (a *Authenticator) hasLegacyProjectAccess(ctx context.Context, proj *model.
 	return legacyauth.ProjectInSession(ctx, proj)
 }
 
-func (a *Authenticator) migrateLegacyProjectAccess(user *model.User, sessionID string, proj *model.InternalProject) error {
+func (a *Authenticator) migrateLegacyProjectAccess(user *model.User, proj *model.InternalProject) (*model.User, error) {
 	var err error
 
 	if user == nil {
-		user, err = a.createNewUserWithSessionID(sessionID)
+		user, err = a.createNewUser()
 		if err != nil {
-			return errors.Wrap(err, "failed to create new user")
+			return nil, errors.Wrap(err, "failed to create new user")
 		}
 	}
 
 	err = a.store.UpdateProjectOwner(proj.ID, user.ID)
 	if err != nil {
-		return errors.Wrap(err, "failed to update project owner")
+		return nil, errors.Wrap(err, "failed to update project owner")
 	}
 
-	return nil
+	return user, nil
 }
 
-func (a *Authenticator) createNewUserWithSessionID(sessionID string) (*model.User, error) {
+func (a *Authenticator) createNewUser() (*model.User, error) {
 	user := &model.User{
-		ID:               uuid.New(),
-		CurrentSessionID: &sessionID,
+		ID: uuid.New(),
 	}
 
 	err := a.store.InsertUser(user)
