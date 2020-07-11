@@ -7,8 +7,8 @@ import (
 	"github.com/pkg/errors"
 
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
+	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
