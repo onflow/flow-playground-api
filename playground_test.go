@@ -1566,43 +1566,139 @@ func TestContractInteraction(t *testing.T) {
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
 }
 
-func TestLegacyAuthMigration(t *testing.T) {
-	c := newClient()
+func TestAuthentication(t *testing.T) {
+	t.Run("Migrate legacy auth", func(t *testing.T) {
+		c := newClient()
 
-	project := createProject(c)
+		project := createProject(c)
 
-	var resp UpdateProjectResponse
+		var respA UpdateProjectResponse
 
-	oldSessionCookie := c.SessionCookie()
+		oldSessionCookie := c.SessionCookie()
 
-	// clear session cookie before making request
-	c.ClearSessionCookie()
+		// clear session cookie before making request
+		c.ClearSessionCookie()
 
-	c.MustPost(
-		MutationUpdateProjectPersist,
-		&resp,
-		client.Var("projectId", project.ID),
-		client.Var("persist", true),
-		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
-	)
+		c.MustPost(
+			MutationUpdateProjectPersist,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
+		)
 
-	assert.Equal(t, project.ID, resp.UpdateProject.ID)
-	assert.True(t, resp.UpdateProject.Persist)
+		assert.Equal(t, project.ID, respA.UpdateProject.ID)
+		assert.True(t, respA.UpdateProject.Persist)
 
-	// a new session cookie should be set
-	require.NotNil(t, c.SessionCookie())
-	assert.NotEqual(t, oldSessionCookie.Value, c.SessionCookie().Value)
+		// a new session cookie should be set
+		require.NotNil(t, c.SessionCookie())
+		assert.NotEqual(t, oldSessionCookie.Value, c.SessionCookie().Value)
 
-	c.MustPost(
-		MutationUpdateProjectPersist,
-		&resp,
-		client.Var("projectId", project.ID),
-		client.Var("persist", false),
-		client.AddCookie(c.SessionCookie()),
-	)
+		var respB UpdateProjectResponse
 
-	assert.Equal(t, project.ID, resp.UpdateProject.ID)
-	assert.False(t, resp.UpdateProject.Persist)
+		c.MustPost(
+			MutationUpdateProjectPersist,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("persist", false),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		// should be able to perform update using new session cookie
+		assert.Equal(t, project.ID, respB.UpdateProject.ID)
+		assert.False(t, respB.UpdateProject.Persist)
+	})
+
+	t.Run("Create project with malformed session cookie", func(t *testing.T) {
+		c := newClient()
+
+		var respA CreateProjectResponse
+
+		malformedCookie := http.Cookie{
+			Name:  sessionName,
+			Value: "foo",
+		}
+
+		c.MustPost(
+			MutationCreateProject,
+			&respA,
+			client.Var("title", "foo"),
+			client.Var("seed", 42),
+			client.AddCookie(&malformedCookie),
+		)
+
+		projectID := respA.CreateProject.ID
+
+		assert.NotEmpty(t, projectID)
+		assert.Equal(t, 42, respA.CreateProject.Seed)
+
+		// session cookie should be overwritten with new value
+		assert.NotNil(t, c.SessionCookie())
+
+		var respB UpdateProjectResponse
+
+		c.MustPost(
+			MutationUpdateProjectPersist,
+			&respB,
+			client.Var("projectId", projectID),
+			client.Var("persist", true),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		// should be able to perform update using new session cookie
+		assert.Equal(t, projectID, respB.UpdateProject.ID)
+		assert.True(t, respB.UpdateProject.Persist)
+	})
+
+	t.Run("Update project with malformed session cookie", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp UpdateProjectResponse
+
+		malformedCookie := http.Cookie{
+			Name:  sessionName,
+			Value: "foo",
+		}
+
+		c.ClearSessionCookie()
+
+		err := c.Post(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+			client.AddCookie(&malformedCookie),
+		)
+
+		assert.Error(t, err)
+
+		// session cookie should not be set
+		assert.Nil(t, c.SessionCookie())
+	})
+
+	t.Run("Update project with invalid session cookie", func(t *testing.T) {
+		c := newClient()
+
+		projectA := createProject(c)
+		_ = createProject(c)
+
+		cookieB := c.SessionCookie()
+
+		var resp UpdateProjectResponse
+
+		err := c.Post(
+			MutationUpdateProjectPersist,
+			&resp,
+			client.Var("projectId", projectA.ID),
+			client.Var("persist", true),
+			client.AddCookie(cookieB),
+		)
+
+		// should not be able to update project A with cookie B
+		assert.Error(t, err)
+	})
 }
 
 type Client struct {
