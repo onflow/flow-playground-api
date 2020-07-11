@@ -1566,6 +1566,31 @@ func TestContractInteraction(t *testing.T) {
 	assert.Empty(t, respB.CreateTransactionExecution.Error)
 }
 
+func TestLegacyAuthMigration(t *testing.T) {
+	c := newClient()
+
+	project := createProject(c)
+
+	var resp UpdateProjectResponse
+
+	// clear session cookie before making request
+	c.ClearSessionCookie()
+
+	c.MustPost(
+		MutationUpdateProjectPersist,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("persist", true),
+		client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
+	)
+
+	assert.Equal(t, project.ID, resp.UpdateProject.ID)
+	assert.True(t, resp.UpdateProject.Persist)
+
+	// session cookie should be set again
+	assert.NotNil(t, c.SessionCookie())
+}
+
 type Client struct {
 	client        *client.Client
 	resolver      *playground.Resolver
@@ -1594,6 +1619,10 @@ func (c *Client) MustPost(query string, response interface{}, options ...client.
 
 func (c *Client) SessionCookie() *http.Cookie {
 	return c.sessionCookie
+}
+
+func (c *Client) ClearSessionCookie() {
+	c.sessionCookie = nil
 }
 
 func newClient() *Client {
