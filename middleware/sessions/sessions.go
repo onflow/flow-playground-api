@@ -11,10 +11,10 @@ import (
 
 const sessionCtxKey = "session"
 
-// Middleware injects middleware for managing project sessions into an HTTP handler.
+// Middleware injects middleware for managing sessions into an HTTP handler.
 //
-// Sessions are stored using the provided sessions.CookieStore instance.
-func Middleware(store *sessions.CookieStore) func(http.Handler) http.Handler {
+// Sessions are stored using the provided sessions.Store instance.
+func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), sessionCtxKey, store)
@@ -28,7 +28,7 @@ func Middleware(store *sessions.CookieStore) func(http.Handler) http.Handler {
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	store := ctx.Value(sessionCtxKey).(*sessions.CookieStore)
+	store := ctx.Value(sessionCtxKey).(sessions.Store)
 
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)

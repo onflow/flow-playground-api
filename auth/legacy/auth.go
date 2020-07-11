@@ -8,8 +8,8 @@ import (
 
 	gorillasessions "github.com/gorilla/sessions"
 
+	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/sessions"
 )
 
 const projectSecretKeyName = "project-secret"
@@ -32,22 +32,6 @@ func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 	}
 
 	return secretStr == proj.Secret.String()
-}
-
-// AddProjectToSession adds the given project's secret to the current session.
-//
-// This function re-saves the session and updates the session cookie with a new max age.
-func AddProjectToSession(ctx context.Context, proj *model.InternalProject) error {
-	session := sessions.Get(ctx, getProjectSessionName(proj))
-
-	session.Values[projectSecretKeyName] = proj.Secret.String()
-
-	err := sessions.Save(ctx, session)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func getProjectSessionName(proj *model.InternalProject) string {
