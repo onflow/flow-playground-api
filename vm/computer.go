@@ -24,6 +24,7 @@ func NewComputer(cacheSize int) (*Computer, error) {
 
 	vmCtx := fvm.NewContext(
 		fvm.WithChain(flow.MonotonicEmulator.Chain()),
+		fvm.WithServiceAccount(false),
 		fvm.WithRestrictedAccountCreation(false),
 		fvm.WithRestrictedDeployment(false),
 		fvm.WithTransactionProcessors([]fvm.TransactionProcessor{
@@ -49,8 +50,7 @@ func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
 	transactionCount int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
-	script string,
-	signers []model.Address,
+	txBody *flow.TransactionBody,
 ) (
 	*fvm.TransactionProcedure,
 	delta.Delta,
@@ -63,19 +63,6 @@ func (c *Computer) ExecuteTransaction(
 	}
 
 	view := ledgerItem.ledger.NewView()
-
-	scriptAccounts := make([]flow.Address, len(signers))
-	for i, signer := range signers {
-		// TODO: Remove address conversion
-		scriptAccounts[i] = signer.ToFlowAddress()
-	}
-
-	txBody := flow.NewTransactionBody().
-		SetScript([]byte(script))
-
-	for _, authorizer := range scriptAccounts {
-		txBody.AddAuthorizer(authorizer)
-	}
 
 	data := AccountState{}
 
