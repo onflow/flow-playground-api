@@ -26,6 +26,5 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.6.1
 	github.com/vektah/gqlparser v1.2.0
+	github.com/vektra/mockery v1.1.2 // indirect
 )
-
-replace github.com/dapperlabs/flow-go => ../flow-go
