@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
+	flowgo "github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -85,13 +86,15 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			acc.DraftCode = input.Accounts[i]
 		}
 
-		script, _ := templates.CreateAccount(nil, nil)
+		payer := flow.HexToAddress("01")
+
+		tx := templates.CreateAccount(nil, nil, payer)
+
 		result, delta, state, err := r.computer.ExecuteTransaction(
 			acc.ProjectID,
 			i,
 			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
-			string(script),
-			[]model.Address{model.NewAddressFromBytes(flow.HexToAddress("01").Bytes())},
+			toTransactionBody(tx),
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to deploy account code")
@@ -223,7 +226,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		r.computer.ClearCacheForProject(proj.ID)
 	}
 
-	script := string(templates.UpdateAccountCode([]byte(*input.DeployedCode)))
+	address := acc.Address.ToFlowAddress()
+
+	tx := templates.UpdateAccountCode(address, []byte(*input.DeployedCode))
+
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		transactionCount,
@@ -236,8 +242,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 			return deltas, nil
 		},
-		script,
-		[]model.Address{acc.Address},
+		toTransactionBody(tx),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
@@ -379,6 +384,13 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.New("access denied")
 	}
 
+	tx := flow.NewTransaction().
+		SetScript([]byte(input.Script))
+
+	for _, authorizer := range input.Signers {
+		tx.AddAuthorizer(authorizer.ToFlowAddress())
+	}
+
 	result, delta, state, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
@@ -391,8 +403,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 			return deltas, nil
 		},
-		input.Script,
-		input.Signers,
+		toTransactionBody(tx),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
@@ -729,4 +740,19 @@ func parseEvents(rtEvents []cadence.Event) ([]model.Event, error) {
 	}
 
 	return events, nil
+}
+
+func toTransactionBody(tx *flow.Transaction) *flowgo.TransactionBody {
+	txBody := flowgo.NewTransactionBody()
+	txBody.SetScript(tx.Script)
+
+	for _, authorizer := range tx.Authorizers {
+		txBody.AddAuthorizer(flowgo.Address(authorizer))
+	}
+
+	for _, arg := range tx.Arguments {
+		txBody.AddArgument(arg)
+	}
+
+	return txBody
 }
