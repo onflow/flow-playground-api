@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
-	"github.com/99designs/gqlgen/client"
+	"github.com/dapperlabs/flow-playground-api/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +35,10 @@ func TestClient(t *testing.T) {
 		Name string
 	}
 
-	c.MustPost("user(id:$id){name}", &resp, client.Var("id", 1))
+	w := httptest.NewRecorder()
+
+	err := c.Post(w, "user(id:$id){name}", &resp, client.Var("id", 1))
+	require.NoError(t, err)
 
 	require.Equal(t, "bob", resp.Name)
 }
@@ -49,9 +53,13 @@ func TestAddHeader(t *testing.T) {
 	c := client.New(h)
 
 	var resp struct{}
-	c.MustPost("{ id }", &resp,
+
+	w := httptest.NewRecorder()
+
+	err := c.Post(w, "{ id }", &resp,
 		client.AddHeader("Test-Key", "ASDF"),
 	)
+	require.NoError(t, err)
 }
 
 func TestAddClientHeader(t *testing.T) {
@@ -64,7 +72,11 @@ func TestAddClientHeader(t *testing.T) {
 	c := client.New(h, client.AddHeader("Test-Key", "ASDF"))
 
 	var resp struct{}
-	c.MustPost("{ id }", &resp)
+
+	w := httptest.NewRecorder()
+
+	err := c.Post(w, "{ id }", &resp)
+	require.NoError(t, err)
 }
 
 func TestBasicAuth(t *testing.T) {
@@ -80,9 +92,13 @@ func TestBasicAuth(t *testing.T) {
 	c := client.New(h)
 
 	var resp struct{}
-	c.MustPost("{ id }", &resp,
+
+	w := httptest.NewRecorder()
+
+	err := c.Post(w, "{ id }", &resp,
 		client.BasicAuth("user", "pass"),
 	)
+	require.NoError(t, err)
 }
 
 func TestAddCookie(t *testing.T) {
@@ -97,7 +113,11 @@ func TestAddCookie(t *testing.T) {
 	c := client.New(h)
 
 	var resp struct{}
-	c.MustPost("{ id }", &resp,
+
+	w := httptest.NewRecorder()
+
+	err := c.Post(w, "{ id }", &resp,
 		client.AddCookie(&http.Cookie{Name: "foo", Value: "value"}),
 	)
+	require.NoError(t, err)
 }
