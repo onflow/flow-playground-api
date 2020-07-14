@@ -1,16 +1,11 @@
 package model
 
 import (
-	"bytes"
-	"encoding/gob"
 	"encoding/json"
 
 	"cloud.google.com/go/datastore"
-	"github.com/dapperlabs/cadence/runtime/interpreter"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/encoding"
 )
 
 type InternalAccount struct {
@@ -150,35 +145,38 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 }
 
 func (a *InternalAccount) unmarshalAccountState() ([]byte, error) {
-	state := make(map[string]encoding.Value, len(a.State))
+	// TODO: decode account resources
+	// state := make(map[string]encoding.Value, len(a.State))
+	//
+	// for key, valueData := range a.State {
+	// 	if len(valueData) == 0 {
+	// 		continue
+	// 	}
+	//
+	// 	var interpreterValue interpreter.Value
+	//
+	// 	decoder := gob.NewDecoder(bytes.NewReader(valueData))
+	// 	err := decoder.Decode(&interpreterValue)
+	// 	if err != nil {
+	// 		return nil, nil
+	// 	}
+	//
+	// 	convertedValue, err := encoding.ConvertValue(interpreterValue)
+	// 	if err != nil {
+	// 		return nil, errors.Wrap(err, "failed to convert value")
+	// 	}
+	//
+	// 	state[key] = convertedValue
+	// }
+	//
+	// encoded, err := json.Marshal(state)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "failed to encode to JSON")
+	// }
+	//
+	// return encoded, nil
 
-	for key, valueData := range a.State {
-		if len(valueData) == 0 {
-			continue
-		}
-
-		var interpreterValue interpreter.Value
-
-		decoder := gob.NewDecoder(bytes.NewReader(valueData))
-		err := decoder.Decode(&interpreterValue)
-		if err != nil {
-			return nil, nil
-		}
-
-		convertedValue, err := encoding.ConvertValue(interpreterValue)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert value")
-		}
-
-		state[key] = convertedValue
-	}
-
-	encoded, err := json.Marshal(state)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode to JSON")
-	}
-
-	return encoded, nil
+	return nil, nil
 }
 
 type Account struct {

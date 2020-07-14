@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"cloud.google.com/go/datastore"
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-go/engine/execution/state"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 // Config is the configuration required to connect to Datastore.
@@ -34,7 +33,7 @@ type Datastore struct {
 func NewDatastore(
 	ctx context.Context,
 	conf *Config,
-) (storage.Store, error) {
+) (*Datastore, error) {
 	if conf.DatastoreProjectID == "" {
 		return nil, errors.New("missing env var: DATASTORE_PROJECT_ID")
 	}
@@ -91,7 +90,7 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 
 func (d *Datastore) CreateProject(
 	proj *model.InternalProject,
-	deltas []state.Delta,
+	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
@@ -215,7 +214,7 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 	return txErr
 }
 
-func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, states map[uuid.UUID]map[string][]byte, delta state.Delta, acc *model.InternalAccount) error {
+func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, states map[uuid.UUID]map[string][]byte, delta delta.Delta, acc *model.InternalAccount) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -391,7 +390,7 @@ func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 // Transaction Executions
 
-func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, states map[uuid.UUID]map[string][]byte, delta state.Delta) error {
+func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, states map[uuid.UUID]map[string][]byte, delta delta.Delta) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -542,7 +541,7 @@ func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*
 
 // Register Deltas
 
-func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error {
+func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
