@@ -178,7 +178,7 @@ func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAcco
 
 func (s *Store) UpdateAccountAfterDeployment(
 	input model.UpdateAccount,
-	states map[uuid.UUID]map[string][]byte,
+	states map[uuid.UUID]model.AccountState,
 	delta delta.Delta,
 	acc *model.InternalAccount,
 ) error {
@@ -205,7 +205,7 @@ func (s *Store) UpdateAccountAfterDeployment(
 	return nil
 }
 
-func (s *Store) updateAccountState(id uuid.UUID, state map[string][]byte) error {
+func (s *Store) updateAccountState(id uuid.UUID, state model.AccountState) error {
 	account := s.accounts[id]
 	account.State = state
 
@@ -363,7 +363,7 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 func (s *Store) InsertTransactionExecution(
 	exe *model.TransactionExecution,
-	states map[uuid.UUID]map[string][]byte,
+	states map[uuid.UUID]model.AccountState,
 	delta delta.Delta,
 ) error {
 	s.mut.Lock()

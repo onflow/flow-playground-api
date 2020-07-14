@@ -25,7 +25,7 @@ type Store interface {
 	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
 	UpdateAccountAfterDeployment(
 		input model.UpdateAccount,
-		states map[uuid.UUID]map[string][]byte,
+		states map[uuid.UUID]model.AccountState,
 		delta delta.Delta,
 		acc *model.InternalAccount,
 	) error
@@ -40,7 +40,7 @@ type Store interface {
 
 	InsertTransactionExecution(
 		exe *model.TransactionExecution,
-		states map[uuid.UUID]map[string][]byte,
+		states map[uuid.UUID]model.AccountState,
 		delta delta.Delta,
 	) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
