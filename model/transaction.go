@@ -7,10 +7,9 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/datastore"
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-go/engine/execution/state"
 )
 
 type TransactionTemplate struct {
@@ -186,7 +185,7 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 type RegisterDelta struct {
 	ProjectID         uuid.UUID
 	Index             int
-	Delta             state.Delta
+	Delta             delta.Delta
 	IsAccountCreation bool
 }
 
@@ -211,7 +210,7 @@ func (r *RegisterDelta) Load(ps []datastore.Property) error {
 	}
 	r.Index = tmp.Index
 
-	var delta state.Delta
+	var delta delta.Delta
 
 	decoder := gob.NewDecoder(bytes.NewReader(tmp.Delta))
 	err := decoder.Decode(&delta)

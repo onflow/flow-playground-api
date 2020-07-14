@@ -3,9 +3,8 @@ package storage
 import (
 	"errors"
 
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
-
-	"github.com/dapperlabs/flow-go/engine/execution/state"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
@@ -13,7 +12,7 @@ import (
 type Store interface {
 	CreateProject(
 		proj *model.InternalProject,
-		registerDeltas []state.Delta,
+		registerDeltas []delta.Delta,
 		accounts []*model.InternalAccount,
 		ttpl []*model.TransactionTemplate,
 		stpl []*model.ScriptTemplate,
@@ -27,7 +26,7 @@ type Store interface {
 	UpdateAccountAfterDeployment(
 		input model.UpdateAccount,
 		states map[uuid.UUID]map[string][]byte,
-		delta state.Delta,
+		delta delta.Delta,
 		acc *model.InternalAccount,
 	) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
@@ -42,7 +41,7 @@ type Store interface {
 	InsertTransactionExecution(
 		exe *model.TransactionExecution,
 		states map[uuid.UUID]map[string][]byte,
-		delta state.Delta,
+		delta delta.Delta,
 	) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
 
@@ -55,7 +54,7 @@ type Store interface {
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
 
-	InsertRegisterDelta(projectID uuid.UUID, delta state.Delta, isAccountCreation bool) error
+	InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error
 	ClearProjectState(projectID uuid.UUID) (int, error)
 }
