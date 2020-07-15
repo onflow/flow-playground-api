@@ -696,39 +696,6 @@ func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*
 
 // Register Deltas
 
-func (d *Datastore) InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
-	defer cancel()
-
-	proj := &model.InternalProject{
-		ID: projectID,
-	}
-
-	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-
-		err := tx.Get(proj.NameKey(), proj)
-		if err != nil {
-			return err
-		}
-
-		regDelta := &model.RegisterDelta{
-			ProjectID: projectID,
-			Index:     proj.TransactionCount,
-			Delta:     delta,
-		}
-
-		proj.TransactionCount++
-
-		_, err = tx.PutMulti(
-			[]*datastore.Key{proj.NameKey(), regDelta.NameKey()},
-			[]interface{}{proj, regDelta},
-		)
-		return err
-	})
-
-	return txErr
-}
-
 func (d *Datastore) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error {
 	reg := []model.RegisterDelta{}
 	q := datastore.NewQuery("RegisterDelta").Ancestor(model.ProjectNameKey(projectID)).Order("Index")

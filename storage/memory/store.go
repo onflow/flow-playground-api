@@ -615,13 +615,6 @@ func (s *Store) getScriptExecutionsForProject(projectID uuid.UUID, exes *[]*mode
 	return nil
 }
 
-func (s *Store) InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
-	return s.insertRegisterDelta(projectID, delta, isAccountCreation)
-}
-
 func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
 	p, ok := s.projects[projectID]
 	if !ok {
