@@ -631,10 +631,9 @@ func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAc
 	index := p.TransactionCount + 1
 
 	regDelta := model.RegisterDelta{
-		ProjectID:         projectID,
-		Index:             index,
-		Delta:             delta,
-		IsAccountCreation: isAccountCreation,
+		ProjectID: projectID,
+		Index:     index,
+		Delta:     delta,
 	}
 
 	s.registerDeltas[projectID] = append(s.registerDeltas[projectID], regDelta)
@@ -662,14 +661,14 @@ func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*mode
 	return nil
 }
 
-func (s *Store) ClearProjectState(projectID uuid.UUID) (int, error) {
+func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalProject) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
 	// clear deployed code from accounts
 
 	for accountID, account := range s.accounts {
-		if account.ProjectID != projectID {
+		if account.ProjectID != proj.ID {
 			continue
 		}
 
@@ -679,32 +678,34 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) (int, error) {
 		s.accounts[accountID] = account
 	}
 
-	// erase all register deltas except for account creation deltas
+	// replace existing register deltas with new deltas
 
-	currentRegisterDeltas := s.registerDeltas[projectID]
-	newRegisterDeltas := make([]model.RegisterDelta, 0)
+	newRegisterDeltas := make([]model.RegisterDelta, len(newDeltas))
 
-	for _, registerDelta := range currentRegisterDeltas {
-		// only keep account deltas
-		if !registerDelta.IsAccountCreation {
-			continue
+	for i, delta := range newDeltas {
+		registerDelta := model.RegisterDelta{
+			ProjectID: proj.ID,
+			Index:     i,
+			Delta:     delta,
 		}
 
 		newRegisterDeltas = append(newRegisterDeltas, registerDelta)
 	}
 
-	s.registerDeltas[projectID] = newRegisterDeltas
+	s.registerDeltas[proj.ID] = newRegisterDeltas
 
 	// update transaction count
 
-	project := s.projects[projectID]
+	project := s.projects[proj.ID]
 	project.TransactionCount = len(newRegisterDeltas)
-	s.projects[projectID] = project
+	s.projects[proj.ID] = project
+
+	*proj = project
 
 	// delete all transaction executions
 
 	for txExecutionID, txExecution := range s.transactionExecutions {
-		if txExecution.ProjectID != projectID {
+		if txExecution.ProjectID != proj.ID {
 			continue
 		}
 
@@ -714,12 +715,12 @@ func (s *Store) ClearProjectState(projectID uuid.UUID) (int, error) {
 	// delete all scripts executions
 
 	for scriptExecutionID, scriptExecution := range s.scriptExecutions {
-		if scriptExecution.ProjectID != projectID {
+		if scriptExecution.ProjectID != proj.ID {
 			continue
 		}
 
 		delete(s.scriptExecutions, scriptExecutionID)
 	}
 
-	return project.TransactionCount, nil
+	return nil
 }

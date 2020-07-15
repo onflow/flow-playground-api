@@ -183,10 +183,9 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 }
 
 type RegisterDelta struct {
-	ProjectID         uuid.UUID
-	Index             int
-	Delta             delta.Delta
-	IsAccountCreation bool
+	ProjectID uuid.UUID
+	Index     int
+	Delta     delta.Delta
 }
 
 func (r *RegisterDelta) NameKey() *datastore.Key {
@@ -195,10 +194,9 @@ func (r *RegisterDelta) NameKey() *datastore.Key {
 
 func (r *RegisterDelta) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ProjectID         string
-		Index             int
-		Delta             []byte
-		IsAccountCreation bool
+		ProjectID string
+		Index     int
+		Delta     []byte
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -219,8 +217,6 @@ func (r *RegisterDelta) Load(ps []datastore.Property) error {
 	}
 
 	r.Delta = delta
-
-	r.IsAccountCreation = tmp.IsAccountCreation
 
 	return nil
 }
@@ -249,10 +245,6 @@ func (r *RegisterDelta) Save() ([]datastore.Property, error) {
 			Name:    "Delta",
 			Value:   delta,
 			NoIndex: true,
-		},
-		{
-			Name:  "IsAccountCreation",
-			Value: r.IsAccountCreation,
 		},
 	}, nil
 }
