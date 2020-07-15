@@ -27,6 +27,7 @@ When running locally, the GraphQL playground is available at [http://localhost:8
 Install the [Google Cloud Datastore Emulator](https://cloud.google.com/datastore/docs/tools/datastore-emulator). 
 
 Start the Datastore emulator:
+
 ```shell script
 gcloud beta emulators datastore start
 ```

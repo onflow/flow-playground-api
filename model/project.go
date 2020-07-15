@@ -8,6 +8,7 @@ import (
 
 type InternalProject struct {
 	ID                        uuid.UUID
+	UserID                    uuid.UUID
 	Secret                    uuid.UUID
 	PublicID                  uuid.UUID
 	ParentID                  *uuid.UUID
@@ -18,6 +19,10 @@ type InternalProject struct {
 	TransactionTemplateCount  int
 	ScriptTemplateCount       int
 	Persist                   bool
+}
+
+func (p *InternalProject) IsOwnedBy(userID uuid.UUID) bool {
+	return p.UserID == userID
 }
 
 // ExportPublicMutable converts the internal project to its public representation
@@ -57,6 +62,7 @@ func (p *InternalProject) NameKey() *datastore.Key {
 func (p *InternalProject) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID                        string
+		UserID                    string
 		Secret                    string
 		PublicID                  string
 		ParentID                  *string
@@ -76,12 +82,23 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	if err := p.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
-	if err := p.Secret.UnmarshalText([]byte(tmp.Secret)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+
+	if tmp.UserID != "" {
+		if err := p.UserID.UnmarshalText([]byte(tmp.UserID)); err != nil {
+			return errors.Wrap(err, "failed to decode UUID")
+		}
 	}
+
+	if tmp.Secret != "" {
+		if err := p.Secret.UnmarshalText([]byte(tmp.Secret)); err != nil {
+			return errors.Wrap(err, "failed to decode UUID")
+		}
+	}
+
 	if err := p.PublicID.UnmarshalText([]byte(tmp.PublicID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+
 	if tmp.ParentID != nil && len(*tmp.ParentID) != 0 {
 		p.ParentID = new(uuid.UUID)
 		if err := p.ParentID.UnmarshalText([]byte(*tmp.ParentID)); err != nil {
@@ -90,6 +107,7 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	} else {
 		p.ParentID = nil
 	}
+
 	p.Title = tmp.Title
 	p.Seed = tmp.Seed
 	p.TransactionCount = tmp.TransactionCount
@@ -111,6 +129,10 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 		{
 			Name:  "ID",
 			Value: p.ID.String(),
+		},
+		{
+			Name:  "UserID",
+			Value: p.UserID.String(),
 		},
 		{
 			Name:  "Secret",
