@@ -67,65 +67,14 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		Persist:  false,
 	}
 
-	var (
-		deltas    []delta.Delta
-		regDeltas []*model.RegisterDelta
-		accounts  []*model.InternalAccount
-		ttpls     []*model.TransactionTemplate
-		stpls     []*model.ScriptTemplate
-	)
-
-	for i := 0; i < MaxAccounts; i++ {
-		acc := model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Index: i,
-		}
-
-		if i < len(input.Accounts) {
-			acc.DraftCode = input.Accounts[i]
-		}
-
-		payer := flow.HexToAddress("01")
-
-		tx := templates.CreateAccount(nil, nil, payer)
-
-		result, delta, newStates, err := r.computer.ExecuteTransaction(
-			acc.ProjectID,
-			i,
-			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
-			toTransactionBody(tx),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to deploy account code")
-		}
-
-		if result.Err != nil {
-			return nil, errors.Wrap(result.Err, "failed to deploy account code")
-		}
-
-		deltas = append(deltas, delta)
-		regDeltas = append(regDeltas, &model.RegisterDelta{
-			ProjectID:         acc.ProjectID,
-			Index:             i,
-			Delta:             delta,
-			IsAccountCreation: true,
-		})
-
-		addressValue := result.Events[0].Fields[0].(cadence.Address)
-		address := model.NewAddressFromBytes(addressValue.Bytes())
-
-		acc.Address = address
-
-		acc.State = newStates[address]
-
-		accounts = append(accounts, &acc)
-
+	accounts, deltas, err := r.createInitialAccounts(proj.ID, MaxAccounts, input.Accounts)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, tpl := range input.TransactionTemplates {
+	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
+
+	for i, tpl := range input.TransactionTemplates {
 		ttpl := &model.TransactionTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
@@ -135,10 +84,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			Script: tpl.Script,
 		}
 
-		ttpls = append(ttpls, ttpl)
+		ttpls[i] = ttpl
 	}
 
-	for _, tpl := range input.ScriptTemplates {
+	stpls := make([]*model.ScriptTemplate, len(input.ScriptTemplates))
+
+	for i, tpl := range input.ScriptTemplates {
 		stpl := &model.ScriptTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
@@ -148,7 +99,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 			Script: tpl.Script,
 		}
 
-		stpls = append(stpls, stpl)
+		stpls[i] = stpl
 	}
 
 	user, err := r.auth.GetOrCreateUser(ctx)
@@ -217,17 +168,12 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return acc.Export(), nil
 	}
 
-	transactionCount := proj.TransactionCount
-
 	// Redeploy: clear all state
 	if acc.DeployedCode != "" {
-		var err error
-		transactionCount, err = r.store.ClearProjectState(proj.ID)
+		err := r.resetProject(&proj, MaxAccounts)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
 		}
-
-		r.computer.ClearCacheForProject(proj.ID)
 	}
 
 	address := acc.Address.ToFlowAddress()
@@ -236,7 +182,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	result, delta, newStates, err := r.computer.ExecuteTransaction(
 		proj.ID,
-		transactionCount,
+		proj.TransactionCount,
 		func() ([]*model.RegisterDelta, error) {
 			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
@@ -274,6 +220,102 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	return acc.Export(), nil
+}
+
+func (r *mutationResolver) resetProject(proj *model.InternalProject, numAccounts int) error {
+	_, deltas, err := r.deployInitialAccounts(proj.ID, numAccounts)
+	if err != nil {
+		return err
+	}
+
+	err = r.store.ResetProjectState(deltas, proj)
+	if err != nil {
+		return err
+	}
+
+	r.computer.ClearCacheForProject(proj.ID)
+
+	return nil
+}
+
+func (r *mutationResolver) createInitialAccounts(
+	projectID uuid.UUID,
+	numAccounts int,
+	initialContracts []string,
+) ([]*model.InternalAccount, []delta.Delta, error) {
+
+	addresses, deltas, err := r.deployInitialAccounts(projectID, numAccounts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accounts := make([]*model.InternalAccount, len(addresses))
+
+	for i, address := range addresses {
+		account := model.InternalAccount{
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: projectID,
+			},
+			Index:   i,
+			Address: address,
+			State:   make(model.AccountState),
+		}
+
+		if i < len(initialContracts) {
+			account.DraftCode = initialContracts[i]
+		}
+
+		accounts[i] = &account
+	}
+
+	return accounts, deltas, nil
+}
+
+func (r *mutationResolver) deployInitialAccounts(
+	projectID uuid.UUID,
+	numAccounts int,
+) ([]model.Address, []delta.Delta, error) {
+
+	addresses := make([]model.Address, numAccounts)
+	deltas := make([]delta.Delta, numAccounts)
+	regDeltas := make([]*model.RegisterDelta, numAccounts)
+
+	for i := 0; i < numAccounts; i++ {
+
+		payer := flow.HexToAddress("01")
+
+		tx := templates.CreateAccount(nil, nil, payer)
+
+		result, delta, _, err := r.computer.ExecuteTransaction(
+			projectID,
+			i,
+			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
+			toTransactionBody(tx),
+		)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to deploy account code")
+		}
+
+		if result.Err != nil {
+			return nil, nil, errors.Wrap(result.Err, "failed to deploy account code")
+		}
+
+		deltas = append(deltas, delta)
+
+		regDeltas = append(regDeltas, &model.RegisterDelta{
+			ProjectID: projectID,
+			Index:     i,
+			Delta:     delta,
+		})
+
+		addressValue := result.Events[0].Fields[0].(cadence.Address)
+		address := model.NewAddressFromBytes(addressValue.Bytes())
+
+		addresses[i] = address
+	}
+
+	return addresses, deltas, nil
 }
 
 func (r *mutationResolver) getAccountStates(
