@@ -59,7 +59,6 @@ type Store interface {
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
 
-	InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error
 }
 
