@@ -15,7 +15,7 @@ type InternalAccount struct {
 	DraftCode         string
 	DeployedCode      string
 	DeployedContracts []string
-	State             map[string][]byte
+	State             AccountState
 }
 
 type UpdateAccount struct {
@@ -53,8 +53,14 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
 
-	if err := json.Unmarshal([]byte(tmp.State), &a.State); err != nil {
-		return errors.Wrap(err, "failed to decode State")
+	state := []byte(tmp.State)
+
+	// Some entries may still be storing gob-encoded state. Only attempt to decode if state
+	// is valid JSON.
+	if json.Valid(state) {
+		if err := json.Unmarshal(state, &a.State); err != nil {
+			return errors.Wrap(err, "failed to decode State")
+		}
 	}
 
 	a.Index = tmp.Index
@@ -132,7 +138,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 
 	exported := a.Export()
 
-	encoded, err := a.unmarshalAccountState()
+	encoded, err := a.marshalAccountState()
 	if err != nil {
 		return nil, err
 	}
@@ -144,39 +150,13 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 	return exported, nil
 }
 
-func (a *InternalAccount) unmarshalAccountState() ([]byte, error) {
-	// TODO: decode account resources
-	// state := make(map[string]encoding.Value, len(a.State))
-	//
-	// for key, valueData := range a.State {
-	// 	if len(valueData) == 0 {
-	// 		continue
-	// 	}
-	//
-	// 	var interpreterValue interpreter.Value
-	//
-	// 	decoder := gob.NewDecoder(bytes.NewReader(valueData))
-	// 	err := decoder.Decode(&interpreterValue)
-	// 	if err != nil {
-	// 		return nil, nil
-	// 	}
-	//
-	// 	convertedValue, err := encoding.ConvertValue(interpreterValue)
-	// 	if err != nil {
-	// 		return nil, errors.Wrap(err, "failed to convert value")
-	// 	}
-	//
-	// 	state[key] = convertedValue
-	// }
-	//
-	// encoded, err := json.Marshal(state)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "failed to encode to JSON")
-	// }
-	//
-	// return encoded, nil
+func (a *InternalAccount) marshalAccountState() ([]byte, error) {
+	encoded, err := json.Marshal(a.State)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encode to JSON")
+	}
 
-	return nil, nil
+	return encoded, nil
 }
 
 type Account struct {

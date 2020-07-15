@@ -2,6 +2,7 @@ package vm
 
 import (
 	"github.com/google/uuid"
+	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
@@ -17,6 +18,8 @@ type Computer struct {
 	vmCtx fvm.Context
 	cache *LedgerCache
 }
+
+type AccountStates map[model.Address]model.AccountState
 
 func NewComputer(cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
@@ -44,8 +47,6 @@ func NewComputer(cacheSize int) (*Computer, error) {
 	}, nil
 }
 
-type AccountState map[model.Address]map[string][]byte
-
 func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
 	transactionCount int,
@@ -54,7 +55,7 @@ func (c *Computer) ExecuteTransaction(
 ) (
 	*fvm.TransactionProcedure,
 	delta.Delta,
-	AccountState,
+	AccountStates,
 	error,
 ) {
 	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
@@ -64,27 +65,27 @@ func (c *Computer) ExecuteTransaction(
 
 	view := ledgerItem.ledger.NewView()
 
-	data := AccountState{}
+	states := make(AccountStates)
 
-	// TODO: capture account resources
-	// valueHandler := func(owner, controller, key, value []byte) {
-	// 	// TODO: Remove address conversion
-	// 	address := model.NewAddressFromBytes(owner)
-	//
-	// 	if _, ok := data[address]; !ok {
-	// 		data[address] = map[string][]byte{}
-	// 	}
-	//
-	// 	data[address][string(key)] = value
-	// }
-	//
-	// setValueHandler := func(context *fvm.Context) {
-	// 	context.OnSetValueHandler = valueHandler
-	// }
+	valueHandler := func(owner flow.Address, key string, value cadence.Value) error {
+
+		// TODO: Remove address conversion
+		address := model.NewAddressFromBytes(owner.Bytes())
+
+		if _, ok := states[address]; !ok {
+			states[address] = make(map[string]cadence.Value)
+		}
+
+		states[address][key] = value
+
+		return nil
+	}
+
+	ctx := fvm.NewContextFromParent(c.vmCtx, fvm.WithSetValueHandler(valueHandler))
 
 	tx := fvm.Transaction(txBody)
 
-	err = c.vm.Run(c.vmCtx, tx, view)
+	err = c.vm.Run(ctx, tx, view)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
@@ -96,7 +97,7 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledgerItem)
 
-	return tx, delta, data, nil
+	return tx, delta, states, nil
 }
 
 func (c *Computer) ExecuteScript(
