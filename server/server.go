@@ -12,14 +12,17 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
-	"github.com/gorilla/sessions"
+	gsessions "github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
 	playground "github.com/dapperlabs/flow-playground-api"
-	"github.com/dapperlabs/flow-playground-api/middleware"
+	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
+	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
@@ -43,6 +46,8 @@ type DatastoreConfig struct {
 	GCPProjectID string        `required:"true"`
 	Timeout      time.Duration `default:"5s"`
 }
+
+const sessionName = "flow-playground"
 
 func main() {
 	var conf Config
@@ -81,7 +86,11 @@ func main() {
 		panic(err)
 	}
 
-	resolver := playground.NewResolver(store, computer)
+	sessionAuthKey := []byte(conf.SessionAuthKey)
+
+	authenticator := auth.NewAuthenticator(store, sessionName)
+
+	resolver := playground.NewResolver(store, computer, authenticator)
 
 	// Register gql metrics
 	prometheus.Register()
@@ -105,7 +114,7 @@ func main() {
 			Debug:            conf.Debug,
 		}).Handler)
 
-		cookieStore := sessions.NewCookieStore([]byte(conf.SessionAuthKey))
+		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
 		cookieStore.MaxAge(int(conf.SessionMaxAge.Seconds()))
 
 		cookieStore.Options.Secure = conf.SessionCookiesSecure
@@ -115,11 +124,12 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
-		r.Use(middleware.ProjectSessions(cookieStore))
+		r.Use(httpcontext.Middleware())
+		r.Use(sessions.Middleware(cookieStore))
 
 		r.Handle("/", handler.GraphQL(
 			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
-			handler.RequestMiddleware(middleware.ErrorMiddleware(entry)),
+			handler.RequestMiddleware(errors.Middleware(entry)),
 			handler.RequestMiddleware(prometheus.RequestMiddleware()),
 			handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 		))

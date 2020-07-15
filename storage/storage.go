@@ -10,6 +10,9 @@ import (
 )
 
 type Store interface {
+	InsertUser(user *model.User) error
+	GetUser(id uuid.UUID, user *model.User) error
+
 	CreateProject(
 		proj *model.InternalProject,
 		registerDeltas []delta.Delta,
@@ -18,6 +21,7 @@ type Store interface {
 		stpl []*model.ScriptTemplate,
 	) error
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
+	UpdateProjectOwner(id, userID uuid.UUID) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
 	InsertAccount(acc *model.InternalAccount) error

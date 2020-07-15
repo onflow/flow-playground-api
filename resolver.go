@@ -12,7 +12,7 @@ import (
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/middleware"
+	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/vm"
@@ -23,13 +23,15 @@ const MaxAccounts = 4
 type Resolver struct {
 	store              storage.Store
 	computer           *vm.Computer
+	auth               *auth.Authenticator
 	lastCreatedProject *model.InternalProject
 }
 
-func NewResolver(store storage.Store, computer *vm.Computer) *Resolver {
+func NewResolver(store storage.Store, computer *vm.Computer, auth *auth.Authenticator) *Resolver {
 	return &Resolver{
 		store:    store,
 		computer: computer,
+		auth:     auth,
 	}
 }
 
@@ -149,14 +151,16 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		stpls = append(stpls, stpl)
 	}
 
-	err := r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create project")
+		return nil, errors.Wrap(err, "failed to get or create user")
 	}
 
-	// add project to HTTP session
-	if err := middleware.AddProjectToSession(ctx, proj); err != nil {
-		return nil, errors.Wrap(err, "failed to save project in session")
+	proj.UserID = user.ID
+
+	err = r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	r.lastCreatedProject = proj
@@ -172,8 +176,8 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	err = r.store.UpdateProject(input, &proj)
@@ -193,8 +197,8 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	var acc model.InternalAccount
@@ -318,8 +322,8 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	err = r.store.InsertTransactionTemplate(tpl)
@@ -340,8 +344,8 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	err = r.store.UpdateTransactionTemplate(input, &tpl)
@@ -360,8 +364,8 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return uuid.Nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return uuid.Nil, err
 	}
 
 	err = r.store.DeleteTransactionTemplate(model.NewProjectChildID(id, projectID))
@@ -383,8 +387,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	tx := flow.NewTransaction().
@@ -466,8 +470,8 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	err = r.store.InsertScriptTemplate(tpl)
@@ -488,8 +492,8 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
 	err = r.store.UpdateScriptTemplate(input, &tpl)
@@ -567,8 +571,8 @@ func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUI
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if !middleware.ProjectInSession(ctx, &proj) {
-		return uuid.Nil, errors.New("access denied")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return uuid.Nil, err
 	}
 
 	err = r.store.DeleteScriptTemplate(model.NewProjectChildID(id, projectID))
@@ -650,11 +654,11 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if middleware.ProjectInSession(ctx, &proj) {
-		return proj.ExportPublicMutable(), nil
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return proj.ExportPublicImmutable(), nil
 	}
 
-	return proj.ExportPublicImmutable(), nil
+	return proj.ExportPublicMutable(), nil
 }
 
 func (r *queryResolver) Account(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
