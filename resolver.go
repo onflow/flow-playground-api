@@ -92,7 +92,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 		tx := templates.CreateAccount(nil, nil, payer)
 
-		result, delta, state, err := r.computer.ExecuteTransaction(
+		result, delta, newStates, err := r.computer.ExecuteTransaction(
 			acc.ProjectID,
 			i,
 			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
@@ -119,7 +119,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 		acc.Address = address
 
-		acc.State = state[address]
+		acc.State = newStates[address]
 
 		accounts = append(accounts, &acc)
 
@@ -234,7 +234,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	tx := templates.UpdateAccountCode(address, []byte(*input.DeployedCode))
 
-	result, delta, state, err := r.computer.ExecuteTransaction(
+	result, delta, newStates, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		transactionCount,
 		func() ([]*model.RegisterDelta, error) {
@@ -256,7 +256,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(result.Err, "failed to deploy account code")
 	}
 
-	states, err := r.getAccountStates(proj.ID, state)
+	states, err := r.getAccountStates(proj.ID, newStates)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	return acc.Export(), nil
 }
 
-func (r *mutationResolver) getAccountStates(projectID uuid.UUID, state vm.AccountState) (map[uuid.UUID]map[string][]byte, error) {
+func (r *mutationResolver) getAccountStates(
+	projectID uuid.UUID,
+	newStates vm.AccountStates,
+) (map[uuid.UUID]model.AccountState, error) {
 	var accounts []*model.InternalAccount
 
 	err := r.store.GetAccountsForProject(projectID, &accounts)
@@ -284,10 +287,10 @@ func (r *mutationResolver) getAccountStates(projectID uuid.UUID, state vm.Accoun
 		return nil, errors.Wrap(err, "failed to get project accounts")
 	}
 
-	states := make(map[uuid.UUID]map[string][]byte)
+	states := make(map[uuid.UUID]model.AccountState)
 
 	for _, account := range accounts {
-		stateDelta, ok := state[account.Address]
+		stateDelta, ok := newStates[account.Address]
 		if !ok {
 			continue
 		}
@@ -395,7 +398,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		tx.AddAuthorizer(authorizer.ToFlowAddress())
 	}
 
-	result, delta, state, err := r.computer.ExecuteTransaction(
+	result, delta, newStates, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
 		func() ([]*model.RegisterDelta, error) {
@@ -422,14 +425,14 @@ func (r *mutationResolver) CreateTransactionExecution(
 		Logs:   result.Logs,
 	}
 
-	var states map[uuid.UUID]map[string][]byte
+	var states map[uuid.UUID]model.AccountState
 
 	if result.Err != nil {
 		runtimeErr := result.Err.Error()
 		exe.Error = &runtimeErr
 	} else {
 		var err error
-		states, err = r.getAccountStates(proj.ID, state)
+		states, err = r.getAccountStates(proj.ID, newStates)
 		if err != nil {
 			return nil, err
 		}

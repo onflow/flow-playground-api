@@ -246,7 +246,12 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 	return txErr
 }
 
-func (d *Datastore) UpdateAccountAfterDeployment(input model.UpdateAccount, states map[uuid.UUID]map[string][]byte, delta delta.Delta, acc *model.InternalAccount) error {
+func (d *Datastore) UpdateAccountAfterDeployment(
+	input model.UpdateAccount,
+	states map[uuid.UUID]model.AccountState,
+	delta delta.Delta,
+	acc *model.InternalAccount,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -422,7 +427,11 @@ func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 // Transaction Executions
 
-func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution, states map[uuid.UUID]map[string][]byte, delta delta.Delta) error {
+func (d *Datastore) InsertTransactionExecution(
+	exe *model.TransactionExecution,
+	states map[uuid.UUID]model.AccountState,
+	delta delta.Delta,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -670,7 +679,7 @@ func (d *Datastore) ClearProjectState(projectID uuid.UUID) (int, error) {
 		for _, acc := range accs {
 			acc.DeployedCode = ""
 			acc.DeployedContracts = nil
-			acc.State = make(map[string][]byte)
+			acc.State = make(model.AccountState)
 
 			_, err = tx.Put(acc.NameKey(), acc)
 			if err != nil {
