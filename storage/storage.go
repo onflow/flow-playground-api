@@ -22,6 +22,7 @@ type Store interface {
 	) error
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
+	ResetProjectState(newDeltas []delta.Delta, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
 	InsertAccount(acc *model.InternalAccount) error
@@ -58,9 +59,7 @@ type Store interface {
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
 
-	InsertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error
 	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error
-	ClearProjectState(projectID uuid.UUID) (int, error)
 }
 
 var ErrNotFound = errors.New("entity not found")
