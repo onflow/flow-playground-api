@@ -74,9 +74,11 @@ func (c *Computer) ExecuteTransaction(
 	}
 
 	states := make(AccountStates)
-	valueHandler := newValueHandler(states)
 
-	ctx := fvm.NewContextFromParent(c.vmCtx, fvm.WithSetValueHandler(valueHandler))
+	ctx := fvm.NewContextFromParent(
+		c.vmCtx,
+		fvm.WithSetValueHandler(newValueHandler(states)),
+	)
 
 	proc := fvm.Transaction(txBody)
 
