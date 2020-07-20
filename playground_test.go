@@ -20,11 +20,11 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/client"
+	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
-	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 type Project struct {
@@ -949,7 +949,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer, _ := vm.NewComputer(128)
+		computer, _ := compute.NewComputer(128)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(store, computer, authenticator)
 
@@ -1757,7 +1757,7 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer, _ := vm.NewComputer(128)
+	computer, _ := compute.NewComputer(128)
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
