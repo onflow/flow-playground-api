@@ -73,27 +73,14 @@ func (c *Computer) ExecuteTransaction(
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	view := ledgerItem.ledger.NewView()
-
 	states := make(AccountStates)
-
-	valueHandler := func(owner flow.Address, key string, value cadence.Value) error {
-
-		// TODO: Remove address conversion
-		address := model.NewAddressFromBytes(owner.Bytes())
-
-		if _, ok := states[address]; !ok {
-			states[address] = make(map[string]cadence.Value)
-		}
-
-		states[address][key] = value
-
-		return nil
-	}
+	valueHandler := newValueHandler(states)
 
 	ctx := fvm.NewContextFromParent(c.vmCtx, fvm.WithSetValueHandler(valueHandler))
 
 	proc := fvm.Transaction(txBody)
+
+	view := ledgerItem.ledger.NewView()
 
 	err = c.vm.Run(ctx, proc, view)
 	if err != nil {
@@ -191,4 +178,19 @@ func (c *Computer) getOrCreateLedger(
 	c.cache.Set(projectID, ledgerItem)
 
 	return ledgerItem, nil
+}
+
+func newValueHandler(states AccountStates) func(owner flow.Address, key string, value cadence.Value) error {
+	return func(owner flow.Address, key string, value cadence.Value) error {
+		// TODO: Remove address conversion
+		address := model.NewAddressFromBytes(owner.Bytes())
+
+		if _, ok := states[address]; !ok {
+			states[address] = make(map[string]cadence.Value)
+		}
+
+		states[address][key] = value
+
+		return nil
+	}
 }
