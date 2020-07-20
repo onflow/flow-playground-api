@@ -64,11 +64,11 @@ func NewComputer(cacheSize int) (*Computer, error) {
 
 func (c *Computer) ExecuteTransaction(
 	projectID uuid.UUID,
-	transactionCount int,
+	transactionNumber int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	txBody *flow.TransactionBody,
 ) (*TransactionResult, error) {
-	ledger, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
+	ledger, err := c.cache.GetOrCreate(projectID, transactionNumber, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
@@ -93,7 +93,7 @@ func (c *Computer) ExecuteTransaction(
 
 	ledger.ApplyDelta(delta)
 
-	c.cache.Set(projectID, ledger, transactionCount)
+	c.cache.Set(projectID, ledger, transactionNumber)
 
 	result := TransactionResult{
 		Err:    proc.Err,
@@ -108,11 +108,11 @@ func (c *Computer) ExecuteTransaction(
 
 func (c *Computer) ExecuteScript(
 	projectID uuid.UUID,
-	transactionCount int,
+	transactionNumber int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
 ) (*ScriptResult, error) {
-	ledger, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
+	ledger, err := c.cache.GetOrCreate(projectID, transactionNumber, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
