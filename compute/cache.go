@@ -3,6 +3,9 @@ package compute
 import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/golang-lru"
+	"github.com/pkg/errors"
+
+	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type LedgerCacheItem struct {
@@ -30,6 +33,44 @@ func (l *LedgerCache) Get(id uuid.UUID) (LedgerCacheItem, bool) {
 	}
 
 	return ledger.(LedgerCacheItem), true
+}
+
+func (l *LedgerCache) GetOrCreate(
+	id uuid.UUID,
+	transactionCount int,
+	getRegisterDeltas func() ([]*model.RegisterDelta, error),
+) (LedgerCacheItem, error) {
+	if transactionCount == 0 {
+		return LedgerCacheItem{
+			ledger: make(Ledger),
+			count:  0,
+		}, nil
+	}
+
+	ledgerItem, ok := l.Get(id)
+	if ok && ledgerItem.count == transactionCount {
+		return ledgerItem, nil
+	}
+
+	ledger := make(Ledger)
+
+	deltas, err := getRegisterDeltas()
+	if err != nil {
+		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
+	}
+
+	for _, delta := range deltas {
+		ledger.ApplyDelta(delta.Delta)
+	}
+
+	ledgerItem = LedgerCacheItem{
+		ledger: ledger,
+		count:  transactionCount,
+	}
+
+	l.Set(id, ledgerItem)
+
+	return ledgerItem, nil
 }
 
 func (l *LedgerCache) Set(id uuid.UUID, ledger LedgerCacheItem) {

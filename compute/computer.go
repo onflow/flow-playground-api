@@ -68,7 +68,7 @@ func (c *Computer) ExecuteTransaction(
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	txBody *flow.TransactionBody,
 ) (*TransactionResult, error) {
-	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
+	ledgerItem, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
@@ -113,7 +113,7 @@ func (c *Computer) ExecuteScript(
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
 ) (*ScriptResult, error) {
-	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
+	ledgerItem, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
@@ -142,44 +142,6 @@ func (c *Computer) ClearCache() {
 
 func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
 	c.cache.Delete(projectID)
-}
-
-func (c *Computer) getOrCreateLedger(
-	projectID uuid.UUID,
-	transactionCount int,
-	getRegisterDeltas func() ([]*model.RegisterDelta, error),
-) (LedgerCacheItem, error) {
-	if transactionCount == 0 {
-		return LedgerCacheItem{
-			ledger: make(Ledger),
-			count:  0,
-		}, nil
-	}
-
-	ledgerItem, ok := c.cache.Get(projectID)
-	if ok && ledgerItem.count == transactionCount {
-		return ledgerItem, nil
-	}
-
-	ledger := make(Ledger)
-
-	deltas, err := getRegisterDeltas()
-	if err != nil {
-		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
-	}
-
-	for _, delta := range deltas {
-		ledger.ApplyDelta(delta.Delta)
-	}
-
-	ledgerItem = LedgerCacheItem{
-		ledger: ledger,
-		count:  transactionCount,
-	}
-
-	c.cache.Set(projectID, ledgerItem)
-
-	return ledgerItem, nil
 }
 
 func newValueHandler(states AccountStates) func(owner flow.Address, key string, value cadence.Value) error {
