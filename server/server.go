@@ -20,13 +20,13 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
-	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 type Config struct {
@@ -81,7 +81,7 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer, err := vm.NewComputer(conf.LedgerCacheSize)
+	computer, err := compute.NewComputer(conf.LedgerCacheSize)
 	if err != nil {
 		panic(err)
 	}

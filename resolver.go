@@ -13,21 +13,21 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/vm"
 )
 
 const MaxAccounts = 4
 
 type Resolver struct {
 	store              storage.Store
-	computer           *vm.Computer
+	computer           *compute.Computer
 	auth               *auth.Authenticator
 	lastCreatedProject *model.InternalProject
 }
 
-func NewResolver(store storage.Store, computer *vm.Computer, auth *auth.Authenticator) *Resolver {
+func NewResolver(store storage.Store, computer *compute.Computer, auth *auth.Authenticator) *Resolver {
 	return &Resolver{
 		store:    store,
 		computer: computer,
@@ -320,7 +320,7 @@ func (r *mutationResolver) deployInitialAccounts(
 
 func (r *mutationResolver) getAccountStates(
 	projectID uuid.UUID,
-	newStates vm.AccountStates,
+	newStates compute.AccountStates,
 ) (map[uuid.UUID]model.AccountState, error) {
 	var accounts []*model.InternalAccount
 
