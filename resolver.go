@@ -279,7 +279,7 @@ func (r *mutationResolver) deployInitialAccounts(
 
 	addresses := make([]model.Address, numAccounts)
 	deltas := make([]delta.Delta, numAccounts)
-	regDeltas := make([]*model.RegisterDelta, numAccounts)
+	regDeltas := make([]*model.RegisterDelta, 0)
 
 	for i := 0; i < numAccounts; i++ {
 
@@ -301,7 +301,7 @@ func (r *mutationResolver) deployInitialAccounts(
 			return nil, nil, errors.Wrap(result.Err, "failed to deploy account code")
 		}
 
-		deltas = append(deltas, result.Delta)
+		deltas[i] = result.Delta
 
 		regDeltas = append(regDeltas, &model.RegisterDelta{
 			ProjectID: projectID,

@@ -68,7 +68,7 @@ func (c *Computer) ExecuteTransaction(
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	txBody *flow.TransactionBody,
 ) (*TransactionResult, error) {
-	ledgerItem, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
+	ledger, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
@@ -82,7 +82,7 @@ func (c *Computer) ExecuteTransaction(
 
 	proc := fvm.Transaction(txBody)
 
-	view := ledgerItem.ledger.NewView()
+	view := ledger.NewView()
 
 	err = c.vm.Run(ctx, proc, view)
 	if err != nil {
@@ -91,10 +91,9 @@ func (c *Computer) ExecuteTransaction(
 
 	delta := view.Delta()
 
-	ledgerItem.ledger.ApplyDelta(delta)
-	ledgerItem.index++
+	ledger.ApplyDelta(delta)
 
-	c.cache.Set(projectID, ledgerItem)
+	c.cache.Set(projectID, ledger, transactionCount)
 
 	result := TransactionResult{
 		Err:    proc.Err,
@@ -113,12 +112,12 @@ func (c *Computer) ExecuteScript(
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
 ) (*ScriptResult, error) {
-	ledgerItem, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
+	ledger, err := c.cache.GetOrCreate(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	view := ledgerItem.ledger.NewView()
+	view := ledger.NewView()
 
 	proc := fvm.Script([]byte(script))
 
