@@ -180,7 +180,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	tx := templates.UpdateAccountCode(address, []byte(*input.DeployedCode))
 
-	result, delta, newStates, err := r.computer.ExecuteTransaction(
+	result, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
 		func() ([]*model.RegisterDelta, error) {
@@ -202,7 +202,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(result.Err, "failed to deploy account code")
 	}
 
-	states, err := r.getAccountStates(proj.ID, newStates)
+	states, err := r.getAccountStates(proj.ID, result.States)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	input.DeployedContracts = &contracts
 
-	err = r.store.UpdateAccountAfterDeployment(input, states, delta, &acc)
+	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update account")
 	}
@@ -287,7 +287,7 @@ func (r *mutationResolver) deployInitialAccounts(
 
 		tx := templates.CreateAccount(nil, nil, payer)
 
-		result, delta, _, err := r.computer.ExecuteTransaction(
+		result, err := r.computer.ExecuteTransaction(
 			projectID,
 			i,
 			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
@@ -301,12 +301,12 @@ func (r *mutationResolver) deployInitialAccounts(
 			return nil, nil, errors.Wrap(result.Err, "failed to deploy account code")
 		}
 
-		deltas = append(deltas, delta)
+		deltas = append(deltas, result.Delta)
 
 		regDeltas = append(regDeltas, &model.RegisterDelta{
 			ProjectID: projectID,
 			Index:     i,
-			Delta:     delta,
+			Delta:     result.Delta,
 		})
 
 		addressValue := result.Events[0].Fields[0].(cadence.Address)
@@ -440,7 +440,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		tx.AddAuthorizer(authorizer.ToFlowAddress())
 	}
 
-	result, delta, newStates, err := r.computer.ExecuteTransaction(
+	result, err := r.computer.ExecuteTransaction(
 		proj.ID,
 		proj.TransactionCount,
 		func() ([]*model.RegisterDelta, error) {
@@ -474,7 +474,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		exe.Error = &runtimeErr
 	} else {
 		var err error
-		states, err = r.getAccountStates(proj.ID, newStates)
+		states, err = r.getAccountStates(proj.ID, result.States)
 		if err != nil {
 			return nil, err
 		}
@@ -487,7 +487,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 	exe.Events = events
 
-	err = r.store.InsertTransactionExecution(&exe, states, delta)
+	err = r.store.InsertTransactionExecution(&exe, states, result.Delta)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert transaction execution record")
 	}

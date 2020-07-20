@@ -19,6 +19,21 @@ type Computer struct {
 	cache *LedgerCache
 }
 
+type TransactionResult struct {
+	Err    error
+	Logs   []string
+	Events []cadence.Event
+	Delta  delta.Delta
+	States AccountStates
+}
+
+type ScriptResult struct {
+	Value  cadence.Value
+	Err    error
+	Logs   []string
+	Events []cadence.Event
+}
+
 type AccountStates map[model.Address]model.AccountState
 
 func NewComputer(cacheSize int) (*Computer, error) {
@@ -52,15 +67,10 @@ func (c *Computer) ExecuteTransaction(
 	transactionCount int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	txBody *flow.TransactionBody,
-) (
-	*fvm.TransactionProcedure,
-	delta.Delta,
-	AccountStates,
-	error,
-) {
+) (*TransactionResult, error) {
 	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "failed to get ledger for project")
+		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
 	view := ledgerItem.ledger.NewView()
@@ -83,11 +93,11 @@ func (c *Computer) ExecuteTransaction(
 
 	ctx := fvm.NewContextFromParent(c.vmCtx, fvm.WithSetValueHandler(valueHandler))
 
-	tx := fvm.Transaction(txBody)
+	proc := fvm.Transaction(txBody)
 
-	err = c.vm.Run(ctx, tx, view)
+	err = c.vm.Run(ctx, proc, view)
 	if err != nil {
-		return nil, nil, nil, errors.Wrap(err, "vm failed to execute transaction")
+		return nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
 
 	delta := view.Delta()
@@ -97,7 +107,15 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledgerItem)
 
-	return tx, delta, states, nil
+	result := TransactionResult{
+		Err:    proc.Err,
+		Logs:   proc.Logs,
+		Events: proc.Events,
+		Delta:  delta,
+		States: states,
+	}
+
+	return &result, nil
 }
 
 func (c *Computer) ExecuteScript(
@@ -105,7 +123,7 @@ func (c *Computer) ExecuteScript(
 	transactionCount int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
-) (*fvm.ScriptProcedure, error) {
+) (*ScriptResult, error) {
 	ledgerItem, err := c.getOrCreateLedger(projectID, transactionCount, getRegisterDeltas)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get ledger for project")
@@ -113,14 +131,20 @@ func (c *Computer) ExecuteScript(
 
 	view := ledgerItem.ledger.NewView()
 
-	scriptProc := fvm.Script([]byte(script))
+	proc := fvm.Script([]byte(script))
 
-	err = c.vm.Run(c.vmCtx, scriptProc, view)
+	err = c.vm.Run(c.vmCtx, proc, view)
 	if err != nil {
 		return nil, errors.Wrap(err, "vm failed to execute script")
 	}
 
-	return scriptProc, nil
+	result := ScriptResult{
+		Err:    proc.Err,
+		Logs:   proc.Logs,
+		Events: proc.Events,
+	}
+
+	return &result, nil
 }
 
 func (c *Computer) ClearCache() {
