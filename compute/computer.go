@@ -92,7 +92,7 @@ func (c *Computer) ExecuteTransaction(
 	delta := view.Delta()
 
 	ledgerItem.ledger.ApplyDelta(delta)
-	ledgerItem.count++
+	ledgerItem.index++
 
 	c.cache.Set(projectID, ledgerItem)
 

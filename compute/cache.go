@@ -10,7 +10,7 @@ import (
 
 type LedgerCacheItem struct {
 	ledger Ledger
-	count  int
+	index  int
 }
 
 type LedgerCache struct {
@@ -26,29 +26,20 @@ func NewLedgerCache(size int) (*LedgerCache, error) {
 	return &LedgerCache{cache}, nil
 }
 
-func (l *LedgerCache) Get(id uuid.UUID) (LedgerCacheItem, bool) {
-	ledger, ok := l.cache.Get(id)
-	if !ok {
-		return LedgerCacheItem{}, false
-	}
-
-	return ledger.(LedgerCacheItem), true
-}
-
 func (l *LedgerCache) GetOrCreate(
 	id uuid.UUID,
-	transactionCount int,
+	index int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 ) (LedgerCacheItem, error) {
-	if transactionCount == 0 {
+	if index == 0 {
 		return LedgerCacheItem{
 			ledger: make(Ledger),
-			count:  0,
+			index:  0,
 		}, nil
 	}
 
 	ledgerItem, ok := l.Get(id)
-	if ok && ledgerItem.count == transactionCount {
+	if ok && ledgerItem.index == index {
 		return ledgerItem, nil
 	}
 
@@ -65,12 +56,21 @@ func (l *LedgerCache) GetOrCreate(
 
 	ledgerItem = LedgerCacheItem{
 		ledger: ledger,
-		count:  transactionCount,
+		index:  index,
 	}
 
 	l.Set(id, ledgerItem)
 
 	return ledgerItem, nil
+}
+
+func (l *LedgerCache) Get(id uuid.UUID) (LedgerCacheItem, bool) {
+	ledger, ok := l.cache.Get(id)
+	if !ok {
+		return LedgerCacheItem{}, false
+	}
+
+	return ledger.(LedgerCacheItem), true
 }
 
 func (l *LedgerCache) Set(id uuid.UUID, ledger LedgerCacheItem) {
