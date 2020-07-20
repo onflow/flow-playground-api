@@ -1,8 +1,6 @@
 package compute
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
@@ -48,9 +46,6 @@ func (l *LedgerCache) GetOrCreate(
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load register deltas for project")
 	}
-
-	fmt.Println(ledger)
-	fmt.Println(deltas)
 
 	for _, delta := range deltas {
 		ledger.ApplyDelta(delta.Delta)
