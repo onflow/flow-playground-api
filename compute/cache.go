@@ -1,17 +1,14 @@
 package compute
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
-
-type LedgerCacheItem struct {
-	ledger Ledger
-	index  int
-}
 
 type LedgerCache struct {
 	cache *lru.ARCCache
@@ -26,55 +23,60 @@ func NewLedgerCache(size int) (*LedgerCache, error) {
 	return &LedgerCache{cache}, nil
 }
 
+type ledgerCacheItem struct {
+	ledger Ledger
+	index  int
+}
+
 func (l *LedgerCache) GetOrCreate(
 	id uuid.UUID,
 	index int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
-) (LedgerCacheItem, error) {
+) (Ledger, error) {
 	if index == 0 {
-		return LedgerCacheItem{
-			ledger: make(Ledger),
-			index:  0,
-		}, nil
+		return make(Ledger), nil
 	}
 
-	ledgerItem, ok := l.Get(id)
+	ledgerItem, ok := l.get(id)
 	if ok && ledgerItem.index == index {
-		return ledgerItem, nil
+		return ledgerItem.ledger, nil
 	}
 
 	ledger := make(Ledger)
 
 	deltas, err := getRegisterDeltas()
 	if err != nil {
-		return LedgerCacheItem{}, errors.Wrap(err, "failed to load register deltas for project")
+		return nil, errors.Wrap(err, "failed to load register deltas for project")
 	}
+
+	fmt.Println(ledger)
+	fmt.Println(deltas)
 
 	for _, delta := range deltas {
 		ledger.ApplyDelta(delta.Delta)
 	}
 
-	ledgerItem = LedgerCacheItem{
+	l.Set(id, ledger, index)
+
+	return ledger, nil
+}
+
+func (l *LedgerCache) get(id uuid.UUID) (ledgerCacheItem, bool) {
+	ledger, ok := l.cache.Get(id)
+	if !ok {
+		return ledgerCacheItem{}, false
+	}
+
+	return ledger.(ledgerCacheItem), true
+}
+
+func (l *LedgerCache) Set(id uuid.UUID, ledger Ledger, index int) {
+	ledgerItem := ledgerCacheItem{
 		ledger: ledger,
 		index:  index,
 	}
 
-	l.Set(id, ledgerItem)
-
-	return ledgerItem, nil
-}
-
-func (l *LedgerCache) Get(id uuid.UUID) (LedgerCacheItem, bool) {
-	ledger, ok := l.cache.Get(id)
-	if !ok {
-		return LedgerCacheItem{}, false
-	}
-
-	return ledger.(LedgerCacheItem), true
-}
-
-func (l *LedgerCache) Set(id uuid.UUID, ledger LedgerCacheItem) {
-	l.cache.Add(id, ledger)
+	l.cache.Add(id, ledgerItem)
 }
 
 func (l *LedgerCache) Clear() {
