@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/datastore"
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -217,6 +218,27 @@ func (d *Datastore) UpdateProjectOwner(id, userID uuid.UUID) error {
 		}
 
 		proj.UserID = userID
+
+		_, err = tx.Put(proj.NameKey(), &proj)
+		return err
+	})
+
+	return txErr
+}
+
+func (d *Datastore) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		var proj model.InternalProject
+
+		err := tx.Get(model.ProjectNameKey(id), &proj)
+		if err != nil {
+			return err
+		}
+
+		proj.Version = version
 
 		_, err = tx.Put(proj.NameKey(), &proj)
 		return err
