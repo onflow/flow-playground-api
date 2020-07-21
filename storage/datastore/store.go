@@ -86,6 +86,26 @@ func (d *Datastore) delete(src DatastoreEntity) error {
 	return d.dsClient.Delete(ctx, src.NameKey())
 }
 
+func (d *Datastore) markProjectUpdatedAt(tx *datastore.Transaction, projectID uuid.UUID) error {
+	var proj model.InternalProject
+
+	key := model.ProjectNameKey(projectID)
+
+	err := tx.Get(model.ProjectNameKey(projectID), &proj)
+	if err != nil {
+		return err
+	}
+
+	proj.UpdatedAt = time.Now()
+
+	_, err = tx.Put(key, &proj)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Users
 
 func (d *Datastore) InsertUser(user *model.User) error {
@@ -148,6 +168,9 @@ func (d *Datastore) CreateProject(
 
 		}
 
+		proj.CreatedAt = time.Now()
+		proj.UpdatedAt = proj.CreatedAt
+
 		_, err := tx.PutMulti(keys, entitiesToPut)
 
 		return err
@@ -167,9 +190,13 @@ func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.Interna
 		if err != nil {
 			return err
 		}
+
 		if input.Persist != nil {
 			proj.Persist = *input.Persist
 		}
+
+		proj.UpdatedAt = time.Now()
+
 		_, err = tx.Put(proj.NameKey(), proj)
 		return err
 	})
@@ -279,6 +306,8 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 			keys = append(keys, regDelta.NameKey())
 		}
 
+		proj.UpdatedAt = time.Now()
+
 		// update project and new deltas count
 
 		_, err = tx.PutMulti(keys, entitiesToPut)
@@ -336,12 +365,13 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 
 	acc.ID = input.ID
 	acc.ProjectID = input.ProjectID
-	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		err := tx.Get(acc.NameKey(), acc)
 		if err != nil {
 			return err
 		}
+
 		if input.DraftCode != nil {
 			acc.DraftCode = *input.DraftCode
 		}
@@ -352,6 +382,11 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 
 		if input.DeployedContracts != nil {
 			acc.DeployedContracts = *input.DeployedContracts
+		}
+
+		err = d.markProjectUpdatedAt(tx, acc.ProjectID)
+		if err != nil {
+			return err
 		}
 
 		_, err = tx.Put(acc.NameKey(), acc)
@@ -372,12 +407,14 @@ func (d *Datastore) UpdateAccountAfterDeployment(
 
 	acc.ID = input.ID
 	acc.ProjectID = input.ProjectID
+
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(acc.NameKey(), acc)
 		if err != nil {
 			return err
 		}
+
 		if input.DraftCode != nil {
 			acc.DraftCode = *input.DraftCode
 		}
@@ -446,6 +483,8 @@ func (d *Datastore) UpdateAccountAfterDeployment(
 
 		proj.TransactionCount++
 
+		proj.UpdatedAt = time.Now()
+
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), regDelta.NameKey()},
 			[]interface{}{proj, regDelta},
@@ -463,7 +502,23 @@ func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.In
 }
 
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
-	return d.delete(&model.InternalAccount{ProjectChildID: id})
+	acc := model.InternalAccount{ProjectChildID: id}
+
+	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
+		err := tx.Delete(acc.NameKey())
+		if err != nil {
+			return err
+		}
+
+		err = d.markProjectUpdatedAt(tx, id.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return txErr
 }
 
 // Transaction Templates
@@ -477,12 +532,17 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 		proj := &model.InternalProject{
 			ID: tpl.ProjectID,
 		}
+
 		err := tx.Get(proj.NameKey(), proj)
 		if err != nil {
 			return err
 		}
+
 		tpl.Index = proj.TransactionTemplateCount
+
 		proj.TransactionTemplateCount++
+
+		proj.UpdatedAt = time.Now()
 
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
@@ -500,12 +560,14 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 
 	tpl.ID = input.ID
 	tpl.ProjectID = input.ProjectID
+
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
 		err := tx.Get(tpl.NameKey(), tpl)
 		if err != nil {
 			return err
 		}
+
 		if input.Index != nil {
 			tpl.Index = *input.Index
 		}
@@ -516,6 +578,11 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 
 		if input.Title != nil {
 			tpl.Title = *input.Title
+		}
+
+		err = d.markProjectUpdatedAt(tx, input.ProjectID)
+		if err != nil {
+			return err
 		}
 
 		_, err = tx.Put(tpl.NameKey(), tpl)
@@ -536,7 +603,23 @@ func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls 
 }
 
 func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
-	return d.delete(&model.TransactionTemplate{ProjectChildID: id})
+	ttpl := model.TransactionTemplate{ProjectChildID: id}
+
+	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
+		err := tx.Delete(ttpl.NameKey())
+		if err != nil {
+			return err
+		}
+
+		err = d.markProjectUpdatedAt(tx, id.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return txErr
 }
 
 // Transaction Executions
@@ -579,10 +662,12 @@ func (d *Datastore) InsertTransactionExecution(
 		proj := &model.InternalProject{
 			ID: exe.ProjectID,
 		}
+
 		err := tx.Get(proj.NameKey(), proj)
 		if err != nil {
 			return err
 		}
+
 		exe.Index = proj.TransactionExecutionCount
 
 		regDelta := &model.RegisterDelta{
@@ -593,6 +678,8 @@ func (d *Datastore) InsertTransactionExecution(
 
 		proj.TransactionExecutionCount++
 		proj.TransactionCount++
+
+		proj.UpdatedAt = time.Now()
 
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), exe.NameKey(), regDelta.NameKey()},
@@ -624,7 +711,10 @@ func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 			return err
 		}
 		tpl.Index = proj.ScriptTemplateCount
+
 		proj.ScriptTemplateCount++
+
+		proj.UpdatedAt = time.Now()
 
 		_, err = tx.PutMulti(
 			[]*datastore.Key{proj.NameKey(), tpl.NameKey()},
@@ -662,6 +752,11 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 			tpl.Title = *input.Title
 		}
 
+		err = d.markProjectUpdatedAt(tx, input.ProjectID)
+		if err != nil {
+			return err
+		}
+
 		_, err = tx.Put(tpl.NameKey(), tpl)
 		return err
 	})
@@ -680,13 +775,47 @@ func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*m
 }
 
 func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
-	return d.delete(&model.ScriptTemplate{ProjectChildID: id})
+	stpl := model.ScriptTemplate{ProjectChildID: id}
+
+	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
+		err := tx.Delete(stpl.NameKey())
+		if err != nil {
+			return err
+		}
+
+		err = d.markProjectUpdatedAt(tx, id.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return txErr
 }
 
 // Script Executions
 
 func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
-	return d.put(exe)
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		_, err := tx.Put(exe.NameKey(), exe)
+		if err != nil {
+			return err
+		}
+
+		err = d.markProjectUpdatedAt(tx, exe.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return txErr
 }
 
 func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
