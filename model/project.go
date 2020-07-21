@@ -1,7 +1,6 @@
 package model
 
 import (
-	"encoding/json"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -121,10 +120,10 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	}
 
 	if tmp.Version != nil && len(*tmp.Version) != 0 {
-		p.Version = new(semver.Version)
-
-		if err := json.Unmarshal([]byte(*tmp.Version), p.Version); err != nil {
-			return errors.Wrap(err, "failed to unmarshal project version")
+		var err error
+		p.Version, err = semver.NewVersion(*tmp.Version)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse project version")
 		}
 	}
 
@@ -150,12 +149,7 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 
 	version := new(string)
 	if p.Version != nil {
-		b, err := json.Marshal(p.Version)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to marshal project version")
-		}
-
-		*version = string(b)
+		*version = p.Version.String()
 	}
 
 	return []datastore.Property{
