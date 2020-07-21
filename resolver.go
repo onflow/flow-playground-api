@@ -371,15 +371,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
-	tpl := &model.ScriptTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: input.ProjectID,
-		},
-		Title:  input.Title,
-		Script: input.Script,
-	}
-
 	var proj model.InternalProject
 
 	err := r.projects.Get(input.ProjectID, &proj)
@@ -391,17 +382,15 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	err = r.store.InsertScriptTemplate(tpl)
+	tpl, err := r.scripts.CreateTemplate(proj.ID, input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to store script template")
+		return nil, errors.Wrap(err, "failed to create script template")
 	}
 
 	return tpl, nil
 }
 
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
-	var tpl model.ScriptTemplate
-
 	var proj model.InternalProject
 
 	err := r.projects.Get(input.ProjectID, &proj)
@@ -413,12 +402,38 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	err = r.store.UpdateScriptTemplate(input, &tpl)
+	var tpl model.ScriptTemplate
+
+	err = r.scripts.UpdateTemplate(input, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update script template")
 	}
 
 	return &tpl, nil
+}
+
+func (r *mutationResolver) DeleteScriptTemplate(
+	ctx context.Context,
+	id uuid.UUID,
+	projectID uuid.UUID,
+) (uuid.UUID, error) {
+	var proj model.InternalProject
+
+	err := r.projects.Get(projectID, &proj)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return uuid.Nil, err
+	}
+
+	err = r.scripts.DeleteTemplate(id, projectID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
 }
 
 func (r *mutationResolver) CreateScriptExecution(
@@ -442,26 +457,6 @@ func (r *mutationResolver) CreateScriptExecution(
 	}
 
 	return exe, nil
-}
-
-func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(projectID, &proj)
-	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
-		return uuid.Nil, err
-	}
-
-	err = r.store.DeleteScriptTemplate(model.NewProjectChildID(id, projectID))
-	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to delete script template")
-	}
-
-	return id, nil
 }
 
 type projectResolver struct{ *Resolver }
