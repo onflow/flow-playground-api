@@ -127,6 +127,7 @@ func (c *Computer) ExecuteScript(
 	}
 
 	result := ScriptResult{
+		Value:  proc.Value,
 		Err:    proc.Err,
 		Logs:   proc.Logs,
 		Events: proc.Events,
