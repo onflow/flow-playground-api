@@ -12,6 +12,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/vektah/gqlparser"
@@ -87,6 +88,7 @@ type ComplexityRoot struct {
 		Title                 func(childComplexity int) int
 		TransactionExecutions func(childComplexity int) int
 		TransactionTemplates  func(childComplexity int) int
+		Version               func(childComplexity int) int
 	}
 
 	Query struct {
@@ -445,6 +447,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Project.TransactionTemplates(childComplexity), true
 
+	case "Project.version":
+		if e.complexity.Project.Version == nil {
+			break
+		}
+
+		return e.complexity.Project.Version(childComplexity), true
+
 	case "Query.account":
 		if e.complexity.Query.Account == nil {
 			break
@@ -690,6 +699,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var parsedSchema = gqlparser.MustLoadSchema(
 	&ast.Source{Name: "schema.graphql", Input: `scalar UUID
 scalar Address
+scalar Version
 
 type Project {
   id: UUID!
@@ -697,6 +707,7 @@ type Project {
   parentId: UUID
   title: String!
   seed: Int!
+  version: Version!
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
@@ -2114,6 +2125,43 @@ func (ec *executionContext) _Project_seed(ctx context.Context, field graphql.Col
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Project_version(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Project",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*semver.Version)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNVersion2ᚖgithubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Project_persist(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -5019,6 +5067,11 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "version":
+			out.Values[i] = ec._Project_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "persist":
 			out.Values[i] = ec._Project_persist(ctx, field, obj)
 		case "mutable":
@@ -5916,6 +5969,38 @@ func (ec *executionContext) unmarshalNUpdateScriptTemplate2githubᚗcomᚋdapper
 
 func (ec *executionContext) unmarshalNUpdateTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐUpdateTransactionTemplate(ctx context.Context, v interface{}) (model.UpdateTransactionTemplate, error) {
 	return ec.unmarshalInputUpdateTransactionTemplate(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx context.Context, v interface{}) (semver.Version, error) {
+	return model.UnmarshalVersion(v)
+}
+
+func (ec *executionContext) marshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx context.Context, sel ast.SelectionSet, v semver.Version) graphql.Marshaler {
+	res := model.MarshalVersion(v)
+	if res == graphql.Null {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNVersion2ᚖgithubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx context.Context, v interface{}) (*semver.Version, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalNVersion2ᚖgithubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx context.Context, sel ast.SelectionSet, v *semver.Version) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec.marshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

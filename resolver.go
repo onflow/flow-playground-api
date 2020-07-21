@@ -3,6 +3,7 @@ package playground
 import (
 	"context"
 
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	flowgo "github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
@@ -21,14 +22,21 @@ import (
 const MaxAccounts = 4
 
 type Resolver struct {
+	version            *semver.Version
 	store              storage.Store
 	computer           *compute.Computer
 	auth               *auth.Authenticator
 	lastCreatedProject *model.InternalProject
 }
 
-func NewResolver(store storage.Store, computer *compute.Computer, auth *auth.Authenticator) *Resolver {
+func NewResolver(
+	version *semver.Version,
+	store storage.Store,
+	computer *compute.Computer,
+	auth *auth.Authenticator,
+) *Resolver {
 	return &Resolver{
+		version:  version,
 		store:    store,
 		computer: computer,
 		auth:     auth,
@@ -68,6 +76,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		Seed:     input.Seed,
 		Title:    input.Title,
 		Persist:  false,
+		Version:  r.version,
 	}
 
 	accounts, deltas, err := r.createInitialAccounts(proj.ID, MaxAccounts, input.Accounts)

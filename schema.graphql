@@ -1,5 +1,6 @@
 scalar UUID
 scalar Address
+scalar Version
 
 type Project {
   id: UUID!
@@ -7,6 +8,7 @@ type Project {
   parentId: UUID
   title: String!
   seed: Int!
+  version: Version!
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
