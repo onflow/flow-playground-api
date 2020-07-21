@@ -42,8 +42,9 @@ func TestV0ToV0_1_0(t *testing.T) {
 
 	assertAllAccountsExist(t, scripts, proj)
 
-	err = m.MigrateProject(proj.ID, proj.Version, migrate.V0_1_0)
+	migrated, err := m.MigrateProject(proj.ID, proj.Version, migrate.V0_1_0)
 	require.NoError(t, err)
+	assert.True(t, migrated)
 
 	assertAllAccountsExist(t, scripts, proj)
 }
