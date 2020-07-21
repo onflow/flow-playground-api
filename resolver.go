@@ -27,6 +27,7 @@ type Resolver struct {
 	computer           *compute.Computer
 	auth               *auth.Authenticator
 	projects           *controller.Projects
+	scripts            *controller.Scripts
 	lastCreatedProject *model.InternalProject
 }
 
@@ -37,6 +38,7 @@ func NewResolver(
 	auth *auth.Authenticator,
 ) *Resolver {
 	projects := controller.NewProjects(version, store, computer, MaxAccounts)
+	scripts := controller.NewScripts(store, computer)
 
 	return &Resolver{
 		version:  version,
@@ -44,6 +46,7 @@ func NewResolver(
 		computer: computer,
 		auth:     auth,
 		projects: projects,
+		scripts:  scripts,
 	}
 }
 
@@ -418,7 +421,10 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 	return &tpl, nil
 }
 
-func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
+func (r *mutationResolver) CreateScriptExecution(
+	ctx context.Context,
+	input model.NewScriptExecution,
+) (*model.ScriptExecution, error) {
 	var proj model.InternalProject
 
 	err := r.projects.Get(input.ProjectID, &proj)
@@ -426,55 +432,16 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if len(input.Script) == 0 {
-		return nil, errors.New("cannot execute empty script")
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
 	}
 
-	result, err := r.computer.ExecuteScript(
-		input.ProjectID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
-
-			return deltas, nil
-		},
-		input.Script,
-	)
+	exe, err := r.scripts.CreateExecution(&proj, input.Script)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute script")
+		return nil, err
 	}
 
-	exe := model.ScriptExecution{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: input.ProjectID,
-		},
-		Script: input.Script,
-		Logs:   result.Logs,
-	}
-
-	if result.Err != nil {
-		runtimeErr := result.Err.Error()
-		exe.Error = &runtimeErr
-	} else {
-		enc, err := jsoncdc.Encode(result.Value)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
-		}
-
-		exe.Value = string(enc)
-	}
-
-	err = r.store.InsertScriptExecution(&exe)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert script execution record")
-	}
-
-	return &exe, nil
+	return exe, nil
 }
 
 func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
