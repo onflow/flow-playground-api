@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/datastore v1.1.0
 	github.com/99designs/gqlgen v0.10.2
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
+	github.com/Masterminds/semver v1.5.0
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/dapperlabs/flow-go v0.4.1-0.20200715000659-cdd852a8bac8
 	github.com/dapperlabs/flow-go/crypto v0.3.2-0.20200706223454-3d945eae1b63 // indirect
