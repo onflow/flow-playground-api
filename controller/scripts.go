@@ -25,6 +25,42 @@ func NewScripts(
 	}
 }
 
+func (s *Scripts) CreateTemplate(projectID uuid.UUID, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
+	tpl := model.ScriptTemplate{
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+		},
+		Title:  input.Title,
+		Script: input.Script,
+	}
+
+	err := s.store.InsertScriptTemplate(&tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to store script template")
+	}
+
+	return &tpl, nil
+}
+
+func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
+	err := s.store.UpdateScriptTemplate(input, tpl)
+	if err != nil {
+		return errors.Wrap(err, "failed to update script template")
+	}
+
+	return nil
+}
+
+func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
+	err := s.store.DeleteScriptTemplate(model.NewProjectChildID(scriptID, projectID))
+	if err != nil {
+		return errors.Wrap(err, "failed to delete script template")
+	}
+
+	return nil
+}
+
 func (s *Scripts) CreateExecution(proj *model.InternalProject, script string) (*model.ScriptExecution, error) {
 	if len(script) == 0 {
 		return nil, errors.New("cannot execute empty script")
