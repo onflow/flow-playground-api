@@ -15,6 +15,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -26,6 +27,7 @@ type Resolver struct {
 	store              storage.Store
 	computer           *compute.Computer
 	auth               *auth.Authenticator
+	migrator           *migrate.Migrator
 	projects           *controller.Projects
 	scripts            *controller.Scripts
 	lastCreatedProject *model.InternalProject
@@ -532,6 +534,22 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return proj.ExportPublicImmutable(), nil
+	}
+
+	// only migrate if current user has access to this project
+
+	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to migrate project")
+	}
+
+	// reload project if needed
+
+	if migrated {
+		err := r.projects.Get(id, &proj)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get project")
+		}
 	}
 
 	return proj.ExportPublicMutable(), nil
