@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/handler"
+	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,7 @@ type Project struct {
 	Title    string
 	Seed     int
 	Persist  bool
+	Version  string
 	Accounts []struct {
 		ID        string
 		Address   string
@@ -48,6 +50,7 @@ mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplat
     title
     seed
     persist
+    version
     accounts {
       id
       address
@@ -398,6 +401,7 @@ func TestProjects(t *testing.T) {
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
 		assert.Equal(t, 42, resp.CreateProject.Seed)
+		assert.Equal(t, version.String(), resp.CreateProject.Version)
 
 		// project should be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
@@ -951,7 +955,7 @@ func TestTransactionExecutions(t *testing.T) {
 		store := memory.NewStore()
 		computer, _ := compute.NewComputer(128)
 		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(store, computer, authenticator)
+		resolver := playground.NewResolver(version, store, computer, authenticator)
 
 		c := newClientWithResolver(resolver)
 
@@ -1738,6 +1742,8 @@ func (c *Client) ClearSessionCookie() {
 
 const sessionName = "flow-playground-test"
 
+var version, _ = semver.NewVersion("0.1.0")
+
 func newClient() *Client {
 	var store storage.Store
 
@@ -1761,7 +1767,7 @@ func newClient() *Client {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	resolver := playground.NewResolver(store, computer, authenticator)
+	resolver := playground.NewResolver(version, store, computer, authenticator)
 
 	return newClientWithResolver(resolver)
 }

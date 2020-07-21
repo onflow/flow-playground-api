@@ -41,6 +41,7 @@ func (p *InternalProject) ExportPublicMutable() *Project {
 		ParentID: p.ParentID,
 		Persist:  p.Persist,
 		Seed:     p.Seed,
+		Version:  p.Version,
 		Mutable:  true,
 	}
 }
@@ -54,6 +55,7 @@ func (p *InternalProject) ExportPublicImmutable() *Project {
 		ParentID: p.ParentID,
 		Persist:  p.Persist,
 		Seed:     p.Seed,
+		Version:  p.Version,
 		Mutable:  false,
 	}
 }
@@ -225,6 +227,7 @@ type Project struct {
 	PublicID uuid.UUID
 	ParentID *uuid.UUID
 	Seed     int
+	Version  *semver.Version
 	Title    string
 	Persist  bool
 	Mutable  bool

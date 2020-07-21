@@ -10,6 +10,7 @@ import (
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
+	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	gsessions "github.com/gorilla/sessions"
@@ -48,6 +49,8 @@ type DatastoreConfig struct {
 }
 
 const sessionName = "flow-playground"
+
+var version, _ = semver.NewVersion("0.1.0")
 
 func main() {
 	var conf Config
@@ -90,7 +93,7 @@ func main() {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	resolver := playground.NewResolver(store, computer, authenticator)
+	resolver := playground.NewResolver(version, store, computer, authenticator)
 
 	// Register gql metrics
 	prometheus.Register()
