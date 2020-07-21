@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
 
@@ -148,6 +149,22 @@ func (s *Store) UpdateProjectOwner(id, userID uuid.UUID) error {
 	}
 
 	p.UserID = userID
+
+	s.projects[id] = p
+
+	return nil
+}
+
+func (s *Store) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	p, ok := s.projects[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	p.Version = version
 
 	s.projects[id] = p
 

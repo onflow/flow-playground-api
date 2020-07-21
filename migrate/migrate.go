@@ -50,15 +50,27 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 //
 // Steps:
 // - 1. Reset project state and recreate initial accounts
+// - 2. Update project version tag
 func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	proj := model.InternalProject{
 		ID: id,
 	}
 
-	// Step 1/1
+	// TODO:
+	//  Update storage interface to allow atomic transactions.
+	//  Ideally the project state should be wiped and the version incremented in the
+	//  same transaction.
+
+	// Step 1/2
 	err := m.projects.Reset(&proj)
 	if err != nil {
 		return errors.Wrap(err, "failed to reset project state")
+	}
+
+	// Step 2/2
+	err = m.projects.UpdateVersion(id, V0_1_0)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project version")
 	}
 
 	return nil

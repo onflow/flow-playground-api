@@ -53,11 +53,18 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 		proj, err := c.projects.Create(&user, model.NewProject{})
 		require.NoError(t, err)
 
+		assert.Equal(t, migrate.V0, proj.Version)
+
 		assertAllAccountsExist(t, c.scripts, proj)
 
 		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, migrate.V0_1_0)
 		require.NoError(t, err)
 		assert.True(t, migrated)
+
+		err = c.projects.Get(proj.ID, proj)
+		require.NoError(t, err)
+
+		assert.Equal(t, migrate.V0_1_0, proj.Version)
 
 		assertAllAccountsExist(t, c.scripts, proj)
 	})(t)

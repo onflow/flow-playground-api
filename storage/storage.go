@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
 
@@ -22,6 +23,7 @@ type Store interface {
 	) error
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
+	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
 	ResetProjectState(newDeltas []delta.Delta, proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 

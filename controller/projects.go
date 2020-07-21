@@ -187,6 +187,15 @@ func (p *Projects) Update(input model.UpdateProject, proj *model.InternalProject
 	return nil
 }
 
+func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
+	err := p.store.UpdateProjectVersion(id, version)
+	if err != nil {
+		return errors.Wrap(err, "failed to save project version")
+	}
+
+	return nil
+}
+
 func (p *Projects) Reset(proj *model.InternalProject) error {
 	_, deltas, err := p.deployInitialAccounts(proj.ID)
 	if err != nil {
