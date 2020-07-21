@@ -38,12 +38,15 @@ func NewResolver(store storage.Store, computer *compute.Computer, auth *auth.Aut
 func (r *Resolver) Mutation() MutationResolver {
 	return &mutationResolver{r}
 }
+
 func (r *Resolver) Project() ProjectResolver {
 	return &projectResolver{r}
 }
+
 func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
+
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
