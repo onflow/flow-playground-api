@@ -100,8 +100,8 @@ func migrateTest(f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 }
 
 func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *model.InternalProject) {
-	for i := 0; i < numAccounts; i++ {
-		script := fmt.Sprintf(`pub fun main() { getAccount(0x0%d) }`, i+1)
+	for i := 1; i <= numAccounts; i++ {
+		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 
 		result, err := scripts.CreateExecution(proj, script)
 		require.NoError(t, err)
