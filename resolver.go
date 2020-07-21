@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	flowgo "github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/compute"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -26,6 +26,7 @@ type Resolver struct {
 	store              storage.Store
 	computer           *compute.Computer
 	auth               *auth.Authenticator
+	projects           *controller.Projects
 	lastCreatedProject *model.InternalProject
 }
 
@@ -35,11 +36,14 @@ func NewResolver(
 	computer *compute.Computer,
 	auth *auth.Authenticator,
 ) *Resolver {
+	projects := controller.NewProjects(version, store, computer, MaxAccounts)
+
 	return &Resolver{
 		version:  version,
 		store:    store,
 		computer: computer,
 		auth:     auth,
+		projects: projects,
 	}
 }
 
@@ -68,62 +72,14 @@ type mutationResolver struct {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	proj := &model.InternalProject{
-		ID:       uuid.New(),
-		Secret:   uuid.New(),
-		PublicID: uuid.New(),
-		ParentID: input.ParentID,
-		Seed:     input.Seed,
-		Title:    input.Title,
-		Persist:  false,
-		Version:  r.version,
-	}
-
-	accounts, deltas, err := r.createInitialAccounts(proj.ID, MaxAccounts, input.Accounts)
-	if err != nil {
-		return nil, err
-	}
-
-	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
-
-	for i, tpl := range input.TransactionTemplates {
-		ttpl := &model.TransactionTemplate{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Title:  tpl.Title,
-			Script: tpl.Script,
-		}
-
-		ttpls[i] = ttpl
-	}
-
-	stpls := make([]*model.ScriptTemplate, len(input.ScriptTemplates))
-
-	for i, tpl := range input.ScriptTemplates {
-		stpl := &model.ScriptTemplate{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Title:  tpl.Title,
-			Script: tpl.Script,
-		}
-
-		stpls[i] = stpl
-	}
-
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
 	}
 
-	proj.UserID = user.ID
-
-	err = r.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	proj, err := r.projects.Create(user, input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create project")
+		return nil, err
 	}
 
 	r.lastCreatedProject = proj
@@ -134,7 +90,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ID, &proj)
+	err := r.projects.Get(input.ID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -143,7 +99,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, err
 	}
 
-	err = r.store.UpdateProject(input, &proj)
+	err = r.projects.Update(input, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update project")
 	}
@@ -155,7 +111,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -182,7 +138,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	// Redeploy: clear all state
 	if acc.DeployedCode != "" {
-		err := r.resetProject(&proj, MaxAccounts)
+		err := r.projects.Reset(&proj)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
 		}
@@ -234,102 +190,6 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	return acc.Export(), nil
 }
 
-func (r *mutationResolver) resetProject(proj *model.InternalProject, numAccounts int) error {
-	_, deltas, err := r.deployInitialAccounts(proj.ID, numAccounts)
-	if err != nil {
-		return err
-	}
-
-	err = r.store.ResetProjectState(deltas, proj)
-	if err != nil {
-		return err
-	}
-
-	r.computer.ClearCacheForProject(proj.ID)
-
-	return nil
-}
-
-func (r *mutationResolver) createInitialAccounts(
-	projectID uuid.UUID,
-	numAccounts int,
-	initialContracts []string,
-) ([]*model.InternalAccount, []delta.Delta, error) {
-
-	addresses, deltas, err := r.deployInitialAccounts(projectID, numAccounts)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	accounts := make([]*model.InternalAccount, len(addresses))
-
-	for i, address := range addresses {
-		account := model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: projectID,
-			},
-			Index:   i,
-			Address: address,
-			State:   make(model.AccountState),
-		}
-
-		if i < len(initialContracts) {
-			account.DraftCode = initialContracts[i]
-		}
-
-		accounts[i] = &account
-	}
-
-	return accounts, deltas, nil
-}
-
-func (r *mutationResolver) deployInitialAccounts(
-	projectID uuid.UUID,
-	numAccounts int,
-) ([]model.Address, []delta.Delta, error) {
-
-	addresses := make([]model.Address, numAccounts)
-	deltas := make([]delta.Delta, numAccounts)
-	regDeltas := make([]*model.RegisterDelta, 0)
-
-	for i := 0; i < numAccounts; i++ {
-
-		payer := flow.HexToAddress("01")
-
-		tx := templates.CreateAccount(nil, nil, payer)
-
-		result, err := r.computer.ExecuteTransaction(
-			projectID,
-			i,
-			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
-			toTransactionBody(tx),
-		)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to deploy account code")
-		}
-
-		if result.Err != nil {
-			return nil, nil, errors.Wrap(result.Err, "failed to deploy account code")
-		}
-
-		deltas[i] = result.Delta
-
-		regDeltas = append(regDeltas, &model.RegisterDelta{
-			ProjectID: projectID,
-			Index:     i,
-			Delta:     result.Delta,
-		})
-
-		addressValue := result.Events[0].Fields[0].(cadence.Address)
-		address := model.NewAddressFromBytes(addressValue.Bytes())
-
-		addresses[i] = address
-	}
-
-	return addresses, deltas, nil
-}
-
 func (r *mutationResolver) getAccountStates(
 	projectID uuid.UUID,
 	newStates compute.AccountStates,
@@ -371,7 +231,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -393,7 +253,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -413,7 +273,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(projectID, &proj)
+	err := r.projects.Get(projectID, &proj)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
@@ -436,7 +296,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 ) (*model.TransactionExecution, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -519,7 +379,7 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -541,7 +401,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -561,7 +421,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input model.NewScriptExecution) (*model.ScriptExecution, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(input.ProjectID, &proj)
+	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -620,7 +480,7 @@ func (r *mutationResolver) CreateScriptExecution(ctx context.Context, input mode
 func (r *mutationResolver) DeleteScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(projectID, &proj)
+	err := r.projects.Get(projectID, &proj)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
 	}
@@ -703,7 +563,7 @@ type queryResolver struct{ *Resolver }
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
 	var proj model.InternalProject
 
-	err := r.store.GetProject(id, &proj)
+	err := r.projects.Get(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
