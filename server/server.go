@@ -21,6 +21,7 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
@@ -49,8 +50,6 @@ type DatastoreConfig struct {
 }
 
 const sessionName = "flow-playground"
-
-var version, _ = semver.NewVersion("0.1.0")
 
 func main() {
 	var conf Config
@@ -93,7 +92,7 @@ func main() {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	resolver := playground.NewResolver(version, store, computer, authenticator)
+	resolver := playground.NewResolver(build.Version(), store, computer, authenticator)
 
 	// Register gql metrics
 	prometheus.Register()
@@ -141,11 +140,21 @@ func main() {
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
 
-	log.Printf("connect to http://localhost:%d/ for GraphQL playground", conf.Port)
+	logStartMessage(build.Version())
+
+	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", conf.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	w.Write([]byte("ok"))
+}
+
+func logStartMessage(version *semver.Version) {
+	if version != nil {
+		log.Printf("Starting Playground API (Version %s)", version)
+	} else {
+		log.Print("Starting Playground API")
+	}
 }
