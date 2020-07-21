@@ -1,4 +1,5 @@
 SHORT_COMMIT := $(shell git rev-parse --short HEAD)
+VERSION := $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
 CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
@@ -27,6 +28,26 @@ run-datastore:
 .PHONY: docker-build
 docker-build:
 	DOCKER_BUILDKIT=1 docker build --ssh default -t gcr.io/dl-flow/playground-api:latest -t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
+docker-build: docker-build-unversioned
+else
+docker-build: docker-build-versioned
+endif
+
+.PHONY: docker-build-unversioned
+docker-build-unversioned:
+	DOCKER_BUILDKIT=1 docker build \
+		--ssh default \
+		-t gcr.io/dl-flow/playground-api:latest \
+		-t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
+
+.PHONY: docker-build-versioned
+docker-build-versioned:
+	DOCKER_BUILDKIT=1 docker build \
+		--ssh default \
+		--build-arg VERSION=$(VERSION) \
+		-t gcr.io/dl-flow/playground-api:latest \
+		-t "gcr.io/dl-flow/playground-api:$(VERSION)" \
+		-t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
 
 .PHONY: docker-push
 docker-push:

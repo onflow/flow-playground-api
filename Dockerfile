@@ -3,6 +3,8 @@
 ## (1) Build the app binary
 FROM golang:1.13 AS build-app
 
+ARG VERSION
+
 # add the pubkey of github.com to knownhosts, so ssh-agent doesn't bark
 RUN mkdir -p /root/.ssh && ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
 RUN git config --global 'url.ssh://git@github.com/.insteadof' https://github.com/
@@ -19,7 +21,10 @@ COPY . .
 RUN --mount=type=ssh \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    GO111MODULE=on GOOS=linux GOARCH=amd64 go build -ldflags "-extldflags -static" -o ./app ./server
+    GO111MODULE=on GOOS=linux GOARCH=amd64 \
+    go build \
+    -ldflags "-extldflags -static -X github.com/dapperlabs/flow-playground-api/build.version=${VERSION}" \
+    -o ./app ./server
 
 RUN chmod a+x /app/app
 
