@@ -1,7 +1,11 @@
 package model
 
 import (
+	"encoding/json"
+	"time"
+
 	"cloud.google.com/go/datastore"
+	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -19,6 +23,9 @@ type InternalProject struct {
 	TransactionTemplateCount  int
 	ScriptTemplateCount       int
 	Persist                   bool
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
+	Version                   *semver.Version
 }
 
 func (p *InternalProject) IsOwnedBy(userID uuid.UUID) bool {
@@ -73,6 +80,9 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 		TransactionTemplateCount  int
 		ScriptTemplateCount       int
 		Persist                   bool
+		CreatedAt                 time.Time
+		UpdatedAt                 time.Time
+		Version                   *string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -108,6 +118,14 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 		p.ParentID = nil
 	}
 
+	if tmp.Version != nil && len(*tmp.Version) != 0 {
+		p.Version = new(semver.Version)
+
+		if err := json.Unmarshal([]byte(*tmp.Version), p.Version); err != nil {
+			return errors.Wrap(err, "failed to unmarshal project version")
+		}
+	}
+
 	p.Title = tmp.Title
 	p.Seed = tmp.Seed
 	p.TransactionCount = tmp.TransactionCount
@@ -116,6 +134,9 @@ func (p *InternalProject) Load(ps []datastore.Property) error {
 	p.ScriptTemplateCount = tmp.ScriptTemplateCount
 	p.Persist = tmp.Persist
 
+	p.CreatedAt = tmp.CreatedAt
+	p.UpdatedAt = tmp.UpdatedAt
+
 	return nil
 }
 
@@ -123,6 +144,16 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 	parentID := new(string)
 	if p.ParentID != nil {
 		*parentID = (*p.ParentID).String()
+	}
+
+	version := new(string)
+	if p.Version != nil {
+		b, err := json.Marshal(p.Version)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal project version")
+		}
+
+		*version = string(b)
 	}
 
 	return []datastore.Property{
@@ -173,6 +204,18 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 		{
 			Name:  "Persist",
 			Value: p.Persist,
+		},
+		{
+			Name:  "CreatedAt",
+			Value: p.CreatedAt,
+		},
+		{
+			Name:  "UpdatedAt",
+			Value: p.UpdatedAt,
+		},
+		{
+			Name:  "Version",
+			Value: version,
 		},
 	}, nil
 }
