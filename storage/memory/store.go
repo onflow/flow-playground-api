@@ -3,6 +3,7 @@ package memory
 import (
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/google/uuid"
@@ -64,7 +65,8 @@ func (s *Store) CreateProject(
 	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
-	stpls []*model.ScriptTemplate) error {
+	stpls []*model.ScriptTemplate,
+) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -100,6 +102,9 @@ func (s *Store) CreateProject(
 }
 
 func (s *Store) insertProject(proj *model.InternalProject) error {
+	proj.CreatedAt = time.Now()
+	proj.UpdatedAt = proj.CreatedAt
+
 	s.projects[proj.ID] = *proj
 	return nil
 }
@@ -124,6 +129,11 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 	s.projects[input.ID] = p
 
 	*proj = p
+
+	err := s.markProjectUpdatedAt(input.ID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -158,6 +168,19 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	return nil
 }
 
+func (s *Store) markProjectUpdatedAt(id uuid.UUID) error {
+	p, ok := s.projects[id]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	p.UpdatedAt = time.Now()
+
+	s.projects[id] = p
+
+	return nil
+}
+
 func (s *Store) InsertAccount(acc *model.InternalAccount) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
@@ -167,6 +190,12 @@ func (s *Store) InsertAccount(acc *model.InternalAccount) error {
 
 func (s *Store) insertAccount(acc *model.InternalAccount) error {
 	s.accounts[acc.ID] = *acc
+
+	err := s.markProjectUpdatedAt(acc.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -213,6 +242,11 @@ func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAcco
 
 	*acc = a
 
+	err := s.markProjectUpdatedAt(a.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -246,10 +280,16 @@ func (s *Store) UpdateAccountAfterDeployment(
 }
 
 func (s *Store) updateAccountState(id uuid.UUID, state model.AccountState) error {
-	account := s.accounts[id]
-	account.State = state
+	a := s.accounts[id]
 
-	s.accounts[id] = account
+	a.State = state
+
+	s.accounts[id] = a
+
+	err := s.markProjectUpdatedAt(a.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -290,6 +330,11 @@ func (s *Store) DeleteAccount(id model.ProjectChildID) error {
 
 	delete(s.accounts, id.ID)
 
+	err := s.markProjectUpdatedAt(id.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -313,6 +358,11 @@ func (s *Store) insertTransactionTemplate(tpl *model.TransactionTemplate) error 
 	tpl.Index = count
 
 	s.transactionTemplates[tpl.ID] = *tpl
+
+	err = s.markProjectUpdatedAt(tpl.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -344,6 +394,11 @@ func (s *Store) UpdateTransactionTemplate(
 	s.transactionTemplates[input.ID] = t
 
 	*tpl = t
+
+	err := s.markProjectUpdatedAt(t.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -398,6 +453,11 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 	delete(s.transactionTemplates, id.ID)
 
+	err := s.markProjectUpdatedAt(id.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -430,6 +490,11 @@ func (s *Store) InsertTransactionExecution(
 	}
 
 	err = s.insertRegisterDelta(exe.ProjectID, delta, false)
+	if err != nil {
+		return err
+	}
+
+	err = s.markProjectUpdatedAt(exe.ProjectID)
 	if err != nil {
 		return err
 	}
@@ -483,6 +548,11 @@ func (s *Store) insertScriptTemplate(tpl *model.ScriptTemplate) error {
 
 	s.scriptTemplates[tpl.ID] = *tpl
 
+	err = s.markProjectUpdatedAt(tpl.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -513,6 +583,11 @@ func (s *Store) UpdateScriptTemplate(
 	s.scriptTemplates[input.ID] = t
 
 	*tpl = t
+
+	err := s.markProjectUpdatedAt(t.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -567,6 +642,11 @@ func (s *Store) DeleteScriptTemplate(id model.ProjectChildID) error {
 
 	delete(s.scriptTemplates, id.ID)
 
+	err := s.markProjectUpdatedAt(id.ProjectID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -586,6 +666,11 @@ func (s *Store) InsertScriptExecution(exe *model.ScriptExecution) error {
 	exe.Index = count
 
 	s.scriptExecutions[exe.ID] = *exe
+
+	err = s.markProjectUpdatedAt(exe.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -713,6 +798,11 @@ func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalP
 		}
 
 		delete(s.scriptExecutions, scriptExecutionID)
+	}
+
+	err := s.markProjectUpdatedAt(proj.ID)
+	if err != nil {
+		return err
 	}
 
 	return nil
