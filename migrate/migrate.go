@@ -26,22 +26,24 @@ func NewMigrator(projects *controller.Projects) *Migrator {
 //
 // This function only support projects upgrades (from lower to higher version). Project
 // downgrades are not yet supported.
-func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) error {
+//
+// This function returns a boolean indicating whether or not the project was migrated.
+func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool, error) {
 	from = sanitizeVersion(from)
 	to = sanitizeVersion(to)
 
 	if !from.LessThan(to) {
-		return nil
+		return false, nil
 	}
 
 	if from.LessThan(V0_1_0) {
 		err := m.migrateToV0_1_0(id)
 		if err != nil {
-			return errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
+			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 // migrateToV0_1_0 migrates a project from v0.0.0 to v0.1.0.
