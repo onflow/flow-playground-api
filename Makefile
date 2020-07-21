@@ -27,7 +27,7 @@ run-datastore:
 
 .PHONY: docker-build
 docker-build:
-	DOCKER_BUILDKIT=1 docker build --ssh default -t gcr.io/dl-flow/playground-api:latest -t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
+ifeq ($(VERSION),)
 docker-build: docker-build-unversioned
 else
 docker-build: docker-build-versioned
