@@ -41,12 +41,14 @@ func NewResolver(
 ) *Resolver {
 	projects := controller.NewProjects(version, store, computer, MaxAccounts)
 	scripts := controller.NewScripts(store, computer)
+	migrator := migrate.NewMigrator(projects)
 
 	return &Resolver{
 		version:  version,
 		store:    store,
 		computer: computer,
 		auth:     auth,
+		migrator: migrator,
 		projects: projects,
 		scripts:  scripts,
 	}
