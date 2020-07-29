@@ -11,9 +11,11 @@ type AccountState map[string]cadence.Value
 
 func (a AccountState) MarshalJSON() ([]byte, error) {
 	m := make(serializableAccountState, len(a))
+
 	for key, value := range a {
 		m[key] = serializableCadenceValue{Value: value}
 	}
+
 	return json.Marshal(m)
 }
 
@@ -39,13 +41,21 @@ type serializableCadenceValue struct {
 }
 
 func (v serializableCadenceValue) MarshalJSON() ([]byte, error) {
+	if v.Value == nil {
+		return json.Marshal(nil)
+	}
+
 	return jsoncdc.Encode(v.Value)
 }
 
 func (v *serializableCadenceValue) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		return nil
+	}
+
 	value, err := jsoncdc.Decode(data)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	v.Value = value
