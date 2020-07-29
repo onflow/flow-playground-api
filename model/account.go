@@ -58,9 +58,10 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	// Some entries may still be storing gob-encoded state. Only attempt to decode if state
 	// is valid JSON.
 	if json.Valid(state) {
-		if err := json.Unmarshal(state, &a.State); err != nil {
-			return errors.Wrap(err, "failed to decode State")
-		}
+		// We ignore the unmarshalling error because an old account may store data not stored
+		// as JSON-CDC.
+		// TODO: Remove need to ignore this error
+		_ = json.Unmarshal(state, &a.State)
 	}
 
 	a.Index = tmp.Index
