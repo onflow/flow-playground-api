@@ -18,7 +18,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/onflow/cadence v0.6.1-0.20200729003358-bf2e54d03a71
+	github.com/onflow/cadence v0.7.0
 	github.com/onflow/flow-go-sdk v0.8.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.3.0
