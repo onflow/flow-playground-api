@@ -43,6 +43,12 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		}
 	}
 
+	// If no migration steps are left, set project version to latest.
+	err := m.setProjectVersion(id, to)
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -69,6 +75,15 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 
 	// Step 2/2
 	err = m.projects.UpdateVersion(id, V0_1_0)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project version")
+	}
+
+	return nil
+}
+
+func (m *Migrator) setProjectVersion(id uuid.UUID, version *semver.Version) error {
+	err := m.projects.UpdateVersion(id, version)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project version")
 	}
