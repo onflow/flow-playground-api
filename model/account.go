@@ -167,9 +167,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 		return nil, err
 	}
 
-	if encoded != "" {
-		exported.State = encoded
-	}
+	exported.State = encoded
 
 	return exported, nil
 }
