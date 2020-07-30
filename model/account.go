@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
@@ -15,7 +16,41 @@ type InternalAccount struct {
 	DraftCode         string
 	DeployedCode      string
 	DeployedContracts []string
-	State             AccountState
+	marshalledState   string
+	unmarshalledState AccountState
+}
+
+func (a *InternalAccount) State() (AccountState, error) {
+	if a.unmarshalledState != nil {
+		return a.unmarshalledState, nil
+	}
+
+	state := []byte(a.marshalledState)
+
+	err := json.Unmarshal(state, &a.unmarshalledState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal account state: %w", err)
+	}
+
+	return a.unmarshalledState, nil
+}
+
+func (a *InternalAccount) SetState(state AccountState) {
+	a.marshalledState = ""
+	a.unmarshalledState = state
+}
+
+func (a *InternalAccount) marshalAccountState() (string, error) {
+	if a.marshalledState != "" {
+		return a.marshalledState, nil
+	}
+
+	stateBytes, err := json.Marshal(a.unmarshalledState)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal account state: %w", err)
+	}
+
+	return string(stateBytes), nil
 }
 
 type UpdateAccount struct {
@@ -49,19 +84,9 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	if err := a.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
 	}
+
 	if err := a.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode UUID")
-	}
-
-	state := []byte(tmp.State)
-
-	// Some entries may still be storing gob-encoded state. Only attempt to decode if state
-	// is valid JSON.
-	if json.Valid(state) {
-		// We ignore the unmarshalling error because an old account may store data not stored
-		// as JSON-CDC.
-		// TODO: Remove need to ignore this error
-		_ = json.Unmarshal(state, &a.State)
 	}
 
 	a.Index = tmp.Index
@@ -69,11 +94,12 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	a.DraftCode = tmp.DraftCode
 	a.DeployedCode = tmp.DeployedCode
 	a.DeployedContracts = tmp.DeployedContracts
+	a.marshalledState = tmp.State
 	return nil
 }
 
 func (a *InternalAccount) Save() ([]datastore.Property, error) {
-	state, err := json.Marshal(a.State)
+	marshalledState, err := a.marshalAccountState()
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +142,7 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:    "State",
-			Value:   string(state),
+			Value:   marshalledState,
 			NoIndex: true,
 		},
 	}, nil
@@ -144,20 +170,11 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 		return nil, err
 	}
 
-	if encoded != nil {
-		exported.State = string(encoded)
+	if encoded != "" {
+		exported.State = encoded
 	}
 
 	return exported, nil
-}
-
-func (a *InternalAccount) marshalAccountState() ([]byte, error) {
-	encoded, err := json.Marshal(a.State)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to encode to JSON")
-	}
-
-	return encoded, nil
 }
 
 type Account struct {

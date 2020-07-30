@@ -216,11 +216,16 @@ func (r *mutationResolver) getAccountStates(
 			continue
 		}
 
-		for key, value := range stateDelta {
-			account.State[key] = value
+		state, err := account.State()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get account state")
 		}
 
-		states[account.ID] = account.State
+		for key, value := range stateDelta {
+			state[key] = value
+		}
+
+		states[account.ID] = state
 	}
 
 	return states, nil
