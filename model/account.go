@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
@@ -21,15 +20,13 @@ type InternalAccount struct {
 }
 
 func (a *InternalAccount) State() (AccountState, error) {
-	if a.unmarshalledState != nil {
-		return a.unmarshalledState, nil
-	}
+	if a.unmarshalledState == nil {
+		state := []byte(a.marshalledState)
 
-	state := []byte(a.marshalledState)
-
-	err := json.Unmarshal(state, &a.unmarshalledState)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal account state: %w", err)
+		err := json.Unmarshal(state, &a.unmarshalledState)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to unmarshal account state")
+		}
 	}
 
 	return a.unmarshalledState, nil
@@ -40,17 +37,17 @@ func (a *InternalAccount) SetState(state AccountState) {
 	a.unmarshalledState = state
 }
 
-func (a *InternalAccount) marshalAccountState() (string, error) {
-	if a.marshalledState != "" {
-		return a.marshalledState, nil
+func (a *InternalAccount) marshalState() (string, error) {
+	if a.marshalledState == "" {
+		stateBytes, err := json.Marshal(a.unmarshalledState)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to marshal account state")
+		}
+
+		a.marshalledState = string(stateBytes)
 	}
 
-	stateBytes, err := json.Marshal(a.unmarshalledState)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal account state: %w", err)
-	}
-
-	return string(stateBytes), nil
+	return a.marshalledState, nil
 }
 
 type UpdateAccount struct {
@@ -99,7 +96,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 }
 
 func (a *InternalAccount) Save() ([]datastore.Property, error) {
-	marshalledState, err := a.marshalAccountState()
+	marshalledState, err := a.marshalState()
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +162,7 @@ func (a *InternalAccount) ExportWithJSONState() (*Account, error) {
 
 	exported := a.Export()
 
-	encoded, err := a.marshalAccountState()
+	encoded, err := a.marshalState()
 	if err != nil {
 		return nil, err
 	}
