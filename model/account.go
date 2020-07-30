@@ -91,7 +91,10 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	a.DraftCode = tmp.DraftCode
 	a.DeployedCode = tmp.DeployedCode
 	a.DeployedContracts = tmp.DeployedContracts
+
 	a.marshalledState = tmp.State
+	a.unmarshalledState = nil
+
 	return nil
 }
 
