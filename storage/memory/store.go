@@ -299,7 +299,7 @@ func (s *Store) UpdateAccountAfterDeployment(
 func (s *Store) updateAccountState(id uuid.UUID, state model.AccountState) error {
 	a := s.accounts[id]
 
-	a.State = state
+	a.SetState(state)
 
 	s.accounts[id] = a
 

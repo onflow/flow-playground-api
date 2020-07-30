@@ -291,7 +291,7 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 		for _, acc := range accs {
 			acc.DeployedCode = ""
 			acc.DeployedContracts = nil
-			acc.State = make(model.AccountState)
+			acc.SetState(make(model.AccountState))
 
 			_, err = tx.Put(acc.NameKey(), acc)
 			if err != nil {
@@ -451,7 +451,7 @@ func (d *Datastore) UpdateAccountAfterDeployment(
 
 		state, ok := states[acc.ID]
 		if ok {
-			acc.State = state
+			acc.SetState(state)
 		}
 
 		_, err = tx.Put(acc.NameKey(), acc)
@@ -478,7 +478,7 @@ func (d *Datastore) UpdateAccountAfterDeployment(
 				return err
 			}
 
-			acc.State = state
+			acc.SetState(state)
 
 			_, err = tx.Put(acc.NameKey(), acc)
 			if err != nil {
@@ -671,7 +671,7 @@ func (d *Datastore) InsertTransactionExecution(
 				return err
 			}
 
-			acc.State = state
+			acc.SetState(state)
 
 			_, err = tx.Put(acc.NameKey(), acc)
 			if err != nil {

@@ -113,8 +113,9 @@ func (p *Projects) createInitialAccounts(
 			},
 			Index:   i,
 			Address: address,
-			State:   make(model.AccountState),
 		}
+
+		account.SetState(make(model.AccountState))
 
 		if i < len(initialContracts) {
 			account.DraftCode = initialContracts[i]
