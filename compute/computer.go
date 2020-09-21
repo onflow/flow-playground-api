@@ -45,9 +45,9 @@ func NewComputer(cacheSize int) (*Computer, error) {
 		fvm.WithServiceAccount(false),
 		fvm.WithRestrictedAccountCreation(false),
 		fvm.WithRestrictedDeployment(false),
-		fvm.WithTransactionProcessors([]fvm.TransactionProcessor{
+		fvm.WithTransactionProcessors(
 			fvm.NewTransactionInvocator(),
-		}),
+		),
 	)
 
 	cache, err := NewLedgerCache(cacheSize)
