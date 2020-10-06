@@ -80,6 +80,9 @@ func (c *Computer) ExecuteTransaction(
 		fvm.WithSetValueHandler(newValueHandler(states)),
 	)
 
+	// Use the default gas limit
+	txBody.GasLimit = ctx.GasLimit
+
 	proc := fvm.Transaction(txBody)
 
 	view := ledger.NewView()

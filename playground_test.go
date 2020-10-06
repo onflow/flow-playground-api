@@ -108,7 +108,7 @@ query($projectId: UUID!) {
     id
     transactionTemplates {
       id
-      script 
+      script
       index
     }
   }
@@ -132,7 +132,7 @@ query($projectId: UUID!) {
     id
     scriptTemplates {
       id
-      script 
+      script
       index
     }
   }
@@ -310,6 +310,31 @@ type CreateTransactionExecutionResponse struct {
 			Type   string
 			Values []string
 		}
+	}
+}
+
+const MutationCreateScriptExecution = `
+mutation CreateScriptExecution($projectId: UUID!, $script: String!) {
+  createScriptExecution(input: {
+    projectId: $projectId,
+    script: $script
+  }) {
+    id
+    script
+    error
+    logs
+    value
+  }
+}
+`
+
+type CreateScriptExecutionResponse struct {
+	CreateScriptExecution struct {
+		ID     string
+		Script string
+		Error  string
+		Logs   []string
+		Value  string
 	}
 }
 
@@ -928,7 +953,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.JSONEq(t, `{"type":"Address","value":"0x0000000000000005"}`, eventA.Values[0])
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x0000000000000005"}`,
+			eventA.Values[0],
+		)
 
 		var respB CreateTransactionExecutionResponse
 
@@ -947,7 +975,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.JSONEq(t, `{"type":"Address","value":"0x0000000000000006"}`, eventB.Values[0])
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x0000000000000006"}`,
+			eventB.Values[0],
+		)
 	})
 
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
@@ -981,7 +1012,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// first account should have address 0x05
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.JSONEq(t, `{"type":"Address","value":"0x0000000000000005"}`, eventA.Values[0])
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x0000000000000005"}`,
+			eventA.Values[0],
+		)
 
 		// clear ledger cache
 		computer.ClearCache()
@@ -1003,7 +1037,43 @@ func TestTransactionExecutions(t *testing.T) {
 
 		// second account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.JSONEq(t, `{"type":"Address","value":"0x0000000000000006"}`, eventB.Values[0])
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x0000000000000006"}`,
+			eventB.Values[0],
+		)
+	})
+
+	t.Run("exceeding computation limit", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+          transaction {
+              execute {
+                  var i = 0
+                  while i < 1_000_000 {
+                      i = i + 1
+                  }
+              }
+          }
+        `
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+		require.Equal(t,
+			"Execution failed:\ncomputation limited exceeded: 100000\n",
+			resp.CreateTransactionExecution.Error,
+		)
 	})
 }
 
@@ -1702,6 +1772,114 @@ func TestAuthentication(t *testing.T) {
 
 		// should not be able to update project A with cookie B
 		assert.Error(t, err)
+	})
+}
+
+func TestScript(t *testing.T) {
+
+	t.Run("valid, no return value", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main() { }"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		require.Empty(t, resp.CreateScriptExecution.Error)
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main() { XYZ }"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		require.NotEmpty(t, resp.CreateScriptExecution.Error)
+	})
+
+	t.Run("exceeding computation limit", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = `
+          pub fun main() {
+              var i = 0
+              while i < 1_000_000 {
+                  i = i + 1
+              }
+          }
+        `
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		require.Equal(t,
+			"Execution failed:\ncomputation limited exceeded: 100000\n",
+			resp.CreateScriptExecution.Error,
+		)
+	})
+
+	t.Run("return address", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main(): Address { return 0x1 as Address }"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		require.Empty(t, resp.CreateScriptExecution.Error)
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x0000000000000001"}`,
+			resp.CreateScriptExecution.Value,
+		)
 	})
 }
 
