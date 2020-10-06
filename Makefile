@@ -11,7 +11,7 @@ generate:
 
 .PHONY: test
 test:
-	GO111MODULE=on go test ./...
+	GO111MODULE=on go test -v ./...
 
 .PHONY: test-datastore
 test-datastore:
