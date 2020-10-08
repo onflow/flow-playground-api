@@ -1775,7 +1775,7 @@ func TestAuthentication(t *testing.T) {
 	})
 }
 
-func TestScript(t *testing.T) {
+func TestScriptExecutions(t *testing.T) {
 
 	t.Run("valid, no return value", func(t *testing.T) {
 
