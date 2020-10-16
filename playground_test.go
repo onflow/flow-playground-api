@@ -282,11 +282,12 @@ type DeleteTransactionTemplateResponse struct {
 }
 
 const MutationCreateTransactionExecution = `
-mutation($projectId: UUID!, $script: String!, $signers: [Address!]) {
+mutation($projectId: UUID!, $script: String!, $signers: [Address!], $arguments: [String!]) {
   createTransactionExecution(input: {
     projectId: $projectId,
     script: $script,
-    signers: $signers,
+    arguments: $arguments,
+    signers: $signers
   }) {
     id
     script
@@ -314,10 +315,11 @@ type CreateTransactionExecutionResponse struct {
 }
 
 const MutationCreateScriptExecution = `
-mutation CreateScriptExecution($projectId: UUID!, $script: String!) {
+mutation CreateScriptExecution($projectId: UUID!, $script: String!, $arguments: [String!]) {
   createScriptExecution(input: {
     projectId: $projectId,
-    script: $script
+    script: $script,
+    arguments: $arguments
   }) {
     id
     script
@@ -946,7 +948,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Empty(t, respA.CreateTransactionExecution.Error)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
 
 		eventA := respA.CreateTransactionExecution.Events[0]
@@ -969,6 +971,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
+		require.Empty(t, respB.CreateTransactionExecution.Error)
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
 
 		eventB := respB.CreateTransactionExecution.Events[0]
@@ -1005,7 +1008,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		assert.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Empty(t, respA.CreateTransactionExecution.Error)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
 
 		eventA := respA.CreateTransactionExecution.Events[0]
@@ -1074,6 +1077,36 @@ func TestTransactionExecutions(t *testing.T) {
 			"Execution failed:\ncomputation limited exceeded: 100000\n",
 			resp.CreateTransactionExecution.Error,
 		)
+	})
+
+	t.Run("argument", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+          transaction(a: Int) {
+              execute {
+                  log(a)
+              }
+          }
+        `
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.Var("arguments", []string{
+				`{"type": "Int", "value": "42"}`,
+			}),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.Empty(t, resp.CreateTransactionExecution.Error)
+		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{"42"})
 	})
 }
 
@@ -1878,6 +1911,36 @@ func TestScriptExecutions(t *testing.T) {
 		require.Empty(t, resp.CreateScriptExecution.Error)
 		assert.JSONEq(t,
 			`{"type":"Address","value":"0x0000000000000001"}`,
+			resp.CreateScriptExecution.Value,
+		)
+	})
+
+	t.Run("argument", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main(a: Int): Int { return a + 1 }"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.Var("arguments", []string{
+				`{"type":"Int","value":"2"}`,
+			}),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		require.Empty(t, resp.CreateScriptExecution.Error)
+		assert.JSONEq(t,
+			`{"type":"Int","value":"3"}`,
 			resp.CreateScriptExecution.Value,
 		)
 	})

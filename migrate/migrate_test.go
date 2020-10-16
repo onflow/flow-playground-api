@@ -126,7 +126,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 	for i := 1; i <= numAccounts; i++ {
 		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 
-		result, err := scripts.CreateExecution(proj, script)
+		result, err := scripts.CreateExecution(proj, script, nil)
 		require.NoError(t, err)
 
 		assert.Nil(t, result.Error)

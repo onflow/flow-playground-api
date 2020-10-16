@@ -74,6 +74,7 @@ type TransactionExecution struct {
 	ProjectChildID
 	Index            int
 	Script           string
+	Arguments        []string
 	SignerAccountIDs []uuid.UUID
 	Error            *string
 	Events           []Event
@@ -90,6 +91,7 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 		ProjectID        string
 		Index            int
 		Script           string
+		Arguments        []string
 		SignerAccountIDs []string
 		Error            *string
 		Events           string
@@ -121,6 +123,7 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 
 	t.Index = tmp.Index
 	t.Script = tmp.Script
+	t.Arguments = tmp.Arguments
 	t.Error = tmp.Error
 	t.Logs = tmp.Logs
 	return nil
@@ -136,10 +139,17 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	logs := make([]interface{}, 0, len(t.Logs))
 	for _, log := range t.Logs {
 		logs = append(logs, log)
 	}
+
+	arguments := make([]interface{}, 0, len(t.Arguments))
+	for _, argument := range t.Arguments {
+		arguments = append(arguments, argument)
+	}
+
 	return []datastore.Property{
 		{
 			Name:  "ID",
@@ -156,6 +166,11 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 		{
 			Name:    "Script",
 			Value:   t.Script,
+			NoIndex: true,
+		},
+		{
+			Name:    "Arguments",
+			Value:   arguments,
 			NoIndex: true,
 		},
 		{

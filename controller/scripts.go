@@ -61,7 +61,15 @@ func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
 	return nil
 }
 
-func (s *Scripts) CreateExecution(proj *model.InternalProject, script string) (*model.ScriptExecution, error) {
+func (s *Scripts) CreateExecution(
+	proj *model.InternalProject,
+	script string,
+	arguments []string,
+) (
+	*model.ScriptExecution,
+	error,
+) {
+
 	if len(script) == 0 {
 		return nil, errors.New("cannot execute empty script")
 	}
@@ -79,6 +87,7 @@ func (s *Scripts) CreateExecution(proj *model.InternalProject, script string) (*
 			return deltas, nil
 		},
 		script,
+		arguments,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
@@ -89,8 +98,9 @@ func (s *Scripts) CreateExecution(proj *model.InternalProject, script string) (*
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 		},
-		Script: script,
-		Logs:   result.Logs,
+		Script:    script,
+		Arguments: arguments,
+		Logs:      result.Logs,
 	}
 
 	if result.Err != nil {

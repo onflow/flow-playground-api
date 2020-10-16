@@ -33,6 +33,7 @@ type NewProjectTransactionTemplate struct {
 type NewScriptExecution struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`
+	Arguments []string  `json:"arguments"`
 }
 
 type NewScriptTemplate struct {
@@ -45,6 +46,7 @@ type NewTransactionExecution struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`
 	Signers   []Address `json:"signers"`
+	Arguments []string  `json:"arguments"`
 }
 
 type NewTransactionTemplate struct {

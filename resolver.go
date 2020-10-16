@@ -2,6 +2,7 @@ package playground
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Masterminds/semver"
 	flowgo "github.com/dapperlabs/flow-go/model/flow"
@@ -68,6 +69,10 @@ func (r *Resolver) Query() QueryResolver {
 
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
+}
+
+func (r *Resolver) ScriptExecution() ScriptExecutionResolver {
+	return &scriptExecutionResolver{r}
 }
 
 func (r *Resolver) LastCreatedProject() *model.InternalProject {
@@ -320,6 +325,18 @@ func (r *mutationResolver) CreateTransactionExecution(
 	tx := flow.NewTransaction().
 		SetScript([]byte(input.Script))
 
+	for i, argument := range input.Arguments {
+		// Decode and then encode again to ensure the value is valid
+
+		value, err := jsoncdc.Decode([]byte(argument))
+		if err == nil {
+			err = tx.AddArgument(value)
+		}
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode argument %d", i))
+		}
+	}
+
 	for _, authorizer := range input.Signers {
 		tx.AddAuthorizer(authorizer.ToFlowAddress())
 	}
@@ -347,8 +364,9 @@ func (r *mutationResolver) CreateTransactionExecution(
 			ID:        uuid.New(),
 			ProjectID: input.ProjectID,
 		},
-		Script: input.Script,
-		Logs:   result.Logs,
+		Script:    input.Script,
+		Arguments: input.Arguments,
+		Logs:      result.Logs,
 	}
 
 	var states map[uuid.UUID]model.AccountState
@@ -460,7 +478,7 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(&proj, input.Script)
+	exe, err := r.scripts.CreateExecution(&proj, input.Script, input.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -602,7 +620,13 @@ func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID, projec
 
 type transactionExecutionResolver struct{ *Resolver }
 
-func (r *transactionExecutionResolver) Signers(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error) {
+func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) ([]*model.Account, error) {
+	panic("not implemented")
+}
+
+type scriptExecutionResolver struct{ *Resolver }
+
+func (*scriptExecutionResolver) Arguments(_ context.Context, _ *model.ScriptExecution) ([]string, error) {
 	panic("not implemented")
 }
 

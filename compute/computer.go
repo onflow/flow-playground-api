@@ -114,6 +114,7 @@ func (c *Computer) ExecuteScript(
 	transactionNumber int,
 	getRegisterDeltas func() ([]*model.RegisterDelta, error),
 	script string,
+	arguments []string,
 ) (*ScriptResult, error) {
 	ledger, err := c.cache.GetOrCreate(projectID, transactionNumber, getRegisterDeltas)
 	if err != nil {
@@ -122,7 +123,13 @@ func (c *Computer) ExecuteScript(
 
 	view := ledger.NewView()
 
-	proc := fvm.Script([]byte(script))
+	rawArguments := make([][]byte, len(arguments))
+	for i, argument := range arguments {
+		rawArguments[i] = []byte(argument)
+	}
+
+	proc := fvm.Script([]byte(script)).
+		WithArguments(rawArguments...)
 
 	err = c.vm.Run(c.vmCtx, proc, view)
 	if err != nil {

@@ -69,11 +69,12 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 
 type ScriptExecution struct {
 	ProjectChildID
-	Index  int
-	Script string
-	Value  string
-	Error  *string
-	Logs   []string
+	Index     int
+	Script    string
+	Arguments []string
+	Value     string
+	Error     *string
+	Logs      []string
 }
 
 func (s *ScriptExecution) NameKey() *datastore.Key {
@@ -86,6 +87,7 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 		ProjectID string
 		Index     int
 		Script    string
+		Arguments []string
 		Value     string
 		Error     *string
 		Logs      []string
@@ -103,6 +105,7 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 	}
 	s.Index = tmp.Index
 	s.Script = tmp.Script
+	s.Arguments = tmp.Arguments
 	s.Value = tmp.Value
 	s.Error = tmp.Error
 	s.Logs = tmp.Logs
@@ -110,9 +113,15 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 }
 
 func (s *ScriptExecution) Save() ([]datastore.Property, error) {
-	logs := []interface{}{}
+
+	logs := make([]interface{}, 0, len(s.Logs))
 	for _, log := range s.Logs {
 		logs = append(logs, log)
+	}
+
+	arguments := make([]interface{}, 0, len(s.Arguments))
+	for _, argument := range s.Arguments {
+		arguments = append(arguments, argument)
 	}
 
 	return []datastore.Property{
@@ -131,6 +140,11 @@ func (s *ScriptExecution) Save() ([]datastore.Property, error) {
 		{
 			Name:    "Script",
 			Value:   s.Script,
+			NoIndex: true,
+		},
+		{
+			Name:    "Arguments",
+			Value:   arguments,
 			NoIndex: true,
 		},
 		{

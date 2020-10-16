@@ -37,6 +37,7 @@ type TransactionTemplate {
 type TransactionExecution {
   id: UUID!
   script: String!
+  arguments: [String!]
   signers: [Account!]!
   error: String,
   events: [Event]!,
@@ -58,6 +59,7 @@ type ScriptTemplate {
 type ScriptExecution {
   id: UUID!
   script: String!
+  arguments: [String!]
   error: String
   value: String!
   logs: [String!]!
@@ -121,6 +123,7 @@ input NewTransactionExecution {
   projectId: UUID!
   script: String!
   signers: [Address!]
+  arguments: [String!]
 }
 
 input NewScriptTemplate {
@@ -140,6 +143,7 @@ input UpdateScriptTemplate {
 input NewScriptExecution {
   projectId: UUID!
   script: String!
+  arguments: [String!]
 }
 
 type Mutation {
