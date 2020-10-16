@@ -71,6 +71,10 @@ func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
 
+func (r *Resolver) ScriptExecution() ScriptExecutionResolver {
+	return &scriptExecutionResolver{r}
+}
+
 func (r *Resolver) LastCreatedProject() *model.InternalProject {
 	return r.lastCreatedProject
 }
@@ -617,6 +621,12 @@ func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID, projec
 type transactionExecutionResolver struct{ *Resolver }
 
 func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) ([]*model.Account, error) {
+	panic("not implemented")
+}
+
+type scriptExecutionResolver struct{ *Resolver }
+
+func (*scriptExecutionResolver) Arguments(_ context.Context, _ *model.ScriptExecution) ([]string, error) {
 	panic("not implemented")
 }
 
