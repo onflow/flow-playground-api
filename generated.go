@@ -40,7 +40,6 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Project() ProjectResolver
 	Query() QueryResolver
-	ScriptExecution() ScriptExecutionResolver
 	TransactionExecution() TransactionExecutionResolver
 }
 
@@ -158,9 +157,6 @@ type QueryResolver interface {
 	Account(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error)
 	TransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error)
 	ScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error)
-}
-type ScriptExecutionResolver interface {
-	Arguments(ctx context.Context, obj *model.ScriptExecution) ([]string, error)
 }
 type TransactionExecutionResolver interface {
 	Signers(ctx context.Context, obj *model.TransactionExecution) ([]*model.Account, error)
@@ -758,9 +754,9 @@ type TransactionExecution {
   script: String!
   arguments: [String!]
   signers: [Account!]!
-  error: String,
-  events: [Event]!,
-  logs: [String!]!,
+  error: String
+  events: [Event]!
+  logs: [String!]!
 }
 
 type Event {
@@ -2764,13 +2760,13 @@ func (ec *executionContext) _ScriptExecution_arguments(ctx context.Context, fiel
 		Object:   "ScriptExecution",
 		Field:    field,
 		Args:     nil,
-		IsMethod: true,
+		IsMethod: false,
 	}
 	ctx = graphql.WithResolverContext(ctx, rctx)
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.ScriptExecution().Arguments(rctx, obj)
+		return obj.Arguments, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5346,35 +5342,26 @@ func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.Select
 		case "id":
 			out.Values[i] = ec._ScriptExecution_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "script":
 			out.Values[i] = ec._ScriptExecution_script(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "arguments":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ScriptExecution_arguments(ctx, field, obj)
-				return res
-			})
+			out.Values[i] = ec._ScriptExecution_arguments(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._ScriptExecution_error(ctx, field, obj)
 		case "value":
 			out.Values[i] = ec._ScriptExecution_value(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "logs":
 			out.Values[i] = ec._ScriptExecution_logs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
