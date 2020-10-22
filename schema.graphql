@@ -27,6 +27,18 @@ type Account {
   state: String!
 }
 
+type ProgramError {
+  message: String!
+  startPosition: ProgramPosition
+  endPosition: ProgramPosition
+}
+
+type ProgramPosition {
+  offset: Int!
+  line: Int!
+  column: Int!
+}
+
 type TransactionTemplate {
   id: UUID!
   index: Int!
@@ -39,7 +51,7 @@ type TransactionExecution {
   script: String!
   arguments: [String!]
   signers: [Account!]!
-  error: String
+  errors: [ProgramError!]
   events: [Event]!
   logs: [String!]!
 }
@@ -60,7 +72,7 @@ type ScriptExecution {
   id: UUID!
   script: String!
   arguments: [String!]
-  error: String
+  errors: [ProgramError!]
   value: String!
   logs: [String!]!
 }

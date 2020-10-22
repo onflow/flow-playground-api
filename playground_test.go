@@ -23,6 +23,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/client"
 	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
@@ -291,7 +292,11 @@ mutation($projectId: UUID!, $script: String!, $signers: [Address!], $arguments: 
   }) {
     id
     script
-    error
+    errors {
+      message
+      startPosition { offset line column }
+      endPosition { offset line column }
+    }
     logs
     events {
       type
@@ -305,7 +310,7 @@ type CreateTransactionExecutionResponse struct {
 	CreateTransactionExecution struct {
 		ID     string
 		Script string
-		Error  string
+		Errors []model.ProgramError
 		Logs   []string
 		Events []struct {
 			Type   string
@@ -323,7 +328,11 @@ mutation CreateScriptExecution($projectId: UUID!, $script: String!, $arguments: 
   }) {
     id
     script
-    error
+    errors {
+      message
+      startPosition { offset line column }
+      endPosition { offset line column }
+    }
     logs
     value
   }
@@ -334,7 +343,7 @@ type CreateScriptExecutionResponse struct {
 	CreateScriptExecution struct {
 		ID     string
 		Script string
-		Error  string
+		Errors []model.ProgramError
 		Logs   []string
 		Value  string
 	}
@@ -925,7 +934,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		assert.Empty(t, resp.CreateTransactionExecution.Error)
+		assert.Empty(t, resp.CreateTransactionExecution.Errors)
 		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 	})
@@ -948,7 +957,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		require.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Empty(t, respA.CreateTransactionExecution.Errors)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
 
 		eventA := respA.CreateTransactionExecution.Events[0]
@@ -971,7 +980,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		require.Empty(t, respB.CreateTransactionExecution.Error)
+		require.Empty(t, respB.CreateTransactionExecution.Errors)
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
 
 		eventB := respB.CreateTransactionExecution.Events[0]
@@ -1008,7 +1017,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		require.Empty(t, respA.CreateTransactionExecution.Error)
+		require.Empty(t, respA.CreateTransactionExecution.Errors)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
 
 		eventA := respA.CreateTransactionExecution.Events[0]
@@ -1046,6 +1055,117 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 	})
 
+	t.Run("invalid (parse error)", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+          transaction(a: Int) {
+        `
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "unexpected token: EOF",
+					StartPosition: &model.ProgramPosition{
+						Offset: 41,
+						Line:   3,
+						Column: 8,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 41,
+						Line:   3,
+						Column: 8,
+					},
+				},
+			},
+			resp.CreateTransactionExecution.Errors,
+		)
+		require.Empty(t, resp.CreateTransactionExecution.Logs)
+	})
+
+	t.Run("invalid (semantic error)", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+          transaction { execute { XYZ } }
+        `
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "cannot find variable in this scope: `XYZ`",
+					StartPosition: &model.ProgramPosition{
+						Offset: 35,
+						Line:   2,
+						Column: 34,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 37,
+						Line:   2,
+						Column: 36,
+					},
+				},
+			},
+			resp.CreateTransactionExecution.Errors,
+		)
+		require.Empty(t, resp.CreateTransactionExecution.Logs)
+	})
+
+	t.Run("invalid (run-time error)", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+          transaction { execute { panic("oh no") } }
+        `
+
+		c.MustPost(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		// TODO: depends on Cadence returning position information for execution errors
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "Execution failed:\npanic: oh no\n",
+				},
+			},
+			resp.CreateTransactionExecution.Errors,
+		)
+		require.Empty(t, resp.CreateTransactionExecution.Logs)
+	})
+
 	t.Run("exceeding computation limit", func(t *testing.T) {
 		c := newClient()
 
@@ -1074,8 +1194,12 @@ func TestTransactionExecutions(t *testing.T) {
 
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 		require.Equal(t,
-			"Execution failed:\ncomputation limited exceeded: 100000\n",
-			resp.CreateTransactionExecution.Error,
+			[]model.ProgramError{
+				{
+					Message: "Execution failed:\ncomputation limited exceeded: 100000\n",
+				},
+			},
+			resp.CreateTransactionExecution.Errors,
 		)
 	})
 
@@ -1105,7 +1229,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		require.Empty(t, resp.CreateTransactionExecution.Error)
+		require.Empty(t, resp.CreateTransactionExecution.Errors)
 		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{"42"})
 	})
 }
@@ -1670,7 +1794,7 @@ func TestContractInteraction(t *testing.T) {
 		client.AddCookie(c.SessionCookie()),
 	)
 
-	assert.Empty(t, respB.CreateTransactionExecution.Error)
+	assert.Empty(t, respB.CreateTransactionExecution.Errors)
 }
 
 func TestAuthentication(t *testing.T) {
@@ -1829,10 +1953,50 @@ func TestScriptExecutions(t *testing.T) {
 		)
 
 		require.NoError(t, err)
-		require.Empty(t, resp.CreateScriptExecution.Error)
+		require.Empty(t, resp.CreateScriptExecution.Errors)
 	})
 
-	t.Run("invalid", func(t *testing.T) {
+	t.Run("invalid (parse error)", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main() {"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "expected token '}'",
+					StartPosition: &model.ProgramPosition{
+						Offset: 16,
+						Line:   1,
+						Column: 16,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 16,
+						Line:   1,
+						Column: 16,
+					},
+				},
+			},
+			resp.CreateScriptExecution.Errors,
+		)
+	})
+
+	t.Run("invalid (semantic error)", func(t *testing.T) {
 
 		c := newClient()
 
@@ -1852,7 +2016,55 @@ func TestScriptExecutions(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
-		require.NotEmpty(t, resp.CreateScriptExecution.Error)
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "cannot find variable in this scope: `XYZ`",
+					StartPosition: &model.ProgramPosition{
+						Offset: 17,
+						Line:   1,
+						Column: 17,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 19,
+						Line:   1,
+						Column: 19,
+					},
+				},
+			},
+			resp.CreateScriptExecution.Errors,
+		)
+	})
+
+	t.Run("invalid (run-time error)", func(t *testing.T) {
+
+		c := newClient()
+
+		project := createProject(c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = "pub fun main() { panic(\"oh no\") }"
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, script, resp.CreateScriptExecution.Script)
+		// TODO: depends on Cadence returning position information for execution errors
+		require.Equal(t,
+			[]model.ProgramError{
+				{
+					Message: "Execution failed:\npanic: oh no\n",
+				},
+			},
+			resp.CreateScriptExecution.Errors,
+		)
 	})
 
 	t.Run("exceeding computation limit", func(t *testing.T) {
@@ -1883,8 +2095,12 @@ func TestScriptExecutions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
 		require.Equal(t,
-			"Execution failed:\ncomputation limited exceeded: 100000\n",
-			resp.CreateScriptExecution.Error,
+			[]model.ProgramError{
+				{
+					Message: "Execution failed:\ncomputation limited exceeded: 100000\n",
+				},
+			},
+			resp.CreateScriptExecution.Errors,
 		)
 	})
 
@@ -1908,7 +2124,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
-		require.Empty(t, resp.CreateScriptExecution.Error)
+		require.Empty(t, resp.CreateScriptExecution.Errors)
 		assert.JSONEq(t,
 			`{"type":"Address","value":"0x0000000000000001"}`,
 			resp.CreateScriptExecution.Value,
@@ -1938,7 +2154,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
-		require.Empty(t, resp.CreateScriptExecution.Error)
+		require.Empty(t, resp.CreateScriptExecution.Errors)
 		assert.JSONEq(t,
 			`{"type":"Int","value":"3"}`,
 			resp.CreateScriptExecution.Value,

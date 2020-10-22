@@ -55,6 +55,18 @@ type NewTransactionTemplate struct {
 	Script    string    `json:"script"`
 }
 
+type ProgramError struct {
+	Message       string           `json:"message"`
+	StartPosition *ProgramPosition `json:"startPosition"`
+	EndPosition   *ProgramPosition `json:"endPosition"`
+}
+
+type ProgramPosition struct {
+	Offset int `json:"offset"`
+	Line   int `json:"line"`
+	Column int `json:"column"`
+}
+
 type UpdateProject struct {
 	ID      uuid.UUID `json:"id"`
 	Title   *string   `json:"title"`

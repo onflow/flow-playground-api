@@ -372,8 +372,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 	var states map[uuid.UUID]model.AccountState
 
 	if result.Err != nil {
-		runtimeErr := result.Err.Error()
-		exe.Error = &runtimeErr
+		exe.Errors = compute.ExtractProgramErrors(result.Err)
 	} else {
 		var err error
 		states, err = r.getAccountStates(proj.ID, result.States)

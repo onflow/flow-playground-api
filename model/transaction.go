@@ -33,10 +33,10 @@ func (t *TransactionTemplate) Load(ps []datastore.Property) error {
 	}
 
 	if err := t.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode transaction template UUID")
 	}
 	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode project UUID")
 	}
 	t.Title = tmp.Title
 	t.Index = tmp.Index
@@ -76,7 +76,7 @@ type TransactionExecution struct {
 	Script           string
 	Arguments        []string
 	SignerAccountIDs []uuid.UUID
-	Error            *string
+	Errors           []ProgramError
 	Events           []Event
 	Logs             []string
 }
@@ -93,7 +93,6 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 		Script           string
 		Arguments        []string
 		SignerAccountIDs []string
-		Error            *string
 		Events           string
 		Logs             []string
 	}{}
@@ -103,16 +102,16 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 	}
 
 	if err := t.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode transaction execution UUID")
 	}
 	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode project UUID")
 	}
 
 	for _, aID := range tmp.SignerAccountIDs {
 		signer := uuid.UUID{}
 		if err := signer.UnmarshalText([]byte(aID)); err != nil {
-			return errors.Wrap(err, "failed to decode UUID")
+			return errors.Wrap(err, "failed to decode signer account UUID")
 		}
 		t.SignerAccountIDs = append(t.SignerAccountIDs, signer)
 	}
@@ -124,7 +123,6 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 	t.Index = tmp.Index
 	t.Script = tmp.Script
 	t.Arguments = tmp.Arguments
-	t.Error = tmp.Error
 	t.Logs = tmp.Logs
 	return nil
 }
@@ -176,10 +174,6 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 		{
 			Name:  "SignerAccountIDs",
 			Value: signerAccountIDs,
-		},
-		{
-			Name:  "Error",
-			Value: t.Error,
 		},
 		{
 			Name:    "Events",

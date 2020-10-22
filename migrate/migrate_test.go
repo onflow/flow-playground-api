@@ -129,6 +129,6 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 		result, err := scripts.CreateExecution(proj, script, nil)
 		require.NoError(t, err)
 
-		assert.Nil(t, result.Error)
+		assert.Empty(t, result.Errors)
 	}
 }

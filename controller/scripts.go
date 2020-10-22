@@ -104,8 +104,7 @@ func (s *Scripts) CreateExecution(
 	}
 
 	if result.Err != nil {
-		runtimeErr := result.Err.Error()
-		exe.Error = &runtimeErr
+		exe.Errors = compute.ExtractProgramErrors(result.Err)
 	} else {
 		enc, err := jsoncdc.Encode(result.Value)
 		if err != nil {

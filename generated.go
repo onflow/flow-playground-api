@@ -76,6 +76,18 @@ type ComplexityRoot struct {
 		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
 	}
 
+	ProgramError struct {
+		EndPosition   func(childComplexity int) int
+		Message       func(childComplexity int) int
+		StartPosition func(childComplexity int) int
+	}
+
+	ProgramPosition struct {
+		Column func(childComplexity int) int
+		Line   func(childComplexity int) int
+		Offset func(childComplexity int) int
+	}
+
 	Project struct {
 		Accounts              func(childComplexity int) int
 		ID                    func(childComplexity int) int
@@ -101,7 +113,7 @@ type ComplexityRoot struct {
 
 	ScriptExecution struct {
 		Arguments func(childComplexity int) int
-		Error     func(childComplexity int) int
+		Errors    func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Logs      func(childComplexity int) int
 		Script    func(childComplexity int) int
@@ -117,7 +129,7 @@ type ComplexityRoot struct {
 
 	TransactionExecution struct {
 		Arguments func(childComplexity int) int
-		Error     func(childComplexity int) int
+		Errors    func(childComplexity int) int
 		Events    func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Logs      func(childComplexity int) int
@@ -369,6 +381,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateTransactionTemplate(childComplexity, args["input"].(model.UpdateTransactionTemplate)), true
 
+	case "ProgramError.endPosition":
+		if e.complexity.ProgramError.EndPosition == nil {
+			break
+		}
+
+		return e.complexity.ProgramError.EndPosition(childComplexity), true
+
+	case "ProgramError.message":
+		if e.complexity.ProgramError.Message == nil {
+			break
+		}
+
+		return e.complexity.ProgramError.Message(childComplexity), true
+
+	case "ProgramError.startPosition":
+		if e.complexity.ProgramError.StartPosition == nil {
+			break
+		}
+
+		return e.complexity.ProgramError.StartPosition(childComplexity), true
+
+	case "ProgramPosition.column":
+		if e.complexity.ProgramPosition.Column == nil {
+			break
+		}
+
+		return e.complexity.ProgramPosition.Column(childComplexity), true
+
+	case "ProgramPosition.line":
+		if e.complexity.ProgramPosition.Line == nil {
+			break
+		}
+
+		return e.complexity.ProgramPosition.Line(childComplexity), true
+
+	case "ProgramPosition.offset":
+		if e.complexity.ProgramPosition.Offset == nil {
+			break
+		}
+
+		return e.complexity.ProgramPosition.Offset(childComplexity), true
+
 	case "Project.accounts":
 		if e.complexity.Project.Accounts == nil {
 			break
@@ -515,12 +569,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ScriptExecution.Arguments(childComplexity), true
 
-	case "ScriptExecution.error":
-		if e.complexity.ScriptExecution.Error == nil {
+	case "ScriptExecution.errors":
+		if e.complexity.ScriptExecution.Errors == nil {
 			break
 		}
 
-		return e.complexity.ScriptExecution.Error(childComplexity), true
+		return e.complexity.ScriptExecution.Errors(childComplexity), true
 
 	case "ScriptExecution.id":
 		if e.complexity.ScriptExecution.ID == nil {
@@ -585,12 +639,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TransactionExecution.Arguments(childComplexity), true
 
-	case "TransactionExecution.error":
-		if e.complexity.TransactionExecution.Error == nil {
+	case "TransactionExecution.errors":
+		if e.complexity.TransactionExecution.Errors == nil {
 			break
 		}
 
-		return e.complexity.TransactionExecution.Error(childComplexity), true
+		return e.complexity.TransactionExecution.Errors(childComplexity), true
 
 	case "TransactionExecution.events":
 		if e.complexity.TransactionExecution.Events == nil {
@@ -746,6 +800,18 @@ type Account {
   state: String!
 }
 
+type ProgramError {
+  message: String!
+  startPosition: ProgramPosition
+  endPosition: ProgramPosition
+}
+
+type ProgramPosition {
+  offset: Int!
+  line: Int!
+  column: Int!
+}
+
 type TransactionTemplate {
   id: UUID!
   index: Int!
@@ -758,7 +824,7 @@ type TransactionExecution {
   script: String!
   arguments: [String!]
   signers: [Account!]!
-  error: String
+  errors: [ProgramError!]
   events: [Event]!
   logs: [String!]!
 }
@@ -779,7 +845,7 @@ type ScriptExecution {
   id: UUID!
   script: String!
   arguments: [String!]
-  error: String
+  errors: [ProgramError!]
   value: String!
   logs: [String!]!
 }
@@ -1969,6 +2035,222 @@ func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context,
 	return ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ProgramError_message(ctx context.Context, field graphql.CollectedField, obj *model.ProgramError) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramError",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ProgramError_startPosition(ctx context.Context, field graphql.CollectedField, obj *model.ProgramError) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramError",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartPosition, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProgramPosition)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOProgramPosition2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramPosition(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ProgramError_endPosition(ctx context.Context, field graphql.CollectedField, obj *model.ProgramError) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramError",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndPosition, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ProgramPosition)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalOProgramPosition2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramPosition(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ProgramPosition_offset(ctx context.Context, field graphql.CollectedField, obj *model.ProgramPosition) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramPosition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Offset, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ProgramPosition_line(ctx context.Context, field graphql.CollectedField, obj *model.ProgramPosition) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramPosition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Line, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ProgramPosition_column(ctx context.Context, field graphql.CollectedField, obj *model.ProgramPosition) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "ProgramPosition",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Column, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Project_id(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
@@ -2785,7 +3067,7 @@ func (ec *executionContext) _ScriptExecution_arguments(ctx context.Context, fiel
 	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ScriptExecution_error(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _ScriptExecution_errors(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2804,7 +3086,7 @@ func (ec *executionContext) _ScriptExecution_error(ctx context.Context, field gr
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Error, nil
+		return obj.Errors, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2813,10 +3095,10 @@ func (ec *executionContext) _ScriptExecution_error(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.([]model.ProgramError)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOProgramError2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ScriptExecution_value(ctx context.Context, field graphql.CollectedField, obj *model.ScriptExecution) (ret graphql.Marshaler) {
@@ -3186,7 +3468,7 @@ func (ec *executionContext) _TransactionExecution_signers(ctx context.Context, f
 	return ec.marshalNAccount2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAccountᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TransactionExecution_error(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
+func (ec *executionContext) _TransactionExecution_errors(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -3205,7 +3487,7 @@ func (ec *executionContext) _TransactionExecution_error(ctx context.Context, fie
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Error, nil
+		return obj.Errors, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3214,10 +3496,10 @@ func (ec *executionContext) _TransactionExecution_error(ctx context.Context, fie
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.([]model.ProgramError)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOProgramError2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TransactionExecution_events(ctx context.Context, field graphql.CollectedField, obj *model.TransactionExecution) (ret graphql.Marshaler) {
@@ -5138,6 +5420,74 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+var programErrorImplementors = []string{"ProgramError"}
+
+func (ec *executionContext) _ProgramError(ctx context.Context, sel ast.SelectionSet, obj *model.ProgramError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, programErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProgramError")
+		case "message":
+			out.Values[i] = ec._ProgramError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "startPosition":
+			out.Values[i] = ec._ProgramError_startPosition(ctx, field, obj)
+		case "endPosition":
+			out.Values[i] = ec._ProgramError_endPosition(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var programPositionImplementors = []string{"ProgramPosition"}
+
+func (ec *executionContext) _ProgramPosition(ctx context.Context, sel ast.SelectionSet, obj *model.ProgramPosition) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, programPositionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProgramPosition")
+		case "offset":
+			out.Values[i] = ec._ProgramPosition_offset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "line":
+			out.Values[i] = ec._ProgramPosition_line(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "column":
+			out.Values[i] = ec._ProgramPosition_column(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var projectImplementors = []string{"Project"}
 
 func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, obj *model.Project) graphql.Marshaler {
@@ -5354,18 +5704,9 @@ func (ec *executionContext) _ScriptExecution(ctx context.Context, sel ast.Select
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "arguments":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ScriptExecution_arguments(ctx, field, obj)
-				return res
-			})
-		case "error":
-			out.Values[i] = ec._ScriptExecution_error(ctx, field, obj)
+			out.Values[i] = ec._ScriptExecution_arguments(ctx, field, obj)
+		case "errors":
+			out.Values[i] = ec._ScriptExecution_errors(ctx, field, obj)
 		case "value":
 			out.Values[i] = ec._ScriptExecution_value(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5466,8 +5807,8 @@ func (ec *executionContext) _TransactionExecution(ctx context.Context, sel ast.S
 				}
 				return res
 			})
-		case "error":
-			out.Values[i] = ec._TransactionExecution_error(ctx, field, obj)
+		case "errors":
+			out.Values[i] = ec._TransactionExecution_errors(ctx, field, obj)
 		case "events":
 			out.Values[i] = ec._TransactionExecution_events(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5943,6 +6284,10 @@ func (ec *executionContext) unmarshalNNewTransactionExecution2githubᚗcomᚋdap
 
 func (ec *executionContext) unmarshalNNewTransactionTemplate2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐNewTransactionTemplate(ctx context.Context, v interface{}) (model.NewTransactionTemplate, error) {
 	return ec.unmarshalInputNewTransactionTemplate(ctx, v)
+}
+
+func (ec *executionContext) marshalNProgramError2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx context.Context, sel ast.SelectionSet, v model.ProgramError) graphql.Marshaler {
+	return ec._ProgramError(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx context.Context, sel ast.SelectionSet, v model.Project) graphql.Marshaler {
@@ -6506,6 +6851,57 @@ func (ec *executionContext) unmarshalONewProjectTransactionTemplate2ᚕᚖgithub
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) marshalOProgramError2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ProgramError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		rctx := &graphql.ResolverContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithResolverContext(ctx, rctx)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProgramError2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOProgramPosition2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramPosition(ctx context.Context, sel ast.SelectionSet, v model.ProgramPosition) graphql.Marshaler {
+	return ec._ProgramPosition(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOProgramPosition2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramPosition(ctx context.Context, sel ast.SelectionSet, v *model.ProgramPosition) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ProgramPosition(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScriptExecution) graphql.Marshaler {

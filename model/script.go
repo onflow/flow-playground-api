@@ -30,10 +30,10 @@ func (s *ScriptTemplate) Load(ps []datastore.Property) error {
 	}
 
 	if err := s.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode script template UUID")
 	}
 	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode project UUID")
 	}
 	s.Title = tmp.Title
 	s.Index = tmp.Index
@@ -73,7 +73,7 @@ type ScriptExecution struct {
 	Script    string
 	Arguments []string
 	Value     string
-	Error     *string
+	Errors    []ProgramError
 	Logs      []string
 }
 
@@ -89,7 +89,6 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 		Script    string
 		Arguments []string
 		Value     string
-		Error     *string
 		Logs      []string
 	}{}
 
@@ -98,16 +97,15 @@ func (s *ScriptExecution) Load(ps []datastore.Property) error {
 	}
 
 	if err := s.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode script execution UUID")
 	}
 	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+		return errors.Wrap(err, "failed to decode project UUID")
 	}
 	s.Index = tmp.Index
 	s.Script = tmp.Script
 	s.Arguments = tmp.Arguments
 	s.Value = tmp.Value
-	s.Error = tmp.Error
 	s.Logs = tmp.Logs
 	return nil
 }
@@ -150,10 +148,6 @@ func (s *ScriptExecution) Save() ([]datastore.Property, error) {
 		{
 			Name:  "Value",
 			Value: s.Value,
-		},
-		{
-			Name:  "Error",
-			Value: s.Error,
 		},
 		{
 			Name:  "Logs",
