@@ -130,7 +130,7 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 }
 
 func (t *TransactionExecution) Save() ([]datastore.Property, error) {
-	signerAccountIDs := make([]interface{}, 0, len(t.Events))
+	signerAccountIDs := make([]interface{}, 0, len(t.SignerAccountIDs))
 	for _, aID := range t.SignerAccountIDs {
 		signerAccountIDs = append(signerAccountIDs, aID.String())
 	}
