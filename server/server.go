@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"log"
 	"net/http"
 	"strings"
@@ -137,8 +138,86 @@ func main() {
 		))
 	})
 
+	embedsHandler := controller.NewEmbedsHandler(store, logger)
+	router.Route("/embed", func(r chi.Router) {
+		r.Handle("/{projectID}/{scriptType}/{scriptId}", embedsHandler)
+	})
+
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
+
+	// Handler for snippets embedding
+	/*
+		router.HandleFunc("/embed/{projectID}", func(w http.ResponseWriter, r *http.Request) {
+			projectId := chi.URLParam(r, "projectID")
+			log.Println(projectId)
+
+			// Get script type from url
+			scriptType := r.URL.Query().Get("scriptType")
+			if scriptType == "" {
+				w.Write([]byte("scriptType can't be empty"))
+				http.Error(w, http.StatusText(422), 422)
+				return
+			}
+
+			// Get script id
+			scriptId, conversionError := strconv.Atoi(r.URL.Query().Get("scriptId"))
+			if conversionError != nil {
+				w.Write([]byte("Can't convert scriptId value to positive index"))
+				http.Error(w, http.StatusText(422), 422)
+				return
+			}
+
+			// Parse project UUID from provided string
+			projectUUID, parseErr := uuid.Parse(projectId)
+			if parseErr != nil {
+				log.Println("Conversion error")
+				log.Println(parseErr)
+
+				http.Error(w, http.StatusText(422), 422)
+				return
+			}
+
+			// TODO: Refactor and put into appropriate place
+			w.WriteHeader(http.StatusOK)
+
+			var scripts []*model.ScriptTemplate
+			var transactions []*model.TransactionTemplate
+			var accounts []*model.InternalAccount
+			var code string
+
+			switch scriptType {
+			case "script":
+				store.GetScriptTemplatesForProject(projectUUID, &scripts)
+				code = scripts[scriptId].Script
+			case "transaction":
+				store.GetTransactionTemplatesForProject(projectUUID, &transactions)
+				code = transactions[scriptId].Script
+			case "contract":
+				store.GetAccountsForProject(projectUUID, &accounts)
+				code = accounts[scriptId].DraftCode
+			}
+
+			lexer := lexers.Get("swift")
+			lexer = chroma.Coalesce(lexer)
+
+			style := styles.Get("swapoff")
+			if style == nil {
+				style = styles.Fallback
+			}
+
+			formatter := html.New(html.WithClasses(true))
+
+			// TODO: Catch error here
+			formatter.WriteCSS(w, style)
+
+			// TODO: Catch error here
+			iterator, _ := lexer.Tokenise(nil, code)
+
+			// TODO: Catch error here
+			formatter.Format(w, style, iterator)
+		})
+	*/
 
 	logStartMessage(build.Version())
 
