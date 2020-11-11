@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
@@ -9,54 +11,63 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type EmbedsHandler struct {
-	store  storage.Store
-	logger *logrus.Logger
+	store storage.Store
 }
 
 func NewEmbedsHandler(
 	store storage.Store,
-	logger *logrus.Logger,
 ) *EmbedsHandler {
 	return &EmbedsHandler{
-		store:  store,
-		logger: logger,
+		store: store,
 	}
 }
 
 func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// implementation here
-	log.Println("Follow the white rabbit")
-
 	projectId := getUUID("projectID", w, r)
 	childId := getUUID("scriptId", w, r)
 	scriptType := getURLParam("scriptType", w, r)
-
-	log.Println(projectId, scriptType, childId)
 
 	scriptId := model.ProjectChildID{
 		ID:        childId,
 		ProjectID: projectId,
 	}
 
-	code, getErr := e.GetCode(scriptId, scriptType)
+	code, getErr := getCode(e, scriptId, scriptType)
+
 	if getErr != nil {
 		w.Write([]byte(getErr.Error()))
 		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
-	log.Println(code)
+	styles, html := createSnippet(code, w)
 
-	// createSnippet(code, w)
+	// initial styles go with no padding, so we need to update the container to include some
+	entryPoint := ".chroma { color"
+	withPadding := ".chroma { padding: 1.5em; color"
+	// We need to prepend styles strings with "`" in order for it to work inside of embedded javascript
+	styles = "`" + strings.Replace(styles, entryPoint, withPadding, 1) + "`"
+
+	stylesInjection := fmt.Sprintf(`
+		const newStyleTag = document.createElement('style');
+  		newStyleTag.innerHTML = %s
+		document.head.appendChild(newStyleTag);
+	`, styles)
+
+	scriptInjection := fmt.Sprintf("document.write(`%s`)", html)
+
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write([]byte(stylesInjection))
+	w.Write([]byte(scriptInjection))
 }
 
-func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (string, error) {
+func getCode(e *EmbedsHandler, id model.ProjectChildID, scriptType string) (string, error) {
 	var code string
 	var err error
 
@@ -73,8 +84,8 @@ func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (str
 }
 
 func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
-	var tmpl *model.ScriptTemplate
-	err := e.store.GetScriptTemplate(id, tmpl)
+	var tmpl model.ScriptTemplate
+	err := e.store.GetScriptTemplate(id, &tmpl)
 	log.Println(tmpl.Script)
 	if err != nil {
 		return "", err
@@ -84,8 +95,8 @@ func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error
 }
 
 func getTransactionTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
-	var tmpl *model.TransactionTemplate
-	err := e.store.GetTransactionTemplate(id, tmpl)
+	var tmpl model.TransactionTemplate
+	err := e.store.GetTransactionTemplate(id, &tmpl)
 	if err != nil {
 		return "", err
 	} else {
@@ -94,8 +105,8 @@ func getTransactionTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, 
 }
 
 func getAccountTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
-	var tmpl *model.InternalAccount
-	err := e.store.GetAccount(id, tmpl)
+	var tmpl model.InternalAccount
+	err := e.store.GetAccount(id, &tmpl)
 	if err != nil {
 		return "", err
 	} else {
@@ -123,7 +134,7 @@ func getURLParam(paramName string, w http.ResponseWriter, r *http.Request) strin
 	return param
 }
 
-func createSnippet(code string, w http.ResponseWriter) {
+func createSnippet(code string, w http.ResponseWriter) (string, string) {
 	lexer := lexers.Get("swift")
 	lexer = chroma.Coalesce(lexer)
 
@@ -134,12 +145,18 @@ func createSnippet(code string, w http.ResponseWriter) {
 
 	formatter := html.New(html.WithClasses(true))
 
-	// TODO: Catch error here
-	formatter.WriteCSS(w, style)
+	var stylesBuffer bytes.Buffer
+	// TODO: catch error here
+	formatter.WriteCSS(&stylesBuffer, style)
+	exportStyles := stylesBuffer.String()
 
 	// TODO: Catch error here
 	iterator, _ := lexer.Tokenise(nil, code)
 
+	var htmlBuffer bytes.Buffer
+	formatter.Format(&htmlBuffer, style, iterator)
 	// TODO: Catch error here
-	formatter.Format(w, style, iterator)
+	exportHTML := htmlBuffer.String()
+
+	return exportStyles, exportHTML
 }
