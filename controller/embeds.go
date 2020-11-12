@@ -55,7 +55,7 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	styles = "`" + strings.Replace(styles, entryPoint, withPadding, 1) + "`"
 
 	stylesInjection := fmt.Sprintf(`
-		const newStyleTag = document.createElement('style');
+		var newStyleTag = document.createElement('style');
   		newStyleTag.innerHTML = %s
 		document.head.appendChild(newStyleTag);
 	`, styles)
