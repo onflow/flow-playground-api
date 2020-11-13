@@ -11,7 +11,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -46,21 +45,26 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	styles, html := createSnippet(code, w)
+	theme := r.URL.Query().Get("theme")
 
-	// initial styles go with no padding, so we need to update the container to include some
-	entryPoint := ".chroma { color"
-	withPadding := ".chroma { padding: 1.5em; color"
+	styles, html, styleName := createSnippet(code, theme, w)
+
 	// We need to prepend styles strings with "`" in order for it to work inside of embedded javascript
-	styles = "`" + strings.Replace(styles, entryPoint, withPadding, 1) + "`"
+	styles = "`" + styles + "`"
+	// This will allow multiple styles per page, if user desires such outcome
+	styles = strings.ReplaceAll(styles, ".chroma", ".chroma."+styleName)
 
 	stylesInjection := fmt.Sprintf(`
-		var newStyleTag = document.createElement('style');
-  		newStyleTag.innerHTML = %s
-		document.head.appendChild(newStyleTag);
-	`, styles)
+		if (!document.getElementById("theme-%s")){
+			var newStyleTag = document.createElement('style');
+			newStyleTag.id = "theme-%s"
+			newStyleTag.innerHTML = %s
+			document.head.appendChild(newStyleTag);
+		}
+	`, styleName, styleName, styles)
 
-	scriptInjection := fmt.Sprintf("document.write(`%s`)", html)
+	replaceClass := strings.Replace(html, "chroma", "chroma "+styleName, 1)
+	scriptInjection := fmt.Sprintf("document.write(`%s`)", replaceClass)
 
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write([]byte(stylesInjection))
@@ -76,7 +80,7 @@ func getCode(e *EmbedsHandler, id model.ProjectChildID, scriptType string) (stri
 		code, err = getScriptTemplate(e, id)
 	case "transaction":
 		code, err = getTransactionTemplate(e, id)
-	case "contract":
+	case "account":
 		code, err = getAccountTemplate(e, id)
 	}
 
@@ -86,7 +90,6 @@ func getCode(e *EmbedsHandler, id model.ProjectChildID, scriptType string) (stri
 func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
 	var tmpl model.ScriptTemplate
 	err := e.store.GetScriptTemplate(id, &tmpl)
-	log.Println(tmpl.Script)
 	if err != nil {
 		return "", err
 	} else {
@@ -116,7 +119,6 @@ func getAccountTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, erro
 
 func getUUID(paramName string, w http.ResponseWriter, r *http.Request) (id uuid.UUID) {
 	rawId := chi.URLParam(r, paramName)
-	log.Println(paramName, rawId)
 	id, err := model.UnmarshalUUID(rawId)
 	if err != nil || rawId == "" {
 		w.Write([]byte(err.Error()))
@@ -134,16 +136,19 @@ func getURLParam(paramName string, w http.ResponseWriter, r *http.Request) strin
 	return param
 }
 
-func createSnippet(code string, w http.ResponseWriter) (string, string) {
+func createSnippet(code string, theme string, w http.ResponseWriter) (string, string, string) {
 	lexer := lexers.Get("swift")
 	lexer = chroma.Coalesce(lexer)
 
-	style := styles.Get("monokai")
+	style := styles.Get(theme)
 	if style == nil {
 		style = styles.Fallback
 	}
 
-	formatter := html.New(html.WithClasses(true))
+	formatter := html.New(
+		html.WithClasses(true),
+		html.WithLineNumbers(true),
+	)
 
 	var stylesBuffer bytes.Buffer
 	// TODO: catch error here
@@ -158,5 +163,5 @@ func createSnippet(code string, w http.ResponseWriter) (string, string) {
 	// TODO: Catch error here
 	exportHTML := htmlBuffer.String()
 
-	return exportStyles, exportHTML
+	return exportStyles, exportHTML, style.Name
 }
