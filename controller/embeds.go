@@ -28,27 +28,52 @@ func NewEmbedsHandler(
 }
 
 func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	projectId := getUUID("projectID", w, r)
-	childId := getUUID("scriptId", w, r)
-	scriptType := getURLParam("scriptType", w, r)
 
+	// Get project UUID and check that it's not empty
+	projectId, projectIdErr := getUUID("projectID", r)
+	if projectIdErr != nil {
+		w.Write([]byte(projectIdErr.Error()))
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+
+	// Get child UUID - will be used to find model - and check that it's not empty
+	childId, childIdErr := getUUID("scriptId", r)
+	if childIdErr != nil {
+		w.Write([]byte(childIdErr.Error()))
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+
+	// Get script type - account code is retrieved in a different way - and check that it's not empty
+	scriptType, scriptTypeErr := getURLParam("scriptType", r)
+	if scriptTypeErr != nil {
+		w.Write([]byte(scriptTypeErr.Error()))
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+
+	// Create internal ProjectChildID struct, using aforementioned UUIDs
 	scriptId := model.ProjectChildID{
 		ID:        childId,
 		ProjectID: projectId,
 	}
 
+	// Get script code
 	code, getErr := getCode(e, scriptId, scriptType)
-
 	if getErr != nil {
 		w.Write([]byte(getErr.Error()))
 		http.Error(w, http.StatusText(422), 422)
 		return
 	}
 
+	// Get theme - if any - from url
 	theme := r.URL.Query().Get("theme")
 
-	codeStyles, htmlBlock, styleName := createSnippet(code, theme, w)
+	// Use chroma to return CSS and HTML blocks with theme name
+	codeStyles, htmlBlock, styleName := createSnippet(code, theme)
 
+	// Create injectable Javascript blocks, which will be written in response
 	wrapperStyleInjection := createCodeStyles(codeStyles, styleName)
 	snippetStyleInjection := createSnippetStyles()
 	htmlInjection := wrapCodeBlock(htmlBlock, styleName, projectId.String())
@@ -60,71 +85,71 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func getCode(e *EmbedsHandler, id model.ProjectChildID, scriptType string) (string, error) {
-	var code string
-	var err error
 
 	switch scriptType {
 	case "script":
-		code, err = getScriptTemplate(e, id)
+		return getScriptTemplate(e, id)
 	case "transaction":
-		code, err = getTransactionTemplate(e, id)
+		return getTransactionTemplate(e, id)
 	case "account":
-		code, err = getAccountTemplate(e, id)
+		return getAccountTemplate(e, id)
+	default:
+		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
 
-	return code, err
 }
 
 func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
 	var tmpl model.ScriptTemplate
+
 	err := e.store.GetScriptTemplate(id, &tmpl)
 	if err != nil {
 		return "", err
-	} else {
-		return tmpl.Script, nil
 	}
+
+	return tmpl.Script, nil
 }
 
 func getTransactionTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
 	var tmpl model.TransactionTemplate
+
 	err := e.store.GetTransactionTemplate(id, &tmpl)
 	if err != nil {
 		return "", err
-	} else {
-		return tmpl.Script, nil
 	}
+
+	return tmpl.Script, nil
 }
 
 func getAccountTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
 	var tmpl model.InternalAccount
+
 	err := e.store.GetAccount(id, &tmpl)
 	if err != nil {
 		return "", err
-	} else {
-		return tmpl.DraftCode, nil
 	}
+
+	return tmpl.DraftCode, nil
 }
 
-func getUUID(paramName string, w http.ResponseWriter, r *http.Request) (id uuid.UUID) {
+func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
 	rawId := chi.URLParam(r, paramName)
-	id, err := model.UnmarshalUUID(rawId)
+	id, err = model.UnmarshalUUID(rawId)
 	if err != nil || rawId == "" {
-		w.Write([]byte(err.Error()))
-		http.Error(w, http.StatusText(422), 422)
+		return uuid.Nil, err
 	}
-	return id
+	return id, nil
 }
 
-func getURLParam(paramName string, w http.ResponseWriter, r *http.Request) string {
+func getURLParam(paramName string, r *http.Request) (string, error) {
 	param := chi.URLParam(r, paramName)
 	if param == "" {
-		w.Write([]byte(param + " can't be empty"))
-		http.Error(w, http.StatusText(422), 422)
+		return "", fmt.Errorf("failed to decode URL param %s: can't be empty", paramName)
 	}
-	return param
+	return param, nil
 }
 
-func createSnippet(code string, theme string, w http.ResponseWriter) (string, string, string) {
+func createSnippet(code string, theme string) (string, string, string) {
 	lexer := lexers.Get("swift")
 	lexer = chroma.Coalesce(lexer)
 
@@ -151,12 +176,13 @@ func createSnippet(code string, theme string, w http.ResponseWriter) (string, st
 	// TODO: Catch error here
 	exportHTML := htmlBuffer.String()
 
+	// TODO: return struct instead of multiples
 	return exportStyles, exportHTML, style.Name
 }
 
 func createCodeStyles(styles string, styleName string) string {
 	// We need to prepend styles strings with "`" in order for it to work inside of embedded javascript
-	codeStyles := "`" + styles + "`"
+	codeStyles := fmt.Sprintf("`%s`", styles)
 	// This will allow multiple styles per page, if user desires such outcome
 	codeStyles = strings.ReplaceAll(codeStyles, ".chroma", ".chroma."+styleName)
 
@@ -233,7 +259,7 @@ func createSnippetStyles() string {
 		}
 	`
 
-	wrapperStyles = "`" + wrapperStyles + "`"
+	wrapperStyles = fmt.Sprintf("`%s`", wrapperStyles)
 
 	stylesInjection := fmt.Sprintf(`
 		if (!document.getElementById("cadence-styles")){
