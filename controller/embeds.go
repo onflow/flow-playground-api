@@ -15,6 +15,14 @@ import (
 	"strings"
 )
 
+const PLAYGROUND_BASE = "http://localhost:3000/"
+
+type Snippet struct {
+	html      string
+	styles    string
+	themeName string
+}
+
 type EmbedsHandler struct {
 	store storage.Store
 }
@@ -71,12 +79,17 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	theme := r.URL.Query().Get("theme")
 
 	// Use chroma to return CSS and HTML blocks with theme name
-	codeStyles, htmlBlock, styleName := createSnippet(code, theme)
+	snippet, snippetErr := createSnippet(code, theme)
+	if snippetErr != nil {
+		w.Write([]byte(snippetErr.Error()))
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
 
 	// Create injectable Javascript blocks, which will be written in response
-	wrapperStyleInjection := createCodeStyles(codeStyles, styleName)
+	wrapperStyleInjection := createCodeStyles(snippet.styles, snippet.themeName)
 	snippetStyleInjection := createSnippetStyles()
-	htmlInjection := wrapCodeBlock(htmlBlock, styleName, projectId.String())
+	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, projectId.String())
 
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write([]byte(wrapperStyleInjection))
@@ -149,7 +162,7 @@ func getURLParam(paramName string, r *http.Request) (string, error) {
 	return param, nil
 }
 
-func createSnippet(code string, theme string) (string, string, string) {
+func createSnippet(code string, theme string) (Snippet, error) {
 	lexer := lexers.Get("swift")
 	lexer = chroma.Coalesce(lexer)
 
@@ -164,20 +177,31 @@ func createSnippet(code string, theme string) (string, string, string) {
 	)
 
 	var stylesBuffer bytes.Buffer
-	// TODO: catch error here
-	formatter.WriteCSS(&stylesBuffer, style)
+	cssError := formatter.WriteCSS(&stylesBuffer, style)
+	if cssError != nil {
+		return Snippet{}, cssError
+	}
+
 	exportStyles := stylesBuffer.String()
 
-	// TODO: Catch error here
-	iterator, _ := lexer.Tokenise(nil, code)
+	iterator, lexerErr := lexer.Tokenise(nil, code)
+	if lexerErr != nil {
+		return Snippet{}, lexerErr
+	}
 
 	var htmlBuffer bytes.Buffer
-	formatter.Format(&htmlBuffer, style, iterator)
-	// TODO: Catch error here
+	formatterError := formatter.Format(&htmlBuffer, style, iterator)
+	if formatterError != nil {
+		return Snippet{}, formatterError
+	}
 	exportHTML := htmlBuffer.String()
 
-	// TODO: return struct instead of multiples
-	return exportStyles, exportHTML, style.Name
+	snippet := Snippet{
+		html:      exportHTML,
+		styles:    exportStyles,
+		themeName: style.Name,
+	}
+	return snippet, nil
 }
 
 func createCodeStyles(styles string, styleName string) string {
@@ -275,9 +299,7 @@ func createSnippetStyles() string {
 
 func wrapCodeBlock(htmlBlock string, styleName string, projectId string) string {
 	sourceCode := strings.Replace(htmlBlock, "chroma", "chroma "+styleName, 1)
-
-	playgroundBase := "http://localhost:3000/"
-	playgroundUrl := playgroundBase + projectId
+	playgroundUrl := PLAYGROUND_BASE + projectId
 
 	wrapper := `
 		<div class="cadence-snippet">
