@@ -15,8 +15,6 @@ import (
 	"strings"
 )
 
-const PLAYGROUND_BASE = "http://localhost:3000/"
-
 type Snippet struct {
 	html      string
 	styles    string
@@ -24,14 +22,17 @@ type Snippet struct {
 }
 
 type EmbedsHandler struct {
-	store storage.Store
+	store          storage.Store
+	playgroundBase string
 }
 
 func NewEmbedsHandler(
 	store storage.Store,
+	playgroundBase string,
 ) *EmbedsHandler {
 	return &EmbedsHandler{
-		store: store,
+		store:          store,
+		playgroundBase: playgroundBase,
 	}
 }
 
@@ -86,10 +87,12 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	playgroundUrl := fmt.Sprintf("%s/%s", e.playgroundBase, projectId.String())
+
 	// Create injectable Javascript blocks, which will be written in response
 	wrapperStyleInjection := createCodeStyles(snippet.styles, snippet.themeName)
 	snippetStyleInjection := createSnippetStyles()
-	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, projectId.String())
+	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, playgroundUrl)
 
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write([]byte(wrapperStyleInjection))
@@ -297,9 +300,8 @@ func createSnippetStyles() string {
 	return stylesInjection
 }
 
-func wrapCodeBlock(htmlBlock string, styleName string, projectId string) string {
+func wrapCodeBlock(htmlBlock string, styleName string, playgroundUrl string) string {
 	sourceCode := strings.Replace(htmlBlock, "chroma", "chroma "+styleName, 1)
-	playgroundUrl := PLAYGROUND_BASE + projectId
 
 	wrapper := `
 		<div class="cadence-snippet">
