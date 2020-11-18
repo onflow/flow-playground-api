@@ -42,6 +42,7 @@ type Config struct {
 	SessionCookiesHTTPOnly     bool          `default:"true"`
 	SessionCookiesSameSiteNone bool          `default:"false"`
 	LedgerCacheSize            int           `default:"128"`
+	PlaygroundBase             string        `default:"http://localhost:3000"`
 	StorageBackend             string
 }
 
@@ -138,7 +139,7 @@ func main() {
 		))
 	})
 
-	embedsHandler := controller.NewEmbedsHandler(store)
+	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBase)
 	router.Route("/embed", func(r chi.Router) {
 		r.Handle("/{projectID}/{scriptType}/{scriptId}", embedsHandler)
 	})
