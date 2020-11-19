@@ -144,6 +144,9 @@ func main() {
 		r.Handle("/{projectID}/{scriptType}/{scriptId}", embedsHandler)
 	})
 
+	utilsHandler := controller.NewUtilsHandler()
+	router.Route("/utils", utilsHandler.Router)
+
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
 
