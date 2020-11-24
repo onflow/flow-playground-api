@@ -1,13 +1,15 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/Masterminds/semver"
+	"github.com/alecthomas/assert"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 )
@@ -136,26 +138,46 @@ func (ms *MockStore) GetScriptTemplate(id model.ProjectChildID, tmpl *model.Scri
 		}
 	`
 
-	return fmt.Errorf("can't find script template")
+	return nil
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
+	req, err := http.NewRequest(method, ts.URL+path, body)
+	if err != nil {
+		t.Fatal(err)
+		return nil, ""
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+		return nil, ""
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+		return nil, ""
+	}
+	defer resp.Body.Close()
+
+	return resp, string(respBody)
 }
 
 func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	mockStore := MockStore{}
 	playgroundBase := "http://localhost:3000"
+	embedsHandler := NewEmbedsHandler(&mockStore, playgroundBase)
 
-	handler := NewEmbedsHandler(&mockStore, playgroundBase)
-	url := "http://playground.api.com/embed/24278e82-9316-4559-96f2-573ec58f618f/script/9473b82c-36ea-4810-ad3f-7ea5497d9cae"
-	req := httptest.NewRequest("GET", url, nil)
-	w := httptest.NewRecorder()
+	r := chi.NewRouter()
+	r.Get("/embed/{projectID}/{scriptType}/{scriptId}", embedsHandler.ServeHTTP)
 
-	handler.ServeHTTP(w, req)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
 
-	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	snippetUrl := "/embed/24278e82-9316-4559-96f2-573ec58f618f/script/9473b82c-36ea-4810-ad3f-7ea5497d9cae"
 
-	fmt.Println(resp.StatusCode)
-	fmt.Println(resp.Header.Get("Content-Type"))
-	fmt.Println(string(body))
+	response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
 
-	assert.NotNil(t, body)
+	assert.Equal(t, response.StatusCode, http.StatusOK)
 }
