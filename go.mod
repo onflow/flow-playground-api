@@ -8,6 +8,7 @@ require (
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
 	github.com/Masterminds/semver v1.5.0
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
+	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/chroma v0.8.1
 	github.com/dapperlabs/flow-go v0.9.1-0.20200921171937-a5a384d56b64
 	github.com/go-chi/chi v3.3.2+incompatible
