@@ -9,7 +9,6 @@ import (
 	"github.com/alecthomas/chroma/styles"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"net/http"
 	"strings"
@@ -144,12 +143,15 @@ func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, err
 }
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
-	rawID := chi.URLParam(r, paramName)
+	rawID, err := getURLParam(paramName, r)
+	if err != nil {
+		return uuid.Nil, err
+	}
 	return model.UnmarshalUUID(rawID)
 }
 
 func getURLParam(paramName string, r *http.Request) (string, error) {
-	param := chi.URLParam(r, paramName)
+	param := r.URL.Query().Get(paramName)
 	if param == "" {
 		return "", fmt.Errorf("failed to decode URL param %s: can't be empty", paramName)
 	}
