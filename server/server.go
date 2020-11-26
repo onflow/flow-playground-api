@@ -140,9 +140,7 @@ func main() {
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
-	router.Route("/embed", func(r chi.Router) {
-		r.Handle("/{projectID}/{scriptType}/{scriptId}", embedsHandler)
-	})
+	router.Handle("/embed", embedsHandler)
 
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
