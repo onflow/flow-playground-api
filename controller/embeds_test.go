@@ -76,7 +76,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	snippetUrl := fmt.Sprintf("/embed/%s/%s/%s", projectID, scriptType, scriptID)
+	snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, scriptID)
 
 	response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
 
