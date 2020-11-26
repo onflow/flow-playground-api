@@ -22,57 +22,53 @@ type Snippet struct {
 }
 
 type EmbedsHandler struct {
-	store          storage.Store
-	playgroundBase string
+	store             storage.Store
+	playgroundBaseURL string
 }
 
 func NewEmbedsHandler(
 	store storage.Store,
-	playgroundBase string,
+	playgroundBaseURL string,
 ) *EmbedsHandler {
 	return &EmbedsHandler{
-		store:          store,
-		playgroundBase: playgroundBase,
+		store:             store,
+		playgroundBaseURL: playgroundBaseURL,
 	}
 }
 
 func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID and check that it's not empty
-	projectId, projectIdErr := getUUID("projectID", r)
-	if projectIdErr != nil {
-		w.Write([]byte(projectIdErr.Error()))
-		http.Error(w, http.StatusText(422), 422)
+	projectID, projectIDErr := getUUID("projectID", r)
+	if projectIDErr != nil {
+		http.Error(w, "invalid project ID", http.StatusBadRequest)
 		return
 	}
 
 	// Get child UUID - will be used to find model - and check that it's not empty
-	childId, childIdErr := getUUID("scriptId", r)
-	if childIdErr != nil {
-		w.Write([]byte(childIdErr.Error()))
-		http.Error(w, http.StatusText(422), 422)
+	scriptID, scriptIDErr := getUUID("scriptId", r)
+	if scriptIDErr != nil {
+		http.Error(w, "invalid script ID", http.StatusBadRequest)
 		return
 	}
 
 	// Get script type - account code is retrieved in a different way - and check that it's not empty
 	scriptType, scriptTypeErr := getURLParam("scriptType", r)
 	if scriptTypeErr != nil {
-		w.Write([]byte(scriptTypeErr.Error()))
-		http.Error(w, http.StatusText(422), 422)
+		http.Error(w, "invalid script type", http.StatusBadRequest)
 		return
 	}
 
 	// Create internal ProjectChildID struct, using aforementioned UUIDs
-	scriptId := model.ProjectChildID{
-		ID:        childId,
-		ProjectID: projectId,
+	scriptProjectID := model.ProjectChildID{
+		ID:        scriptID,
+		ProjectID: projectID,
 	}
 
 	// Get script code
-	code, getErr := getCode(e, scriptId, scriptType)
+	code, getErr := e.GetCode(scriptProjectID, scriptType)
 	if getErr != nil {
-		w.Write([]byte(getErr.Error()))
-		http.Error(w, http.StatusText(422), 422)
+		http.Error(w, "could not get script with specified parameters", http.StatusBadRequest)
 		return
 	}
 
@@ -82,17 +78,16 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use chroma to return CSS and HTML blocks with theme name
 	snippet, snippetErr := createSnippet(code, theme)
 	if snippetErr != nil {
-		w.Write([]byte(snippetErr.Error()))
-		http.Error(w, http.StatusText(422), 422)
+		http.Error(w, "can't create snippet with specified parameters", http.StatusBadRequest)
 		return
 	}
 
-	playgroundUrl := fmt.Sprintf("%s/%s", e.playgroundBase, projectId.String())
+	playgroundURL := fmt.Sprintf("%s/%s", e.playgroundBaseURL, projectID.String())
 
 	// Create injectable Javascript blocks, which will be written in response
 	wrapperStyleInjection := createCodeStyles(snippet.styles, snippet.themeName)
 	snippetStyleInjection := createSnippetStyles()
-	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, playgroundUrl)
+	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, playgroundURL)
 
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write([]byte(wrapperStyleInjection))
@@ -100,22 +95,22 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(htmlInjection))
 }
 
-func getCode(e *EmbedsHandler, id model.ProjectChildID, scriptType string) (string, error) {
+func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (string, error) {
 
 	switch scriptType {
 	case "script":
-		return getScriptTemplate(e, id)
+		return e.GetScriptTemplate(id)
 	case "transaction":
-		return getTransactionTemplate(e, id)
+		return e.GetTransactionTemplate(id)
 	case "account":
-		return getAccountTemplate(e, id)
+		return e.GetAccountTemplate(id)
 	default:
 		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
 
 }
 
-func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
+func (e *EmbedsHandler) GetScriptTemplate(id model.ProjectChildID) (string, error) {
 	var tmpl model.ScriptTemplate
 
 	err := e.store.GetScriptTemplate(id, &tmpl)
@@ -126,7 +121,7 @@ func getScriptTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error
 	return tmpl.Script, nil
 }
 
-func getTransactionTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
+func (e *EmbedsHandler) GetTransactionTemplate(id model.ProjectChildID) (string, error) {
 	var tmpl model.TransactionTemplate
 
 	err := e.store.GetTransactionTemplate(id, &tmpl)
@@ -137,7 +132,7 @@ func getTransactionTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, 
 	return tmpl.Script, nil
 }
 
-func getAccountTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, error) {
+func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, error) {
 	var tmpl model.InternalAccount
 
 	err := e.store.GetAccount(id, &tmpl)
@@ -149,12 +144,8 @@ func getAccountTemplate(e *EmbedsHandler, id model.ProjectChildID) (string, erro
 }
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
-	rawId := chi.URLParam(r, paramName)
-	id, err = model.UnmarshalUUID(rawId)
-	if err != nil || rawId == "" {
-		return uuid.Nil, err
-	}
-	return id, nil
+	rawID := chi.URLParam(r, paramName)
+	return model.UnmarshalUUID(rawID)
 }
 
 func getURLParam(paramName string, r *http.Request) (string, error) {
