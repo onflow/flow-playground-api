@@ -38,21 +38,21 @@ func NewEmbedsHandler(
 func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Get project UUID and check that it's not empty
-	projectID, projectIDErr := getUUID("projectID", r)
+	projectID, projectIDErr := getUUID("project", r)
 	if projectIDErr != nil {
 		http.Error(w, "invalid project ID", http.StatusBadRequest)
 		return
 	}
 
 	// Get child UUID - will be used to find model - and check that it's not empty
-	scriptID, scriptIDErr := getUUID("scriptId", r)
+	scriptID, scriptIDErr := getUUID("id", r)
 	if scriptIDErr != nil {
 		http.Error(w, "invalid script ID", http.StatusBadRequest)
 		return
 	}
 
 	// Get script type - account code is retrieved in a different way - and check that it's not empty
-	scriptType, scriptTypeErr := getURLParam("scriptType", r)
+	scriptType, scriptTypeErr := getURLParam("type", r)
 	if scriptTypeErr != nil {
 		http.Error(w, "invalid script type", http.StatusBadRequest)
 		return
