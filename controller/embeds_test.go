@@ -115,65 +115,64 @@ func TestEmbedsHandler_getUUID(t *testing.T) {
 	assert.Equal(t, scriptType, scriptTypeParam)
 }
 
-func TestEmbedsHandler_createCodeStyles(t *testing.T) {
-	const styles = ".chroma { background: red }"
-	const styleName = "red"
-	codeStyle := createCodeStyles(styles, styleName)
+func TestMethods(t *testing.T) {
+	t.Run("Generate wrapper styles", func(t *testing.T) {
+		generatedStyles := generateWrapperStyles()
 
-	// Check that id is created properly
-	themeName := fmt.Sprintf("theme-%s", styleName)
-	haveThemeString := strings.Contains(codeStyle, themeName)
-	assert.True(t, haveThemeString)
+		testClasses := [...]string{
+			"cadence-snippet",
+			"cadence-snippet pre.chroma",
+			".cadence-code-block .chroma",
+			".cadence-info-block",
+			".cadence-info-block img",
+			".cadence-info-block a",
+			".flow-playground-logo",
+			".cadence-info-block .umbrella",
+		}
 
-	// Chroma class names shall have another class to ensure themes are working properly
-	adjustedClassName := fmt.Sprintf(".chroma.%s", styleName)
-	adjustedStyles := strings.ReplaceAll(styles, ".chroma", adjustedClassName)
+		for _, value := range testClasses {
+			assert.True(t, strings.Contains(generatedStyles, value))
+		}
+	})
+	t.Run("Create snippet styles", func(t *testing.T) {
+		snippetStyles := createSnippetStyles()
+		generatedStyles := generateWrapperStyles()
 
-	// Check that inserted HTML have adjusted styles
-	haveStylesHTML := strings.Contains(codeStyle, adjustedStyles)
-	assert.True(t, haveStylesHTML)
-}
+		haveProperId := strings.Contains(snippetStyles, "cadence-styles")
+		assert.True(t, haveProperId)
 
-func TestEmbedsHandler_generateWrapperStyles(t *testing.T) {
-	generatedStyles := generateWrapperStyles()
+		haveStylesHTML := strings.Contains(snippetStyles, generatedStyles)
+		assert.True(t, haveStylesHTML)
+	})
+	t.Run("Create code styles", func(t *testing.T) {
+		const styles = ".chroma { background: red }"
+		const styleName = "red"
+		codeStyle := createCodeStyles(styles, styleName)
 
-	testClasses := [...]string{
-		"cadence-snippet",
-		"cadence-snippet pre.chroma",
-		".cadence-code-block .chroma",
-		".cadence-info-block",
-		".cadence-info-block img",
-		".cadence-info-block a",
-		".flow-playground-logo",
-		".cadence-info-block .umbrella",
-	}
+		// Check that id is created properly
+		themeName := fmt.Sprintf("theme-%s", styleName)
+		haveThemeString := strings.Contains(codeStyle, themeName)
+		assert.True(t, haveThemeString)
 
-	for _, value := range testClasses {
-		assert.True(t, strings.Contains(generatedStyles, value))
-	}
-}
+		// Chroma class names shall have another class to ensure themes are working properly
+		adjustedClassName := fmt.Sprintf(".chroma.%s", styleName)
+		adjustedStyles := strings.ReplaceAll(styles, ".chroma", adjustedClassName)
 
-func TestEmbedsHandler_createSnippetStyles(t *testing.T) {
-	snippetStyles := createSnippetStyles()
-	generatedStyles := generateWrapperStyles()
+		// Check that inserted HTML have adjusted styles
+		haveStylesHTML := strings.Contains(codeStyle, adjustedStyles)
+		assert.True(t, haveStylesHTML)
+	})
+	t.Run("Wrap code block", func(t *testing.T) {
+		htmlBlock := "<div>no code</div>"
+		styleName := "red"
+		playgroundUrl := "https://play.onflow.org/"
 
-	haveProperId := strings.Contains(snippetStyles, "cadence-styles")
-	assert.True(t, haveProperId)
+		wrappedCodeBlock := wrapCodeBlock(htmlBlock, styleName, playgroundUrl)
 
-	haveStylesHTML := strings.Contains(snippetStyles, generatedStyles)
-	assert.True(t, haveStylesHTML)
-}
+		haveWrappedCode := strings.Contains(wrappedCodeBlock, htmlBlock)
+		assert.True(t, haveWrappedCode)
 
-func TestEmbedsHandler_wrapCodeBlock(t *testing.T) {
-	htmlBlock := "<div>no code</div>"
-	styleName := "red"
-	playgroundUrl := "https://play.onflow.org/"
-
-	wrappedCodeBlock := wrapCodeBlock(htmlBlock, styleName, playgroundUrl)
-
-	haveWrappedCode := strings.Contains(wrappedCodeBlock, htmlBlock)
-	assert.True(t, haveWrappedCode)
-
-	haveProperUrl := strings.Contains(wrappedCodeBlock, playgroundUrl)
-	assert.True(t, haveProperUrl)
+		haveProperUrl := strings.Contains(wrappedCodeBlock, playgroundUrl)
+		assert.True(t, haveProperUrl)
+	})
 }
