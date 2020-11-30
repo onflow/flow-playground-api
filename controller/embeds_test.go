@@ -3,19 +3,30 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/Masterminds/semver"
 	"github.com/alecthomas/assert"
+	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
+	"github.com/stretchr/testify/require"
+	// playground "github.com/dapperlabs/flow-playground-api"
+	// "github.com/dapperlabs/flow-playground-api/auth"
+	// "github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
+	// "github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
+	// "github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	// "time"
 )
+
+// version to create project
+var version, _ = semver.NewVersion("0.1.0")
 
 // Utility method to send requests
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
@@ -41,8 +52,39 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	return resp, string(respBody)
 }
 
+func assertHaveWrapper(t *testing.T, body string) {
+	testClasses := [...]string{
+		"cadence-snippet",
+		"cadence-snippet pre.chroma",
+		".cadence-code-block .chroma",
+		".cadence-info-block",
+		".cadence-info-block img",
+		".cadence-info-block a",
+		".flow-playground-logo",
+		".cadence-info-block .umbrella",
+	}
+
+	for _, value := range testClasses {
+		assert.True(t, strings.Contains(body, value))
+	}
+}
+
+func assertHaveTheme(t *testing.T, body string, theme string) {
+	checkTheme := theme
+
+	// when theme is not provided it will default to "swapoff"
+	if theme == "" {
+		checkTheme = "swapoff"
+	}
+
+	themeName := fmt.Sprintf("theme-%s", checkTheme)
+	haveThemeString := strings.Contains(body, themeName)
+	assert.True(t, haveThemeString)
+}
+
 // Unit tests start here
 func TestEmbedsHandler_ServeHTTP(t *testing.T) {
+
 	store := memory.NewStore()
 	playgroundBaseURL := "http://localhost:3000"
 	embedsHandler := NewEmbedsHandler(store, playgroundBaseURL)
@@ -50,6 +92,35 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	projectID := "24278e82-9316-4559-96f2-573ec58f618f"
 	scriptType := "script"
 	scriptID := "9473b82c-36ea-4810-ad3f-7ea5497d9cae"
+
+	parentID := uuid.New()
+
+	user := model.User{
+		ID: uuid.New(),
+	}
+
+	internalProj := &model.InternalProject{
+		ID:       uuid.MustParse(projectID),
+		Secret:   uuid.New(),
+		PublicID: uuid.New(),
+		ParentID: &parentID,
+		Seed:     0,
+		Title:    "test-project",
+		Persist:  false,
+		Version:  version,
+	}
+
+	accounts := make([]*model.InternalAccount, 0)
+	deltas := make([]delta.Delta, 0)
+	ttpls := make([]*model.TransactionTemplate, 0)
+	stpls := make([]*model.ScriptTemplate, 0)
+
+	internalProj.UserID = user.ID
+
+	projErr := store.CreateProject(internalProj, deltas, accounts, ttpls, stpls)
+	if projErr != nil {
+		t.Fail()
+	}
 
 	script := `
 	pub fun main(): Int {
@@ -78,9 +149,12 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 
 	snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, scriptID)
 
-	response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
+	response, body := testRequest(t, ts, "GET", snippetUrl, nil)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode)
+
+	assertHaveWrapper(t, body)
+	assertHaveTheme(t, body, "")
 }
 
 func TestEmbedsHandler_getUUID(t *testing.T) {
@@ -118,21 +192,7 @@ func TestEmbedsHandler_getUUID(t *testing.T) {
 func TestMethods(t *testing.T) {
 	t.Run("Generate wrapper styles", func(t *testing.T) {
 		generatedStyles := generateWrapperStyles()
-
-		testClasses := [...]string{
-			"cadence-snippet",
-			"cadence-snippet pre.chroma",
-			".cadence-code-block .chroma",
-			".cadence-info-block",
-			".cadence-info-block img",
-			".cadence-info-block a",
-			".flow-playground-logo",
-			".cadence-info-block .umbrella",
-		}
-
-		for _, value := range testClasses {
-			assert.True(t, strings.Contains(generatedStyles, value))
-		}
+		assertHaveWrapper(t, generatedStyles)
 	})
 	t.Run("Create snippet styles", func(t *testing.T) {
 		snippetStyles := createSnippetStyles()
@@ -150,9 +210,7 @@ func TestMethods(t *testing.T) {
 		codeStyle := createCodeStyles(styles, styleName)
 
 		// Check that id is created properly
-		themeName := fmt.Sprintf("theme-%s", styleName)
-		haveThemeString := strings.Contains(codeStyle, themeName)
-		assert.True(t, haveThemeString)
+		assertHaveTheme(t, codeStyle, styleName)
 
 		// Chroma class names shall have another class to ensure themes are working properly
 		adjustedClassName := fmt.Sprintf(".chroma.%s", styleName)
