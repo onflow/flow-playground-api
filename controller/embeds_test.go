@@ -147,14 +147,47 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
-	snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, scriptID)
+	t.Run("Shall get existing script", func(t *testing.T) {
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, scriptID)
 
-	response, body := testRequest(t, ts, "GET", snippetUrl, nil)
+		response, body := testRequest(t, ts, "GET", snippetUrl, nil)
 
-	assert.Equal(t, http.StatusOK, response.StatusCode)
+		assert.Equal(t, http.StatusOK, response.StatusCode)
 
-	assertHaveWrapper(t, body)
-	assertHaveTheme(t, body, "")
+		assertHaveWrapper(t, body)
+		assertHaveTheme(t, body, "")
+	})
+
+	t.Run("Shall get 400 on wrong script type", func(t *testing.T) {
+		wrongScriptType := "not-the-droid-you-are-looking-for"
+
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, wrongScriptType, scriptID)
+
+		response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
+
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	})
+
+	t.Run("Shall get 400 on non-existing script id", func(t *testing.T) {
+		wrongScriptId := model.MarshalUUID(uuid.New())
+
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, wrongScriptId)
+
+		response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
+
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	})
+
+	t.Run("Shall get 400 on non-existing project id", func(t *testing.T) {
+		wrongProjectId := model.MarshalUUID(uuid.New())
+
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", wrongProjectId, scriptType, scriptID)
+
+		response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
+
+		assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	})
+
 }
 
 func TestEmbedsHandler_getUUID(t *testing.T) {
