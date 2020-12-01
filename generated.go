@@ -75,6 +75,7 @@ type ComplexityRoot struct {
 		UpdateTransactionTemplate  func(childComplexity int, input model.UpdateTransactionTemplate) int
 	}
 
+<<<<<<< HEAD
 	ProgramError struct {
 		EndPosition   func(childComplexity int) int
 		Message       func(childComplexity int) int
@@ -85,6 +86,11 @@ type ComplexityRoot struct {
 		Column func(childComplexity int) int
 		Line   func(childComplexity int) int
 		Offset func(childComplexity int) int
+=======
+	PlaygroundInfo struct {
+		APIVersion     func(childComplexity int) int
+		CadenceVersion func(childComplexity int) int
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 	}
 
 	Project struct {
@@ -105,6 +111,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Account             func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
+		PlaygroundInfo      func(childComplexity int) int
 		Project             func(childComplexity int, id uuid.UUID) int
 		ScriptTemplate      func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		TransactionTemplate func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
@@ -165,6 +172,7 @@ type ProjectResolver interface {
 	ScriptExecutions(ctx context.Context, obj *model.Project) ([]*model.ScriptExecution, error)
 }
 type QueryResolver interface {
+	PlaygroundInfo(ctx context.Context) (*model.PlaygroundInfo, error)
 	Project(ctx context.Context, id uuid.UUID) (*model.Project, error)
 	Account(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error)
 	TransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error)
@@ -377,6 +385,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.UpdateTransactionTemplate(childComplexity, args["input"].(model.UpdateTransactionTemplate)), true
 
+<<<<<<< HEAD
 	case "ProgramError.endPosition":
 		if e.complexity.ProgramError.EndPosition == nil {
 			break
@@ -418,6 +427,21 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ProgramPosition.Offset(childComplexity), true
+=======
+	case "PlaygroundInfo.apiVersion":
+		if e.complexity.PlaygroundInfo.APIVersion == nil {
+			break
+		}
+
+		return e.complexity.PlaygroundInfo.APIVersion(childComplexity), true
+
+	case "PlaygroundInfo.cadenceVersion":
+		if e.complexity.PlaygroundInfo.CadenceVersion == nil {
+			break
+		}
+
+		return e.complexity.PlaygroundInfo.CadenceVersion(childComplexity), true
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 
 	case "Project.accounts":
 		if e.complexity.Project.Accounts == nil {
@@ -521,6 +545,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Account(childComplexity, args["id"].(uuid.UUID), args["projectId"].(uuid.UUID)), true
+
+	case "Query.playgroundInfo":
+		if e.complexity.Query.PlaygroundInfo == nil {
+			break
+		}
+
+		return e.complexity.Query.PlaygroundInfo(childComplexity), true
 
 	case "Query.project":
 		if e.complexity.Query.Project == nil {
@@ -771,6 +802,11 @@ var parsedSchema = gqlparser.MustLoadSchema(
 scalar Address
 scalar Version
 
+type PlaygroundInfo {
+  apiVersion: Version!
+  cadenceVersion: Version!
+}
+
 type Project {
   id: UUID!
   publicId: UUID!
@@ -847,6 +883,7 @@ type ScriptExecution {
 }
 
 type Query {
+  playgroundInfo: PlaygroundInfo!
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!
@@ -2031,7 +2068,11 @@ func (ec *executionContext) _Mutation_createScriptExecution(ctx context.Context,
 	return ec.marshalNScriptExecution2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecution(ctx, field.Selections, res)
 }
 
+<<<<<<< HEAD
 func (ec *executionContext) _ProgramError_message(ctx context.Context, field graphql.CollectedField, obj *model.ProgramError) (ret graphql.Marshaler) {
+=======
+func (ec *executionContext) _PlaygroundInfo_apiVersion(ctx context.Context, field graphql.CollectedField, obj *model.PlaygroundInfo) (ret graphql.Marshaler) {
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2041,7 +2082,11 @@ func (ec *executionContext) _ProgramError_message(ctx context.Context, field gra
 		ec.Tracer.EndFieldExecution(ctx)
 	}()
 	rctx := &graphql.ResolverContext{
+<<<<<<< HEAD
 		Object:   "ProgramError",
+=======
+		Object:   "PlaygroundInfo",
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -2050,7 +2095,11 @@ func (ec *executionContext) _ProgramError_message(ctx context.Context, field gra
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
+<<<<<<< HEAD
 		return obj.Message, nil
+=======
+		return obj.APIVersion, nil
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2062,6 +2111,7 @@ func (ec *executionContext) _ProgramError_message(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
+<<<<<<< HEAD
 	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
@@ -2069,6 +2119,15 @@ func (ec *executionContext) _ProgramError_message(ctx context.Context, field gra
 }
 
 func (ec *executionContext) _ProgramError_startPosition(ctx context.Context, field graphql.CollectedField, obj *model.ProgramError) (ret graphql.Marshaler) {
+=======
+	res := resTmp.(semver.Version)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PlaygroundInfo_cadenceVersion(ctx context.Context, field graphql.CollectedField, obj *model.PlaygroundInfo) (ret graphql.Marshaler) {
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -2078,7 +2137,11 @@ func (ec *executionContext) _ProgramError_startPosition(ctx context.Context, fie
 		ec.Tracer.EndFieldExecution(ctx)
 	}()
 	rctx := &graphql.ResolverContext{
+<<<<<<< HEAD
 		Object:   "ProgramError",
+=======
+		Object:   "PlaygroundInfo",
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -2087,6 +2150,7 @@ func (ec *executionContext) _ProgramError_startPosition(ctx context.Context, fie
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
+<<<<<<< HEAD
 		return obj.StartPosition, nil
 	})
 	if err != nil {
@@ -2230,6 +2294,9 @@ func (ec *executionContext) _ProgramPosition_column(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Column, nil
+=======
+		return obj.CadenceVersion, nil
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2241,10 +2308,17 @@ func (ec *executionContext) _ProgramPosition_column(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
+<<<<<<< HEAD
 	res := resTmp.(int)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+=======
+	res := resTmp.(semver.Version)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNVersion2githubᚗcomᚋMastermindsᚋsemverᚐVersion(ctx, field.Selections, res)
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 }
 
 func (ec *executionContext) _Project_id(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -2702,6 +2776,43 @@ func (ec *executionContext) _Project_scriptExecutions(ctx context.Context, field
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalOScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecutionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_playgroundInfo(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().PlaygroundInfo(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PlaygroundInfo)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNPlaygroundInfo2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐPlaygroundInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_project(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5416,16 +5527,24 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	return out
 }
 
+<<<<<<< HEAD
 var programErrorImplementors = []string{"ProgramError"}
 
 func (ec *executionContext) _ProgramError(ctx context.Context, sel ast.SelectionSet, obj *model.ProgramError) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.RequestContext, sel, programErrorImplementors)
+=======
+var playgroundInfoImplementors = []string{"PlaygroundInfo"}
+
+func (ec *executionContext) _PlaygroundInfo(ctx context.Context, sel ast.SelectionSet, obj *model.PlaygroundInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.RequestContext, sel, playgroundInfoImplementors)
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
+<<<<<<< HEAD
 			out.Values[i] = graphql.MarshalString("ProgramError")
 		case "message":
 			out.Values[i] = ec._ProgramError_message(ctx, field, obj)
@@ -5470,6 +5589,16 @@ func (ec *executionContext) _ProgramPosition(ctx context.Context, sel ast.Select
 			}
 		case "column":
 			out.Values[i] = ec._ProgramPosition_column(ctx, field, obj)
+=======
+			out.Values[i] = graphql.MarshalString("PlaygroundInfo")
+		case "apiVersion":
+			out.Values[i] = ec._PlaygroundInfo_apiVersion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cadenceVersion":
+			out.Values[i] = ec._PlaygroundInfo_cadenceVersion(ctx, field, obj)
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -5607,6 +5736,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "playgroundInfo":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_playgroundInfo(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "project":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -6282,8 +6425,23 @@ func (ec *executionContext) unmarshalNNewTransactionTemplate2githubᚗcomᚋdapp
 	return ec.unmarshalInputNewTransactionTemplate(ctx, v)
 }
 
+<<<<<<< HEAD
 func (ec *executionContext) marshalNProgramError2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx context.Context, sel ast.SelectionSet, v model.ProgramError) graphql.Marshaler {
 	return ec._ProgramError(ctx, sel, &v)
+=======
+func (ec *executionContext) marshalNPlaygroundInfo2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐPlaygroundInfo(ctx context.Context, sel ast.SelectionSet, v model.PlaygroundInfo) graphql.Marshaler {
+	return ec._PlaygroundInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPlaygroundInfo2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐPlaygroundInfo(ctx context.Context, sel ast.SelectionSet, v *model.PlaygroundInfo) graphql.Marshaler {
+	if v == nil {
+		if !ec.HasError(graphql.GetResolverContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PlaygroundInfo(ctx, sel, v)
+>>>>>>> Add PlaygroundInfo to schema, include API & Cadence version
 }
 
 func (ec *executionContext) marshalNProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx context.Context, sel ast.SelectionSet, v model.Project) graphql.Marshaler {

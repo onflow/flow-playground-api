@@ -3,6 +3,7 @@
 package model
 
 import (
+	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 )
 
@@ -65,6 +66,11 @@ type ProgramPosition struct {
 	Offset int `json:"offset"`
 	Line   int `json:"line"`
 	Column int `json:"column"`
+}
+
+type PlaygroundInfo struct {
+	APIVersion     semver.Version `json:"apiVersion"`
+	CadenceVersion semver.Version `json:"cadenceVersion"`
 }
 
 type UpdateProject struct {
