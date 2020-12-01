@@ -2,6 +2,11 @@ scalar UUID
 scalar Address
 scalar Version
 
+type PlaygroundInfo {
+  apiVersion: Version!
+  cadenceVersion: Version!
+}
+
 type Project {
   id: UUID!
   publicId: UUID!
@@ -64,6 +69,7 @@ type ScriptExecution {
 }
 
 type Query {
+  playgroundInfo: PlaygroundInfo!
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!

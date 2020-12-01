@@ -3,6 +3,7 @@
 package model
 
 import (
+	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 )
 
@@ -51,6 +52,11 @@ type NewTransactionTemplate struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Title     string    `json:"title"`
 	Script    string    `json:"script"`
+}
+
+type PlaygroundInfo struct {
+	APIVersion     semver.Version `json:"apiVersion"`
+	CadenceVersion semver.Version `json:"cadenceVersion"`
 }
 
 type UpdateProject struct {
