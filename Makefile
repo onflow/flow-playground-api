@@ -1,5 +1,6 @@
-SHORT_COMMIT := $(shell git rev-parse --short HEAD)
-VERSION := $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
+CURRENT_SHORT_COMMIT := $(shell git rev-parse --short HEAD)
+CURRENT_VERSION := $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
+LAST_KNOWN_VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null)
 CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
@@ -19,11 +20,23 @@ test-datastore:
 
 .PHONY: run
 run:
-	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false GO111MODULE=on go run server/server.go
+	FLOW_DEBUG=true \
+	FLOW_SESSIONCOOKIESSECURE=false \
+	GO111MODULE=on \
+	go run \
+	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
+	server/server.go
 
 .PHONY: run-datastore
 run-datastore:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore FLOW_DATASTORE_GCPPROJECTID=flow-developer-playground FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false GO111MODULE=on go run server/server.go
+	DATASTORE_EMULATOR_HOST=localhost:8081 \
+	FLOW_STORAGEBACKEND=datastore \
+	FLOW_DATASTORE_GCPPROJECTID=flow-developer-playground \
+	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false \
+	GO111MODULE=on \
+	go run \
+	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
+	server/server.go
 
 .PHONY: docker-build
 docker-build:
@@ -38,21 +51,21 @@ docker-build-unversioned:
 	DOCKER_BUILDKIT=1 docker build \
 		--ssh default \
 		-t gcr.io/dl-flow/playground-api:latest \
-		-t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
+		-t "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)" .
 
 .PHONY: docker-build-versioned
 docker-build-versioned:
 	DOCKER_BUILDKIT=1 docker build \
 		--ssh default \
-		--build-arg VERSION=$(VERSION) \
+		--build-arg VERSION=$(CURRENT_VERSION) \
 		-t gcr.io/dl-flow/playground-api:latest \
-		-t "gcr.io/dl-flow/playground-api:$(VERSION)" \
-		-t "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)" .
+		-t "gcr.io/dl-flow/playground-api:$(CURRENT_VERSION)" \
+		-t "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)" .
 
 .PHONY: docker-push
 docker-push:
 	docker push gcr.io/dl-flow/playground-api:latest
-	docker push "gcr.io/dl-flow/playground-api:$(SHORT_COMMIT)"
+	docker push "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)"
 
 .PHONY: start-datastore-emulator
 start-datastore-emulator:
@@ -89,7 +102,7 @@ update-deployment-image:
 	@files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep deployment); \
 	for i in $$files; do \
 		patched=`openssl rand -hex 8`; \
-		kubectl patch -f $$i -p '{"spec":{"template":{"spec":{"containers":[{"name":"${CONTAINER}","image":"${IMAGE_URL}:${SHORT_COMMIT}"}]}}}}' --local -o yaml > $$patched; \
+		kubectl patch -f $$i -p '{"spec":{"template":{"spec":{"containers":[{"name":"${CONTAINER}","image":"${IMAGE_URL}:${CURRENT_SHORT_COMMIT}"}]}}}}' --local -o yaml > $$patched; \
 		mv -f $$patched $$i; \
 	done
 
