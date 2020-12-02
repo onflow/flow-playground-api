@@ -309,7 +309,7 @@ func wrapCodeBlock(htmlBlock string, styleName string, playgroundUrl string) str
 			%s
 		</div>
 		<div class="cadence-info-block">
-			<a href="%s" id="playground">
+			<a href="%s">
 				<div class="flow-playground-logo umbrella"></div>
 				<span>View on Playground</span>
 			</a>
