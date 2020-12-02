@@ -6,23 +6,17 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/alecthomas/assert"
 	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
-	"github.com/stretchr/testify/require"
-	// playground "github.com/dapperlabs/flow-playground-api"
-	// "github.com/dapperlabs/flow-playground-api/auth"
-	// "github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
-	// "github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	// "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	// "time"
 )
 
 // version to create project
@@ -31,22 +25,14 @@ var version, _ = semver.NewVersion("0.1.0")
 // Utility method to send requests
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
+	require.NoError(t, err)
 
 	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
+	require.NoError(t, err)
 
 	respBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-		return nil, ""
-	}
+	require.NoError(t, err)
+
 	defer resp.Body.Close()
 
 	return resp, string(respBody)
@@ -118,9 +104,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	internalProj.UserID = user.ID
 
 	projErr := store.CreateProject(internalProj, deltas, accounts, ttpls, stpls)
-	if projErr != nil {
-		t.Fail()
-	}
+	require.NoError(t, projErr)
 
 	script := `
 	pub fun main(): Int {
@@ -169,9 +153,9 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	})
 
 	t.Run("Shall get 400 on non-existing script id", func(t *testing.T) {
-		wrongScriptId := model.MarshalUUID(uuid.New())
+		wrongScriptID := model.MarshalUUID(uuid.New())
 
-		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, wrongScriptId)
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", projectID, scriptType, wrongScriptID)
 
 		response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
 
@@ -179,9 +163,9 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	})
 
 	t.Run("Shall get 400 on non-existing project id", func(t *testing.T) {
-		wrongProjectId := model.MarshalUUID(uuid.New())
+		wrongProjectID := model.MarshalUUID(uuid.New())
 
-		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", wrongProjectId, scriptType, scriptID)
+		snippetUrl := fmt.Sprintf("/embed?project=%s&type=%s&id=%s", wrongProjectID, scriptType, scriptID)
 
 		response, _ := testRequest(t, ts, "GET", snippetUrl, nil)
 
@@ -190,12 +174,12 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 
 }
 
-func TestEmbedsHandler_getUUID(t *testing.T) {
-	projectId := "24278e82-9316-4559-96f2-573ec58f618f"
+func TestGetUUID(t *testing.T) {
+	projectID := "24278e82-9316-4559-96f2-573ec58f618f"
 	scriptType := "script"
-	scriptId := "9473b82c-36ea-4810-ad3f-7ea5497d9cae"
+	scriptID := "9473b82c-36ea-4810-ad3f-7ea5497d9cae"
 
-	requestURL := fmt.Sprintf("http://playground-api.com/embed?project=%s&type=%s&id=%s", projectId, scriptType, scriptId)
+	requestURL := fmt.Sprintf("http://playground-api.com/embed?project=%s&type=%s&id=%s", projectID, scriptType, scriptID)
 	r := httptest.NewRequest("GET", requestURL, nil)
 
 	rctx := chi.NewRouteContext()
@@ -203,67 +187,70 @@ func TestEmbedsHandler_getUUID(t *testing.T) {
 	r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 
 	// Check that projectUUID extracted properly
-	projectUUID, err := getUUID("projectID", r)
-	if err != nil {
-		t.Fail()
-	}
-	expected, _ := uuid.Parse(projectId)
+	projectUUID, err := getUUID("project", r)
+	require.NoError(t, err)
+
+	expected, _ := uuid.Parse(projectID)
 	assert.Equal(t, expected, projectUUID)
 
-	// Check that scriptId extracted properly
-	scriptUUID, err := getUUID("scriptId", r)
-	if err != nil {
-		t.Fail()
-	}
-	expected, _ = uuid.Parse(scriptId)
+	// Check that scriptID extracted properly
+	scriptUUID, err := getUUID("id", r)
+	require.NoError(t, err)
+
+	expected, _ = uuid.Parse(scriptID)
 	assert.Equal(t, expected, scriptUUID)
 
-	scriptTypeParam, _ := getURLParam("scriptType", r)
+	scriptTypeParam, _ := getURLParam("type", r)
 	assert.Equal(t, scriptType, scriptTypeParam)
 }
 
-func TestMethods(t *testing.T) {
-	t.Run("Generate wrapper styles", func(t *testing.T) {
-		generatedStyles := generateWrapperStyles()
-		assertHaveWrapper(t, generatedStyles)
-	})
-	t.Run("Create snippet styles", func(t *testing.T) {
-		snippetStyles := createSnippetStyles()
-		generatedStyles := generateWrapperStyles()
+func TestGenerateWrapperStyles(t *testing.T) {
+	generatedStyles := generateWrapperStyles()
+	assertHaveWrapper(t, generatedStyles)
+}
 
-		haveProperId := strings.Contains(snippetStyles, "cadence-styles")
-		assert.True(t, haveProperId)
+func TestCreateSnippetStyles(t *testing.T) {
+	snippetStyles := createSnippetStyles()
+	generatedStyles := generateWrapperStyles()
 
-		haveStylesHTML := strings.Contains(snippetStyles, generatedStyles)
-		assert.True(t, haveStylesHTML)
-	})
-	t.Run("Create code styles", func(t *testing.T) {
-		const styles = ".chroma { background: red }"
-		const styleName = "red"
-		codeStyle := createCodeStyles(styles, styleName)
+	haveProperId := strings.Contains(snippetStyles, "cadence-styles")
+	assert.True(t, haveProperId)
 
-		// Check that id is created properly
-		assertHaveTheme(t, codeStyle, styleName)
+	haveStylesHTML := strings.Contains(snippetStyles, generatedStyles)
+	assert.True(t, haveStylesHTML)
+}
 
-		// Chroma class names shall have another class to ensure themes are working properly
-		adjustedClassName := fmt.Sprintf(".chroma.%s", styleName)
-		adjustedStyles := strings.ReplaceAll(styles, ".chroma", adjustedClassName)
+func TestCreateCodeStyles(t *testing.T) {
+	styles := ".chroma { background: red }"
+	styleName := "red"
 
-		// Check that inserted HTML have adjusted styles
-		haveStylesHTML := strings.Contains(codeStyle, adjustedStyles)
-		assert.True(t, haveStylesHTML)
-	})
-	t.Run("Wrap code block", func(t *testing.T) {
-		htmlBlock := "<div>no code</div>"
-		styleName := "red"
-		playgroundUrl := "https://play.onflow.org/"
+	codeStyle := createCodeStyles(styles, styleName)
+	expectedCodeStyle := ".chroma.red { background: red }"
+	haveUpdatedStyle := strings.Contains(codeStyle, expectedCodeStyle)
+	assert.True(t, haveUpdatedStyle)
 
-		wrappedCodeBlock := wrapCodeBlock(htmlBlock, styleName, playgroundUrl)
+	// Check that id is created properly
+	assertHaveTheme(t, codeStyle, styleName)
 
-		haveWrappedCode := strings.Contains(wrappedCodeBlock, htmlBlock)
-		assert.True(t, haveWrappedCode)
+	// Chroma class names shall have another class to ensure themes are working properly
+	adjustedClassName := fmt.Sprintf(".chroma.%s", styleName)
+	adjustedStyles := strings.ReplaceAll(styles, ".chroma", adjustedClassName)
 
-		haveProperUrl := strings.Contains(wrappedCodeBlock, playgroundUrl)
-		assert.True(t, haveProperUrl)
-	})
+	// Check that inserted HTML have adjusted styles
+	haveStylesHTML := strings.Contains(codeStyle, adjustedStyles)
+	assert.True(t, haveStylesHTML)
+}
+
+func TestWrapCodeBlock(t *testing.T) {
+	htmlBlock := "<div>no code</div>"
+	styleName := "red"
+	playgroundURL := "https://play.onflow.org/"
+
+	wrappedCodeBlock := wrapCodeBlock(htmlBlock, styleName, playgroundURL)
+
+	haveWrappedCode := strings.Contains(wrappedCodeBlock, htmlBlock)
+	assert.True(t, haveWrappedCode)
+
+	haveProperURL := strings.Contains(wrappedCodeBlock, playgroundURL)
+	assert.True(t, haveProperURL)
 }
