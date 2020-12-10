@@ -81,7 +81,7 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playgroundURL := fmt.Sprintf("%s/%s", e.playgroundBaseURL, projectID.String())
+	playgroundURL := fmt.Sprintf("%s/%s?type=%s&id=%s", e.playgroundBaseURL, projectID.String(), scriptType, scriptID)
 
 	// Create injectable Javascript blocks, which will be written in response
 	wrapperStyleInjection := createCodeStyles(snippet.styles, snippet.themeName)
