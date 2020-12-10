@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"log"
 	"net/http"
 	"strings"
@@ -41,6 +42,7 @@ type Config struct {
 	SessionCookiesHTTPOnly     bool          `default:"true"`
 	SessionCookiesSameSiteNone bool          `default:"false"`
 	LedgerCacheSize            int           `default:"128"`
+	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
 	StorageBackend             string
 }
 
@@ -136,6 +138,9 @@ func main() {
 			handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 		))
 	})
+
+	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
+	router.Handle("/embed", embedsHandler)
 
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
