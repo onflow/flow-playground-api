@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/go-chi/render"
 	"log"
 	"net/http"
 	"strings"
@@ -141,6 +142,19 @@ func main() {
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
+
+	utilsHandler := controller.NewUtilsHandler()
+	router.Route("/utils", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins: conf.AllowedOrigins,
+			Debug:          conf.Debug,
+		}).Handler)
+
+		r.Use(render.SetContentType(render.ContentTypeJSON))
+		r.HandleFunc("/version", utilsHandler.VersionHandler)
+	})
 
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
