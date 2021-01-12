@@ -544,6 +544,13 @@ func (r *projectResolver) ScriptExecutions(ctx context.Context, obj *model.Proje
 
 type queryResolver struct{ *Resolver }
 
+func (r *queryResolver) PlaygroundInfo(ctx context.Context) (*model.PlaygroundInfo, error) {
+	return &model.PlaygroundInfo{
+		APIVersion:     *r.version,
+		CadenceVersion: *semver.MustParse(cadence.Version),
+	}, nil
+}
+
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
 	var proj model.InternalProject
 
