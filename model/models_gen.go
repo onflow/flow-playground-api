@@ -56,6 +56,11 @@ type NewTransactionTemplate struct {
 	Script    string    `json:"script"`
 }
 
+type PlaygroundInfo struct {
+	APIVersion     semver.Version `json:"apiVersion"`
+	CadenceVersion semver.Version `json:"cadenceVersion"`
+}
+
 type ProgramError struct {
 	Message       string           `json:"message"`
 	StartPosition *ProgramPosition `json:"startPosition"`
@@ -66,11 +71,6 @@ type ProgramPosition struct {
 	Offset int `json:"offset"`
 	Line   int `json:"line"`
 	Column int `json:"column"`
-}
-
-type PlaygroundInfo struct {
-	APIVersion     semver.Version `json:"apiVersion"`
-	CadenceVersion semver.Version `json:"cadenceVersion"`
 }
 
 type UpdateProject struct {
