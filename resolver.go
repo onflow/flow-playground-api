@@ -8,6 +8,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/cadence/runtime/ast"
+	"github.com/onflow/cadence/runtime/common"
+	"github.com/onflow/cadence/runtime/parser2"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
 	flowgo "github.com/onflow/flow-go/model/flow"
@@ -153,12 +156,15 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	address := acc.Address.ToFlowAddress()
-	// TODO:
-	contractName := "TODO"
+	source := *input.DeployedCode
+	contractName, err := getSourceContractName(source)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to deploy account code")
+	}
 
 	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
-		Source: *input.DeployedCode,
+		Source: source,
 	})
 
 	result, err := r.computer.ExecuteTransaction(
@@ -196,6 +202,55 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	return acc.Export(), nil
+}
+
+func getSourceContractName(code string) (string, error) {
+	program, err := parser2.ParseProgram(code)
+	if err != nil {
+		return "", err
+	}
+	return getProgramContractName(program)
+}
+
+func getProgramContractName(program *ast.Program) (string, error) {
+
+	// The code may declare exactly one contract or one contract interface.
+
+	var contractDeclarations []*ast.CompositeDeclaration
+	var contractInterfaceDeclarations []*ast.InterfaceDeclaration
+
+	for _, compositeDeclaration := range program.CompositeDeclarations() {
+		if compositeDeclaration.CompositeKind == common.CompositeKindContract {
+			contractDeclarations = append(contractDeclarations, compositeDeclaration)
+		} else {
+			return "", fmt.Errorf(
+				"invalid %s: the code must declare exactly one contract or contract interface",
+				compositeDeclaration.DeclarationKind().Name(),
+			)
+		}
+	}
+
+	for _, interfaceDeclaration := range program.InterfaceDeclarations() {
+		if interfaceDeclaration.CompositeKind == common.CompositeKindContract {
+			contractInterfaceDeclarations = append(contractInterfaceDeclarations, interfaceDeclaration)
+		} else {
+			return "", fmt.Errorf(
+				"invalid %s: the code must declare exactly one contract or contract interface",
+				interfaceDeclaration.DeclarationKind().Name(),
+			)
+		}
+	}
+
+	switch {
+	case len(contractDeclarations) == 1 && len(contractInterfaceDeclarations) == 0:
+		return contractDeclarations[0].Identifier.Identifier, nil
+	case len(contractInterfaceDeclarations) == 1 && len(contractDeclarations) == 0:
+		return contractInterfaceDeclarations[0].Identifier.Identifier, nil
+	default:
+		return "", errors.New(
+			"the code must declare exactly one contract or contract interface",
+		)
+	}
 }
 
 func (r *mutationResolver) getAccountStates(
