@@ -1155,11 +1155,20 @@ func TestTransactionExecutions(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 
-		// TODO: depends on Cadence returning position information for execution errors
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "Execution failed:\npanic: oh no\n",
+					Message: "panic: oh no",
+					StartPosition: &model.ProgramPosition{
+						Offset: 35,
+						Line:   2,
+						Column: 34,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 48,
+						Line:   2,
+						Column: 47,
+					},
 				},
 			},
 			resp.CreateTransactionExecution.Errors,
