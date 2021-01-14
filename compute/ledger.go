@@ -1,16 +1,20 @@
 package compute
 
 import (
-	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
-	"github.com/dapperlabs/flow-go/fvm/state"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
+	"github.com/onflow/flow-go/model/flow"
 )
 
-type Ledger map[string][]byte
+type Ledger map[string]flow.RegisterEntry
 
 func (l Ledger) NewView() *delta.View {
 	return delta.NewView(func(owner, controller, key string) ([]byte, error) {
-		id := state.RegisterID(owner, controller, key)
-		return l[string(id)], nil
+		id := flow.RegisterID{
+			Owner:      owner,
+			Controller: controller,
+			Key:        key,
+		}
+		return l[id.String()].Value, nil
 	})
 }
 

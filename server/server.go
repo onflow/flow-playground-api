@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog"
+
 	"log"
 	"net/http"
 	"strings"
@@ -86,7 +88,7 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer, err := compute.NewComputer(conf.LedgerCacheSize)
+	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
 		panic(err)
 	}

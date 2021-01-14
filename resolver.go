@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver"
-	flowgo "github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
+	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -153,8 +153,13 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	address := acc.Address.ToFlowAddress()
+	// TODO:
+	contractName := "TODO"
 
-	tx := templates.UpdateAccountCode(address, []byte(*input.DeployedCode))
+	tx := templates.AddAccountContract(address, templates.Contract{
+		Name:   contractName,
+		Source: *input.DeployedCode,
+	})
 
 	result, err := r.computer.ExecuteTransaction(
 		proj.ID,
@@ -183,12 +188,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, err
 	}
 
-	contracts, err := parseDeployedContracts(result.Events)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse deployed contracts")
-	}
-
-	input.DeployedContracts = &contracts
+	input.DeployedContracts = &[]string{contractName}
 
 	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
 	if err != nil {
@@ -626,48 +626,41 @@ func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.Transac
 	panic("not implemented")
 }
 
-const AccountCodeUpdatedEvent = "flow.AccountCodeUpdated"
+func parseEvents(flowEvents []flowgo.Event) ([]model.Event, error) {
+	events := make([]model.Event, len(flowEvents))
 
-func parseDeployedContracts(events []cadence.Event) ([]string, error) {
-	for _, event := range events {
-		if event.Type().ID() == AccountCodeUpdatedEvent {
-			arrayValue := event.Fields[2].(cadence.Array)
-
-			contracts := make([]string, len(arrayValue.Values))
-
-			for i, contractValue := range arrayValue.Values {
-				contracts[i] = contractValue.(cadence.String).ToGoValue().(string)
-			}
-
-			return contracts, nil
+	for i, event := range flowEvents {
+		parsedEvent, err := parseEvent(event)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse event")
 		}
-	}
-
-	return nil, nil
-}
-
-func parseEvents(rtEvents []cadence.Event) ([]model.Event, error) {
-	events := make([]model.Event, len(rtEvents))
-
-	for i, event := range rtEvents {
-
-		values := make([]string, len(event.Fields))
-		for j, field := range event.Fields {
-			enc, err := jsoncdc.Encode(field)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
-			}
-
-			values[j] = string(enc)
-		}
-
-		events[i] = model.Event{
-			Type:   event.Type().ID(),
-			Values: values,
-		}
+		events[i] = parsedEvent
 	}
 
 	return events, nil
+}
+
+func parseEvent(event flowgo.Event) (model.Event, error) {
+	payload, err := jsoncdc.Decode(event.Payload)
+	if err != nil {
+		return model.Event{}, errors.Wrap(err, "failed to decode event payload (JSON-CDC)")
+	}
+
+	fields := payload.(cadence.Event).Fields
+	values := make([]string, len(fields))
+	for j, field := range fields {
+		enc, err := jsoncdc.Encode(field)
+		if err != nil {
+			return model.Event{}, errors.Wrap(err, "failed to encode event field to JSON-CDC")
+		}
+
+		values[j] = string(enc)
+	}
+
+	return model.Event{
+		Type:   string(event.Type),
+		Values: values,
+	}, nil
 }
 
 func toTransactionBody(tx *flow.Transaction) *flowgo.TransactionBody {

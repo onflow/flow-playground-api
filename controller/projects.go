@@ -2,12 +2,13 @@ package controller
 
 import (
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
-	flowgo "github.com/dapperlabs/flow-go/model/flow"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
+	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/compute"
@@ -161,7 +162,14 @@ func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, 
 			Delta:     result.Delta,
 		})
 
-		addressValue := result.Events[0].Fields[0].(cadence.Address)
+		event := result.Events[0]
+
+		eventPayload, err := jsoncdc.Decode(event.Payload)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to deploy account code")
+		}
+
+		addressValue := eventPayload.(cadence.Event).Fields[0].(cadence.Address)
 		address := model.NewAddressFromBytes(addressValue.Bytes())
 
 		addresses[i] = address

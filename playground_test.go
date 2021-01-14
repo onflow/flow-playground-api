@@ -14,6 +14,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -996,7 +997,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer, _ := compute.NewComputer(128)
+		computer, _ := compute.NewComputer(zerolog.Nop(), 128)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, computer, authenticator)
 
@@ -2220,7 +2221,7 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer, _ := compute.NewComputer(128)
+	computer, _ := compute.NewComputer(zerolog.Nop(), 128)
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 

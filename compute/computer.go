@@ -4,11 +4,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
-	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
-	"github.com/dapperlabs/flow-go/fvm"
-	"github.com/dapperlabs/flow-go/model/flow"
 	"github.com/onflow/cadence/runtime"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
+	"github.com/onflow/flow-go/fvm"
+	"github.com/onflow/flow-go/model/flow"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
@@ -22,7 +23,7 @@ type Computer struct {
 type TransactionResult struct {
 	Err    error
 	Logs   []string
-	Events []cadence.Event
+	Events []flow.Event
 	Delta  delta.Delta
 	States AccountStates
 }
@@ -31,23 +32,25 @@ type ScriptResult struct {
 	Value  cadence.Value
 	Err    error
 	Logs   []string
-	Events []cadence.Event
+	Events []flow.Event
 }
 
 type AccountStates map[model.Address]model.AccountState
 
-func NewComputer(cacheSize int) (*Computer, error) {
+func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
 	vm := fvm.New(rt)
 
 	vmCtx := fvm.NewContext(
+		logger,
 		fvm.WithChain(flow.MonotonicEmulator.Chain()),
 		fvm.WithServiceAccount(false),
 		fvm.WithRestrictedAccountCreation(false),
 		fvm.WithRestrictedDeployment(false),
 		fvm.WithTransactionProcessors(
-			fvm.NewTransactionInvocator(),
+			fvm.NewTransactionInvocator(logger),
 		),
+		fvm.WithCadenceLogging(true),
 	)
 
 	cache, err := NewLedgerCache(cacheSize)
@@ -83,7 +86,7 @@ func (c *Computer) ExecuteTransaction(
 	// Use the default gas limit
 	txBody.GasLimit = ctx.GasLimit
 
-	proc := fvm.Transaction(txBody)
+	proc := fvm.Transaction(txBody, 0)
 
 	view := ledger.NewView()
 

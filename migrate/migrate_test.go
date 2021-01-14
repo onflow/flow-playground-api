@@ -6,6 +6,7 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -96,7 +97,7 @@ type migrateTestCase struct {
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		computer, err := compute.NewComputer(cacheSize)
+		computer, err := compute.NewComputer(zerolog.Nop(), cacheSize)
 		require.NoError(t, err)
 
 		scripts := controller.NewScripts(store, computer)

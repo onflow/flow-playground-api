@@ -3,7 +3,7 @@ package compute
 import (
 	"errors"
 
-	"github.com/dapperlabs/flow-go/fvm"
+	"github.com/onflow/flow-go/fvm"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"

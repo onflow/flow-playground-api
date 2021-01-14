@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/alecthomas/assert"
-	"github.com/dapperlabs/flow-go/engine/execution/state/delta"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/go-chi/chi"
