@@ -2076,11 +2076,20 @@ func TestScriptExecutions(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
-		// TODO: depends on Cadence returning position information for execution errors
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "Execution failed:\npanic: oh no\n",
+					Message: "panic: oh no",
+					StartPosition: &model.ProgramPosition{
+						Offset: 17,
+						Line:   1,
+						Column: 17,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 30,
+						Line:   1,
+						Column: 30,
+					},
 				},
 			},
 			resp.CreateScriptExecution.Errors,
@@ -2117,7 +2126,17 @@ func TestScriptExecutions(t *testing.T) {
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "Execution failed:\ncomputation limited exceeded: 100000\n",
+					Message: "computation limited exceeded: 100000",
+					StartPosition: &model.ProgramPosition{
+						Offset: 106,
+						Line:   5,
+						Column: 18,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 114,
+						Line:   5,
+						Column: 26,
+					},
 				},
 			},
 			resp.CreateScriptExecution.Errors,
