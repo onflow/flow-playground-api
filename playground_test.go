@@ -1197,7 +1197,17 @@ func TestTransactionExecutions(t *testing.T) {
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "Execution failed:\ncomputation limited exceeded: 100000\n",
+					Message: "computation limited exceeded: 100000",
+					StartPosition: &model.ProgramPosition{
+						Offset: 139,
+						Line:   6,
+						Column: 22,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 147,
+						Line:   6,
+						Column: 30,
+					},
 				},
 			},
 			resp.CreateTransactionExecution.Errors,
