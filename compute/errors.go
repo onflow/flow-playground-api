@@ -3,10 +3,10 @@ package compute
 import (
 	"errors"
 
-	"github.com/onflow/flow-go/fvm"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
+	"github.com/onflow/flow-go/fvm"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
@@ -14,9 +14,7 @@ import (
 func ExtractProgramErrors(err error) (result []model.ProgramError) {
 	// set the default return value
 	result = []model.ProgramError{
-		{
-			Message: err.Error(),
-		},
+		convertProgramError(err),
 	}
 
 	// TODO: remove once fvm.ExecutionError implements Wrapper
@@ -24,36 +22,42 @@ func ExtractProgramErrors(err error) (result []model.ProgramError) {
 	if !ok {
 		return
 	}
+	err = executionError.Err
 
-	var runtimeError runtime.Error
-	if !errors.As(executionError.Err, &runtimeError) {
+	var parsingCheckingError *runtime.ParsingCheckingError
+	if errors.As(err, &parsingCheckingError) {
+		err = parsingCheckingError.Err
+	}
+
+	var parentError runtimeErrors.ParentError
+	if !errors.As(err, &parentError) {
 		return
 	}
 
-	parentError, ok := runtimeError.Unwrap().(runtimeErrors.ParentError)
-	if !ok {
-		return
-	}
+	return convertProgramErrors(parentError.ChildErrors())
+}
 
-	childErrors := parentError.ChildErrors()
+func convertProgramErrors(errors []error) []model.ProgramError {
+	result := make([]model.ProgramError, len(errors))
 
-	result = make([]model.ProgramError, len(childErrors))
-
-	for i, childError := range childErrors {
-
-		programError := model.ProgramError{
-			Message: childError.Error(),
-		}
-
-		if position, ok := childError.(ast.HasPosition); ok {
-			programError.StartPosition = convertPosition(position.StartPosition())
-			programError.EndPosition = convertPosition(position.EndPosition())
-		}
-
-		result[i] = programError
+	for i, err := range errors {
+		result[i] = convertProgramError(err)
 	}
 
 	return result
+}
+
+func convertProgramError(err error) model.ProgramError {
+	programError := model.ProgramError{
+		Message: err.Error(),
+	}
+
+	if position, ok := err.(ast.HasPosition); ok {
+		programError.StartPosition = convertPosition(position.StartPosition())
+		programError.EndPosition = convertPosition(position.EndPosition())
+	}
+
+	return programError
 }
 
 func convertPosition(astPosition ast.Position) *model.ProgramPosition {
