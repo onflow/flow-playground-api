@@ -20,8 +20,8 @@ require (
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/onflow/cadence v0.12.3
-	github.com/onflow/flow-go v0.13.1-0.20210114001435-35240e927158
-	github.com/onflow/flow-go-sdk v0.14.0
+	github.com/onflow/flow-go v0.13.1-0.20210119024156-79985711a957
+	github.com/onflow/flow-go-sdk v0.14.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
 	github.com/rs/cors v1.6.0
