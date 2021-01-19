@@ -51,6 +51,7 @@ func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 			fvm.NewTransactionInvocator(logger),
 		),
 		fvm.WithCadenceLogging(true),
+		fvm.WithAccountStorageLimit(false),
 	)
 
 	cache, err := NewLedgerCache(cacheSize)
