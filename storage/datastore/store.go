@@ -98,13 +98,6 @@ func (d *Datastore) put(src DatastoreEntity) error {
 	return err
 }
 
-func (d *Datastore) delete(src DatastoreEntity) error {
-	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
-	defer cancel()
-
-	return d.dsClient.Delete(ctx, src.NameKey())
-}
-
 func (d *Datastore) markProjectUpdatedAt(tx *datastore.Transaction, projectID uuid.UUID) error {
 	var proj model.InternalProject
 
