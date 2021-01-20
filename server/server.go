@@ -187,7 +187,7 @@ func main() {
 
 func ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
-	w.Write([]byte("ok"))
+	_, _ = w.Write([]byte("ok"))
 }
 
 func logStartMessage(version *semver.Version) {

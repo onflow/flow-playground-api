@@ -107,9 +107,18 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	htmlInjection := wrapCodeBlock(snippet.html, snippet.themeName, playgroundURL)
 
 	w.Header().Set("Content-Type", "application/javascript")
-	w.Write([]byte(wrapperStyleInjection))
-	w.Write([]byte(snippetStyleInjection))
-	w.Write([]byte(htmlInjection))
+	_, err := w.Write([]byte(wrapperStyleInjection))
+	if err != nil {
+		return
+	}
+	_, err = w.Write([]byte(snippetStyleInjection))
+	if err != nil {
+		return
+	}
+	_, err = w.Write([]byte(htmlInjection))
+	if err != nil {
+		return
+	}
 }
 
 func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (string, error) {

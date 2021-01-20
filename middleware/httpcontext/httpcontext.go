@@ -23,8 +23,12 @@ import (
 	"net/http"
 )
 
-const httpCtxKeyWriter = "http_writer"
-const httpCtxKeyRequest = "http_request"
+type httpCtxKey string
+
+const (
+	httpCtxKeyWriter  httpCtxKey = "http_writer"
+	httpCtxKeyRequest httpCtxKey = "http_request"
+)
 
 func Request(ctx context.Context) *http.Request {
 	return ctx.Value(httpCtxKeyRequest).(*http.Request)

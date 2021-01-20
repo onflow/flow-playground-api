@@ -27,7 +27,9 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 )
 
-const sessionCtxKey = "session"
+type sessionCtxKey string
+
+const sessionCtxKeySession sessionCtxKey = "session"
 
 // Middleware injects middleware for managing sessions into an HTTP handler.
 //
@@ -35,7 +37,7 @@ const sessionCtxKey = "session"
 func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), sessionCtxKey, store)
+			ctx := context.WithValue(r.Context(), sessionCtxKeySession, store)
 
 			r = r.WithContext(ctx)
 
@@ -46,7 +48,7 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	store := ctx.Value(sessionCtxKey).(sessions.Store)
+	store := ctx.Value(sessionCtxKeySession).(sessions.Store)
 
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)

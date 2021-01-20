@@ -65,7 +65,7 @@ func TestAddHeader(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "ASDF", r.Header.Get("Test-Key"))
 
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	})
 
 	c := client.New(h)
@@ -84,7 +84,7 @@ func TestAddClientHeader(t *testing.T) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "ASDF", r.Header.Get("Test-Key"))
 
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	})
 
 	c := client.New(h, client.AddHeader("Test-Key", "ASDF"))
@@ -104,7 +104,7 @@ func TestBasicAuth(t *testing.T) {
 		require.Equal(t, "user", user)
 		require.Equal(t, "pass", pass)
 
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	})
 
 	c := client.New(h)
@@ -125,7 +125,7 @@ func TestAddCookie(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "value", c.Value)
 
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	})
 
 	c := client.New(h)
