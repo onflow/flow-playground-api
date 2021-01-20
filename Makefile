@@ -38,79 +38,26 @@ run-datastore:
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
-.PHONY: docker-build
-docker-build:
-ifeq ($(VERSION),)
-docker-build: docker-build-unversioned
-else
-docker-build: docker-build-versioned
-endif
-
-.PHONY: docker-build-unversioned
-docker-build-unversioned:
-	DOCKER_BUILDKIT=1 docker build \
-		--ssh default \
-		-t gcr.io/dl-flow/playground-api:latest \
-		-t "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)" .
-
-.PHONY: docker-build-versioned
-docker-build-versioned:
-	DOCKER_BUILDKIT=1 docker build \
-		--ssh default \
-		--build-arg VERSION=$(CURRENT_VERSION) \
-		-t gcr.io/dl-flow/playground-api:latest \
-		-t "gcr.io/dl-flow/playground-api:$(CURRENT_VERSION)" \
-		-t "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)" .
-
-.PHONY: docker-push
-docker-push:
-	docker push gcr.io/dl-flow/playground-api:latest
-	docker push "gcr.io/dl-flow/playground-api:$(CURRENT_SHORT_COMMIT)"
-
 .PHONY: start-datastore-emulator
 start-datastore-emulator:
 	gcloud beta emulators datastore start --no-store-on-disk
 
-#----------------------------------------------------------------------
-# CD COMMANDS
-#----------------------------------------------------------------------
+.PHONY: ci
+ci: test check-tidy test check-headers
 
-.PHONY: deploy-staging
-deploy-staging: update-deployment-image apply-staging-files monitor-rollout
+.PHONY: install-linter
+install-linter:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${GOPATH}/bin v1.29.0
 
-# Staging YAMLs must have 'staging' in their name.
-.PHONY: apply-staging-files
-apply-staging-files:
-	echo "$$KUBECONFIG_STAGING_2" > ${KUBECONFIG}; \
-	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep staging); \
-	echo "$$files" | xargs -I {} kubectl --kubeconfig=${KUBECONFIG} apply -f {}
+.PHONY: lint
+lint:
+	golangci-lint run -v ./...
 
+.PHONY: check-headers
+check-headers:
+	@./check-headers.sh
 
-.PHONY: deploy-production
-deploy-production: update-deployment-image apply-production-files monitor-rollout
-
-# Production YAMLs must have 'production' in their name.
-.PHONY: apply-production-files
-apply-production-files:
-	echo "$$KUBECONFIG_PRODUCTION_2" > ${KUBECONFIG}; \
-	files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep production); \
-	echo "$$files" | xargs -I {} kubectl --kubeconfig=${KUBECONFIG} apply -f {}
-
-# Deployment YAMLs must have 'deployment' in their name.
-.PHONY: update-deployment-image
-update-deployment-image:
-	@files=$$(find ${K8S_YAMLS_LOCATION} -type f \( -name "*.yml" -or -name "*.yaml" \) | grep deployment); \
-	for i in $$files; do \
-		patched=`openssl rand -hex 8`; \
-		kubectl patch -f $$i -p '{"spec":{"template":{"spec":{"containers":[{"name":"${CONTAINER}","image":"${IMAGE_URL}:${CURRENT_SHORT_COMMIT}"}]}}}}' --local -o yaml > $$patched; \
-		mv -f $$patched $$i; \
-	done
-
-.PHONY: monitor-rollout
-monitor-rollout:
-	kubectl --kubeconfig=${KUBECONFIG} rollout status deployments.apps flow-playground-api-v1
-
-.PHONY: delete-deployment-production
-delete-deployment-production:
-	echo "$$KUBECONFIG_PRODUCTION_2" > ${KUBECONFIG}; \
-	kubectl --kubeconfig=${KUBECONFIG} delete deploy flow-playground-api-v1
+.PHONY: check-tidy
+check-tidy: generate
+	go mod tidy
+	git diff --exit-code
