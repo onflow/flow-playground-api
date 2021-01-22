@@ -21,20 +21,22 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/semver"
-	"github.com/alecthomas/assert"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
-	"github.com/go-chi/chi"
-	"github.com/google/uuid"
-	"github.com/onflow/flow-go/engine/execution/state/delta"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/Masterminds/semver"
+	"github.com/alecthomas/assert"
+	"github.com/go-chi/chi"
+	"github.com/google/uuid"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
+	"github.com/stretchr/testify/require"
+
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 // version to create project

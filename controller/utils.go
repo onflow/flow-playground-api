@@ -19,9 +19,10 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/go-chi/render"
 	"github.com/onflow/cadence"
-	"net/http"
 )
 
 type UtilsHandler struct{}
