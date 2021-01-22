@@ -2291,12 +2291,7 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle(
-		"/",
-		handler.GraphQL(
-			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
-		),
-	)
+	router.Handle("/", playground.GraphQLHandler(resolver))
 
 	return &Client{
 		client:   client.New(router),

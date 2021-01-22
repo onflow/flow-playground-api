@@ -21,14 +21,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/go-chi/render"
-	"github.com/rs/zerolog"
-
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-chi/render"
+	"github.com/rs/zerolog"
+
+	"github.com/dapperlabs/flow-playground-api/controller"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
@@ -152,12 +153,15 @@ func main() {
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 
-		r.Handle("/", handler.GraphQL(
-			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
-			handler.RequestMiddleware(errors.Middleware(entry)),
-			handler.RequestMiddleware(prometheus.RequestMiddleware()),
-			handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
-		))
+		r.Handle(
+			"/",
+			playground.GraphQLHandler(
+				resolver,
+				handler.RequestMiddleware(errors.Middleware(entry)),
+				handler.RequestMiddleware(prometheus.RequestMiddleware()),
+				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
+			),
+		)
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
