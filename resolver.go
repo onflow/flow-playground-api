@@ -24,7 +24,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
-const MaxAccounts = 4
+const MaxAccounts = 5
 
 type Resolver struct {
 	version            *semver.Version

@@ -981,10 +981,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x05
+		// first account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000005"}`,
+			`{"type":"Address","value":"0x0000000000000006"}`,
 			eventA.Values[0],
 		)
 
@@ -1004,10 +1004,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x06
+		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x0000000000000007"}`,
 			eventB.Values[0],
 		)
 	})
@@ -1041,10 +1041,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[0]
 
-		// first account should have address 0x05
+		// first account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000005"}`,
+			`{"type":"Address","value":"0x0000000000000006"}`,
 			eventA.Values[0],
 		)
 
@@ -1066,10 +1066,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[0]
 
-		// second account should have address 0x06
+		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x0000000000000007"}`,
 			eventB.Values[0],
 		)
 	})
