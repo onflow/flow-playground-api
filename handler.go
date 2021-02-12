@@ -16,25 +16,28 @@
  * limitations under the License.
  */
 
-package controller
+package playground
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"runtime/debug"
 
-	"github.com/go-chi/render"
-	"github.com/onflow/cadence"
+	"github.com/99designs/gqlgen/handler"
 )
 
-type UtilsHandler struct{}
+func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
 
-func NewUtilsHandler() *UtilsHandler {
-	return &UtilsHandler{}
-}
+	options = append(
+		options,
+		handler.RecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
+			return fmt.Errorf("panic: %s\n\n%s", err, string(debug.Stack()))
+		}),
+	)
 
-func (u *UtilsHandler) VersionHandler(w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, r, struct {
-		Version string `json:"version"`
-	}{
-		cadence.Version,
-	})
+	return handler.GraphQL(
+		NewExecutableSchema(Config{Resolvers: resolver}),
+		options...,
+	)
 }

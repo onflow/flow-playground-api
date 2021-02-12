@@ -20,7 +20,7 @@ package compute
 
 import (
 	"github.com/google/uuid"
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"

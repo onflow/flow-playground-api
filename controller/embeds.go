@@ -21,15 +21,17 @@ package controller
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
+	"github.com/google/uuid"
+
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/google/uuid"
-	"net/http"
-	"strings"
 )
 
 type Snippet struct {

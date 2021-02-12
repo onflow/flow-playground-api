@@ -28,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/99designs/gqlgen/handler"
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -447,12 +446,13 @@ func TestProjects(t *testing.T) {
 
 		var resp CreateProjectResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 		)
+		require.NoError(t, err)
 
 		assert.NotEmpty(t, resp.CreateProject.ID)
 		assert.Equal(t, 42, resp.CreateProject.Seed)
@@ -475,13 +475,14 @@ func TestProjects(t *testing.T) {
 			"pub contract Bar {}",
 		}
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
+		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
@@ -503,13 +504,14 @@ func TestProjects(t *testing.T) {
 			"pub contract Cat {}",
 		}
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
+		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
@@ -536,13 +538,14 @@ func TestProjects(t *testing.T) {
 			},
 		}
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("transactionTemplates", templates),
 		)
+		require.NoError(t, err)
 
 		assert.Len(t, resp.CreateProject.TransactionTemplates, 2)
 		assert.Equal(t, templates[0].Title, resp.CreateProject.TransactionTemplates[0].Title)
@@ -554,15 +557,16 @@ func TestProjects(t *testing.T) {
 	t.Run("Get project", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp GetProjectResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetProject,
 			&resp,
 			client.Var("projectId", project.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, project.ID, resp.Project.ID)
 	})
@@ -586,7 +590,7 @@ func TestProjects(t *testing.T) {
 	t.Run("Persist project without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateProjectResponse
 
@@ -603,17 +607,18 @@ func TestProjects(t *testing.T) {
 	t.Run("Persist project", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateProjectResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("persist", true),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, project.ID, resp.UpdateProject.ID)
 		assert.True(t, resp.UpdateProject.Persist)
@@ -624,7 +629,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Create transaction template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionTemplateResponse
 
@@ -643,11 +648,11 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Create transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
@@ -655,6 +660,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "bar"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.NotEmpty(t, resp.CreateTransactionTemplate.ID)
 		assert.Equal(t, "foo", resp.CreateTransactionTemplate.Title)
@@ -664,11 +670,11 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateTransactionTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -676,15 +682,17 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "bar"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		var respB GetTransactionTemplateResponse
 
-		c.MustPost(
+		err = c.Post(
 			QueryGetTransactionTemplate,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", respA.CreateTransactionTemplate.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.TransactionTemplate.ID)
 		assert.Equal(t, respA.CreateTransactionTemplate.Script, respB.TransactionTemplate.Script)
@@ -693,7 +701,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp GetTransactionTemplateResponse
 
@@ -712,11 +720,11 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Update transaction template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateTransactionTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -724,30 +732,30 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "apple"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		templateID := respA.CreateTransactionTemplate.ID
 
 		var respB UpdateTransactionTemplateResponse
 
-		err := c.Post(
+		err = c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("script", "orange"),
 		)
-
 		assert.Error(t, err)
 	})
 
 	t.Run("Update transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateTransactionTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -755,12 +763,13 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "apple"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		templateID := respA.CreateTransactionTemplate.ID
 
 		var respB UpdateTransactionTemplateResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -768,6 +777,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("script", "orange"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respB.UpdateTransactionTemplate.ID)
 		assert.Equal(t, respA.CreateTransactionTemplate.Index, respB.UpdateTransactionTemplate.Index)
@@ -781,7 +791,7 @@ func TestTransactionTemplates(t *testing.T) {
 			}
 		}
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateTransactionTemplateIndex,
 			&respC,
 			client.Var("projectId", project.ID),
@@ -789,6 +799,7 @@ func TestTransactionTemplates(t *testing.T) {
 			client.Var("index", 1),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respC.UpdateTransactionTemplate.ID)
 		assert.Equal(t, 1, respC.UpdateTransactionTemplate.Index)
@@ -798,7 +809,7 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Update non-existent transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateTransactionTemplateResponse
 
@@ -818,19 +829,20 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Get transaction templates for project", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		templateA := createTransactionTemplate(c, project)
-		templateB := createTransactionTemplate(c, project)
-		templateC := createTransactionTemplate(c, project)
+		templateA := createTransactionTemplate(t, c, project)
+		templateB := createTransactionTemplate(t, c, project)
+		templateC := createTransactionTemplate(t, c, project)
 
 		var resp GetProjectTransactionTemplatesResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetProjectTransactionTemplates,
 			&resp,
 			client.Var("projectId", project.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Len(t, resp.Project.TransactionTemplates, 3)
 		assert.Equal(t, templateA.ID, resp.Project.TransactionTemplates[0].ID)
@@ -861,9 +873,9 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Delete transaction template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		template := createTransactionTemplate(c, project)
+		template := createTransactionTemplate(t, c, project)
 
 		var resp DeleteTransactionTemplateResponse
 
@@ -881,19 +893,20 @@ func TestTransactionTemplates(t *testing.T) {
 	t.Run("Delete transaction template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		template := createTransactionTemplate(c, project)
+		template := createTransactionTemplate(t, c, project)
 
 		var resp DeleteTransactionTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationDeleteTransactionTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", template.ID),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, template.ID, resp.DeleteTransactionTemplate)
 	})
@@ -920,7 +933,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Create execution without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -939,19 +952,20 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Create execution", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
 		const script = "transaction { execute { log(\"Hello, World!\") } }"
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Errors)
 		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
@@ -961,13 +975,13 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateTransactionExecutionResponse
 
 		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -975,6 +989,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("signers", []string{project.Accounts[0].Address}),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
@@ -990,7 +1005,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respB CreateTransactionExecutionResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationCreateTransactionExecution,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -998,6 +1013,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("signers", []string{project.Accounts[0].Address}),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Empty(t, respB.CreateTransactionExecution.Errors)
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
@@ -1021,13 +1037,13 @@ func TestTransactionExecutions(t *testing.T) {
 
 		c := newClientWithResolver(resolver)
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateTransactionExecutionResponse
 
 		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -1035,6 +1051,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("signers", []string{project.Accounts[0].Address}),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
 		require.Len(t, respA.CreateTransactionExecution.Events, 1)
@@ -1053,7 +1070,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respB CreateTransactionExecutionResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationCreateTransactionExecution,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1061,6 +1078,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("signers", []string{project.Accounts[0].Address}),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Len(t, respB.CreateTransactionExecution.Events, 1)
 
@@ -1077,7 +1095,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("invalid (parse error)", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -1085,13 +1103,14 @@ func TestTransactionExecutions(t *testing.T) {
           transaction(a: Int) {
         `
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Equal(t,
 			[]model.ProgramError{
@@ -1117,7 +1136,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("invalid (semantic error)", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -1125,13 +1144,14 @@ func TestTransactionExecutions(t *testing.T) {
           transaction { execute { XYZ } }
         `
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Equal(t,
 			[]model.ProgramError{
@@ -1157,7 +1177,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("invalid (run-time error)", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -1165,13 +1185,14 @@ func TestTransactionExecutions(t *testing.T) {
           transaction { execute { panic("oh no") } }
         `
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Equal(t,
 			[]model.ProgramError{
@@ -1197,7 +1218,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("exceeding computation limit", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -1212,13 +1233,14 @@ func TestTransactionExecutions(t *testing.T) {
           }
         `
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 		require.Equal(t,
@@ -1244,7 +1266,7 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("argument", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateTransactionExecutionResponse
 
@@ -1256,7 +1278,7 @@ func TestTransactionExecutions(t *testing.T) {
           }
         `
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
 			client.Var("projectId", project.ID),
@@ -1266,6 +1288,7 @@ func TestTransactionExecutions(t *testing.T) {
 			}),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		require.Empty(t, resp.CreateTransactionExecution.Errors)
 		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{"42"})
@@ -1276,7 +1299,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Create script template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptTemplateResponse
 
@@ -1295,11 +1318,11 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Create script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateScriptTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
@@ -1307,6 +1330,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "bar"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.NotEmpty(t, resp.CreateScriptTemplate.ID)
 		assert.Equal(t, "foo", resp.CreateScriptTemplate.Title)
@@ -1316,11 +1340,11 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateScriptTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -1328,15 +1352,17 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "bar"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		var respB GetScriptTemplateResponse
 
-		c.MustPost(
+		err = c.Post(
 			QueryGetScriptTemplate,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", respA.CreateScriptTemplate.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.ScriptTemplate.ID)
 		assert.Equal(t, respA.CreateScriptTemplate.Script, respB.ScriptTemplate.Script)
@@ -1345,7 +1371,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp GetScriptTemplateResponse
 
@@ -1364,11 +1390,11 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Update script template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateScriptTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -1376,30 +1402,30 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "apple"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		templateID := respA.CreateScriptTemplate.ID
 
 		var respB UpdateScriptTemplateResponse
 
-		err := c.Post(
+		err = c.Post(
 			MutationUpdateScriptTemplateScript,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.Var("script", "orange"),
 		)
-
 		assert.Error(t, err)
 	})
 
 	t.Run("Update script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA CreateScriptTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
 			client.Var("projectId", project.ID),
@@ -1407,12 +1433,13 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "apple"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		templateID := respA.CreateScriptTemplate.ID
 
 		var respB UpdateScriptTemplateResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateScriptTemplateScript,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1420,6 +1447,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("script", "orange"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respB.UpdateScriptTemplate.ID)
 		assert.Equal(t, respA.CreateScriptTemplate.Index, respB.UpdateScriptTemplate.Index)
@@ -1427,7 +1455,7 @@ func TestScriptTemplates(t *testing.T) {
 
 		var respC UpdateScriptTemplateResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateScriptTemplateIndex,
 			&respC,
 			client.Var("projectId", project.ID),
@@ -1435,6 +1463,7 @@ func TestScriptTemplates(t *testing.T) {
 			client.Var("index", 1),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
 		assert.Equal(t, 1, respC.UpdateScriptTemplate.Index)
@@ -1444,7 +1473,7 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Update non-existent script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateScriptTemplateResponse
 
@@ -1464,19 +1493,20 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Get script templates for project", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		templateIDA := createScriptTemplate(c, project)
-		templateIDB := createScriptTemplate(c, project)
-		templateIDC := createScriptTemplate(c, project)
+		templateIDA := createScriptTemplate(t, c, project)
+		templateIDB := createScriptTemplate(t, c, project)
+		templateIDC := createScriptTemplate(t, c, project)
 
 		var resp GetProjectScriptTemplatesResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetProjectScriptTemplates,
 			&resp,
 			client.Var("projectId", project.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Len(t, resp.Project.ScriptTemplates, 3)
 		assert.Equal(t, templateIDA, resp.Project.ScriptTemplates[0].ID)
@@ -1508,9 +1538,9 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Delete script template without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		templateID := createScriptTemplate(c, project)
+		templateID := createScriptTemplate(t, c, project)
 
 		var resp DeleteScriptTemplateResponse
 
@@ -1527,19 +1557,20 @@ func TestScriptTemplates(t *testing.T) {
 	t.Run("Delete script template", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
-		templateID := createScriptTemplate(c, project)
+		templateID := createScriptTemplate(t, c, project)
 
 		var resp DeleteScriptTemplateResponse
 
-		c.MustPost(
+		err := c.Post(
 			MutationDeleteScriptTemplate,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, templateID, resp.DeleteScriptTemplate)
 	})
@@ -1549,17 +1580,18 @@ func TestAccounts(t *testing.T) {
 	t.Run("Get account", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 		account := project.Accounts[0]
 
 		var resp GetAccountResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetAccount,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, account.ID, resp.Account.ID)
 	})
@@ -1567,7 +1599,7 @@ func TestAccounts(t *testing.T) {
 	t.Run("Get non-existent account", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp GetAccountResponse
 
@@ -1586,23 +1618,24 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update account draft code without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 		account := project.Accounts[0]
 
 		var respA GetAccountResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetAccount,
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, "", respA.Account.DraftCode)
 
 		var respB UpdateAccountResponse
 
-		err := c.Post(
+		err = c.Post(
 			MutationUpdateAccountDraftCode,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1616,23 +1649,24 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update account draft code", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 		account := project.Accounts[0]
 
 		var respA GetAccountResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetAccount,
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, "", respA.Account.DraftCode)
 
 		var respB UpdateAccountResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateAccountDraftCode,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1640,6 +1674,7 @@ func TestAccounts(t *testing.T) {
 			client.Var("code", "bar"),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
 	})
@@ -1647,23 +1682,24 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update account invalid deployed code", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 		account := project.Accounts[0]
 
 		var respA GetAccountResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetAccount,
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, "", respA.Account.DeployedCode)
 
 		var respB UpdateAccountResponse
 
-		err := c.Post(
+		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1678,7 +1714,7 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update account deployed code without permission", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		account := project.Accounts[0]
 
@@ -1700,18 +1736,19 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update account deployed code", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		account := project.Accounts[0]
 
 		var respA GetAccountResponse
 
-		c.MustPost(
+		err := c.Post(
 			QueryGetAccount,
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", account.ID),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, "", respA.Account.DeployedCode)
 
@@ -1719,7 +1756,7 @@ func TestAccounts(t *testing.T) {
 
 		const contract = "pub contract Foo {}"
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respB,
 			client.Var("projectId", project.ID),
@@ -1727,6 +1764,7 @@ func TestAccounts(t *testing.T) {
 			client.Var("code", contract),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
 	})
@@ -1734,7 +1772,7 @@ func TestAccounts(t *testing.T) {
 	t.Run("Update non-existent account", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateAccountResponse
 
@@ -1801,14 +1839,14 @@ func generateAddTwoToCounterScript(counterAddress string) string {
 func TestContractInteraction(t *testing.T) {
 	c := newClient()
 
-	project := createProject(c)
+	project := createProject(t, c)
 
 	accountA := project.Accounts[0]
 	accountB := project.Accounts[1]
 
 	var respA UpdateAccountResponse
 
-	c.MustPost(
+	err := c.Post(
 		MutationUpdateAccountDeployedCode,
 		&respA,
 		client.Var("projectId", project.ID),
@@ -1816,6 +1854,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("code", counterContract),
 		client.AddCookie(c.SessionCookie()),
 	)
+	require.NoError(t, err)
 
 	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
 
@@ -1823,7 +1862,7 @@ func TestContractInteraction(t *testing.T) {
 
 	var respB CreateTransactionExecutionResponse
 
-	c.MustPost(
+	err = c.Post(
 		MutationCreateTransactionExecution,
 		&respB,
 		client.Var("projectId", project.ID),
@@ -1831,6 +1870,7 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("signers", []string{accountB.Address}),
 		client.AddCookie(c.SessionCookie()),
 	)
+	require.NoError(t, err)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Errors)
 }
@@ -1839,7 +1879,7 @@ func TestAuthentication(t *testing.T) {
 	t.Run("Migrate legacy auth", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var respA UpdateProjectResponse
 
@@ -1848,13 +1888,14 @@ func TestAuthentication(t *testing.T) {
 		// clear session cookie before making request
 		c.ClearSessionCookie()
 
-		c.MustPost(
+		err := c.Post(
 			MutationUpdateProjectPersist,
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("persist", true),
 			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
+		require.NoError(t, err)
 
 		assert.Equal(t, project.ID, respA.UpdateProject.ID)
 		assert.True(t, respA.UpdateProject.Persist)
@@ -1865,13 +1906,14 @@ func TestAuthentication(t *testing.T) {
 
 		var respB UpdateProjectResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("persist", false),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		// should be able to perform update using new session cookie
 		assert.Equal(t, project.ID, respB.UpdateProject.ID)
@@ -1888,13 +1930,14 @@ func TestAuthentication(t *testing.T) {
 			Value: "foo",
 		}
 
-		c.MustPost(
+		err := c.Post(
 			MutationCreateProject,
 			&respA,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.AddCookie(&malformedCookie),
 		)
+		require.NoError(t, err)
 
 		projectID := respA.CreateProject.ID
 
@@ -1906,13 +1949,14 @@ func TestAuthentication(t *testing.T) {
 
 		var respB UpdateProjectResponse
 
-		c.MustPost(
+		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
 			client.Var("projectId", projectID),
 			client.Var("persist", true),
 			client.AddCookie(c.SessionCookie()),
 		)
+		require.NoError(t, err)
 
 		// should be able to perform update using new session cookie
 		assert.Equal(t, projectID, respB.UpdateProject.ID)
@@ -1922,7 +1966,7 @@ func TestAuthentication(t *testing.T) {
 	t.Run("Update project with malformed session cookie", func(t *testing.T) {
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp UpdateProjectResponse
 
@@ -1950,8 +1994,8 @@ func TestAuthentication(t *testing.T) {
 	t.Run("Update project with invalid session cookie", func(t *testing.T) {
 		c := newClient()
 
-		projectA := createProject(c)
-		_ = createProject(c)
+		projectA := createProject(t, c)
+		_ = createProject(t, c)
 
 		cookieB := c.SessionCookie()
 
@@ -1976,7 +2020,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -1998,7 +2042,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2038,7 +2082,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2078,7 +2122,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2118,7 +2162,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2165,7 +2209,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2192,7 +2236,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		c := newClient()
 
-		project := createProject(c)
+		project := createProject(t, c)
 
 		var resp CreateScriptExecutionResponse
 
@@ -2291,12 +2335,7 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle(
-		"/",
-		handler.GraphQL(
-			playground.NewExecutableSchema(playground.Config{Resolvers: resolver}),
-		),
-	)
+	router.Handle("/", playground.GraphQLHandler(resolver))
 
 	return &Client{
 		client:   client.New(router),
@@ -2304,10 +2343,10 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	}
 }
 
-func createProject(c *Client) Project {
+func createProject(t *testing.T, c *Client) Project {
 	var resp CreateProjectResponse
 
-	c.MustPost(
+	err := c.Post(
 		MutationCreateProject,
 		&resp,
 		client.Var("title", "foo"),
@@ -2315,6 +2354,7 @@ func createProject(c *Client) Project {
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
 	)
+	require.NoError(t, err)
 
 	proj := resp.CreateProject
 	internalProj := c.resolver.LastCreatedProject()
@@ -2324,10 +2364,10 @@ func createProject(c *Client) Project {
 	return proj
 }
 
-func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
+func createTransactionTemplate(t *testing.T, c *Client, project Project) TransactionTemplate {
 	var resp CreateTransactionTemplateResponse
 
-	c.MustPost(
+	err := c.Post(
 		MutationCreateTransactionTemplate,
 		&resp,
 		client.Var("projectId", project.ID),
@@ -2335,14 +2375,15 @@ func createTransactionTemplate(c *Client, project Project) TransactionTemplate {
 		client.Var("script", "bar"),
 		client.AddCookie(c.SessionCookie()),
 	)
+	require.NoError(t, err)
 
 	return resp.CreateTransactionTemplate
 }
 
-func createScriptTemplate(c *Client, project Project) string {
+func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 	var resp CreateScriptTemplateResponse
 
-	c.MustPost(
+	err := c.Post(
 		MutationCreateScriptTemplate,
 		&resp,
 		client.Var("projectId", project.ID),
@@ -2350,6 +2391,7 @@ func createScriptTemplate(c *Client, project Project) string {
 		client.Var("script", "bar"),
 		client.AddCookie(c.SessionCookie()),
 	)
+	require.NoError(t, err)
 
 	return resp.CreateScriptTemplate.ID
 }

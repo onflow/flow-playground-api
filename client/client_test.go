@@ -25,8 +25,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/dapperlabs/flow-playground-api/client"
 	"github.com/stretchr/testify/require"
+
+	"github.com/dapperlabs/flow-playground-api/client"
 )
 
 func TestClient(t *testing.T) {
