@@ -17,17 +17,16 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/onflow/cadence v0.12.5
-	github.com/onflow/flow-go v0.13.2-0.20210122234808-f166b2a7aa23
-	github.com/onflow/flow-go-sdk v0.14.2
+	github.com/onflow/cadence v0.14.5
+	github.com/onflow/flow-go v0.15.3-patch.5
+	github.com/onflow/flow-go-sdk v0.17.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.5.1
+	github.com/prometheus/client_golang v1.7.1
 	github.com/rs/cors v1.6.0
 	github.com/rs/zerolog v1.19.0
-	github.com/sirupsen/logrus v1.4.2
-	github.com/stretchr/testify v1.6.1
+	github.com/sirupsen/logrus v1.6.0
+	github.com/stretchr/testify v1.7.0
 	github.com/vektah/gqlparser v1.2.0
 	golang.org/x/sys v0.0.0-20210122093101-04d7465088b8 // indirect
 )
