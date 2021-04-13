@@ -21,6 +21,7 @@ package compute
 import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
+	"github.com/onflow/flow-go/fvm/programs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
@@ -57,7 +58,7 @@ type AccountStates map[model.Address]model.AccountState
 
 func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 	rt := runtime.NewInterpreterRuntime()
-	vm := fvm.New(rt)
+	vm := fvm.NewVirtualMachine(rt)
 
 	vmCtx := fvm.NewContext(
 		logger,
@@ -109,7 +110,7 @@ func (c *Computer) ExecuteTransaction(
 
 	view := ledger.NewView()
 
-	err = c.vm.Run(ctx, proc, view)
+	err = c.vm.Run(ctx, proc, view, programs.NewEmptyPrograms())
 	if err != nil {
 		return nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
@@ -153,7 +154,7 @@ func (c *Computer) ExecuteScript(
 	proc := fvm.Script([]byte(script)).
 		WithArguments(rawArguments...)
 
-	err = c.vm.Run(c.vmCtx, proc, view)
+	err = c.vm.Run(c.vmCtx, proc, view, programs.NewEmptyPrograms())
 	if err != nil {
 		return nil, errors.Wrap(err, "vm failed to execute script")
 	}
