@@ -24,7 +24,7 @@ import (
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
-	errors2 "github.com/onflow/flow-go/fvm/errors"
+	fvmErrors "github.com/onflow/flow-go/fvm/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"
 )
@@ -36,7 +36,7 @@ func ExtractProgramErrors(err error) (result []model.ProgramError) {
 	}
 
 	// TODO: remove once fvm.ExecutionError implements Wrapper
-	executionError, ok := err.(*errors2.ExecutionError)
+	executionError, ok := err.(*fvmErrors.ExecutionError)
 	if !ok {
 		return
 	}
