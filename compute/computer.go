@@ -21,6 +21,8 @@ package compute
 import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
+	"github.com/onflow/cadence/runtime/common"
+	"github.com/onflow/cadence/runtime/interpreter"
 	"github.com/onflow/flow-go/fvm/programs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -96,11 +98,8 @@ func (c *Computer) ExecuteTransaction(
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	states := make(AccountStates)
-
 	ctx := fvm.NewContextFromParent(
 		c.vmCtx,
-		fvm.WithSetValueHandler(newValueHandler(states)),
 	)
 
 	// Use the default gas limit
@@ -116,6 +115,8 @@ func (c *Computer) ExecuteTransaction(
 	}
 
 	delta := view.Delta()
+
+	states := extractStateChangesFromDelta(delta)
 
 	ledger.ApplyDelta(delta)
 
@@ -177,17 +178,40 @@ func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
 	c.cache.Delete(projectID)
 }
 
-func newValueHandler(states AccountStates) func(owner flow.Address, key string, value cadence.Value) error {
-	return func(owner flow.Address, key string, value cadence.Value) error {
-		// TODO: Remove address conversion
-		address := model.NewAddressFromBytes(owner.Bytes())
+func extractStateChangesFromDelta(d delta.Delta) AccountStates {
+	states := make(AccountStates)
 
-		if _, ok := states[address]; !ok {
-			states[address] = make(map[string]cadence.Value)
+	ids, values := d.RegisterUpdates()
+
+	for i, id := range ids {
+		addressBytes := []byte(id.Owner)
+		if len(addressBytes) != flow.AddressLength {
+			continue
+		}
+		commonAddress := common.BytesToAddress(addressBytes)
+
+		storedData, version := interpreter.StripMagic(values[i])
+		storedValue, err := interpreter.DecodeValue(storedData, &commonAddress, []string{id.Key}, version, nil)
+		if err != nil {
+			// skip this value, as it cannot be decoded
+			continue
 		}
 
-		states[address][key] = value
+		modelAddress := model.NewAddressFromBytes(addressBytes)
 
-		return nil
+		if _, ok := states[modelAddress]; !ok {
+			states[modelAddress] = make(map[string]cadence.Value)
+		}
+
+		inter, err := interpreter.NewInterpreter(nil, common.StringLocation("extractStateChangesFromDelta"))
+
+		if err != nil {
+			panic(err)
+		}
+
+		// How to convert interpreter.Value to cadence.Value
+		states[modelAddress][id.Key] = runtime.ExportValue(storedValue, inter)
 	}
+
+	return states
 }
