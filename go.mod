@@ -18,8 +18,8 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.1.2
-	github.com/onflow/cadence v0.15.2-0.20210517172203-ca1e6400714f
-	github.com/onflow/flow-go v0.16.1-0.20210518150926-adcc7cb02895
+	github.com/onflow/cadence v0.16.0
+	github.com/onflow/flow-go v0.17.1
 	github.com/onflow/flow-go-sdk v0.20.0-alpha.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
