@@ -96,11 +96,8 @@ func (c *Computer) ExecuteTransaction(
 		return nil, errors.Wrap(err, "failed to get ledger for project")
 	}
 
-	states := make(AccountStates)
-
 	ctx := fvm.NewContextFromParent(
 		c.vmCtx,
-		fvm.WithSetValueHandler(newValueHandler(states)),
 	)
 
 	// Use the default gas limit
@@ -121,6 +118,7 @@ func (c *Computer) ExecuteTransaction(
 
 	c.cache.Set(projectID, ledger, transactionNumber)
 
+	states := make(AccountStates)
 	result := TransactionResult{
 		Err:    proc.Err,
 		Logs:   proc.Logs,
@@ -175,19 +173,4 @@ func (c *Computer) ClearCache() {
 
 func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
 	c.cache.Delete(projectID)
-}
-
-func newValueHandler(states AccountStates) func(owner flow.Address, key string, value cadence.Value) error {
-	return func(owner flow.Address, key string, value cadence.Value) error {
-		// TODO: Remove address conversion
-		address := model.NewAddressFromBytes(owner.Bytes())
-
-		if _, ok := states[address]; !ok {
-			states[address] = make(map[string]cadence.Value)
-		}
-
-		states[address][key] = value
-
-		return nil
-	}
 }

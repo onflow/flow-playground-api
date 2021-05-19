@@ -21,12 +21,10 @@ package compute
 import (
 	"errors"
 
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
-	fvmErrors "github.com/onflow/flow-go/fvm/errors"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 func ExtractProgramErrors(err error) (result []model.ProgramError) {
@@ -34,13 +32,6 @@ func ExtractProgramErrors(err error) (result []model.ProgramError) {
 	result = []model.ProgramError{
 		convertProgramError(err),
 	}
-
-	// TODO: remove once fvm.ExecutionError implements Wrapper
-	executionError, ok := err.(*fvmErrors.ExecutionError)
-	if !ok {
-		return
-	}
-	err = executionError.Err
 
 	var parsingCheckingError *runtime.ParsingCheckingError
 	if errors.As(err, &parsingCheckingError) {
