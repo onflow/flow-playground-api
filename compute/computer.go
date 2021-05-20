@@ -259,6 +259,9 @@ func (c *Computer) extractStateChangesFromDelta(d delta.Delta, p *programs.Progr
 
 var _ runtime.Interface = &apiEnv{}
 
+// apiEnv implements runtime.Interface solely for the purpose
+// of extracting state from a delta (see Computer.extractStateChangesFromDelta)
+//
 type apiEnv struct {
 	Delta    *delta.Delta
 	Programs *programs.Programs
