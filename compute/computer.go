@@ -40,9 +40,10 @@ import (
 )
 
 type Computer struct {
-	vm    *fvm.VirtualMachine
-	vmCtx fvm.Context
-	cache *LedgerCache
+	vm     *fvm.VirtualMachine
+	vmCtx  fvm.Context
+	cache  *LedgerCache
+	logger zerolog.Logger
 }
 
 type TransactionResult struct {
@@ -85,9 +86,10 @@ func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 	}
 
 	return &Computer{
-		vm:    vm,
-		vmCtx: vmCtx,
-		cache: cache,
+		vm:     vm,
+		vmCtx:  vmCtx,
+		cache:  cache,
+		logger: logger,
 	}, nil
 }
 
@@ -112,43 +114,18 @@ func (c *Computer) ExecuteTransaction(
 	proc := fvm.Transaction(txBody, 0)
 
 	view := ledger.NewView()
+	prog := programs.NewEmptyPrograms()
 
-	err = c.vm.Run(ctx, proc, view, programs.NewEmptyPrograms())
+	err = c.vm.Run(ctx, proc, view, prog)
 	if err != nil {
 		return nil, errors.Wrap(err, "vm failed to execute transaction")
 	}
 
-	delta := view.Delta()
-	prog := programs.NewEmptyPrograms()
+	d := view.Delta()
 
-	states := extractStateChangesFromDelta(delta, func(address common.Address, key string) (value cadence.Value, err error) {
-		pathParts := strings.Split(key, "\x1F")
+	states := c.extractStateChangesFromDelta(d, prog)
 
-		if len(pathParts) != 2 {
-			// not a cadence path value
-			return nil, nil
-		}
-
-		path := cadence.Path{
-			Domain:     pathParts[0],
-			Identifier: pathParts[1],
-		}
-
-		defer func() {
-			if r := recover(); r != nil {
-				value = nil
-				err = nil
-			}
-		}()
-
-		value, err = c.vm.Runtime.ReadStored(address, path, runtime.Context{Interface: &apiEnv{
-			Delta:    &delta,
-			Programs: prog,
-		}})
-		return
-	})
-
-	ledger.ApplyDelta(delta)
+	ledger.ApplyDelta(d)
 
 	c.cache.Set(projectID, ledger, transactionNumber)
 
@@ -156,7 +133,7 @@ func (c *Computer) ExecuteTransaction(
 		Err:    proc.Err,
 		Logs:   proc.Logs,
 		Events: proc.Events,
-		Delta:  delta,
+		Delta:  d,
 		States: states,
 	}
 
@@ -208,7 +185,49 @@ func (c *Computer) ClearCacheForProject(projectID uuid.UUID) {
 	c.cache.Delete(projectID)
 }
 
-func extractStateChangesFromDelta(d delta.Delta, getStored func(address common.Address, key string) (cadence.Value, error)) AccountStates {
+func (c *Computer) extractStateChangesFromDelta(d delta.Delta, p *programs.Programs) AccountStates {
+
+	runtimeContext := runtime.Context{Interface: &apiEnv{
+		Delta:    &d,
+		Programs: p,
+	}}
+
+	getStored := func(address common.Address, key string) (value cadence.Value, err error) {
+		pathParts := strings.Split(key, "\x1F")
+
+		if len(pathParts) != 2 {
+			// Not a cadence path value. Safe to ignore.
+			return nil, nil
+		}
+
+		path := cadence.Path{
+			Domain:     pathParts[0],
+			Identifier: pathParts[1],
+		}
+
+		domain := common.PathDomainFromIdentifier(path.Domain)
+		if domain == common.PathDomainUnknown {
+			// Not a cadence path value. Safe to ignore.
+			return nil, nil
+		}
+
+		defer func() {
+			if r := recover(); r != nil {
+				// Something went wrong, could be that this isn't a cadence value.
+				c.logger.Debug().
+					Err(r.(error)).
+					Str("address", address.Hex()).
+					Str("key", key).
+					Msgf("error decoding value")
+
+				value = nil
+				err = nil
+			}
+		}()
+
+		return c.vm.Runtime.ReadStored(address, path, runtimeContext)
+	}
+
 	states := make(AccountStates)
 
 	ids, _ := d.RegisterUpdates()
@@ -224,7 +243,7 @@ func extractStateChangesFromDelta(d delta.Delta, getStored func(address common.A
 		value, err := getStored(commonAddress, id.Key)
 
 		if err != nil || value == nil {
-			// problem getting stored value
+			// Not a cadence value or problem getting value.
 			continue
 		}
 
@@ -245,11 +264,11 @@ type apiEnv struct {
 	Programs *programs.Programs
 }
 
-func (a *apiEnv) ResolveLocation(identifiers []runtime.Identifier, location runtime.Location) ([]runtime.ResolvedLocation, error) {
+func (a *apiEnv) ResolveLocation(_ []runtime.Identifier, _ runtime.Location) ([]runtime.ResolvedLocation, error) {
 	panic("implement ResolveLocation")
 }
 
-func (a *apiEnv) GetCode(location runtime.Location) ([]byte, error) {
+func (a *apiEnv) GetCode(_ runtime.Location) ([]byte, error) {
 	panic("implement GetCode")
 }
 
@@ -268,35 +287,35 @@ func (a *apiEnv) GetValue(owner, key []byte) (value []byte, err error) {
 	return v, nil
 }
 
-func (a *apiEnv) SetValue(owner, key, value []byte) (err error) {
+func (a *apiEnv) SetValue(_, _, _ []byte) (err error) {
 	panic("implement SetValue")
 }
 
-func (a *apiEnv) CreateAccount(payer runtime.Address) (address runtime.Address, err error) {
+func (a *apiEnv) CreateAccount(_ runtime.Address) (address runtime.Address, err error) {
 	panic("implement CreateAccount")
 }
 
-func (a *apiEnv) AddEncodedAccountKey(address runtime.Address, publicKey []byte) error {
+func (a *apiEnv) AddEncodedAccountKey(_ runtime.Address, _ []byte) error {
 	panic("implement AddEncodedAccountKey")
 }
 
-func (a *apiEnv) RevokeEncodedAccountKey(address runtime.Address, index int) (publicKey []byte, err error) {
+func (a *apiEnv) RevokeEncodedAccountKey(_ runtime.Address, _ int) (publicKey []byte, err error) {
 	panic("implement RevokeEncodedAccountKey")
 }
 
-func (a *apiEnv) AddAccountKey(address runtime.Address, publicKey *runtime.PublicKey, hashAlgo runtime.HashAlgorithm, weight int) (*runtime.AccountKey, error) {
+func (a *apiEnv) AddAccountKey(_ runtime.Address, _ *runtime.PublicKey, _ runtime.HashAlgorithm, _ int) (*runtime.AccountKey, error) {
 	panic("implement AddAccountKey")
 }
 
-func (a *apiEnv) GetAccountKey(address runtime.Address, index int) (*runtime.AccountKey, error) {
+func (a *apiEnv) GetAccountKey(_ runtime.Address, _ int) (*runtime.AccountKey, error) {
 	panic("implement GetAccountKey")
 }
 
-func (a *apiEnv) RevokeAccountKey(address runtime.Address, index int) (*runtime.AccountKey, error) {
+func (a *apiEnv) RevokeAccountKey(_ runtime.Address, _ int) (*runtime.AccountKey, error) {
 	panic("implement RevokeAccountKey")
 }
 
-func (a *apiEnv) UpdateAccountContractCode(address runtime.Address, name string, code []byte) (err error) {
+func (a *apiEnv) UpdateAccountContractCode(_ runtime.Address, _ string, _ []byte) (err error) {
 	panic("implement UpdateAccountContractCode")
 }
 
@@ -306,7 +325,7 @@ func (a *apiEnv) GetAccountContractCode(address runtime.Address, name string) (c
 	return v, nil
 }
 
-func (a *apiEnv) RemoveAccountContractCode(address runtime.Address, name string) (err error) {
+func (a *apiEnv) RemoveAccountContractCode(_ runtime.Address, _ string) (err error) {
 	panic("implement RemoveAccountContractCode")
 }
 
@@ -314,15 +333,15 @@ func (a *apiEnv) GetSigningAccounts() ([]runtime.Address, error) {
 	panic("implement GetSigningAccounts")
 }
 
-func (a *apiEnv) ProgramLog(s string) error {
+func (a *apiEnv) ProgramLog(_ string) error {
 	panic("implement ProgramLog")
 }
 
-func (a *apiEnv) EmitEvent(event cadence.Event) error {
+func (a *apiEnv) EmitEvent(_ cadence.Event) error {
 	panic("implement EmitEvent")
 }
 
-func (a *apiEnv) ValueExists(owner, key []byte) (exists bool, err error) {
+func (a *apiEnv) ValueExists(_, _ []byte) (exists bool, err error) {
 	panic("implement ValueExists")
 }
 
@@ -334,11 +353,11 @@ func (a *apiEnv) GetComputationLimit() uint64 {
 	return math.MaxUint64
 }
 
-func (a *apiEnv) SetComputationUsed(used uint64) error {
+func (a *apiEnv) SetComputationUsed(_ uint64) error {
 	return nil
 }
 
-func (a *apiEnv) DecodeArgument(argument []byte, argumentType cadence.Type) (cadence.Value, error) {
+func (a *apiEnv) DecodeArgument(_ []byte, _ cadence.Type) (cadence.Value, error) {
 	panic("implement DecodeArgument")
 }
 
@@ -346,7 +365,7 @@ func (a *apiEnv) GetCurrentBlockHeight() (uint64, error) {
 	panic("implement GetCurrentBlockHeight")
 }
 
-func (a *apiEnv) GetBlockAtHeight(height uint64) (block runtime.Block, exists bool, err error) {
+func (a *apiEnv) GetBlockAtHeight(_ uint64) (block runtime.Block, exists bool, err error) {
 	panic("implement GetBlockAtHeight")
 }
 
@@ -354,34 +373,34 @@ func (a *apiEnv) UnsafeRandom() (uint64, error) {
 	panic("implement UnsafeRandom")
 }
 
-func (a *apiEnv) VerifySignature(signature []byte, tag string, signedData []byte, publicKey []byte, signatureAlgorithm runtime.SignatureAlgorithm, hashAlgorithm runtime.HashAlgorithm) (bool, error) {
+func (a *apiEnv) VerifySignature(_ []byte, _ string, _ []byte, _ []byte, _ runtime.SignatureAlgorithm, _ runtime.HashAlgorithm) (bool, error) {
 	panic("implement VerifySignature")
 }
 
-func (a *apiEnv) Hash(data []byte, tag string, hashAlgorithm runtime.HashAlgorithm) ([]byte, error) {
+func (a *apiEnv) Hash(_ []byte, _ string, _ runtime.HashAlgorithm) ([]byte, error) {
 	panic("implement Hash")
 }
 
-func (a *apiEnv) GetAccountBalance(address common.Address) (value uint64, err error) {
+func (a *apiEnv) GetAccountBalance(_ common.Address) (value uint64, err error) {
 	panic("implement GetAccountBalance")
 }
 
-func (a *apiEnv) GetAccountAvailableBalance(address common.Address) (value uint64, err error) {
+func (a *apiEnv) GetAccountAvailableBalance(_ common.Address) (value uint64, err error) {
 	panic("implement GetAccountAvailableBalance")
 }
 
-func (a *apiEnv) GetStorageUsed(address runtime.Address) (value uint64, err error) {
+func (a *apiEnv) GetStorageUsed(_ runtime.Address) (value uint64, err error) {
 	panic("implement GetStorageUsed")
 }
 
-func (a *apiEnv) GetStorageCapacity(address runtime.Address) (value uint64, err error) {
+func (a *apiEnv) GetStorageCapacity(_ runtime.Address) (value uint64, err error) {
 	panic("implement GetStorageCapacity")
 }
 
-func (a *apiEnv) ImplementationDebugLog(message string) error {
+func (a *apiEnv) ImplementationDebugLog(_ string) error {
 	panic("implement ImplementationDebugLog")
 }
 
-func (a *apiEnv) ValidatePublicKey(key *runtime.PublicKey) (bool, error) {
+func (a *apiEnv) ValidatePublicKey(_ *runtime.PublicKey) (bool, error) {
 	panic("implement ValidatePublicKey")
 }

@@ -19,7 +19,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/onflow/cadence v0.16.0
-	github.com/onflow/flow-go v0.17.1
+	github.com/onflow/flow-go v0.17.2
 	github.com/onflow/flow-go-sdk v0.20.0-alpha.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
