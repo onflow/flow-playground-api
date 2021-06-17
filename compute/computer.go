@@ -71,7 +71,6 @@ func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 		logger,
 		fvm.WithChain(flow.MonotonicEmulator.Chain()),
 		fvm.WithServiceAccount(false),
-		fvm.WithRestrictedAccountCreation(false),
 		fvm.WithRestrictedDeployment(false),
 		fvm.WithTransactionProcessors(
 			fvm.NewTransactionInvocator(logger),
