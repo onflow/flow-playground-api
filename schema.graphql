@@ -12,6 +12,8 @@ type Project {
   publicId: UUID!
   parentId: UUID
   title: String!
+  description: String!
+  readme: String!
   seed: Int!
   version: Version!
   persist: Boolean
@@ -94,6 +96,8 @@ type Query {
 input NewProject {
   parentId: UUID
   title: String!
+  description: String!
+  readme: String!
   seed: Int!
   accounts: [String!]
   transactionTemplates: [NewProjectTransactionTemplate!]
@@ -113,6 +117,8 @@ input NewProjectScriptTemplate {
 input UpdateProject {
   id: UUID!
   title: String
+  description: String
+  readme: String
   persist: Boolean
 }
 

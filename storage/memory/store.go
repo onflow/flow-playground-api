@@ -141,6 +141,14 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 		p.Title = *input.Title
 	}
 
+	if input.Description != nil {
+		p.Description = *input.Description
+	}
+
+	if input.Readme != nil {
+		p.Readme = *input.Readme
+	}
+
 	if input.Persist != nil {
 		p.Persist = *input.Persist
 	}

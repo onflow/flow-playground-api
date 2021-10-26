@@ -57,14 +57,16 @@ func NewProjects(
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.InternalProject, error) {
 	proj := &model.InternalProject{
-		ID:       uuid.New(),
-		Secret:   uuid.New(),
-		PublicID: uuid.New(),
-		ParentID: input.ParentID,
-		Seed:     input.Seed,
-		Title:    input.Title,
-		Persist:  false,
-		Version:  p.version,
+		ID:          uuid.New(),
+		Secret:      uuid.New(),
+		PublicID:    uuid.New(),
+		ParentID:    input.ParentID,
+		Seed:        input.Seed,
+		Title:       input.Title,
+		Description: input.Description,
+		Readme:      input.Readme,
+		Persist:     false,
+		Version:     p.version,
 	}
 
 	accounts, deltas, err := p.createInitialAccounts(proj.ID, input.Accounts)
