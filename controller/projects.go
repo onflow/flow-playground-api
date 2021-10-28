@@ -72,6 +72,25 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		return nil, err
 	}
 
+	cons := make([]*model.Contract, len(input.Contracts))
+
+	for i, con := range input.Contracts {
+
+		con := &model.Contract{
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+			},
+			// local account index is swapped with actual account id
+			AccountID: accounts[con.Index].ID,
+			Title:     con.Title,
+			Script:    con.Script,
+			Index:     con.Index,
+		}
+
+		cons[i] = con
+	}
+
 	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
 
 	for i, tpl := range input.TransactionTemplates {
@@ -104,7 +123,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 
 	proj.UserID = user.ID
 
-	err = p.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	err = p.store.CreateProject(proj, deltas, accounts, cons, ttpls, stpls)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
 	}

@@ -136,6 +136,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
+//soe modify this first to deploy contract script (instead of account's code and deployedCode)
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 
 	var proj model.InternalProject
@@ -165,8 +166,18 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return acc.Export(), nil
 	}
 
+	//soe deployment starts below
+	//soe add input.ContractID as well
+	var con model.Contract
+
+	err = r.store.GetContract(model.NewProjectChildID(*input.ContractID, proj.ID), &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
 	// Redeploy: clear all state
-	if acc.DeployedCode != "" {
+	//if acc.DeployedCode != "" {
+	if con.DeployedScript != "" {
 		err := r.projects.Reset(&proj)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
@@ -303,6 +314,164 @@ func (r *mutationResolver) getAccountStates(
 	}
 
 	return states, nil
+}
+
+func (r *mutationResolver) CreateContract(ctx context.Context, input model.NewContract) (*model.Contract, error) {
+	con := &model.Contract{
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: input.ProjectID,
+		},
+		Index:  input.Index,
+		Title:  input.Title,
+		Script: input.Script,
+	}
+
+	var proj model.InternalProject
+
+	err := r.projects.Get(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
+	}
+
+	err = r.store.InsertContract(con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to store contract")
+	}
+
+	return con, nil
+}
+
+func (r *mutationResolver) UpdateContract(ctx context.Context, input model.UpdateContract) (*model.Contract, error) {
+	var con model.Contract
+
+	var proj model.InternalProject
+
+	err := r.projects.Get(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
+	}
+
+	err = r.store.UpdateContract(input, &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update contract")
+	}
+
+	return &con, nil
+}
+
+/*func (r *mutationResolver) DeployContract(ctx context.Context, input model.UpdateContract) (*model.Contract, error) {
+
+	var proj model.InternalProject
+
+	err := r.projects.Get(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
+	}
+
+	var con model.Contract
+
+	err = r.store.GetContract(model.NewProjectChildID(input.ID, proj.ID), &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get contract")
+	}
+
+	var acc model.InternalAccount
+
+	err = r.store.GetAccount(model.NewProjectChildID(con.AccountID, proj.ID), &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	address := acc.Address.ToFlowAddress()
+	source := `access(all) contract HiWorld { init() { self.greeting = "Hi World"}}`
+	//soe update contract name from the script
+	contractName, err := getSourceContractName(*input.Script)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to deploy account code")
+	}
+	//input.Title = &contractName
+
+	// Redeploy: clear all state
+	if con.DeployedScript != "" {
+		err := r.projects.Reset(&proj)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to clear project state")
+		}
+	}
+
+	tx := templates.AddAccountContract(address, templates.Contract{
+		Name:   `HiWorld`,
+		Source: source,
+	})
+
+	result, err := r.computer.ExecuteTransaction(
+		proj.ID,
+		proj.TransactionCount,
+		func() ([]*model.RegisterDelta, error) {
+			var deltas []*model.RegisterDelta
+			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+			if err != nil {
+				return nil, err
+			}
+
+			return deltas, nil
+		},
+		toTransactionBody(tx),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to deploy account code")
+	}
+
+	if result.Err != nil {
+		return nil, errors.Wrap(result.Err, "failed to deploy account code")
+	}
+
+	states, err := r.getAccountStates(proj.ID, result.States)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.store.UpdateContractAfterDeployment(input, states, result.Delta, &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update contract")
+	}
+
+	return &con, nil
+}*/
+
+func (r *mutationResolver) DeleteContract(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
+	var proj model.InternalProject
+
+	//soe to-do delete contract from Flow as well?
+
+	err := r.projects.Get(projectID, &proj)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return uuid.Nil, err
+	}
+
+	err = r.store.DeleteContract(model.NewProjectChildID(id, projectID))
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to delete contract")
+	}
+
+	return id, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -578,6 +747,17 @@ func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*
 	return exportedAccs, nil
 }
 
+func (r *projectResolver) Contracts(ctx context.Context, obj *model.Project) ([]*model.Contract, error) {
+	var cons []*model.Contract
+
+	err := r.store.GetContractsForProject(obj.ID, &cons)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get contracts")
+	}
+
+	return cons, nil
+}
+
 func (r *projectResolver) TransactionTemplates(ctx context.Context, obj *model.Project) ([]*model.TransactionTemplate, error) {
 	var tpls []*model.TransactionTemplate
 
@@ -669,6 +849,17 @@ func (r *queryResolver) Account(ctx context.Context, id uuid.UUID, projectID uui
 	}
 
 	return exported, nil
+}
+
+func (r *queryResolver) Contract(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Contract, error) {
+	var con model.Contract
+
+	err := r.store.GetContract(model.NewProjectChildID(id, projectID), &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get contract")
+	}
+
+	return &con, nil
 }
 
 func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {

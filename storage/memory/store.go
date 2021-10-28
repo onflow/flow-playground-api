@@ -36,6 +36,7 @@ type Store struct {
 	users                 map[uuid.UUID]model.User
 	projects              map[uuid.UUID]model.InternalProject
 	accounts              map[uuid.UUID]model.InternalAccount
+	contracts             map[uuid.UUID]model.Contract
 	transactionTemplates  map[uuid.UUID]model.TransactionTemplate
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
@@ -49,6 +50,7 @@ func NewStore() *Store {
 		users:                 make(map[uuid.UUID]model.User),
 		projects:              make(map[uuid.UUID]model.InternalProject),
 		accounts:              make(map[uuid.UUID]model.InternalAccount),
+		contracts:             make(map[uuid.UUID]model.Contract),
 		transactionTemplates:  make(map[uuid.UUID]model.TransactionTemplate),
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
@@ -83,6 +85,7 @@ func (s *Store) CreateProject(
 	proj *model.InternalProject,
 	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
+	cons []*model.Contract,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate,
 ) error {
@@ -101,6 +104,12 @@ func (s *Store) CreateProject(
 
 	for _, account := range accounts {
 		if err := s.insertAccount(account); err != nil {
+			return err
+		}
+	}
+
+	for _, con := range cons {
+		if err := s.insertContract(con); err != nil {
 			return err
 		}
 	}
@@ -364,6 +373,126 @@ func (s *Store) DeleteAccount(id model.ProjectChildID) error {
 	}
 
 	delete(s.accounts, id.ID)
+
+	err := s.markProjectUpdatedAt(id.ProjectID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) InsertContract(con *model.Contract) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	return s.insertContract(con)
+}
+
+func (s *Store) insertContract(con *model.Contract) error {
+	var cons []*model.Contract
+	err := s.getContractsForProject(con.ProjectID, &cons)
+	if err != nil {
+		return err
+	}
+
+	count := len(cons)
+
+	// set index to one after last
+	con.Index = count
+
+	s.contracts[con.ID] = *con
+
+	err = s.markProjectUpdatedAt(con.ProjectID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) UpdateContract(input model.UpdateContract, con *model.Contract) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	c, ok := s.contracts[input.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	if input.Title != nil {
+		c.Title = *input.Title
+	}
+
+	if input.Index != nil {
+		c.Index = *input.Index
+	}
+
+	if input.Script != nil {
+		c.Script = *input.Script
+	}
+
+	s.contracts[input.ID] = c
+
+	*con = c
+
+	err := s.markProjectUpdatedAt(c.ProjectID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) GetContract(id model.ProjectChildID, con *model.Contract) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	c, ok := s.contracts[id.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	*con = c
+
+	return nil
+}
+
+func (s *Store) GetContractsForProject(projectID uuid.UUID, cons *[]*model.Contract) error {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+
+	return s.getContractsForProject(projectID, cons)
+}
+
+func (s *Store) getContractsForProject(projectID uuid.UUID, cons *[]*model.Contract) error {
+	res := make([]*model.Contract, 0)
+
+	for _, con := range s.contracts {
+		if con.ProjectID == projectID {
+			c := con
+			res = append(res, &c)
+		}
+	}
+
+	// sort results by title
+	sort.Slice(res, func(i, j int) bool { return res[i].Title < res[j].Title })
+
+	*cons = res
+
+	return nil
+}
+
+func (s *Store) DeleteContract(id model.ProjectChildID) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	_, ok := s.contracts[id.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	delete(s.contracts, id.ID)
 
 	err := s.markProjectUpdatedAt(id.ProjectID)
 	if err != nil {

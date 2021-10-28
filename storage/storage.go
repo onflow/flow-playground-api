@@ -36,6 +36,7 @@ type Store interface {
 		proj *model.InternalProject,
 		registerDeltas []delta.Delta,
 		accounts []*model.InternalAccount,
+		contracts []*model.Contract,
 		ttpl []*model.TransactionTemplate,
 		stpl []*model.ScriptTemplate,
 	) error
@@ -56,6 +57,12 @@ type Store interface {
 	) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
+
+	InsertContract(con *model.Contract) error
+	UpdateContract(input model.UpdateContract, con *model.Contract) error
+	GetContract(id model.ProjectChildID, con *model.Contract) error
+	GetContractsForProject(projectID uuid.UUID, cons *[]*model.Contract) error
+	DeleteContract(id model.ProjectChildID) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error

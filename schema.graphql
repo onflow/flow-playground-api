@@ -17,6 +17,7 @@ type Project {
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
+  contracts: [Contract!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
   scriptTemplates: [ScriptTemplate!]
@@ -30,6 +31,15 @@ type Account {
   deployedCode: String!
   deployedContracts: [String!]!
   state: String!
+}
+
+type Contract {
+  id: UUID!
+  accountId: UUID
+  accountIndex: Int!
+  title: String!
+  script: String!
+  deployedScript: String
 }
 
 type ProgramError {
@@ -87,6 +97,7 @@ type Query {
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!
+  contract(id: UUID!, projectId: UUID!): Contract!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
@@ -96,8 +107,15 @@ input NewProject {
   title: String!
   seed: Int!
   accounts: [String!]
+  contracts: [NewProjectContract!]
   transactionTemplates: [NewProjectTransactionTemplate!]
   scriptTemplates: [NewProjectScriptTemplate!]
+}
+
+input NewProjectContract {
+  AccountIndex: Int!
+  title: String!
+  script: String!
 }
 
 input NewProjectTransactionTemplate {
@@ -121,6 +139,22 @@ input UpdateAccount {
   projectId: UUID!
   draftCode: String
   deployedCode: String
+}
+
+input NewContract {
+  projectId: UUID!
+  accountIndex: Int!
+  title: String!
+  script: String!
+}
+
+input UpdateContract {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  accountIndex: Int
+  script: String
+  deployedScript: String
 }
 
 input NewTransactionTemplate {
@@ -169,6 +203,10 @@ type Mutation {
   updateProject(input: UpdateProject!): Project!
 
   updateAccount(input: UpdateAccount!): Account!
+
+  createContract(input: NewContract!): Contract!
+  updateContract(input: UpdateContract!): Contract!
+  deleteContract(id: UUID!, projectId: UUID!): UUID!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!

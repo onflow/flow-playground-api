@@ -7,9 +7,25 @@ import (
 	"github.com/google/uuid"
 )
 
+/*type Contract struct {
+	ID             uuid.UUID  `json:"id"`
+	AccountID      *uuid.UUID `json:"accountId"`
+	Index          int        `json:"index"`
+	Title          string     `json:"title"`
+	Script         string     `json:"script"`
+	DeployedScript *string    `json:"deployedScript"`
+}*/
+
 type Event struct {
 	Type   string   `json:"type"`
 	Values []string `json:"values"`
+}
+
+type NewContract struct {
+	ProjectID uuid.UUID `json:"projectId"`
+	Index     int       `json:"index"`
+	Title     string    `json:"title"`
+	Script    string    `json:"script"`
 }
 
 type NewProject struct {
@@ -17,8 +33,15 @@ type NewProject struct {
 	Title                string                           `json:"title"`
 	Seed                 int                              `json:"seed"`
 	Accounts             []string                         `json:"accounts"`
+	Contracts            []*NewProjectContract            `json:"contracts"`
 	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
 	ScriptTemplates      []*NewProjectScriptTemplate      `json:"scriptTemplates"`
+}
+
+type NewProjectContract struct {
+	Index  int    `json:"index"`
+	Title  string `json:"title"`
+	Script string `json:"script"`
 }
 
 type NewProjectScriptTemplate struct {
@@ -71,6 +94,15 @@ type ProgramPosition struct {
 	Offset int `json:"offset"`
 	Line   int `json:"line"`
 	Column int `json:"column"`
+}
+
+type UpdateContract struct {
+	ID             uuid.UUID `json:"id"`
+	Title          *string   `json:"title"`
+	ProjectID      uuid.UUID `json:"projectId"`
+	Index          *int      `json:"index"`
+	Script         *string   `json:"script"`
+	DeployedScript *string   `json:"deployedScript"`
 }
 
 type UpdateProject struct {

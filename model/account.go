@@ -69,10 +69,11 @@ func (a *InternalAccount) marshalState() (string, error) {
 }
 
 type UpdateAccount struct {
-	ID                uuid.UUID `json:"id"`
-	ProjectID         uuid.UUID `json:"projectId"`
-	DraftCode         *string   `json:"draftCode"`
-	DeployedCode      *string   `json:"deployedCode"`
+	ID                uuid.UUID  `json:"id"`
+	ProjectID         uuid.UUID  `json:"projectId"`
+	ContractID        *uuid.UUID `json:"contractId"`
+	DraftCode         *string    `json:"draftCode"`
+	DeployedCode      *string    `json:"deployedCode"`
 	DeployedContracts *[]string
 }
 

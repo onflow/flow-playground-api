@@ -135,6 +135,7 @@ func (d *Datastore) CreateProject(
 	proj *model.InternalProject,
 	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
+	cons []*model.Contract,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
@@ -163,6 +164,13 @@ func (d *Datastore) CreateProject(
 		for _, acc := range accounts {
 			entitiesToPut = append(entitiesToPut, acc)
 			keys = append(keys, acc.NameKey())
+		}
+
+		for _, con := range cons {
+			//con.Index = proj.ContractCount
+			//proj.ContractCount++
+			entitiesToPut = append(entitiesToPut, con)
+			keys = append(keys, con.NameKey())
 		}
 
 		for _, ttpl := range ttpls {
@@ -539,6 +547,107 @@ func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
 
 	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
 		err := tx.Delete(acc.NameKey())
+		if err != nil {
+			return err
+		}
+
+		err = d.markProjectUpdatedAt(tx, id.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return txErr
+}
+
+// Contracts
+
+func (d *Datastore) InsertContract(con *model.Contract) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		proj := &model.InternalProject{
+			ID: con.ProjectID,
+		}
+
+		err := tx.Get(proj.NameKey(), proj)
+		if err != nil {
+			return err
+		}
+
+		//con.Index = proj.TransactionTemplateCount
+
+		//proj.ContractCount++
+
+		proj.UpdatedAt = time.Now()
+
+		_, err = tx.PutMulti(
+			[]*datastore.Key{proj.NameKey(), con.NameKey()},
+			[]interface{}{proj, con},
+		)
+		return err
+	})
+
+	return txErr
+
+}
+func (d *Datastore) UpdateContract(input model.UpdateContract, con *model.Contract) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	con.ID = input.ID
+	con.ProjectID = input.ProjectID
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+
+		err := tx.Get(con.NameKey(), con)
+		if err != nil {
+			return err
+		}
+
+		if input.Index != nil {
+			con.Index = *input.Index
+		}
+
+		if input.Script != nil {
+			con.Script = *input.Script
+		}
+
+		if input.Title != nil {
+			con.Title = *input.Title
+		}
+
+		err = d.markProjectUpdatedAt(tx, input.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Put(con.NameKey(), con)
+		return err
+	})
+
+	return txErr
+}
+
+func (d *Datastore) GetContract(id model.ProjectChildID, con *model.Contract) error {
+	con.ProjectChildID = id
+	return d.get(con)
+}
+
+func (d *Datastore) GetContractsForProject(projectID uuid.UUID, cons *[]*model.Contract) error {
+	q := datastore.NewQuery("Contract").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
+	return d.getAll(q, cons)
+}
+
+func (d *Datastore) DeleteContract(id model.ProjectChildID) error {
+	con := model.Contract{ProjectChildID: id}
+
+	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
+		err := tx.Delete(con.NameKey())
 		if err != nil {
 			return err
 		}

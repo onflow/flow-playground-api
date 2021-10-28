@@ -117,13 +117,14 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	}
 
 	accounts := make([]*model.InternalAccount, 0)
+	cons := make([]*model.Contract, 0)
 	deltas := make([]delta.Delta, 0)
 	ttpls := make([]*model.TransactionTemplate, 0)
 	stpls := make([]*model.ScriptTemplate, 0)
 
 	internalProj.UserID = user.ID
 
-	projErr := store.CreateProject(internalProj, deltas, accounts, ttpls, stpls)
+	projErr := store.CreateProject(internalProj, deltas, accounts, cons, ttpls, stpls)
 	require.NoError(t, projErr)
 
 	script := `
