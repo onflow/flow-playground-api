@@ -1066,6 +1066,7 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
+  accountId: UUID
   index: Int
   script: String
   deployedScript: String
@@ -6025,6 +6026,12 @@ func (ec *executionContext) unmarshalInputUpdateContract(ctx context.Context, ob
 		case "projectId":
 			var err error
 			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "accountId":
+			var err error
+			it.AccountID, err = ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
 			if err != nil {
 				return it, err
 			}

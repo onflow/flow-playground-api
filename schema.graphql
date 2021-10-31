@@ -36,7 +36,7 @@ type Account {
 type Contract {
   id: UUID!
   accountId: UUID
-  accountIndex: Int!
+  index: Int!
   title: String!
   script: String!
   deployedScript: String
@@ -113,7 +113,7 @@ input NewProject {
 }
 
 input NewProjectContract {
-  AccountIndex: Int!
+  index: Int!
   title: String!
   script: String!
 }
@@ -137,13 +137,14 @@ input UpdateProject {
 input UpdateAccount {
   id: UUID!
   projectId: UUID!
+  contractId: UUID
   draftCode: String
   deployedCode: String
 }
 
 input NewContract {
   projectId: UUID!
-  accountIndex: Int!
+  index: Int!
   title: String!
   script: String!
 }
@@ -152,7 +153,8 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
-  accountIndex: Int
+  accountId: UUID
+  index: Int
   script: String
   deployedScript: String
 }
@@ -218,4 +220,3 @@ type Mutation {
   deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
-

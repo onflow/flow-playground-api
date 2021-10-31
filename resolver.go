@@ -137,6 +137,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 //soe modify this first to deploy contract script (instead of account's code and deployedCode)
+//soe this needs to be updated/removed along with removing legacy account draft and deployed code
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 
 	var proj model.InternalProject
@@ -176,7 +177,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	// Redeploy: clear all state
-	//if acc.DeployedCode != "" {
+	//soe if acc.DeployedCode != "" {
 	if con.DeployedScript != "" {
 		err := r.projects.Reset(&proj)
 		if err != nil {
@@ -224,6 +225,19 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	input.DeployedContracts = &[]string{contractName}
+
+	//soe update contract's deployed contractName, deployedScript
+	var inputCon = model.UpdateContract{
+		ID:             con.ID,
+		ProjectID:      con.ProjectID,
+		DeployedScript: input.DeployedCode,
+		Title:          &contractName,
+	}
+
+	err = r.store.UpdateContract(inputCon, &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update contract")
+	}
 
 	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
 	if err != nil {
@@ -368,7 +382,8 @@ func (r *mutationResolver) UpdateContract(ctx context.Context, input model.Updat
 	return &con, nil
 }
 
-/*func (r *mutationResolver) DeployContract(ctx context.Context, input model.UpdateContract) (*model.Contract, error) {
+func (r *mutationResolver) DeployContract(ctx context.Context, input model.UpdateAccount) (*model.Contract, error) {
+	var con model.Contract
 
 	var proj model.InternalProject
 
@@ -381,30 +396,14 @@ func (r *mutationResolver) UpdateContract(ctx context.Context, input model.Updat
 		return nil, err
 	}
 
-	var con model.Contract
-
-	err = r.store.GetContract(model.NewProjectChildID(input.ID, proj.ID), &con)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get contract")
-	}
-
 	var acc model.InternalAccount
 
-	err = r.store.GetAccount(model.NewProjectChildID(con.AccountID, proj.ID), &acc)
+	err = r.store.GetAccount(model.NewProjectChildID(input.ID, proj.ID), &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	address := acc.Address.ToFlowAddress()
-	source := `access(all) contract HiWorld { init() { self.greeting = "Hi World"}}`
-	//soe update contract name from the script
-	contractName, err := getSourceContractName(*input.Script)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
-	}
-	//input.Title = &contractName
-
-	// Redeploy: clear all state
+	// Redeploy: clear all state if this contract has been deployed before
 	if con.DeployedScript != "" {
 		err := r.projects.Reset(&proj)
 		if err != nil {
@@ -412,8 +411,15 @@ func (r *mutationResolver) UpdateContract(ctx context.Context, input model.Updat
 		}
 	}
 
+	address := acc.Address.ToFlowAddress()
+	source := *input.DeployedCode
+	contractName, err := getSourceContractName(source)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to deploy account code")
+	}
+
 	tx := templates.AddAccountContract(address, templates.Contract{
-		Name:   `HiWorld`,
+		Name:   contractName,
 		Source: source,
 	})
 
@@ -444,13 +450,22 @@ func (r *mutationResolver) UpdateContract(ctx context.Context, input model.Updat
 		return nil, err
 	}
 
-	err = r.store.UpdateContractAfterDeployment(input, states, result.Delta, &con)
+	//soe update contract
+	/*err = r.store.UpdateContract(input, &con)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update contract")
+	}*/
+
+	//soe update account's deployedContracts array? or just query account's contracts from datastore?
+	input.DeployedContracts = &[]string{contractName}
+
+	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update account")
 	}
 
 	return &con, nil
-}*/
+}
 
 func (r *mutationResolver) DeleteContract(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject

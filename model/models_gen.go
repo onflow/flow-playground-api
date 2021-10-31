@@ -97,12 +97,13 @@ type ProgramPosition struct {
 }
 
 type UpdateContract struct {
-	ID             uuid.UUID `json:"id"`
-	Title          *string   `json:"title"`
-	ProjectID      uuid.UUID `json:"projectId"`
-	Index          *int      `json:"index"`
-	Script         *string   `json:"script"`
-	DeployedScript *string   `json:"deployedScript"`
+	ID             uuid.UUID  `json:"id"`
+	Title          *string    `json:"title"`
+	ProjectID      uuid.UUID  `json:"projectId"`
+	AccountID      *uuid.UUID `json:"accountId"`
+	Index          *int       `json:"index"`
+	Script         *string    `json:"script"`
+	DeployedScript *string    `json:"deployedScript"`
 }
 
 type UpdateProject struct {
