@@ -824,9 +824,9 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
-  title: String!
-  description: String!
-  readme: String!
+  title: String
+  description: String
+  readme: String
   seed: Int!
   version: Version!
   persist: Boolean
@@ -2511,15 +2511,12 @@ func (ec *executionContext) _Project_title(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Project_description(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -2548,15 +2545,12 @@ func (ec *executionContext) _Project_description(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Project_readme(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -2585,15 +2579,12 @@ func (ec *executionContext) _Project_readme(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Project_seed(ctx context.Context, field graphql.CollectedField, obj *model.Project) (ret graphql.Marshaler) {
@@ -5806,19 +5797,10 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Project_parentId(ctx, field, obj)
 		case "title":
 			out.Values[i] = ec._Project_title(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "description":
 			out.Values[i] = ec._Project_description(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "readme":
 			out.Values[i] = ec._Project_readme(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "seed":
 			out.Values[i] = ec._Project_seed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

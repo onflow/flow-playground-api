@@ -11,9 +11,9 @@ type Project {
   id: UUID!
   publicId: UUID!
   parentId: UUID
-  title: String!
-  description: String!
-  readme: String!
+  title: String
+  description: String
+  readme: String
   seed: Int!
   version: Version!
   persist: Boolean
