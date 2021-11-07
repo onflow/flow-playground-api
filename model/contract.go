@@ -20,13 +20,11 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 type Contract struct {
 	ProjectChildID
-	AccountID      uuid.UUID
 	Title          string
 	Index          int
 	Script         string
@@ -41,7 +39,6 @@ func (c *Contract) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID             string
 		ProjectID      string
-		AccountID      string
 		Title          string
 		Index          int
 		Script         string
@@ -57,9 +54,6 @@ func (c *Contract) Load(ps []datastore.Property) error {
 	}
 	if err := c.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
 		return errors.Wrap(err, "failed to decode project UUID")
-	}
-	if err := c.AccountID.UnmarshalText([]byte(tmp.AccountID)); err != nil {
-		return errors.Wrap(err, "failed to decode account UUID")
 	}
 
 	c.Title = tmp.Title
@@ -78,10 +72,6 @@ func (c *Contract) Save() ([]datastore.Property, error) {
 		{
 			Name:  "ProjectID",
 			Value: c.ProjectID.String(),
-		},
-		{
-			Name:  "AccountID",
-			Value: c.AccountID.String(),
 		},
 		{
 			Name:  "Title",

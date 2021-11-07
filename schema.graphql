@@ -35,7 +35,6 @@ type Account {
 
 type Contract {
   id: UUID!
-  accountId: UUID
   index: Int!
   title: String!
   script: String!
@@ -153,7 +152,6 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
-  accountId: UUID
   index: Int
   script: String
   deployedScript: String

@@ -57,7 +57,6 @@ type ComplexityRoot struct {
 	}
 
 	Contract struct {
-		AccountID      func(childComplexity int) int
 		DeployedScript func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Index          func(childComplexity int) int
@@ -256,13 +255,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Account.State(childComplexity), true
-
-	case "Contract.accountId":
-		if e.complexity.Contract.AccountID == nil {
-			break
-		}
-
-		return e.complexity.Contract.AccountID(childComplexity), true
 
 	case "Contract.deployedScript":
 		if e.complexity.Contract.DeployedScript == nil {
@@ -948,7 +940,6 @@ type Account {
 
 type Contract {
   id: UUID!
-  accountId: UUID
   index: Int!
   title: String!
   script: String!
@@ -1066,7 +1057,6 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
-  accountId: UUID
   index: Int
   script: String
   deployedScript: String
@@ -1769,40 +1759,6 @@ func (ec *executionContext) _Contract_id(ctx context.Context, field graphql.Coll
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Contract_accountId(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "Contract",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AccountID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(uuid.UUID)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalOUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Contract_index(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
@@ -6029,12 +5985,6 @@ func (ec *executionContext) unmarshalInputUpdateContract(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "accountId":
-			var err error
-			it.AccountID, err = ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "index":
 			var err error
 			it.Index, err = ec.unmarshalOInt2ᚖint(ctx, v)
@@ -6249,8 +6199,6 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "accountId":
-			out.Values[i] = ec._Contract_accountId(ctx, field, obj)
 		case "index":
 			out.Values[i] = ec._Contract_index(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
