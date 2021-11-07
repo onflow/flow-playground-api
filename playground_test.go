@@ -58,13 +58,14 @@ type Project struct {
 		Address   string
 		DraftCode string
 	}
+	Contracts            []Contract
 	TransactionTemplates []TransactionTemplate
 	Secret               string
 }
 
 const MutationCreateProject = `
-mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
-  createProject(input: { title: $title, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
+mutation($title: String!, $seed: Int!, $accounts: [String!], $contracts: [NewProjectContract!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
+  createProject(input: { title: $title, seed: $seed, accounts: $accounts, contracts: $contracts, transactionTemplates: $transactionTemplates }) {
     id
     title
     seed
@@ -75,6 +76,12 @@ mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplat
       address
       draftCode
     }
+		contracts {
+			id
+			title
+			index
+			script
+		}
     transactionTemplates {
       id
       title
@@ -97,6 +104,12 @@ query($projectId: UUID!) {
       id
       address
     }
+		contracts {
+			id
+			title
+			index
+			script
+		}
   }
 }
 `
@@ -118,6 +131,32 @@ type UpdateProjectResponse struct {
 	UpdateProject struct {
 		ID      string
 		Persist bool
+	}
+}
+
+const QueryGetProjectContracts = `
+query($projectId: UUID!) {
+  project(id: $projectId) {
+    id
+    contracts {
+      id
+			title
+			index
+			script
+    }
+  }
+}
+`
+
+type GetProjectContractsResponse struct {
+	Project struct {
+		ID        string
+		Contracts []struct {
+			ID     string
+			Title  string
+			Index  int
+			Script string
+		}
 	}
 }
 
@@ -220,6 +259,79 @@ type UpdateAccountResponse struct {
 		DraftCode    string
 		DeployedCode string
 	}
+}
+
+type Contract struct {
+	ID     string
+	Title  string
+	Index  int
+	Script string
+}
+
+// create contract
+const MutationCreateContract = `
+mutation($projectId: UUID!, $title: String!, $script: String!, $index: Int!) {
+  createContract(input: { projectId: $projectId, title: $title, script: $script, index: $index }) {
+    id
+    title
+    index
+    script
+  }
+}
+`
+
+type CreateContractResponse struct {
+	CreateContract Contract
+}
+
+// get contract
+const QueryGetContract = `
+query($contractId: UUID!, $projectId: UUID!) {
+  contract(id: $contractId, projectId: $projectId) {
+    id
+		title
+    script
+    index
+  }
+}
+`
+
+type GetContractResponse struct {
+	Contract struct {
+		ID     string
+		Title  string
+		Script string
+		Index  int
+	}
+}
+
+// update contract
+const MutationUpdateContract = `
+mutation($contractId: UUID!, $projectId: UUID!, $script: String!) {
+  updateContract(input: { id: $contractId, projectId: $projectId, script: $script }) {
+    id
+    title
+    script
+    index
+  }
+}
+`
+
+type UpdateContractResponse struct {
+	UpdateContract Contract
+}
+
+// deploy contract
+
+// delete contract
+const MutationDeleteContract = `
+mutation($contractId: UUID!, $projectId: UUID!) {
+  deleteContract(id: $contractId, projectId: $projectId)
+}
+`
+
+type DeleteContractResponse struct {
+	DeleteContract string
 }
 
 type TransactionTemplate struct {
@@ -458,14 +570,14 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, 42, resp.CreateProject.Seed)
 		assert.Equal(t, version.String(), resp.CreateProject.Version)
 
-		// project should be created with 4 default accounts
+		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
 		// project should not be persisted
 		assert.False(t, resp.CreateProject.Persist)
 	})
 
-	t.Run("Create project with 2 accounts", func(t *testing.T) {
+	t.Run("Create project with 2 accounts and *multiple contracts*", func(t *testing.T) {
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -475,24 +587,55 @@ func TestProjects(t *testing.T) {
 			"pub contract Bar {}",
 		}
 
+		contracts := []struct {
+			Title  string `json:"title"`
+			Index  int    `json:"index"`
+			Script string `json:"script"`
+		}{
+			{"foo", 0, "pub contract Foo {}"},
+			{"foo1", 0, "pub contract Foo1 {}"},
+			{"foo2", 0, "pub contract Foo2 {}"},
+			{"bar", 1, "pub contract Bar {}"},
+			{"bar1", 1, "pub contract Bar1 {}"},
+			{"bar2", 1, "pub contract Bar2 {}"},
+			{"bar3", 1, "pub contract Bar3 {}"},
+		}
+
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
+			client.Var("contracts", contracts),
 		)
 		require.NoError(t, err)
 
-		// project should still be created with 4 default accounts
+		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
-		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
-		assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
+		//soe obsolete
+		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
+		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
+		//assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
+
+		//soe
+		// assert that total 6 contracts were created
+		assert.Len(t, resp.CreateProject.Contracts, 7)
+
+		//soe to-do assert count of contracts for each account
+		var counts [playground.MaxAccounts]int
+		for _, con := range resp.CreateProject.Contracts {
+			fmt.Println(con.Index)
+			counts[con.Index]++
+		}
+
+		assert.Equal(t, 3, counts[0])
+		assert.Equal(t, 4, counts[1])
+		assert.Equal(t, 0, counts[2])
 	})
 
-	t.Run("Create project with 4 accounts", func(t *testing.T) {
+	t.Run("Create project with 4 accounts and *multiple contracts*", func(t *testing.T) {
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -504,21 +647,54 @@ func TestProjects(t *testing.T) {
 			"pub contract Cat {}",
 		}
 
+		contracts := []struct {
+			Title  string `json:"title"`
+			Index  int    `json:"index"`
+			Script string `json:"script"`
+		}{
+			{"foo", 0, "pub contract Foo {}"},
+			{"foo1", 0, "pub contract Foo1 {}"},
+			{"bar", 1, "pub contract Bar {}"},
+			{"bar1", 1, "pub contract Bar1 {}"},
+			{"dog", 2, "pub contract Dog {}"},
+			{"cat", 3, "pub contract Cat {}"},
+			{"cat1", 3, "pub contract Cat1 {}"},
+			{"cat2", 3, "pub contract Cat2 {}"},
+		}
+
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
+			client.Var("contracts", contracts),
 		)
 		require.NoError(t, err)
 
-		// project should still be created with 4 default accounts
+		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
-		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
-		assert.Equal(t, accounts[2], resp.CreateProject.Accounts[2].DraftCode)
+		//soe obsolete
+		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
+		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
+		//assert.Equal(t, accounts[2], resp.CreateProject.Accounts[2].DraftCode)
+
+		//soe
+		// assert that total 6 contracts were created
+		assert.Len(t, resp.CreateProject.Contracts, 8)
+
+		//soe to-do assert count of contracts for each account
+		var counts [playground.MaxAccounts]int
+		for _, con := range resp.CreateProject.Contracts {
+			fmt.Println(con.Index)
+			counts[con.Index]++
+		}
+
+		assert.Equal(t, 2, counts[0])
+		assert.Equal(t, 2, counts[1])
+		assert.Equal(t, 1, counts[2])
+		assert.Equal(t, 3, counts[3])
 	})
 
 	t.Run("Create project with transaction templates", func(t *testing.T) {
@@ -622,6 +798,233 @@ func TestProjects(t *testing.T) {
 
 		assert.Equal(t, project.ID, resp.UpdateProject.ID)
 		assert.True(t, resp.UpdateProject.Persist)
+	})
+}
+
+func TestContracts(t *testing.T) {
+	t.Run("Create contract without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
+			client.Var("index", 0),
+		)
+
+		assert.Error(t, err)
+		assert.Empty(t, resp.CreateContract.ID)
+	})
+
+	t.Run("Create contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
+			client.Var("index", 0),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.NotEmpty(t, resp.CreateContract.ID)
+		assert.Equal(t, "foo", resp.CreateContract.Title)
+		assert.Equal(t, "bar", resp.CreateContract.Script)
+		assert.Equal(t, 0, resp.CreateContract.Index)
+	})
+
+	t.Run("Get contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var respA CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
+			client.Var("index", 0),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var respB GetContractResponse
+
+		err = c.Post(
+			QueryGetContract,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", respA.CreateContract.ID),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, respA.CreateContract.ID, respB.Contract.ID)
+		assert.Equal(t, respA.CreateContract.Script, respB.Contract.Script)
+	})
+
+	t.Run("Get non-existent contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp GetContractResponse
+
+		badID := uuid.New().String()
+
+		err := c.Post(
+			QueryGetContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("templateId", badID),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Update contract without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var respA CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
+			client.Var("index", 0),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		contractID := respA.CreateContract.ID
+
+		var respB UpdateContractResponse
+
+		err = c.Post(
+			MutationUpdateContract,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contractID),
+			client.Var("script", "orange"),
+		)
+		assert.Error(t, err)
+	})
+
+	t.Run("Update contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var respA CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
+			client.Var("index", 0),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		contractID := respA.CreateContract.ID
+
+		var respB UpdateContractResponse
+
+		err = c.Post(
+			MutationUpdateContract,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contractID),
+			client.Var("script", "orange"),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, respA.CreateContract.ID, respB.UpdateContract.ID)
+		assert.Equal(t, respA.CreateContract.Index, respB.UpdateContract.Index)
+		assert.Equal(t, "orange", respB.UpdateContract.Script)
+	})
+
+	t.Run("Update non-existent contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp UpdateContractResponse
+
+		badID := uuid.New().String()
+
+		err := c.Post(
+			MutationUpdateContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("templateId", badID),
+			client.Var("script", "bar"),
+		)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("Delete contract without permission", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		contract := createContract(t, c, project)
+
+		var resp DeleteContractResponse
+
+		err := c.Post(
+			MutationDeleteContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contract.ID),
+		)
+
+		assert.Error(t, err)
+		assert.Empty(t, resp.DeleteContract)
+	})
+
+	t.Run("Delete contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		contract := createContract(t, c, project)
+
+		var resp DeleteContractResponse
+
+		err := c.Post(
+			MutationDeleteContract,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contract.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, contract.ID, resp.DeleteContract)
 	})
 }
 
@@ -1733,7 +2136,8 @@ func TestAccounts(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Update account deployed code", func(t *testing.T) {
+	//soe instead test for contracts deployment
+	/*t.Run("Update account deployed code", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1767,7 +2171,7 @@ func TestAccounts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
-	})
+	})*/
 
 	t.Run("Update non-existent account", func(t *testing.T) {
 		c := newClient()
@@ -1790,7 +2194,7 @@ func TestAccounts(t *testing.T) {
 	})
 }
 
-const counterContract = `
+/*const counterContract = `
   pub contract Counting {
 
       pub event CountIncremented(count: Int)
@@ -1812,11 +2216,11 @@ const counterContract = `
           return <-create Counter()
       }
   }
-`
+`*/
 
 // generateAddTwoToCounterScript generates a script that increments a counter.
 // If no counter exists, it is created.
-func generateAddTwoToCounterScript(counterAddress string) string {
+/*func generateAddTwoToCounterScript(counterAddress string) string {
 	return fmt.Sprintf(
 		`
             import 0x%s
@@ -1834,9 +2238,9 @@ func generateAddTwoToCounterScript(counterAddress string) string {
         `,
 		counterAddress,
 	)
-}
+}*/
 
-func TestContractInteraction(t *testing.T) {
+/*func TestContractInteraction(t *testing.T) {
 	c := newClient()
 
 	project := createProject(t, c)
@@ -1844,8 +2248,9 @@ func TestContractInteraction(t *testing.T) {
 	accountA := project.Accounts[0]
 	accountB := project.Accounts[1]
 
-	var respA UpdateAccountResponse
+	//var respA UpdateAccountResponse
 
+	//soe instead test for contracts deployment
 	err := c.Post(
 		MutationUpdateAccountDeployedCode,
 		&respA,
@@ -1873,7 +2278,7 @@ func TestContractInteraction(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Errors)
-}
+}*/
 
 func TestAuthentication(t *testing.T) {
 	t.Run("Migrate legacy auth", func(t *testing.T) {
@@ -2362,6 +2767,23 @@ func createProject(t *testing.T, c *Client) Project {
 	proj.Secret = internalProj.Secret.String()
 
 	return proj
+}
+
+func createContract(t *testing.T, c *Client, project Project) Contract {
+	var resp CreateContractResponse
+
+	err := c.Post(
+		MutationCreateContract,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("title", "foo"),
+		client.Var("script", "bar"),
+		client.Var("index", 0),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	return resp.CreateContract
 }
 
 func createTransactionTemplate(t *testing.T, c *Client, project Project) TransactionTemplate {
