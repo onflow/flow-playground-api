@@ -617,6 +617,10 @@ func (d *Datastore) UpdateContract(input model.UpdateContract, con *model.Contra
 			con.Script = *input.Script
 		}
 
+		if input.DeployedScript != nil {
+			con.DeployedScript = *input.DeployedScript
+		}
+
 		if input.Title != nil {
 			con.Title = *input.Title
 		}

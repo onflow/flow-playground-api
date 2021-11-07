@@ -230,7 +230,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	var inputCon = model.UpdateContract{
 		ID:             con.ID,
 		ProjectID:      con.ProjectID,
-		DeployedScript: input.DeployedCode,
+		DeployedScript: &source,
 		Title:          &contractName,
 	}
 

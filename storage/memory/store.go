@@ -432,6 +432,10 @@ func (s *Store) UpdateContract(input model.UpdateContract, con *model.Contract) 
 		c.Script = *input.Script
 	}
 
+	if input.DeployedScript != nil {
+		c.DeployedScript = *input.DeployedScript
+	}
+
 	s.contracts[input.ID] = c
 
 	*con = c
