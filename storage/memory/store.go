@@ -396,10 +396,10 @@ func (s *Store) insertContract(con *model.Contract) error {
 		return err
 	}
 
-	count := len(cons)
-
+	//soe Index means AccountIndex
+	//count := len(cons)
 	// set index to one after last
-	con.Index = count
+	//con.Index = count
 
 	s.contracts[con.ID] = *con
 

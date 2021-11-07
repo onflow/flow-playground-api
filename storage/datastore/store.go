@@ -167,6 +167,7 @@ func (d *Datastore) CreateProject(
 		}
 
 		for _, con := range cons {
+			//soe Index means AccountIndex
 			//con.Index = proj.ContractCount
 			//proj.ContractCount++
 			entitiesToPut = append(entitiesToPut, con)
