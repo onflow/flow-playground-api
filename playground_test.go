@@ -2231,7 +2231,7 @@ func TestAccounts(t *testing.T) {
 
 		assert.Equal(t, respB.Contract.ID, respC.UpdateContract.ID)
 		assert.Equal(t, respB.Contract.Index, respC.UpdateContract.Index)
-		assert.Equal(t, "organce", respC.UpdateContract.Script)
+		assert.Equal(t, "orange", respC.UpdateContract.Script)
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
