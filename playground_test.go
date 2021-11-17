@@ -242,12 +242,10 @@ mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
 `
 
 const MutationUpdateAccountDeployedCode = `
-mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
-  updateAccount(input: { id: $accountId, projectId: $projectId, deployedCode: $code }) {
-	id
+mutation($accountId: UUID!, $projectId: UUID!, $contractId: UUID!, $code: String!) {
+  updateAccount(input: { id: $accountId, projectId: $projectId, contractId: $contractId, deployedCode: $code }) {
+	  id
     address
-    draftCode
-    deployedCode
   }
 }
 `
@@ -262,10 +260,11 @@ type UpdateAccountResponse struct {
 }
 
 type Contract struct {
-	ID     string
-	Title  string
-	Index  int
-	Script string
+	ID             string
+	Title          string
+	Index          int
+	Script         string
+	DeployedScript string
 }
 
 // create contract
@@ -298,10 +297,11 @@ query($contractId: UUID!, $projectId: UUID!) {
 
 type GetContractResponse struct {
 	Contract struct {
-		ID     string
-		Title  string
-		Script string
-		Index  int
+		ID             string
+		Title          string
+		Script         string
+		DeployedScript string
+		Index          int
 	}
 }
 
@@ -614,22 +614,21 @@ func TestProjects(t *testing.T) {
 		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		//soe obsolete
+		// obsolete as contracts are in seperate struct
 		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
 		//assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
 
-		//soe
 		// assert that total 6 contracts were created
 		assert.Len(t, resp.CreateProject.Contracts, 7)
 
-		//soe to-do assert count of contracts for each account
 		var counts [playground.MaxAccounts]int
 		for _, con := range resp.CreateProject.Contracts {
 			fmt.Println(con.Index)
 			counts[con.Index]++
 		}
 
+		// assert contract count for each account
 		assert.Equal(t, 3, counts[0])
 		assert.Equal(t, 4, counts[1])
 		assert.Equal(t, 0, counts[2])
@@ -675,22 +674,21 @@ func TestProjects(t *testing.T) {
 		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		//soe obsolete
+		// obsolete as contracts are in seperate struct
 		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
 		//assert.Equal(t, accounts[2], resp.CreateProject.Accounts[2].DraftCode)
 
-		//soe
 		// assert that total 6 contracts were created
 		assert.Len(t, resp.CreateProject.Contracts, 8)
 
-		//soe to-do assert count of contracts for each account
 		var counts [playground.MaxAccounts]int
 		for _, con := range resp.CreateProject.Contracts {
 			fmt.Println(con.Index)
 			counts[con.Index]++
 		}
 
+		// assert contract count for each account
 		assert.Equal(t, 2, counts[0])
 		assert.Equal(t, 2, counts[1])
 		assert.Equal(t, 1, counts[2])
@@ -984,6 +982,56 @@ func TestContracts(t *testing.T) {
 		)
 
 		assert.Error(t, err)
+	})
+
+	t.Run("Deploy contract", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var respA CreateContractResponse
+
+		err := c.Post(
+			MutationCreateContract,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("title", "foo"),
+			client.Var("script", "apple"),
+			client.Var("index", 0),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		contractID := respA.CreateContract.ID
+
+		//soe to-do
+		// contract is now deployed by updating an account
+		// this will be refactored in next commit
+		var respB UpdateAccountResponse
+
+		err = c.Post(
+			MutationUpdateAccountDeployedCode,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("accountId", project.Accounts[0].ID),
+			client.Var("contractId", contractID),
+			client.Var("code", "orange"),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var respC GetContractResponse
+
+		err = c.Post(
+			QueryGetContract,
+			&respC,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contractID),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, respA.CreateContract.ID, respC.Contract.ID)
+		assert.Equal(t, "orange", respC.Contract.DeployedScript)
 	})
 
 	t.Run("Delete contract without permission", func(t *testing.T) {
@@ -2018,7 +2066,8 @@ func TestAccounts(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("Update account draft code without permission", func(t *testing.T) {
+	// obsolete now as contracts are in seperate Contract struct
+	/*t.Run("Update account draft code without permission", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(t, c)
@@ -2134,10 +2183,10 @@ func TestAccounts(t *testing.T) {
 		)
 
 		assert.Error(t, err)
-	})
+	})*/
 
-	//soe instead test for contracts deployment
-	/*t.Run("Update account deployed code", func(t *testing.T) {
+	// test for contract deployment
+	t.Run("Update an account's contract", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(t, c)
@@ -2154,24 +2203,36 @@ func TestAccounts(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		assert.Equal(t, "", respA.Account.DeployedCode)
+		contract := createContract(t, c, project)
 
-		var respB UpdateAccountResponse
-
-		const contract = "pub contract Foo {}"
+		var respB GetContractResponse
 
 		err = c.Post(
-			MutationUpdateAccountDeployedCode,
+			QueryGetContract,
 			&respB,
 			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract),
+			client.Var("contractId", contract.ID),
+		)
+		require.NoError(t, err)
+
+		contractID := respB.Contract.ID
+
+		var respC UpdateContractResponse
+
+		err = c.Post(
+			MutationUpdateContract,
+			&respC,
+			client.Var("projectId", project.ID),
+			client.Var("contractId", contractID),
+			client.Var("script", "orange"),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
-		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
-	})*/
+		assert.Equal(t, respB.Contract.ID, respC.UpdateContract.ID)
+		assert.Equal(t, respB.Contract.Index, respC.UpdateContract.Index)
+		assert.Equal(t, "organce", respC.UpdateContract.Script)
+	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
 		c := newClient()
@@ -2194,7 +2255,7 @@ func TestAccounts(t *testing.T) {
 	})
 }
 
-/*const counterContract = `
+const counterContract = `
   pub contract Counting {
 
       pub event CountIncremented(count: Int)
@@ -2216,11 +2277,11 @@ func TestAccounts(t *testing.T) {
           return <-create Counter()
       }
   }
-`*/
+`
 
 // generateAddTwoToCounterScript generates a script that increments a counter.
 // If no counter exists, it is created.
-/*func generateAddTwoToCounterScript(counterAddress string) string {
+func generateAddTwoToCounterScript(counterAddress string) string {
 	return fmt.Sprintf(
 		`
             import 0x%s
@@ -2238,9 +2299,9 @@ func TestAccounts(t *testing.T) {
         `,
 		counterAddress,
 	)
-}*/
+}
 
-/*func TestContractInteraction(t *testing.T) {
+func TestContractInteraction(t *testing.T) {
 	c := newClient()
 
 	project := createProject(t, c)
@@ -2248,28 +2309,47 @@ func TestAccounts(t *testing.T) {
 	accountA := project.Accounts[0]
 	accountB := project.Accounts[1]
 
-	//var respA UpdateAccountResponse
+	// create contract for accountA
+	var respA CreateContractResponse
 
-	//soe instead test for contracts deployment
 	err := c.Post(
-		MutationUpdateAccountDeployedCode,
+		MutationCreateContract,
 		&respA,
 		client.Var("projectId", project.ID),
-		client.Var("accountId", accountA.ID),
+		client.Var("title", "counterContract"),
+		client.Var("script", counterContract),
+		client.Var("index", 0),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, counterContract, respA.CreateContract.Script)
+
+	contractID := respA.CreateContract.ID
+
+	//soe to-do
+	// contract is now deployed by updating an account
+	// this will be refactored in next commit
+	var respB UpdateAccountResponse
+
+	err = c.Post(
+		MutationUpdateAccountDeployedCode,
+		&respB,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", project.Accounts[0].ID),
+		client.Var("contractId", contractID),
 		client.Var("code", counterContract),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, counterContract, respA.UpdateAccount.DeployedCode)
-
 	addScript := generateAddTwoToCounterScript(accountA.Address)
 
-	var respB CreateTransactionExecutionResponse
+	var respC CreateTransactionExecutionResponse
 
 	err = c.Post(
 		MutationCreateTransactionExecution,
-		&respB,
+		&respC,
 		client.Var("projectId", project.ID),
 		client.Var("script", addScript),
 		client.Var("signers", []string{accountB.Address}),
@@ -2277,8 +2357,8 @@ func TestAccounts(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Empty(t, respB.CreateTransactionExecution.Errors)
-}*/
+	assert.Empty(t, respC.CreateTransactionExecution.Errors)
+}
 
 func TestAuthentication(t *testing.T) {
 	t.Run("Migrate legacy auth", func(t *testing.T) {
