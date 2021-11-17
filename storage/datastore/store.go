@@ -167,9 +167,6 @@ func (d *Datastore) CreateProject(
 		}
 
 		for _, con := range cons {
-			//soe Index means AccountIndex
-			//con.Index = proj.ContractCount
-			//proj.ContractCount++
 			entitiesToPut = append(entitiesToPut, con)
 			keys = append(keys, con.NameKey())
 		}
@@ -579,10 +576,6 @@ func (d *Datastore) InsertContract(con *model.Contract) error {
 		if err != nil {
 			return err
 		}
-
-		//con.Index = proj.TransactionTemplateCount
-
-		//proj.ContractCount++
 
 		proj.UpdatedAt = time.Now()
 
