@@ -903,7 +903,16 @@ func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalP
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	//soe to-do clear/reset deployed scripts from contracts
+	// clear/reset deployed scripts from contracts
+	for contractID, contract := range s.contracts {
+		if contract.ProjectID != proj.ID {
+			continue
+		}
+
+		contract.DeployedScript = ""
+
+		s.contracts[contractID] = contract
+	}
 
 	for accountID, account := range s.accounts {
 		if account.ProjectID != proj.ID {

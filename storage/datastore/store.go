@@ -280,6 +280,13 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 		return err
 	}
 
+	var cons []*model.Contract
+
+	err = d.GetContractsForProject(proj.ID, &cons)
+	if err != nil {
+		return err
+	}
+
 	var existingDeltas []*model.RegisterDelta
 
 	err = d.GetRegisterDeltasForProject(proj.ID, &existingDeltas)
@@ -313,7 +320,15 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 			}
 		}
 
-		//soe to-do reset/clear deployed scripts from contracts
+		// reset/clear deployed scripts from contracts
+		for _, con := range cons {
+			con.DeployedScript = ""
+
+			_, err = tx.Put(con.NameKey(), con)
+			if err != nil {
+				return err
+			}
+		}
 
 		// erase all existing register deltas
 

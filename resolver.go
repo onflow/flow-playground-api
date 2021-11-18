@@ -362,11 +362,11 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 		toTransactionBody(tx),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
+		return nil, errors.Wrap(err, "failed to deploy contract code")
 	}
 
 	if result.Err != nil {
-		return nil, errors.Wrap(result.Err, "failed to deploy account code")
+		return nil, errors.Wrap(result.Err, "failed to deploy contract code")
 	}
 
 	var inputCon = model.UpdateContract{
