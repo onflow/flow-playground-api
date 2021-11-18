@@ -313,13 +313,6 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 		return nil, err
 	}
 
-	var acc model.InternalAccount
-
-	err = r.store.GetAccount(model.NewProjectChildID(input.AccountID, proj.ID), &acc)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get account")
-	}
-
 	var con model.Contract
 
 	err = r.store.GetContract(model.NewProjectChildID(input.ID, proj.ID), &con)
@@ -333,6 +326,13 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
 		}
+	}
+
+	var acc model.InternalAccount
+
+	err = r.store.GetAccount(model.NewProjectChildID(input.AccountID, proj.ID), &acc)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get account")
 	}
 
 	address := acc.Address.ToFlowAddress()
@@ -387,10 +387,29 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 		return nil, err
 	}
 
+	// check for contract name in DeployedContracts
+	// append if it is not there yet
+	deployedContracts := []string{}
+	var newContract = false
+	if acc.DeployedContracts != nil {
+		for _, contract := range acc.DeployedContracts {
+			deployedContracts = append(deployedContracts, contract)
+			if contract != contractName {
+				newContract = true
+			}
+		}
+
+		if newContract {
+			deployedContracts = append(deployedContracts, contractName)
+		}
+	} else {
+		deployedContracts = append(deployedContracts, contractName)
+	}
+
 	var inputAcc = model.UpdateAccount{
 		ID:                input.AccountID,
 		ProjectID:         input.ProjectID,
-		DeployedContracts: &[]string{contractName},
+		DeployedContracts: &deployedContracts,
 	}
 
 	err = r.store.UpdateAccountAfterDeployment(inputAcc, states, result.Delta, &acc)
