@@ -303,10 +303,7 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
-		// clear deployed code from accounts
-
 		for _, acc := range accs {
-			acc.DeployedCode = ""
 			acc.DeployedContracts = nil
 			acc.SetState(make(model.AccountState))
 
@@ -315,6 +312,8 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 				return err
 			}
 		}
+
+		//soe to-do reset/clear deployed scripts from contracts
 
 		// erase all existing register deltas
 
@@ -411,14 +410,6 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 			return err
 		}
 
-		if input.DraftCode != nil {
-			acc.DraftCode = *input.DraftCode
-		}
-
-		if input.DeployedCode != nil {
-			acc.DeployedCode = *input.DeployedCode
-		}
-
 		if input.DeployedContracts != nil {
 			acc.DeployedContracts = *input.DeployedContracts
 		}
@@ -452,14 +443,6 @@ func (d *Datastore) UpdateAccountAfterDeployment(
 		err := tx.Get(acc.NameKey(), acc)
 		if err != nil {
 			return err
-		}
-
-		if input.DraftCode != nil {
-			acc.DraftCode = *input.DraftCode
-		}
-
-		if input.DeployedCode != nil {
-			acc.DeployedCode = *input.DeployedCode
 		}
 
 		if input.DeployedContracts != nil {

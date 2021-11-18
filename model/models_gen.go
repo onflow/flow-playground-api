@@ -15,6 +15,16 @@ import (
 	DeployedScript *string   `json:"deployedScript"`
 }*/
 
+type DeployContract struct {
+	ID             uuid.UUID `json:"id"`
+	Title          *string   `json:"title"`
+	ProjectID      uuid.UUID `json:"projectId"`
+	AccountID      uuid.UUID `json:"accountId"`
+	Index          *int      `json:"index"`
+	Script         *string   `json:"script"`
+	DeployedScript *string   `json:"deployedScript"`
+}
+
 type Event struct {
 	Type   string   `json:"type"`
 	Values []string `json:"values"`

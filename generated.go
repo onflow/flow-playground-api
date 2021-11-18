@@ -49,9 +49,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Account struct {
 		Address           func(childComplexity int) int
-		DeployedCode      func(childComplexity int) int
 		DeployedContracts func(childComplexity int) int
-		DraftCode         func(childComplexity int) int
 		ID                func(childComplexity int) int
 		State             func(childComplexity int) int
 	}
@@ -79,6 +77,7 @@ type ComplexityRoot struct {
 		DeleteContract             func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		DeleteScriptTemplate       func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		DeleteTransactionTemplate  func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
+		DeployContract             func(childComplexity int, input model.DeployContract) int
 		UpdateAccount              func(childComplexity int, input model.UpdateAccount) int
 		UpdateContract             func(childComplexity int, input model.UpdateContract) int
 		UpdateProject              func(childComplexity int, input model.UpdateProject) int
@@ -169,6 +168,7 @@ type MutationResolver interface {
 	UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error)
 	CreateContract(ctx context.Context, input model.NewContract) (*model.Contract, error)
 	UpdateContract(ctx context.Context, input model.UpdateContract) (*model.Contract, error)
+	DeployContract(ctx context.Context, input model.DeployContract) (*model.Contract, error)
 	DeleteContract(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error)
 	CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error)
 	UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error)
@@ -221,26 +221,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Account.Address(childComplexity), true
 
-	case "Account.deployedCode":
-		if e.complexity.Account.DeployedCode == nil {
-			break
-		}
-
-		return e.complexity.Account.DeployedCode(childComplexity), true
-
 	case "Account.deployedContracts":
 		if e.complexity.Account.DeployedContracts == nil {
 			break
 		}
 
 		return e.complexity.Account.DeployedContracts(childComplexity), true
-
-	case "Account.draftCode":
-		if e.complexity.Account.DraftCode == nil {
-			break
-		}
-
-		return e.complexity.Account.DraftCode(childComplexity), true
 
 	case "Account.id":
 		if e.complexity.Account.ID == nil {
@@ -412,6 +398,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.DeleteTransactionTemplate(childComplexity, args["id"].(uuid.UUID), args["projectId"].(uuid.UUID)), true
+
+	case "Mutation.deployContract":
+		if e.complexity.Mutation.DeployContract == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deployContract_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeployContract(childComplexity, args["input"].(model.DeployContract)), true
 
 	case "Mutation.updateAccount":
 		if e.complexity.Mutation.UpdateAccount == nil {
@@ -932,8 +930,6 @@ type Project {
 type Account {
   id: UUID!
   address: Address!
-  draftCode: String!
-  deployedCode: String!
   deployedContracts: [String!]!
   state: String!
 }
@@ -1042,8 +1038,6 @@ input UpdateAccount {
   id: UUID!
   projectId: UUID!
   contractId: UUID
-  draftCode: String
-  deployedCode: String
 }
 
 input NewContract {
@@ -1057,6 +1051,16 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
+  index: Int
+  script: String
+  deployedScript: String
+}
+
+input DeployContract {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  accountId: UUID!
   index: Int
   script: String
   deployedScript: String
@@ -1111,6 +1115,7 @@ type Mutation {
 
   createContract(input: NewContract!): Contract!
   updateContract(input: UpdateContract!): Contract!
+  deployContract(input: DeployContract!): Contract!
   deleteContract(id: UUID!, projectId: UUID!): UUID!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
@@ -1277,6 +1282,20 @@ func (ec *executionContext) field_Mutation_deleteTransactionTemplate_args(ctx co
 		}
 	}
 	args["projectId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deployContract_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.DeployContract
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNDeployContract2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐDeployContract(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -1574,80 +1593,6 @@ func (ec *executionContext) _Account_address(ctx context.Context, field graphql.
 	rctx.Result = res
 	ctx = ec.Tracer.StartFieldChildExecution(ctx)
 	return ec.marshalNAddress2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐAddress(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Account_draftCode(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "Account",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DraftCode, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Account_deployedCode(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
-	ctx = ec.Tracer.StartFieldExecution(ctx, field)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-		ec.Tracer.EndFieldExecution(ctx)
-	}()
-	rctx := &graphql.ResolverContext{
-		Object:   "Account",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-	ctx = graphql.WithResolverContext(ctx, rctx)
-	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.DeployedCode, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !ec.HasError(rctx) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	rctx.Result = res
-	ctx = ec.Tracer.StartFieldChildExecution(ctx)
-	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Account_deployedContracts(ctx context.Context, field graphql.CollectedField, obj *model.Account) (ret graphql.Marshaler) {
@@ -2183,6 +2128,50 @@ func (ec *executionContext) _Mutation_updateContract(ctx context.Context, field 
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().UpdateContract(rctx, args["input"].(model.UpdateContract))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !ec.HasError(rctx) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Contract)
+	rctx.Result = res
+	ctx = ec.Tracer.StartFieldChildExecution(ctx)
+	return ec.marshalNContract2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐContract(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deployContract(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	ctx = ec.Tracer.StartFieldExecution(ctx, field)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+		ec.Tracer.EndFieldExecution(ctx)
+	}()
+	rctx := &graphql.ResolverContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+	ctx = graphql.WithResolverContext(ctx, rctx)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deployContract_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	rctx.Args = args
+	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeployContract(rctx, args["input"].(model.DeployContract))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5625,6 +5614,60 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputDeployContract(ctx context.Context, obj interface{}) (model.DeployContract, error) {
+	var it model.DeployContract
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "projectId":
+			var err error
+			it.ProjectID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "accountId":
+			var err error
+			it.AccountID, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "index":
+			var err error
+			it.Index, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "script":
+			var err error
+			it.Script, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "deployedScript":
+			var err error
+			it.DeployedScript, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewContract(ctx context.Context, obj interface{}) (model.NewContract, error) {
 	var it model.NewContract
 	var asMap = obj.(map[string]interface{})
@@ -5943,18 +5986,6 @@ func (ec *executionContext) unmarshalInputUpdateAccount(ctx context.Context, obj
 			if err != nil {
 				return it, err
 			}
-		case "draftCode":
-			var err error
-			it.DraftCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "deployedCode":
-			var err error
-			it.DeployedCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		}
 	}
 
@@ -6152,16 +6183,6 @@ func (ec *executionContext) _Account(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "draftCode":
-			out.Values[i] = ec._Account_draftCode(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deployedCode":
-			out.Values[i] = ec._Account_deployedCode(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "deployedContracts":
 			out.Values[i] = ec._Account_deployedContracts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6296,6 +6317,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "updateContract":
 			out.Values[i] = ec._Mutation_updateContract(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deployContract":
+			out.Values[i] = ec._Mutation_deployContract(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7209,6 +7235,10 @@ func (ec *executionContext) marshalNContract2ᚖgithubᚗcomᚋdapperlabsᚋflow
 		return graphql.Null
 	}
 	return ec._Contract(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNDeployContract2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐDeployContract(ctx context.Context, v interface{}) (model.DeployContract, error) {
+	return ec.unmarshalInputDeployContract(ctx, v)
 }
 
 func (ec *executionContext) marshalNEvent2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v []model.Event) graphql.Marshaler {

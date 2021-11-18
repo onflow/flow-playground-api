@@ -130,8 +130,9 @@ func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (str
 		return e.GetScriptTemplate(id)
 	case "transaction":
 		return e.GetTransactionTemplate(id)
-	case "account":
-		return e.GetAccountTemplate(id)
+	//soe to-do confirm that this is not need anymore
+	//case "account":
+	//return e.GetAccountTemplate(id)
 	default:
 		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
@@ -160,6 +161,8 @@ func (e *EmbedsHandler) GetTransactionTemplate(id model.ProjectChildID) (string,
 	return tmpl.Script, nil
 }
 
+//soe to-do confirm that this is not need anymore
+/*
 func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, error) {
 	var tmpl model.InternalAccount
 
@@ -169,7 +172,7 @@ func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, err
 	}
 
 	return tmpl.DraftCode, nil
-}
+}*/
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
 	rawID, err := getURLParam(paramName, r)

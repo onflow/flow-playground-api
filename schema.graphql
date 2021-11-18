@@ -27,8 +27,6 @@ type Project {
 type Account {
   id: UUID!
   address: Address!
-  draftCode: String!
-  deployedCode: String!
   deployedContracts: [String!]!
   state: String!
 }
@@ -137,8 +135,6 @@ input UpdateAccount {
   id: UUID!
   projectId: UUID!
   contractId: UUID
-  draftCode: String
-  deployedCode: String
 }
 
 input NewContract {
@@ -152,6 +148,16 @@ input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
+  index: Int
+  script: String
+  deployedScript: String
+}
+
+input DeployContract {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  accountId: UUID!
   index: Int
   script: String
   deployedScript: String
@@ -206,6 +212,7 @@ type Mutation {
 
   createContract(input: NewContract!): Contract!
   updateContract(input: UpdateContract!): Contract!
+  deployContract(input: DeployContract!): Contract!
   deleteContract(id: UUID!, projectId: UUID!): UUID!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!

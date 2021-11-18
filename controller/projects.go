@@ -153,9 +153,9 @@ func (p *Projects) createInitialAccounts(
 
 		account.SetState(make(model.AccountState))
 
-		if i < len(initialContracts) {
+		/*if i < len(initialContracts) {
 			account.DraftCode = initialContracts[i]
-		}
+		}*/
 
 		accounts[i] = &account
 	}

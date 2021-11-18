@@ -54,9 +54,8 @@ type Project struct {
 	Persist  bool
 	Version  string
 	Accounts []struct {
-		ID        string
-		Address   string
-		DraftCode string
+		ID      string
+		Address string
 	}
 	Contracts            []Contract
 	TransactionTemplates []TransactionTemplate
@@ -74,7 +73,6 @@ mutation($title: String!, $seed: Int!, $accounts: [String!], $contracts: [NewPro
     accounts {
       id
       address
-      draftCode
     }
 		contracts {
 			id
@@ -213,8 +211,6 @@ query($accountId: UUID!, $projectId: UUID!) {
   account(id: $accountId, projectId: $projectId) {
     id
     address
-    draftCode
-    deployedCode
     state
   }
 }
@@ -222,28 +218,15 @@ query($accountId: UUID!, $projectId: UUID!) {
 
 type GetAccountResponse struct {
 	Account struct {
-		ID           string
-		Address      string
-		DraftCode    string
-		DeployedCode string
-		State        string
+		ID      string
+		Address string
+		State   string
 	}
 }
 
-const MutationUpdateAccountDraftCode = `
-mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
-  updateAccount(input: { id: $accountId, projectId: $projectId, draftCode: $code }) {
-	id
-    address
-    draftCode
-    deployedCode
-  }
-}
-`
-
-const MutationUpdateAccountDeployedCode = `
-mutation($accountId: UUID!, $projectId: UUID!, $contractId: UUID!, $code: String!) {
-  updateAccount(input: { id: $accountId, projectId: $projectId, contractId: $contractId, deployedCode: $code }) {
+const MutationUpdateAccountState = `
+mutation($accountId: UUID!, $projectId: UUID!, $contractId: UUID!, $state: String!) {
+  updateAccount(input: { id: $accountId, projectId: $projectId, contractId: $contractId, state: $state }) {
 	  id
     address
   }
@@ -252,10 +235,8 @@ mutation($accountId: UUID!, $projectId: UUID!, $contractId: UUID!, $code: String
 
 type UpdateAccountResponse struct {
 	UpdateAccount struct {
-		ID           string
-		Address      string
-		DraftCode    string
-		DeployedCode string
+		ID      string
+		Address string
 	}
 }
 
@@ -290,6 +271,7 @@ query($contractId: UUID!, $projectId: UUID!) {
     id
 		title
     script
+		deployedScript
     index
   }
 }
@@ -322,6 +304,21 @@ type UpdateContractResponse struct {
 }
 
 // deploy contract
+const MutationDeployContract = `
+mutation($contractId: UUID!, $projectId: UUID!, $accountId: UUID!, $script: String!) {
+  deployContract(input: { id: $contractId, projectId: $projectId, accountId: $accountId, deployedScript: $script }) {
+	  id
+    title
+		index
+		script
+		deployedScript
+  }
+}
+`
+
+type DeployContractResponse struct {
+	DeployContract Contract
+}
 
 // delete contract
 const MutationDeleteContract = `
@@ -614,11 +611,6 @@ func TestProjects(t *testing.T) {
 		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		// obsolete as contracts are in seperate struct
-		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
-		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
-		//assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
-
 		// assert that total 6 contracts were created
 		assert.Len(t, resp.CreateProject.Contracts, 7)
 
@@ -673,11 +665,6 @@ func TestProjects(t *testing.T) {
 
 		// project should be created with default max accounts (i.e: 5)
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
-
-		// obsolete as contracts are in seperate struct
-		//assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
-		//assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
-		//assert.Equal(t, accounts[2], resp.CreateProject.Accounts[2].DraftCode)
 
 		// assert that total 6 contracts were created
 		assert.Len(t, resp.CreateProject.Contracts, 8)
@@ -995,8 +982,8 @@ func TestContracts(t *testing.T) {
 			MutationCreateContract,
 			&respA,
 			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "apple"),
+			client.Var("title", "Bar"),
+			client.Var("script", "pub contract Bar {}"),
 			client.Var("index", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
@@ -1004,18 +991,16 @@ func TestContracts(t *testing.T) {
 
 		contractID := respA.CreateContract.ID
 
-		//soe to-do
-		// contract is now deployed by updating an account
-		// this will be refactored in next commit
-		var respB UpdateAccountResponse
+		// deploy contract
+		var respB DeployContractResponse
 
 		err = c.Post(
-			MutationUpdateAccountDeployedCode,
+			MutationDeployContract,
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", project.Accounts[0].ID),
 			client.Var("contractId", contractID),
-			client.Var("code", "orange"),
+			client.Var("script", "pub contract Foo {}"),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -1031,7 +1016,8 @@ func TestContracts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateContract.ID, respC.Contract.ID)
-		assert.Equal(t, "orange", respC.Contract.DeployedScript)
+		assert.Equal(t, "Foo", respC.Contract.Title)
+		assert.Equal(t, "pub contract Foo {}", respC.Contract.DeployedScript)
 	})
 
 	t.Run("Delete contract without permission", func(t *testing.T) {
@@ -2066,126 +2052,6 @@ func TestAccounts(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	// obsolete now as contracts are in seperate Contract struct
-	/*t.Run("Update account draft code without permission", func(t *testing.T) {
-		c := newClient()
-
-		project := createProject(t, c)
-		account := project.Accounts[0]
-
-		var respA GetAccountResponse
-
-		err := c.Post(
-			QueryGetAccount,
-			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-		)
-		require.NoError(t, err)
-
-		assert.Equal(t, "", respA.Account.DraftCode)
-
-		var respB UpdateAccountResponse
-
-		err = c.Post(
-			MutationUpdateAccountDraftCode,
-			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "bar"),
-		)
-
-		assert.Error(t, err)
-	})
-
-	t.Run("Update account draft code", func(t *testing.T) {
-		c := newClient()
-
-		project := createProject(t, c)
-		account := project.Accounts[0]
-
-		var respA GetAccountResponse
-
-		err := c.Post(
-			QueryGetAccount,
-			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-		)
-		require.NoError(t, err)
-
-		assert.Equal(t, "", respA.Account.DraftCode)
-
-		var respB UpdateAccountResponse
-
-		err = c.Post(
-			MutationUpdateAccountDraftCode,
-			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "bar"),
-			client.AddCookie(c.SessionCookie()),
-		)
-		require.NoError(t, err)
-
-		assert.Equal(t, "bar", respB.UpdateAccount.DraftCode)
-	})
-
-	t.Run("Update account invalid deployed code", func(t *testing.T) {
-		c := newClient()
-
-		project := createProject(t, c)
-		account := project.Accounts[0]
-
-		var respA GetAccountResponse
-
-		err := c.Post(
-			QueryGetAccount,
-			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-		)
-		require.NoError(t, err)
-
-		assert.Equal(t, "", respA.Account.DeployedCode)
-
-		var respB UpdateAccountResponse
-
-		err = c.Post(
-			MutationUpdateAccountDeployedCode,
-			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "INVALID CADENCE"),
-		)
-
-		assert.Error(t, err)
-		assert.Equal(t, "", respB.UpdateAccount.DeployedCode)
-	})
-
-	t.Run("Update account deployed code without permission", func(t *testing.T) {
-		c := newClient()
-
-		project := createProject(t, c)
-
-		account := project.Accounts[0]
-
-		var resp UpdateAccountResponse
-
-		const contract = "pub contract Foo {}"
-
-		err := c.Post(
-			MutationUpdateAccountDeployedCode,
-			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract),
-		)
-
-		assert.Error(t, err)
-	})*/
-
-	// test for contract deployment
 	t.Run("Update an account's contract", func(t *testing.T) {
 		c := newClient()
 
@@ -2244,11 +2110,11 @@ func TestAccounts(t *testing.T) {
 		badID := uuid.New().String()
 
 		err := c.Post(
-			MutationUpdateAccountDraftCode,
+			MutationUpdateAccountState,
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("accountId", badID),
-			client.Var("script", "bar"),
+			client.Var("state", "{}"),
 		)
 
 		assert.Error(t, err)
@@ -2327,21 +2193,22 @@ func TestContractInteraction(t *testing.T) {
 
 	contractID := respA.CreateContract.ID
 
-	//soe to-do
-	// contract is now deployed by updating an account
-	// this will be refactored in next commit
-	var respB UpdateAccountResponse
+	// deploy contract
+	var respB DeployContractResponse
 
 	err = c.Post(
-		MutationUpdateAccountDeployedCode,
+		MutationDeployContract,
 		&respB,
 		client.Var("projectId", project.ID),
 		client.Var("accountId", project.Accounts[0].ID),
 		client.Var("contractId", contractID),
-		client.Var("code", counterContract),
+		client.Var("script", counterContract),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
+
+	assert.Equal(t, counterContract, respB.DeployContract.DeployedScript)
+	assert.Equal(t, "Counting", respB.DeployContract.Title)
 
 	addScript := generateAddTwoToCounterScript(accountA.Address)
 

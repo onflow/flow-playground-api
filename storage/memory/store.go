@@ -270,14 +270,6 @@ func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAcco
 		return storage.ErrNotFound
 	}
 
-	if input.DraftCode != nil {
-		a.DraftCode = *input.DraftCode
-	}
-
-	if input.DeployedCode != nil {
-		a.DeployedCode = *input.DeployedCode
-	}
-
 	if input.DeployedContracts != nil {
 		a.DeployedContracts = *input.DeployedContracts
 	}
@@ -911,14 +903,13 @@ func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalP
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
-	// clear deployed code from accounts
+	//soe to-do clear/reset deployed scripts from contracts
 
 	for accountID, account := range s.accounts {
 		if account.ProjectID != proj.ID {
 			continue
 		}
 
-		account.DeployedCode = ""
 		account.DeployedContracts = nil
 
 		s.accounts[accountID] = account

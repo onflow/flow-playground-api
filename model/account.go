@@ -30,8 +30,6 @@ type InternalAccount struct {
 	ProjectChildID
 	Index             int
 	Address           Address
-	DraftCode         string
-	DeployedCode      string
 	DeployedContracts []string
 	marshalledState   string
 	unmarshalledState AccountState
@@ -72,8 +70,6 @@ type UpdateAccount struct {
 	ID                uuid.UUID  `json:"id"`
 	ProjectID         uuid.UUID  `json:"projectId"`
 	ContractID        *uuid.UUID `json:"contractId"`
-	DraftCode         *string    `json:"draftCode"`
-	DeployedCode      *string    `json:"deployedCode"`
 	DeployedContracts *[]string
 }
 
@@ -87,8 +83,6 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		ProjectID         string
 		Index             int
 		Address           []byte
-		DraftCode         string
-		DeployedCode      string
 		DeployedContracts []string
 		State             string
 	}{}
@@ -107,8 +101,6 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 
 	a.Index = tmp.Index
 	copy(a.Address[:], tmp.Address[:])
-	a.DraftCode = tmp.DraftCode
-	a.DeployedCode = tmp.DeployedCode
 	a.DeployedContracts = tmp.DeployedContracts
 
 	a.marshalledState = tmp.State
@@ -146,16 +138,6 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 			Value: a.Address[:],
 		},
 		{
-			Name:    "DraftCode",
-			Value:   a.DraftCode,
-			NoIndex: true,
-		},
-		{
-			Name:    "DeployedCode",
-			Value:   a.DeployedCode,
-			NoIndex: true,
-		},
-		{
 			Name:  "DeployedContracts",
 			Value: deployedContracts,
 		},
@@ -173,8 +155,6 @@ func (a *InternalAccount) Export() *Account {
 		ProjectID:         a.ProjectID,
 		Index:             a.Index,
 		Address:           a.Address,
-		DraftCode:         a.DraftCode,
-		DeployedCode:      a.DeployedCode,
 		DeployedContracts: a.DeployedContracts,
 		// NOTE: State left intentionally blank
 	}
@@ -199,8 +179,6 @@ type Account struct {
 	ProjectID         uuid.UUID
 	Index             int
 	Address           Address
-	DraftCode         string
-	DeployedCode      string
 	DeployedContracts []string
 	State             string
 }

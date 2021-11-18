@@ -158,88 +158,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	if input.DeployedCode == nil {
-		err = r.store.UpdateAccount(input, &acc)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to update account")
-		}
-
-		return acc.Export(), nil
-	}
-
-	//soe deployment starts below
-	//soe add input.ContractID as well
-	var con model.Contract
-
-	err = r.store.GetContract(model.NewProjectChildID(*input.ContractID, proj.ID), &con)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get account")
-	}
-
-	// Redeploy: clear all state
-	//soe if acc.DeployedCode != "" {
-	if con.DeployedScript != "" {
-		err := r.projects.Reset(&proj)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to clear project state")
-		}
-	}
-
-	address := acc.Address.ToFlowAddress()
-	source := *input.DeployedCode
-	contractName, err := getSourceContractName(source)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
-	}
-
-	tx := templates.AddAccountContract(address, templates.Contract{
-		Name:   contractName,
-		Source: source,
-	})
-
-	result, err := r.computer.ExecuteTransaction(
-		proj.ID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
-
-			return deltas, nil
-		},
-		toTransactionBody(tx),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
-	}
-
-	if result.Err != nil {
-		return nil, errors.Wrap(result.Err, "failed to deploy account code")
-	}
-
-	states, err := r.getAccountStates(proj.ID, result.States)
-	if err != nil {
-		return nil, err
-	}
-
-	input.DeployedContracts = &[]string{contractName}
-
-	//soe update contract's deployed contractName, deployedScript
-	var inputCon = model.UpdateContract{
-		ID:             con.ID,
-		ProjectID:      con.ProjectID,
-		DeployedScript: &source,
-		Title:          &contractName,
-	}
-
-	err = r.store.UpdateContract(inputCon, &con)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update contract")
-	}
-
-	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
+	err = r.store.UpdateAccount(input, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update account")
 	}
@@ -382,9 +301,7 @@ func (r *mutationResolver) UpdateContract(ctx context.Context, input model.Updat
 	return &con, nil
 }
 
-func (r *mutationResolver) DeployContract(ctx context.Context, input model.UpdateAccount) (*model.Contract, error) {
-	var con model.Contract
-
+func (r *mutationResolver) DeployContract(ctx context.Context, input model.DeployContract) (*model.Contract, error) {
 	var proj model.InternalProject
 
 	err := r.projects.Get(input.ProjectID, &proj)
@@ -398,9 +315,16 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Updat
 
 	var acc model.InternalAccount
 
-	err = r.store.GetAccount(model.NewProjectChildID(input.ID, proj.ID), &acc)
+	err = r.store.GetAccount(model.NewProjectChildID(input.AccountID, proj.ID), &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
+	}
+
+	var con model.Contract
+
+	err = r.store.GetContract(model.NewProjectChildID(input.ID, proj.ID), &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get contract")
 	}
 
 	// Redeploy: clear all state if this contract has been deployed before
@@ -412,7 +336,7 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Updat
 	}
 
 	address := acc.Address.ToFlowAddress()
-	source := *input.DeployedCode
+	source := *input.DeployedScript
 	contractName, err := getSourceContractName(source)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
@@ -445,21 +369,31 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Updat
 		return nil, errors.Wrap(result.Err, "failed to deploy account code")
 	}
 
+	var inputCon = model.UpdateContract{
+		ID:             input.ID,
+		ProjectID:      input.ProjectID,
+		Script:         input.DeployedScript,
+		DeployedScript: input.DeployedScript,
+		Title:          &contractName,
+	}
+
+	err = r.store.UpdateContract(inputCon, &con)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update contract")
+	}
+
 	states, err := r.getAccountStates(proj.ID, result.States)
 	if err != nil {
 		return nil, err
 	}
 
-	//soe update contract
-	/*err = r.store.UpdateContract(input, &con)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update contract")
-	}*/
+	var inputAcc = model.UpdateAccount{
+		ID:                input.AccountID,
+		ProjectID:         input.ProjectID,
+		DeployedContracts: &[]string{contractName},
+	}
 
-	//soe update account's deployedContracts array? or just query account's contracts from datastore?
-	input.DeployedContracts = &[]string{contractName}
-
-	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
+	err = r.store.UpdateAccountAfterDeployment(inputAcc, states, result.Delta, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update account")
 	}
