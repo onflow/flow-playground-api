@@ -130,9 +130,8 @@ func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (str
 		return e.GetScriptTemplate(id)
 	case "transaction":
 		return e.GetTransactionTemplate(id)
-	//soe to-do confirm that this is not need anymore
-	//case "account":
-	//return e.GetAccountTemplate(id)
+	case "contract":
+		return e.GetContractTemplate(id)
 	default:
 		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
@@ -161,18 +160,16 @@ func (e *EmbedsHandler) GetTransactionTemplate(id model.ProjectChildID) (string,
 	return tmpl.Script, nil
 }
 
-//soe to-do confirm that this is not need anymore
-/*
-func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, error) {
-	var tmpl model.InternalAccount
+func (e *EmbedsHandler) GetContractTemplate(id model.ProjectChildID) (string, error) {
+	var tmpl model.Contract
 
-	err := e.store.GetAccount(id, &tmpl)
+	err := e.store.GetContract(id, &tmpl)
 	if err != nil {
 		return "", err
 	}
 
-	return tmpl.DraftCode, nil
-}*/
+	return tmpl.Script, nil
+}
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
 	rawID, err := getURLParam(paramName, r)
