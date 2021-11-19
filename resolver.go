@@ -423,8 +423,6 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 func (r *mutationResolver) DeleteContract(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
 	var proj model.InternalProject
 
-	//soe to-do delete contract from Flow as well?
-
 	err := r.projects.Get(projectID, &proj)
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to get project")
