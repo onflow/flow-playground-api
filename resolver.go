@@ -432,6 +432,85 @@ func (r *mutationResolver) DeleteContract(ctx context.Context, id uuid.UUID, pro
 		return uuid.Nil, err
 	}
 
+	var con model.Contract
+
+	err = r.store.GetContract(model.NewProjectChildID(id, projectID), &con)
+	if err != nil {
+		return uuid.Nil, errors.Wrap(err, "failed to get contract")
+	}
+
+	// delete contract from Cadence if it has been deployed before
+	if con.DeployedCode != "" {
+
+		address := flow.HexToAddress(fmt.Sprintf("%02x", con.AccountIndex+1))
+		contractName := con.Title
+		if err != nil {
+			return uuid.Nil, errors.Wrap(err, "failed to deploy account code")
+		}
+
+		tx := templates.RemoveAccountContract(address, contractName)
+
+		result, err := r.computer.ExecuteTransaction(
+			proj.ID,
+			proj.TransactionCount,
+			func() ([]*model.RegisterDelta, error) {
+				var deltas []*model.RegisterDelta
+				err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+				if err != nil {
+					return nil, err
+				}
+
+				return deltas, nil
+			},
+			toTransactionBody(tx),
+		)
+		if err != nil {
+			return uuid.Nil, errors.Wrap(err, "failed to delete contract code")
+		}
+
+		if result.Err != nil {
+			return uuid.Nil, errors.Wrap(result.Err, "failed to delete contract code")
+		}
+
+		var accs []*model.InternalAccount
+
+		err1 := r.store.GetAccountsForProject(proj.ID, &accs)
+		if err1 != nil {
+			return uuid.Nil, errors.Wrap(err, "failed to get accounts")
+		}
+
+		var contractAcc = accs[con.AccountIndex]
+
+		// remove contract name from Account's DeployedContracts list
+		// check for contract name in DeployedContracts
+		// don't append it into the list
+		deployedContracts := []string{}
+		if contractAcc.DeployedContracts != nil {
+			for _, contract := range contractAcc.DeployedContracts {
+				if contract != contractName {
+					deployedContracts = append(deployedContracts, contract)
+				}
+			}
+		}
+
+		var inputAcc = model.UpdateAccount{
+			ID:                contractAcc.ID,
+			ProjectID:         contractAcc.ProjectID,
+			DeployedContracts: &deployedContracts,
+		}
+
+		states, err := r.getAccountStates(proj.ID, result.States)
+		if err != nil {
+			return uuid.Nil, err
+		}
+
+		err = r.store.UpdateAccountAfterDeployment(inputAcc, states, result.Delta, contractAcc)
+		if err != nil {
+			return uuid.Nil, errors.Wrap(err, "failed to update account")
+		}
+
+	}
+
 	err = r.store.DeleteContract(model.NewProjectChildID(id, projectID))
 	if err != nil {
 		return uuid.Nil, errors.Wrap(err, "failed to delete contract")
