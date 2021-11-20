@@ -81,9 +81,9 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
 			},
-			Title:  con.Title,
-			Script: con.Script,
-			Index:  con.Index,
+			Title:        con.Title,
+			Code:         con.Code,
+			AccountIndex: con.AccountIndex,
 		}
 
 		cons[i] = con

@@ -7,22 +7,14 @@ import (
 	"github.com/google/uuid"
 )
 
-/*type Contract struct {
-	ID             uuid.UUID `json:"id"`
-	Index          int       `json:"index"`
-	Title          string    `json:"title"`
-	Script         string    `json:"script"`
-	DeployedScript *string   `json:"deployedScript"`
-}*/
-
 type DeployContract struct {
-	ID             uuid.UUID `json:"id"`
-	Title          *string   `json:"title"`
-	ProjectID      uuid.UUID `json:"projectId"`
-	AccountID      uuid.UUID `json:"accountId"`
-	Index          *int      `json:"index"`
-	Script         *string   `json:"script"`
-	DeployedScript *string   `json:"deployedScript"`
+	ID           uuid.UUID `json:"id"`
+	Title        *string   `json:"title"`
+	ProjectID    uuid.UUID `json:"projectId"`
+	AccountID    uuid.UUID `json:"accountId"`
+	AccountIndex *int      `json:"accountIndex"`
+	Code         *string   `json:"code"`
+	DeployedCode *string   `json:"deployedCode"`
 }
 
 type Event struct {
@@ -31,10 +23,10 @@ type Event struct {
 }
 
 type NewContract struct {
-	ProjectID uuid.UUID `json:"projectId"`
-	Index     int       `json:"index"`
-	Title     string    `json:"title"`
-	Script    string    `json:"script"`
+	ProjectID    uuid.UUID `json:"projectId"`
+	AccountIndex int       `json:"accountIndex"`
+	Title        string    `json:"title"`
+	Code         string    `json:"code"`
 }
 
 type NewProject struct {
@@ -48,9 +40,9 @@ type NewProject struct {
 }
 
 type NewProjectContract struct {
-	Index  int    `json:"index"`
-	Title  string `json:"title"`
-	Script string `json:"script"`
+	AccountIndex int    `json:"accountIndex"`
+	Title        string `json:"title"`
+	Code         string `json:"code"`
 }
 
 type NewProjectScriptTemplate struct {
@@ -106,12 +98,12 @@ type ProgramPosition struct {
 }
 
 type UpdateContract struct {
-	ID             uuid.UUID `json:"id"`
-	Title          *string   `json:"title"`
-	ProjectID      uuid.UUID `json:"projectId"`
-	Index          *int      `json:"index"`
-	Script         *string   `json:"script"`
-	DeployedScript *string   `json:"deployedScript"`
+	ID           uuid.UUID `json:"id"`
+	Title        *string   `json:"title"`
+	ProjectID    uuid.UUID `json:"projectId"`
+	AccountIndex *int      `json:"accountIndex"`
+	Code         *string   `json:"code"`
+	DeployedCode *string   `json:"deployedCode"`
 }
 
 type UpdateProject struct {

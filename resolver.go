@@ -255,9 +255,9 @@ func (r *mutationResolver) CreateContract(ctx context.Context, input model.NewCo
 			ID:        uuid.New(),
 			ProjectID: input.ProjectID,
 		},
-		Index:  input.Index,
-		Title:  input.Title,
-		Script: input.Script,
+		AccountIndex: input.AccountIndex,
+		Title:        input.Title,
+		Code:         input.Code,
 	}
 
 	var proj model.InternalProject
@@ -321,7 +321,7 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 	}
 
 	// Redeploy: clear all state if this contract has been deployed before
-	if con.DeployedScript != "" {
+	if con.DeployedCode != "" {
 		err := r.projects.Reset(&proj)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to clear project state")
@@ -336,7 +336,7 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 	}
 
 	address := acc.Address.ToFlowAddress()
-	source := *input.DeployedScript
+	source := *input.DeployedCode
 	contractName, err := getSourceContractName(source)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
@@ -370,11 +370,11 @@ func (r *mutationResolver) DeployContract(ctx context.Context, input model.Deplo
 	}
 
 	var inputCon = model.UpdateContract{
-		ID:             input.ID,
-		ProjectID:      input.ProjectID,
-		Script:         input.DeployedScript,
-		DeployedScript: input.DeployedScript,
-		Title:          &contractName,
+		ID:           input.ID,
+		ProjectID:    input.ProjectID,
+		Code:         input.DeployedCode,
+		DeployedCode: input.DeployedCode,
+		Title:        &contractName,
 	}
 
 	err = r.store.UpdateContract(inputCon, &con)

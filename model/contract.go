@@ -25,10 +25,10 @@ import (
 
 type Contract struct {
 	ProjectChildID
-	Title          string
-	Index          int
-	Script         string
-	DeployedScript string
+	Title        string
+	AccountIndex int
+	Code         string
+	DeployedCode string
 }
 
 func (c *Contract) NameKey() *datastore.Key {
@@ -37,12 +37,12 @@ func (c *Contract) NameKey() *datastore.Key {
 
 func (c *Contract) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID             string
-		ProjectID      string
-		Title          string
-		Index          int
-		Script         string
-		DeployedScript string
+		ID           string
+		ProjectID    string
+		Title        string
+		AccountIndex int
+		Code         string
+		DeployedCode string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -57,9 +57,9 @@ func (c *Contract) Load(ps []datastore.Property) error {
 	}
 
 	c.Title = tmp.Title
-	c.Index = tmp.Index
-	c.Script = tmp.Script
-	c.DeployedScript = tmp.DeployedScript
+	c.AccountIndex = tmp.AccountIndex
+	c.Code = tmp.Code
+	c.DeployedCode = tmp.DeployedCode
 	return nil
 }
 
@@ -78,17 +78,17 @@ func (c *Contract) Save() ([]datastore.Property, error) {
 			Value: c.Title,
 		},
 		{
-			Name:  "Index",
-			Value: c.Index,
+			Name:  "AccountIndex",
+			Value: c.AccountIndex,
 		},
 		{
-			Name:    "Script",
-			Value:   c.Script,
+			Name:    "Code",
+			Value:   c.Code,
 			NoIndex: true,
 		},
 		{
-			Name:    "DeployedScript",
-			Value:   c.DeployedScript,
+			Name:    "DeployedCode",
+			Value:   c.DeployedCode,
 			NoIndex: true,
 		},
 	}, nil

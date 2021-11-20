@@ -322,7 +322,7 @@ func (d *Datastore) ResetProjectState(newDeltas []delta.Delta, proj *model.Inter
 
 		// reset/clear deployed scripts from contracts
 		for _, con := range cons {
-			con.DeployedScript = ""
+			con.DeployedCode = ""
 
 			_, err = tx.Put(con.NameKey(), con)
 			if err != nil {
@@ -601,16 +601,16 @@ func (d *Datastore) UpdateContract(input model.UpdateContract, con *model.Contra
 			return err
 		}
 
-		if input.Index != nil {
-			con.Index = *input.Index
+		if input.AccountIndex != nil {
+			con.AccountIndex = *input.AccountIndex
 		}
 
-		if input.Script != nil {
-			con.Script = *input.Script
+		if input.Code != nil {
+			con.Code = *input.Code
 		}
 
-		if input.DeployedScript != nil {
-			con.DeployedScript = *input.DeployedScript
+		if input.DeployedCode != nil {
+			con.DeployedCode = *input.DeployedCode
 		}
 
 		if input.Title != nil {
@@ -635,7 +635,7 @@ func (d *Datastore) GetContract(id model.ProjectChildID, con *model.Contract) er
 }
 
 func (d *Datastore) GetContractsForProject(projectID uuid.UUID, cons *[]*model.Contract) error {
-	q := datastore.NewQuery("Contract").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
+	q := datastore.NewQuery("Contract").Ancestor(model.ProjectNameKey(projectID)).Order("AccountIndex")
 	return d.getAll(q, cons)
 }
 

@@ -55,11 +55,11 @@ type ComplexityRoot struct {
 	}
 
 	Contract struct {
-		DeployedScript func(childComplexity int) int
-		ID             func(childComplexity int) int
-		Index          func(childComplexity int) int
-		Script         func(childComplexity int) int
-		Title          func(childComplexity int) int
+		AccountIndex func(childComplexity int) int
+		Code         func(childComplexity int) int
+		DeployedCode func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Title        func(childComplexity int) int
 	}
 
 	Event struct {
@@ -242,12 +242,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Account.State(childComplexity), true
 
-	case "Contract.deployedScript":
-		if e.complexity.Contract.DeployedScript == nil {
+	case "Contract.accountIndex":
+		if e.complexity.Contract.AccountIndex == nil {
 			break
 		}
 
-		return e.complexity.Contract.DeployedScript(childComplexity), true
+		return e.complexity.Contract.AccountIndex(childComplexity), true
+
+	case "Contract.code":
+		if e.complexity.Contract.Code == nil {
+			break
+		}
+
+		return e.complexity.Contract.Code(childComplexity), true
+
+	case "Contract.deployedCode":
+		if e.complexity.Contract.DeployedCode == nil {
+			break
+		}
+
+		return e.complexity.Contract.DeployedCode(childComplexity), true
 
 	case "Contract.id":
 		if e.complexity.Contract.ID == nil {
@@ -255,20 +269,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Contract.ID(childComplexity), true
-
-	case "Contract.index":
-		if e.complexity.Contract.Index == nil {
-			break
-		}
-
-		return e.complexity.Contract.Index(childComplexity), true
-
-	case "Contract.script":
-		if e.complexity.Contract.Script == nil {
-			break
-		}
-
-		return e.complexity.Contract.Script(childComplexity), true
 
 	case "Contract.title":
 		if e.complexity.Contract.Title == nil {
@@ -936,10 +936,10 @@ type Account {
 
 type Contract {
   id: UUID!
-  index: Int!
+  accountIndex: Int!
   title: String!
-  script: String!
-  deployedScript: String
+  code: String!
+  deployedCode: String
 }
 
 type ProgramError {
@@ -1013,9 +1013,9 @@ input NewProject {
 }
 
 input NewProjectContract {
-  index: Int!
+  accountIndex: Int!
   title: String!
-  script: String!
+  code: String!
 }
 
 input NewProjectTransactionTemplate {
@@ -1042,18 +1042,18 @@ input UpdateAccount {
 
 input NewContract {
   projectId: UUID!
-  index: Int!
+  accountIndex: Int!
   title: String!
-  script: String!
+  code: String!
 }
 
 input UpdateContract {
   id: UUID!
   title: String
   projectId: UUID!
-  index: Int
-  script: String
-  deployedScript: String
+  accountIndex: Int
+  code: String
+  deployedCode: String
 }
 
 input DeployContract {
@@ -1061,9 +1061,9 @@ input DeployContract {
   title: String
   projectId: UUID!
   accountId: UUID!
-  index: Int
-  script: String
-  deployedScript: String
+  accountIndex: Int
+  code: String
+  deployedCode: String
 }
 
 input NewTransactionTemplate {
@@ -1706,7 +1706,7 @@ func (ec *executionContext) _Contract_id(ctx context.Context, field graphql.Coll
 	return ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_index(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_accountIndex(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1725,7 +1725,7 @@ func (ec *executionContext) _Contract_index(ctx context.Context, field graphql.C
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Index, nil
+		return obj.AccountIndex, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1780,7 +1780,7 @@ func (ec *executionContext) _Contract_title(ctx context.Context, field graphql.C
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_script(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_code(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1799,7 +1799,7 @@ func (ec *executionContext) _Contract_script(ctx context.Context, field graphql.
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Script, nil
+		return obj.Code, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1817,7 +1817,7 @@ func (ec *executionContext) _Contract_script(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Contract_deployedScript(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
+func (ec *executionContext) _Contract_deployedCode(ctx context.Context, field graphql.CollectedField, obj *model.Contract) (ret graphql.Marshaler) {
 	ctx = ec.Tracer.StartFieldExecution(ctx, field)
 	defer func() {
 		if r := recover(); r != nil {
@@ -1836,7 +1836,7 @@ func (ec *executionContext) _Contract_deployedScript(ctx context.Context, field 
 	ctx = ec.Tracer.StartFieldResolverExecution(ctx, rctx)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.DeployedScript, nil
+		return obj.DeployedCode, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5644,21 +5644,21 @@ func (ec *executionContext) unmarshalInputDeployContract(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "index":
+		case "accountIndex":
 			var err error
-			it.Index, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			it.AccountIndex, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "script":
+		case "code":
 			var err error
-			it.Script, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.Code, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "deployedScript":
+		case "deployedCode":
 			var err error
-			it.DeployedScript, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.DeployedCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5680,9 +5680,9 @@ func (ec *executionContext) unmarshalInputNewContract(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
-		case "index":
+		case "accountIndex":
 			var err error
-			it.Index, err = ec.unmarshalNInt2int(ctx, v)
+			it.AccountIndex, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5692,9 +5692,9 @@ func (ec *executionContext) unmarshalInputNewContract(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
-		case "script":
+		case "code":
 			var err error
-			it.Script, err = ec.unmarshalNString2string(ctx, v)
+			it.Code, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5764,9 +5764,9 @@ func (ec *executionContext) unmarshalInputNewProjectContract(ctx context.Context
 
 	for k, v := range asMap {
 		switch k {
-		case "index":
+		case "accountIndex":
 			var err error
-			it.Index, err = ec.unmarshalNInt2int(ctx, v)
+			it.AccountIndex, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5776,9 +5776,9 @@ func (ec *executionContext) unmarshalInputNewProjectContract(ctx context.Context
 			if err != nil {
 				return it, err
 			}
-		case "script":
+		case "code":
 			var err error
-			it.Script, err = ec.unmarshalNString2string(ctx, v)
+			it.Code, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6016,21 +6016,21 @@ func (ec *executionContext) unmarshalInputUpdateContract(ctx context.Context, ob
 			if err != nil {
 				return it, err
 			}
-		case "index":
+		case "accountIndex":
 			var err error
-			it.Index, err = ec.unmarshalOInt2ᚖint(ctx, v)
+			it.AccountIndex, err = ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "script":
+		case "code":
 			var err error
-			it.Script, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.Code, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "deployedScript":
+		case "deployedCode":
 			var err error
-			it.DeployedScript, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			it.DeployedCode, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6220,8 +6220,8 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "index":
-			out.Values[i] = ec._Contract_index(ctx, field, obj)
+		case "accountIndex":
+			out.Values[i] = ec._Contract_accountIndex(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6230,13 +6230,13 @@ func (ec *executionContext) _Contract(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "script":
-			out.Values[i] = ec._Contract_script(ctx, field, obj)
+		case "code":
+			out.Values[i] = ec._Contract_code(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "deployedScript":
-			out.Values[i] = ec._Contract_deployedScript(ctx, field, obj)
+		case "deployedCode":
+			out.Values[i] = ec._Contract_deployedCode(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -168,7 +168,7 @@ func (e *EmbedsHandler) GetContractTemplate(id model.ProjectChildID) (string, er
 		return "", err
 	}
 
-	return tmpl.Script, nil
+	return tmpl.Code, nil
 }
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {

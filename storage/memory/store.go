@@ -416,16 +416,16 @@ func (s *Store) UpdateContract(input model.UpdateContract, con *model.Contract) 
 		c.Title = *input.Title
 	}
 
-	if input.Index != nil {
-		c.Index = *input.Index
+	if input.AccountIndex != nil {
+		c.AccountIndex = *input.AccountIndex
 	}
 
-	if input.Script != nil {
-		c.Script = *input.Script
+	if input.Code != nil {
+		c.Code = *input.Code
 	}
 
-	if input.DeployedScript != nil {
-		c.DeployedScript = *input.DeployedScript
+	if input.DeployedCode != nil {
+		c.DeployedCode = *input.DeployedCode
 	}
 
 	s.contracts[input.ID] = c
@@ -909,7 +909,7 @@ func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalP
 			continue
 		}
 
-		contract.DeployedScript = ""
+		contract.DeployedCode = ""
 
 		s.contracts[contractID] = contract
 	}

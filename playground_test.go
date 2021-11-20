@@ -77,8 +77,8 @@ mutation($title: String!, $seed: Int!, $accounts: [String!], $contracts: [NewPro
 		contracts {
 			id
 			title
-			index
-			script
+			accountIndex
+			code
 		}
     transactionTemplates {
       id
@@ -241,21 +241,21 @@ type UpdateAccountResponse struct {
 }
 
 type Contract struct {
-	ID             string
-	Title          string
-	Index          int
-	Script         string
-	DeployedScript string
+	ID           string
+	Title        string
+	AccountIndex int
+	Code         string
+	DeployedCode string
 }
 
 // create contract
 const MutationCreateContract = `
-mutation($projectId: UUID!, $title: String!, $script: String!, $index: Int!) {
-  createContract(input: { projectId: $projectId, title: $title, script: $script, index: $index }) {
+mutation($projectId: UUID!, $title: String!, $code: String!, $accountIndex: Int!) {
+  createContract(input: { projectId: $projectId, title: $title, code: $code, accountIndex: $accountIndex }) {
     id
     title
-    index
-    script
+    accountIndex
+    code
   }
 }
 `
@@ -270,31 +270,31 @@ query($contractId: UUID!, $projectId: UUID!) {
   contract(id: $contractId, projectId: $projectId) {
     id
 		title
-    script
-		deployedScript
-    index
+    code
+		deployedCode
+    accountIndex
   }
 }
 `
 
 type GetContractResponse struct {
 	Contract struct {
-		ID             string
-		Title          string
-		Script         string
-		DeployedScript string
-		Index          int
+		ID           string
+		Title        string
+		Code         string
+		DeployedCode string
+		AccountIndex int
 	}
 }
 
 // update contract
 const MutationUpdateContract = `
-mutation($contractId: UUID!, $projectId: UUID!, $script: String!) {
-  updateContract(input: { id: $contractId, projectId: $projectId, script: $script }) {
+mutation($contractId: UUID!, $projectId: UUID!, $code: String!) {
+  updateContract(input: { id: $contractId, projectId: $projectId, code: $code }) {
     id
     title
-    script
-    index
+    code
+    accountIndex
   }
 }
 `
@@ -305,13 +305,13 @@ type UpdateContractResponse struct {
 
 // deploy contract
 const MutationDeployContract = `
-mutation($contractId: UUID!, $projectId: UUID!, $accountId: UUID!, $script: String!) {
-  deployContract(input: { id: $contractId, projectId: $projectId, accountId: $accountId, deployedScript: $script }) {
+mutation($contractId: UUID!, $projectId: UUID!, $accountId: UUID!, $code: String!) {
+  deployContract(input: { id: $contractId, projectId: $projectId, accountId: $accountId, deployedCode: $code }) {
 	  id
     title
-		index
-		script
-		deployedScript
+		accountIndex
+		code
+		deployedCode
   }
 }
 `
@@ -616,8 +616,8 @@ func TestProjects(t *testing.T) {
 
 		var counts [playground.MaxAccounts]int
 		for _, con := range resp.CreateProject.Contracts {
-			fmt.Println(con.Index)
-			counts[con.Index]++
+			fmt.Println(con.AccountIndex)
+			counts[con.AccountIndex]++
 		}
 
 		// assert contract count for each account
@@ -671,8 +671,8 @@ func TestProjects(t *testing.T) {
 
 		var counts [playground.MaxAccounts]int
 		for _, con := range resp.CreateProject.Contracts {
-			fmt.Println(con.Index)
-			counts[con.Index]++
+			fmt.Println(con.AccountIndex)
+			counts[con.AccountIndex]++
 		}
 
 		// assert contract count for each account
@@ -799,8 +799,8 @@ func TestContracts(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.Var("index", 0),
+			client.Var("code", "bar"),
+			client.Var("accountIndex", 0),
 		)
 
 		assert.Error(t, err)
@@ -819,16 +819,16 @@ func TestContracts(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.Var("index", 0),
+			client.Var("code", "bar"),
+			client.Var("accountIndex", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
 		assert.NotEmpty(t, resp.CreateContract.ID)
 		assert.Equal(t, "foo", resp.CreateContract.Title)
-		assert.Equal(t, "bar", resp.CreateContract.Script)
-		assert.Equal(t, 0, resp.CreateContract.Index)
+		assert.Equal(t, "bar", resp.CreateContract.Code)
+		assert.Equal(t, 0, resp.CreateContract.AccountIndex)
 	})
 
 	t.Run("Get contract", func(t *testing.T) {
@@ -843,8 +843,8 @@ func TestContracts(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.Var("index", 0),
+			client.Var("code", "bar"),
+			client.Var("accountIndex", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -860,7 +860,7 @@ func TestContracts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateContract.ID, respB.Contract.ID)
-		assert.Equal(t, respA.CreateContract.Script, respB.Contract.Script)
+		assert.Equal(t, respA.CreateContract.Code, respB.Contract.Code)
 	})
 
 	t.Run("Get non-existent contract", func(t *testing.T) {
@@ -894,8 +894,8 @@ func TestContracts(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.Var("index", 0),
+			client.Var("code", "apple"),
+			client.Var("accountIndex", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -909,7 +909,7 @@ func TestContracts(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("contractId", contractID),
-			client.Var("script", "orange"),
+			client.Var("code", "orange"),
 		)
 		assert.Error(t, err)
 	})
@@ -926,8 +926,8 @@ func TestContracts(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.Var("index", 0),
+			client.Var("code", "apple"),
+			client.Var("accountIndex", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -941,14 +941,14 @@ func TestContracts(t *testing.T) {
 			&respB,
 			client.Var("projectId", project.ID),
 			client.Var("contractId", contractID),
-			client.Var("script", "orange"),
+			client.Var("code", "orange"),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateContract.ID, respB.UpdateContract.ID)
-		assert.Equal(t, respA.CreateContract.Index, respB.UpdateContract.Index)
-		assert.Equal(t, "orange", respB.UpdateContract.Script)
+		assert.Equal(t, respA.CreateContract.AccountIndex, respB.UpdateContract.AccountIndex)
+		assert.Equal(t, "orange", respB.UpdateContract.Code)
 	})
 
 	t.Run("Update non-existent contract", func(t *testing.T) {
@@ -965,7 +965,7 @@ func TestContracts(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", badID),
-			client.Var("script", "bar"),
+			client.Var("code", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -983,8 +983,8 @@ func TestContracts(t *testing.T) {
 			&respA,
 			client.Var("projectId", project.ID),
 			client.Var("title", "Bar"),
-			client.Var("script", "pub contract Bar {}"),
-			client.Var("index", 0),
+			client.Var("code", "pub contract Bar {}"),
+			client.Var("accountIndex", 0),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -1000,7 +1000,7 @@ func TestContracts(t *testing.T) {
 			client.Var("projectId", project.ID),
 			client.Var("accountId", project.Accounts[0].ID),
 			client.Var("contractId", contractID),
-			client.Var("script", "pub contract Foo {}"),
+			client.Var("code", "pub contract Foo {}"),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
@@ -1017,7 +1017,7 @@ func TestContracts(t *testing.T) {
 
 		assert.Equal(t, respA.CreateContract.ID, respC.Contract.ID)
 		assert.Equal(t, "Foo", respC.Contract.Title)
-		assert.Equal(t, "pub contract Foo {}", respC.Contract.DeployedScript)
+		assert.Equal(t, "pub contract Foo {}", respC.Contract.DeployedCode)
 	})
 
 	t.Run("Delete contract without permission", func(t *testing.T) {
@@ -2096,8 +2096,8 @@ func TestAccounts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respB.Contract.ID, respC.UpdateContract.ID)
-		assert.Equal(t, respB.Contract.Index, respC.UpdateContract.Index)
-		assert.Equal(t, "orange", respC.UpdateContract.Script)
+		assert.Equal(t, respB.Contract.AccountIndex, respC.UpdateContract.AccountIndex)
+		assert.Equal(t, "orange", respC.UpdateContract.Code)
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
@@ -2183,13 +2183,13 @@ func TestContractInteraction(t *testing.T) {
 		&respA,
 		client.Var("projectId", project.ID),
 		client.Var("title", "counterContract"),
-		client.Var("script", counterContract),
-		client.Var("index", 0),
+		client.Var("code", counterContract),
+		client.Var("accountIndex", 0),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, counterContract, respA.CreateContract.Script)
+	assert.Equal(t, counterContract, respA.CreateContract.Code)
 
 	contractID := respA.CreateContract.ID
 
@@ -2202,12 +2202,12 @@ func TestContractInteraction(t *testing.T) {
 		client.Var("projectId", project.ID),
 		client.Var("accountId", project.Accounts[0].ID),
 		client.Var("contractId", contractID),
-		client.Var("script", counterContract),
+		client.Var("code", counterContract),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, counterContract, respB.DeployContract.DeployedScript)
+	assert.Equal(t, counterContract, respB.DeployContract.DeployedCode)
 	assert.Equal(t, "Counting", respB.DeployContract.Title)
 
 	addScript := generateAddTwoToCounterScript(accountA.Address)
@@ -2724,8 +2724,8 @@ func createContract(t *testing.T, c *Client, project Project) Contract {
 		&resp,
 		client.Var("projectId", project.ID),
 		client.Var("title", "foo"),
-		client.Var("script", "bar"),
-		client.Var("index", 0),
+		client.Var("code", "bar"),
+		client.Var("accountIndex", 0),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
