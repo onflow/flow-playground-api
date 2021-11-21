@@ -33,6 +33,11 @@ type InternalAccount struct {
 	DeployedContracts []string
 	marshalledState   string
 	unmarshalledState AccountState
+
+	// for migrating code inside
+	// Account struct to seperate Contract struct
+	DraftCode    string
+	DeployedCode string
 }
 
 func (a *InternalAccount) State() (AccountState, error) {
@@ -85,6 +90,10 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		Address           []byte
 		DeployedContracts []string
 		State             string
+
+		// for migration to new Contract struct
+		DraftCode    string
+		DeployedCode string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -105,6 +114,9 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 
 	a.marshalledState = tmp.State
 	a.unmarshalledState = nil
+
+	a.DraftCode = tmp.DraftCode
+	a.DeployedCode = tmp.DeployedCode
 
 	return nil
 }

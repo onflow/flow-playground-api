@@ -63,7 +63,7 @@ func NewResolver(
 ) *Resolver {
 	projects := controller.NewProjects(version, store, computer, MaxAccounts)
 	scripts := controller.NewScripts(store, computer)
-	migrator := migrate.NewMigrator(projects)
+	migrator := migrate.NewMigrator(projects, store)
 
 	return &Resolver{
 		version:  version,
@@ -861,7 +861,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 
 	// only migrate if current user has access to this project
 
-	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
+	migrated, err := r.migrator.MigrateProject(id, proj.Version, semver.MustParse("v0.8.0"))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to migrate project")
 	}

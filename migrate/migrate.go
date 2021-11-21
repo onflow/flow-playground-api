@@ -25,18 +25,24 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 type Migrator struct {
 	projects *controller.Projects
+	store    storage.Store
 }
 
 var V0 = semver.MustParse("v0.0.0")
 var V0_1_0 = semver.MustParse("v0.1.0")
 
-func NewMigrator(projects *controller.Projects) *Migrator {
+// for migration to new seperate Contract struct re:flipfest-21
+var V0_8_0 = semver.MustParse("v0.8.0")
+
+func NewMigrator(projects *controller.Projects, store storage.Store) *Migrator {
 	return &Migrator{
 		projects: projects,
+		store:    store,
 	}
 }
 
@@ -58,6 +64,13 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		err := m.migrateToV0_1_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
+		}
+	}
+
+	if from.LessThan(V0_8_0) {
+		err := m.migrateToV0_8_0(id)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_8_0)
 		}
 	}
 
@@ -93,6 +106,54 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 
 	// Step 2/2
 	err = m.projects.UpdateVersion(id, V0_1_0)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project version")
+	}
+
+	return nil
+}
+
+// for migration to new seperate Contract struct re:flipfest-21
+func (m *Migrator) migrateToV0_8_0(id uuid.UUID) error {
+	proj := model.InternalProject{
+		ID: id,
+	}
+
+	var accounts []*model.InternalAccount
+
+	err := m.store.GetAccountsForProject(proj.ID, &accounts)
+	if err != nil {
+		return errors.Wrap(err, "failed to get project accounts")
+	}
+
+	// loop through each account's single contract
+	// and create contract in a seperate Contract struct
+	for i, account := range accounts {
+		con := &model.Contract{
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+			},
+			AccountIndex: i,
+			Title:        "[draft_contract]",
+			Code:         account.DraftCode,
+		}
+
+		err = m.store.InsertContract(con)
+		if err != nil {
+			return errors.Wrap(err, "failed to store contract")
+		}
+
+	}
+
+	// reset project
+	err = m.projects.Reset(&proj)
+	if err != nil {
+		return errors.Wrap(err, "failed to reset project state")
+	}
+
+	// update project version
+	err = m.projects.UpdateVersion(id, V0_8_0)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project version")
 	}
