@@ -388,11 +388,6 @@ func (s *Store) insertContract(con *model.Contract) error {
 		return err
 	}
 
-	//soe Index means AccountIndex
-	//count := len(cons)
-	// set index to one after last
-	//con.Index = count
-
 	s.contracts[con.ID] = *con
 
 	err = s.markProjectUpdatedAt(con.ProjectID)

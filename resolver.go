@@ -136,8 +136,6 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
-//soe modify this first to deploy contract script (instead of account's code and deployedCode)
-//soe this needs to be updated/removed along with removing legacy account draft and deployed code
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 
 	var proj model.InternalProject
