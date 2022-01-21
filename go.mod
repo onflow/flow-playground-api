@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/microcosm-cc/bluemonday v1.0.15 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/onflow/cadence v0.18.0
 	github.com/onflow/flow-go v0.18.2-canary

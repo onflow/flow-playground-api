@@ -15,6 +15,8 @@ type Event struct {
 type NewProject struct {
 	ParentID             *uuid.UUID                       `json:"parentId"`
 	Title                string                           `json:"title"`
+	Description          string                           `json:"description"`
+	Readme               string                           `json:"readme"`
 	Seed                 int                              `json:"seed"`
 	Accounts             []string                         `json:"accounts"`
 	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
@@ -74,9 +76,11 @@ type ProgramPosition struct {
 }
 
 type UpdateProject struct {
-	ID      uuid.UUID `json:"id"`
-	Title   *string   `json:"title"`
-	Persist *bool     `json:"persist"`
+	ID          uuid.UUID `json:"id"`
+	Title       *string   `json:"title"`
+	Description *string   `json:"description"`
+	Readme      *string   `json:"readme"`
+	Persist     *bool     `json:"persist"`
 }
 
 type UpdateScriptTemplate struct {

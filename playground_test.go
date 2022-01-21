@@ -48,12 +48,14 @@ import (
 )
 
 type Project struct {
-	ID       string
-	Title    string
-	Seed     int
-	Persist  bool
-	Version  string
-	Accounts []struct {
+	ID          string
+	Title       string
+	Description string
+	Readme      string
+	Seed        int
+	Persist     bool
+	Version     string
+	Accounts    []struct {
 		ID        string
 		Address   string
 		DraftCode string
@@ -63,10 +65,12 @@ type Project struct {
 }
 
 const MutationCreateProject = `
-mutation($title: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
-  createProject(input: { title: $title, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
+mutation($title: String!, $description: String!, $readme: String!, $seed: Int!, $accounts: [String!], $transactionTemplates: [NewProjectTransactionTemplate!]) {
+  createProject(input: { title: $title, description: $description, readme: $readme, seed: $seed, accounts: $accounts, transactionTemplates: $transactionTemplates }) {
     id
     title
+		description
+		readme
     seed
     persist
     version
@@ -106,9 +110,12 @@ type GetProjectResponse struct {
 }
 
 const MutationUpdateProjectPersist = `
-mutation($projectId: UUID!, $persist: Boolean!) {
-  updateProject(input: { id: $projectId, persist: $persist }) {
+mutation($projectId: UUID!, $title: String!, $description: String!, $readme: String!, $persist: Boolean!) {
+  updateProject(input: { id: $projectId, title: $title, description: $description, readme: $readme, persist: $persist }) {
     id
+		title
+		description
+		readme
     persist
   }
 }
@@ -116,8 +123,11 @@ mutation($projectId: UUID!, $persist: Boolean!) {
 
 type UpdateProjectResponse struct {
 	UpdateProject struct {
-		ID      string
-		Persist bool
+		ID          string
+		Title       string
+		Description string
+		Readme      string
+		Persist     bool
 	}
 }
 
@@ -450,6 +460,8 @@ func TestProjects(t *testing.T) {
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
 			client.Var("seed", 42),
 		)
 		require.NoError(t, err)
@@ -479,6 +491,8 @@ func TestProjects(t *testing.T) {
 			MutationCreateProject,
 			&resp,
 			client.Var("title", "foo"),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
 			client.Var("seed", 42),
 			client.Var("accounts", accounts),
 		)
@@ -509,6 +523,8 @@ func TestProjects(t *testing.T) {
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
 			client.Var("accounts", accounts),
 		)
 		require.NoError(t, err)
@@ -543,6 +559,8 @@ func TestProjects(t *testing.T) {
 			&resp,
 			client.Var("title", "foo"),
 			client.Var("seed", 42),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
 			client.Var("transactionTemplates", templates),
 		)
 		require.NoError(t, err)
@@ -598,6 +616,9 @@ func TestProjects(t *testing.T) {
 			MutationUpdateProjectPersist,
 			&resp,
 			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
 			client.Var("persist", true),
 		)
 
@@ -615,12 +636,18 @@ func TestProjects(t *testing.T) {
 			MutationUpdateProjectPersist,
 			&resp,
 			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
 			client.Var("persist", true),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
 		assert.Equal(t, project.ID, resp.UpdateProject.ID)
+		assert.Equal(t, project.Title, resp.UpdateProject.Title)
+		assert.Equal(t, project.Description, resp.UpdateProject.Description)
+		assert.Equal(t, project.Readme, resp.UpdateProject.Readme)
 		assert.True(t, resp.UpdateProject.Persist)
 	})
 }
@@ -1892,12 +1919,18 @@ func TestAuthentication(t *testing.T) {
 			MutationUpdateProjectPersist,
 			&respA,
 			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
 			client.Var("persist", true),
 			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 		require.NoError(t, err)
 
 		assert.Equal(t, project.ID, respA.UpdateProject.ID)
+		assert.Equal(t, project.Title, respA.UpdateProject.Title)
+		assert.Equal(t, project.Description, respA.UpdateProject.Description)
+		assert.Equal(t, project.Readme, respA.UpdateProject.Readme)
 		assert.True(t, respA.UpdateProject.Persist)
 
 		// a new session cookie should be set
@@ -1910,6 +1943,9 @@ func TestAuthentication(t *testing.T) {
 			MutationUpdateProjectPersist,
 			&respB,
 			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
 			client.Var("persist", false),
 			client.AddCookie(c.SessionCookie()),
 		)
@@ -1917,6 +1953,9 @@ func TestAuthentication(t *testing.T) {
 
 		// should be able to perform update using new session cookie
 		assert.Equal(t, project.ID, respB.UpdateProject.ID)
+		assert.Equal(t, project.Title, respB.UpdateProject.Title)
+		assert.Equal(t, project.Description, respB.UpdateProject.Description)
+		assert.Equal(t, project.Readme, respB.UpdateProject.Readme)
 		assert.False(t, respB.UpdateProject.Persist)
 	})
 
@@ -1934,12 +1973,17 @@ func TestAuthentication(t *testing.T) {
 			MutationCreateProject,
 			&respA,
 			client.Var("title", "foo"),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
 			client.Var("seed", 42),
 			client.AddCookie(&malformedCookie),
 		)
 		require.NoError(t, err)
 
 		projectID := respA.CreateProject.ID
+		projectTitle := respA.CreateProject.Title
+		projectDescription := respA.CreateProject.Description
+		projectReadme := respA.CreateProject.Readme
 
 		assert.NotEmpty(t, projectID)
 		assert.Equal(t, 42, respA.CreateProject.Seed)
@@ -1953,6 +1997,9 @@ func TestAuthentication(t *testing.T) {
 			MutationUpdateProjectPersist,
 			&respB,
 			client.Var("projectId", projectID),
+			client.Var("title", projectTitle),
+			client.Var("description", projectDescription),
+			client.Var("readme", projectReadme),
 			client.Var("persist", true),
 			client.AddCookie(c.SessionCookie()),
 		)
@@ -1960,6 +2007,9 @@ func TestAuthentication(t *testing.T) {
 
 		// should be able to perform update using new session cookie
 		assert.Equal(t, projectID, respB.UpdateProject.ID)
+		assert.Equal(t, projectTitle, respB.UpdateProject.Title)
+		assert.Equal(t, projectDescription, respB.UpdateProject.Description)
+		assert.Equal(t, projectReadme, respB.UpdateProject.Readme)
 		assert.True(t, respB.UpdateProject.Persist)
 	})
 
@@ -2351,6 +2401,8 @@ func createProject(t *testing.T, c *Client) Project {
 		&resp,
 		client.Var("title", "foo"),
 		client.Var("seed", 42),
+		client.Var("description", "desc"),
+		client.Var("readme", "rtfm"),
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
 	)
