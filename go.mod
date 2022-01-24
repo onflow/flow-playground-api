@@ -22,6 +22,7 @@ require (
 	github.com/onflow/cadence v0.20.2
 	github.com/onflow/flow-go v0.23.4
 	github.com/onflow/flow-go-sdk v0.24.0
+	github.com/microcosm-cc/bluemonday v1.0.15 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/cors v1.6.0
