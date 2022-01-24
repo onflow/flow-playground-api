@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/onflow/atree"
 	"github.com/onflow/cadence"
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/interpreter"
@@ -73,7 +74,7 @@ func NewComputer(logger zerolog.Logger, cacheSize int) (*Computer, error) {
 		fvm.WithServiceAccount(false),
 		fvm.WithRestrictedDeployment(false),
 		fvm.WithTransactionProcessors(
-			fvm.NewTransactionInvocator(logger),
+			fvm.NewTransactionInvoker(logger),
 		),
 		fvm.WithCadenceLogging(true),
 		fvm.WithAccountStorageLimit(false),
@@ -405,4 +406,12 @@ func (a *apiEnv) ImplementationDebugLog(_ string) error {
 
 func (a *apiEnv) ValidatePublicKey(_ *runtime.PublicKey) (bool, error) {
 	panic("implement ValidatePublicKey")
+}
+
+func (a *apiEnv) AllocateStorageIndex(owner []byte) (atree.StorageIndex, error) {
+	panic("implement AllocateStorageIndex")
+}
+
+func (e *apiEnv) GetAccountContractNames(address runtime.Address) ([]string, error) {
+	panic("implement GetAccountContractNames")
 }
