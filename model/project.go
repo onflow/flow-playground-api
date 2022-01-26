@@ -216,16 +216,19 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 			Value: parentID,
 		},
 		{
-			Name:  "Title",
-			Value: sanitizedTitle,
+			Name:    "Title",
+			Value:   sanitizedTitle,
+			NoIndex: true,
 		},
 		{
-			Name:  "Description",
-			Value: sanitizedDescription,
+			Name:    "Description",
+			Value:   sanitizedDescription,
+			NoIndex: true,
 		},
 		{
-			Name:  "Readme",
-			Value: sanitizedReadme,
+			Name:    "Readme",
+			Value:   sanitizedReadme,
+			NoIndex: true,
 		},
 		{
 			Name:  "Seed",
