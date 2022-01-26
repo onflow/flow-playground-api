@@ -34,9 +34,9 @@ type InternalProject struct {
 	Secret                    uuid.UUID
 	PublicID                  uuid.UUID
 	ParentID                  *uuid.UUID
-	Title                     string
-	Description               string
-	Readme                    string
+	Title                     string `datastore:",noindex"`
+	Description               string `datastore:",noindex"`
+	Readme                    string `datastore:",noindex"`
 	Seed                      int
 	TransactionCount          int
 	TransactionExecutionCount int
@@ -272,9 +272,9 @@ type Project struct {
 	ParentID    *uuid.UUID
 	Seed        int
 	Version     *semver.Version
-	Title       string
-	Description string
-	Readme      string
+	Title       string `datastore:",noindex"`
+	Description string `datastore:",noindex"`
+	Readme      string `datastore:",noindex"`
 	Persist     bool
 	Mutable     bool
 }
