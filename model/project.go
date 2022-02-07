@@ -190,8 +190,6 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 
 	bmStrict := bluemonday.StrictPolicy()
 
-	sanitizedTitle := bmStrict.Sanitize(p.Title)
-	sanitizedDescription := bmStrict.Sanitize(p.Description)
 	sanitizedReadme := bmUSC.Sanitize(p.Readme)
 
 	return []datastore.Property{
@@ -217,12 +215,12 @@ func (p *InternalProject) Save() ([]datastore.Property, error) {
 		},
 		{
 			Name:    "Title",
-			Value:   sanitizedTitle,
+			Value:   p.Title,
 			NoIndex: true,
 		},
 		{
 			Name:    "Description",
-			Value:   sanitizedDescription,
+			Value:   p.Description,
 			NoIndex: true,
 		},
 		{
