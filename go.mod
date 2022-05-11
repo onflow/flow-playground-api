@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	cloud.google.com/go/datastore v1.1.0
-	github.com/99designs/gqlgen v0.10.2
+	github.com/99designs/gqlgen v0.17.5
 	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
 	github.com/Masterminds/semver v1.5.0
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
@@ -14,7 +14,7 @@ require (
 	github.com/go-chi/render v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/sessions v1.2.0
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.15
@@ -28,6 +28,9 @@ require (
 	github.com/rs/cors v1.6.0
 	github.com/rs/zerolog v1.19.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/stretchr/testify v1.7.0
-	github.com/vektah/gqlparser v1.2.0
+	github.com/stretchr/testify v1.7.1
+	github.com/vektah/gqlparser v1.2.0 // indirect
+	github.com/vektah/gqlparser/v2 v2.4.2
+	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
+	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 )
