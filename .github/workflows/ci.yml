@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v1
       with:
-        go-version: '1.16.2'
+        go-version: '1.18'
     - uses: actions/cache@v1
       with:
         path: ~/go/pkg/mod
@@ -31,8 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v2.3.0
+        uses: golangci/golangci-lint-action@v3.2.0
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.29
+          version: v1.46
           args: --timeout=10m
