@@ -10,7 +10,7 @@ require (
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/chroma v0.8.1
-	github.com/getsentry/sentry-go v0.13.0 // indirect
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/google/uuid v1.3.0
@@ -19,7 +19,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/microcosm-cc/bluemonday v1.0.15
-	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/onflow/atree v0.1.1
 	github.com/onflow/cadence v0.20.2
