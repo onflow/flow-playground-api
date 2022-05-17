@@ -76,8 +76,8 @@ type DatastoreConfig struct {
 }
 
 type SentryConfig struct {
-	Dsn			string	`default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
-	Debug		bool	`default:"true"`
+	Dsn		string	`default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug	bool	`default:"true"`
 }
 
 const sessionName = "flow-playground"
