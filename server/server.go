@@ -52,6 +52,8 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type Config struct {
@@ -73,9 +75,31 @@ type DatastoreConfig struct {
 	Timeout      time.Duration `default:"5s"`
 }
 
+type SentryConfig struct {
+	Dsn		string	`default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug	bool	`default:"true"`
+}
+
 const sessionName = "flow-playground"
 
 func main() {
+	var sentryConf SentryConfig
+
+	if err := envconfig.Process("SENTRY", &sentryConf); err != nil {
+		log.Fatal(err)
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: 			sentryConf.Dsn,
+		Debug: 			sentryConf.Debug,
+	})
+
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+
+	defer sentry.Flush(2 * time.Second)
+	
 	var conf Config
 
 	if err := envconfig.Process("FLOW", &conf); err != nil {
