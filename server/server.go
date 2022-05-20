@@ -85,13 +85,19 @@ const sessionName = "flow-playground"
 func main() {
 	var sentryConf SentryConfig
 
+	if err := envconfig.Process("SENTRY", &sentryConf); err != nil {
+		log.Fatal(err)
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: 			sentryConf.Dsn,
 		Debug: 			sentryConf.Debug,
 	})
+
 	if err != nil {
 		log.Fatalf("sentry.Init: %s", err)
 	}
+
 	defer sentry.Flush(2 * time.Second)
 	
 	var conf Config
