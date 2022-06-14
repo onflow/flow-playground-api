@@ -158,7 +158,10 @@ func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, 
 
 		payer := flow.HexToAddress("01")
 
-		tx := templates.CreateAccount(nil, nil, payer)
+		tx, err := templates.CreateAccount(nil, nil, payer)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to create account")
+		}
 
 		result, err := p.computer.ExecuteTransaction(
 			projectID,
@@ -184,7 +187,7 @@ func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, 
 
 		event := result.Events[0]
 
-		eventPayload, err := jsoncdc.Decode(event.Payload)
+		eventPayload, err := jsoncdc.Decode(nil, event.Payload)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "failed to deploy account code")
 		}
