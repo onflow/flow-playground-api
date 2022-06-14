@@ -223,7 +223,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func getSourceContractName(code string) (string, error) {
-	program, err := parser2.ParseProgram(code)
+	program, err := parser2.ParseProgram(code, nil)
 	if err != nil {
 		return "", err
 	}
@@ -397,7 +397,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 	for i, argument := range input.Arguments {
 		// Decode and then encode again to ensure the value is valid
 
-		value, err := jsoncdc.Decode([]byte(argument))
+		value, err := jsoncdc.Decode(nil, []byte(argument))
 		if err == nil {
 			err = tx.AddArgument(value)
 		}
@@ -714,7 +714,7 @@ func parseEvents(flowEvents []flowgo.Event) ([]model.Event, error) {
 }
 
 func parseEvent(event flowgo.Event) (model.Event, error) {
-	payload, err := jsoncdc.Decode(event.Payload)
+	payload, err := jsoncdc.Decode(nil, event.Payload)
 	if err != nil {
 		return model.Event{}, errors.Wrap(err, "failed to decode event payload (JSON-CDC)")
 	}
