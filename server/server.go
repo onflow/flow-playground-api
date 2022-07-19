@@ -128,7 +128,7 @@ func main() {
 		if err != nil {
 			// If datastore is expected, panic when we can't init
 			sentry.CaptureException(err)
-			panic(err)
+			log.Fatal(err)
 		}
 	} else {
 		store = memory.NewStore()
@@ -137,7 +137,7 @@ func main() {
 	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
 		sentry.CaptureException(err)
-		panic(err)
+		log.Fatal(err)
 	}
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
