@@ -21,6 +21,7 @@ package playground
 import (
 	"context"
 	"fmt"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
@@ -103,11 +104,14 @@ type mutationResolver struct {
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get or create user")
+		wrappedErr := errors.Wrap(err, "failed to get or create user")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -121,16 +125,21 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 
 	err := r.projects.Get(input.ID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	err = r.projects.Update(input, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update project")
+		wrappedErr := errors.Wrap(err, "failed to update project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return proj.ExportPublicMutable(), nil
@@ -142,10 +151,13 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -153,13 +165,17 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	err = r.store.GetAccount(model.NewProjectChildID(input.ID, proj.ID), &acc)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get account")
+		wrappedErr := errors.Wrap(err, "failed to get account")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if input.DeployedCode == nil {
 		err = r.store.UpdateAccount(input, &acc)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to update account")
+			wrappedErr := errors.Wrap(err, "failed to update account")
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 
 		return acc.Export(), nil
@@ -169,7 +185,9 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	if acc.DeployedCode != "" {
 		err := r.projects.Reset(&proj)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to clear project state")
+			wrappedErr := errors.Wrap(err, "failed to clear project state")
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 	}
 
@@ -177,7 +195,9 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	source := *input.DeployedCode
 	contractName, err := getSourceContractName(source)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
+		wrappedErr := errors.Wrap(err, "failed to deploy account code")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	tx := templates.AddAccountContract(address, templates.Contract{
@@ -192,6 +212,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
+				sentry.CaptureException(err)
 				return nil, err
 			}
 
@@ -200,15 +221,20 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		toTransactionBody(tx),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
+		wrappedErr := errors.Wrap(err, "failed to deploy account code")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if result.Err != nil {
-		return nil, errors.Wrap(result.Err, "failed to deploy account code")
+		wrappedErr := errors.Wrap(err, "failed to deploy account code")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	states, err := r.getAccountStates(proj.ID, result.States)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -216,7 +242,9 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update account")
+		wrappedErr := errors.Wrap(err, "failed to update account")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return acc.Export(), nil
@@ -279,7 +307,9 @@ func (r *mutationResolver) getAccountStates(
 
 	err := r.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project accounts")
+		wrappedErr := errors.Wrap(err, "failed to get project accounts")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	states := make(map[uuid.UUID]model.AccountState)
@@ -292,7 +322,9 @@ func (r *mutationResolver) getAccountStates(
 
 		state, err := account.State()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get account state")
+			wrappedErr := errors.Wrap(err, "failed to get account state")
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 
 		for key, value := range stateDelta {
@@ -319,16 +351,21 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	err = r.store.InsertTransactionTemplate(tpl)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to store transaction template")
+		wrappedErr := errors.Wrap(err, "failed to store transaction template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return tpl, nil
@@ -341,16 +378,21 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	err = r.store.UpdateTransactionTemplate(input, &tpl)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update transaction template")
+		wrappedErr := errors.Wrap(err, "failed to update transaction template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return &tpl, nil
@@ -361,16 +403,21 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 
 	err := r.projects.Get(projectID, &proj)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return uuid.Nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return uuid.Nil, err
 	}
 
 	err = r.store.DeleteTransactionTemplate(model.NewProjectChildID(id, projectID))
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to delete transaction template")
+		wrappedErr := errors.Wrap(err, "failed to delete transaction template")
+		sentry.CaptureException(wrappedErr)
+		return uuid.Nil, wrappedErr
 	}
 
 	return id, nil
@@ -384,10 +431,13 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -402,7 +452,9 @@ func (r *mutationResolver) CreateTransactionExecution(
 			err = tx.AddArgument(value)
 		}
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode argument %d", i))
+			wrappedErr := errors.Wrap(err, fmt.Sprintf("failed to decode argument %d", i))
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 	}
 
@@ -417,6 +469,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 			var deltas []*model.RegisterDelta
 			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
 			if err != nil {
+				sentry.CaptureException(err)
 				return nil, err
 			}
 
@@ -425,7 +478,9 @@ func (r *mutationResolver) CreateTransactionExecution(
 		toTransactionBody(tx),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute transaction")
+		wrappedErr := errors.Wrap(err, "failed to execute transaction")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	exe := model.TransactionExecution{
@@ -446,20 +501,25 @@ func (r *mutationResolver) CreateTransactionExecution(
 		var err error
 		states, err = r.getAccountStates(proj.ID, result.States)
 		if err != nil {
+			sentry.CaptureException(err)
 			return nil, err
 		}
 	}
 
 	events, err := parseEvents(result.Events)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse events")
+		wrappedErr := errors.Wrap(err, "failed to parse events")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	exe.Events = events
 
 	err = r.store.InsertTransactionExecution(&exe, states, result.Delta)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert transaction execution record")
+		wrappedErr := errors.Wrap(err, "failed to insert transaction execution record")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return &exe, nil
@@ -470,16 +530,21 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	tpl, err := r.scripts.CreateTemplate(proj.ID, input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create script template")
+		wrappedErr := errors.Wrap(err, "failed to create script template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return tpl, nil
@@ -490,10 +555,13 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -501,7 +569,9 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 
 	err = r.scripts.UpdateTemplate(input, &tpl)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update script template")
+		wrappedErr := errors.Wrap(err, "failed to update script template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return &tpl, nil
@@ -516,15 +586,19 @@ func (r *mutationResolver) DeleteScriptTemplate(
 
 	err := r.projects.Get(projectID, &proj)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return uuid.Nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return uuid.Nil, err
 	}
 
 	err = r.scripts.DeleteTemplate(id, projectID)
 	if err != nil {
+		sentry.CaptureException(err)
 		return uuid.Nil, err
 	}
 
@@ -539,15 +613,19 @@ func (r *mutationResolver) CreateScriptExecution(
 
 	err := r.projects.Get(input.ProjectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
 	exe, err := r.scripts.CreateExecution(&proj, input.Script, input.Arguments)
 	if err != nil {
+		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -561,7 +639,9 @@ func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*
 
 	err := r.store.GetAccountsForProject(obj.ID, &accs)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get accounts")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	exportedAccs := make([]*model.Account, len(accs))
@@ -569,7 +649,9 @@ func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*
 	for i, acc := range accs {
 		exported, err := acc.ExportWithJSONState()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to export")
+			wrappedErr := errors.Wrap(err, "failed to export")
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 
 		exportedAccs[i] = exported
@@ -583,7 +665,9 @@ func (r *projectResolver) TransactionTemplates(ctx context.Context, obj *model.P
 
 	err := r.store.GetTransactionTemplatesForProject(obj.ID, &tpls)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get transaction templates")
+		wrappedErr := errors.Wrap(err, "failed to get transaction templates")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return tpls, nil
@@ -594,7 +678,9 @@ func (r *projectResolver) TransactionExecutions(ctx context.Context, obj *model.
 
 	err := r.store.GetTransactionExecutionsForProject(obj.ID, &exes)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get transaction executions")
+		wrappedErr := errors.Wrap(err, "failed to get transaction executions")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return exes, nil
@@ -605,7 +691,9 @@ func (r *projectResolver) ScriptTemplates(ctx context.Context, obj *model.Projec
 
 	err := r.store.GetScriptTemplatesForProject(obj.ID, &tpls)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get script templates")
+		wrappedErr := errors.Wrap(err, "failed to get script templates")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return tpls, nil
@@ -629,10 +717,13 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 
 	err := r.projects.Get(id, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		wrappedErr := errors.Wrap(err, "failed to get project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		sentry.CaptureException(err)
 		return proj.ExportPublicImmutable(), nil
 	}
 
@@ -640,7 +731,9 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 
 	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate project")
+		wrappedErr := errors.Wrap(err, "failed to migrate project")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	// reload project if needed
@@ -648,7 +741,9 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	if migrated {
 		err := r.projects.Get(id, &proj)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get project")
+			wrappedErr := errors.Wrap(err, "failed to get project")
+			sentry.CaptureException(wrappedErr)
+			return nil, wrappedErr
 		}
 	}
 
@@ -660,12 +755,16 @@ func (r *queryResolver) Account(ctx context.Context, id uuid.UUID, projectID uui
 
 	err := r.store.GetAccount(model.NewProjectChildID(id, projectID), &acc)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get account")
+		wrappedErr := errors.Wrap(err, "failed to get account")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	exported, err := acc.ExportWithJSONState()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to export")
+		wrappedErr := errors.Wrap(err, "failed to export")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return exported, nil
@@ -676,7 +775,9 @@ func (r *queryResolver) TransactionTemplate(ctx context.Context, id uuid.UUID, p
 
 	err := r.store.GetTransactionTemplate(model.NewProjectChildID(id, projectID), &tpl)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get transaction template")
+		wrappedErr := errors.Wrap(err, "failed to get transaction template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return &tpl, nil
@@ -687,7 +788,9 @@ func (r *queryResolver) ScriptTemplate(ctx context.Context, id uuid.UUID, projec
 
 	err := r.store.GetScriptTemplate(model.NewProjectChildID(id, projectID), &tpl)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get script template")
+		wrappedErr := errors.Wrap(err, "failed to get script template")
+		sentry.CaptureException(wrappedErr)
+		return nil, wrappedErr
 	}
 
 	return &tpl, nil

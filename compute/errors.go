@@ -20,6 +20,7 @@ package compute
 
 import (
 	"errors"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
@@ -29,6 +30,7 @@ import (
 )
 
 func ExtractProgramErrors(err error) (result []model.ProgramError) {
+	sentry.CaptureException(err)
 	// set the default return value
 	result = []model.ProgramError{
 		convertProgramError(err),

@@ -18,7 +18,10 @@
 
 package client
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"github.com/getsentry/sentry-go"
+)
 
 // RawJsonError is a json formatted error from a GraphQL server.
 type RawJsonError struct {
@@ -26,5 +29,6 @@ type RawJsonError struct {
 }
 
 func (r RawJsonError) Error() string {
+	sentry.CaptureMessage(string(r.RawMessage))
 	return string(r.RawMessage)
 }

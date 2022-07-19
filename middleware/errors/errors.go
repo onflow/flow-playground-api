@@ -32,7 +32,7 @@ var (
 	errLoggerFieldsCtxKey = gqlErrCtxKeyType("error-logger-fields")
 )
 
-// Middleware is a catch-all middleware for GLQ request errors.
+// Middleware is a catch-all middleware for GQL request errors.
 func Middleware(entry *logrus.Entry) graphql.RequestMiddleware {
 	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
 		debugFields := logrus.Fields{}

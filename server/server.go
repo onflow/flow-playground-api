@@ -76,8 +76,8 @@ type DatastoreConfig struct {
 }
 
 type SentryConfig struct {
-	Dsn		string	`default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
-	Debug	bool	`default:"true"`
+	Dsn   string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug bool   `default:"true"`
 }
 
 const sessionName = "flow-playground"
@@ -90,8 +90,8 @@ func main() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn: 			sentryConf.Dsn,
-		Debug: 			sentryConf.Debug,
+		Dsn:   sentryConf.Dsn,
+		Debug: sentryConf.Debug,
 	})
 
 	if err != nil {
@@ -99,10 +99,11 @@ func main() {
 	}
 
 	defer sentry.Flush(2 * time.Second)
-	
+
 	var conf Config
 
 	if err := envconfig.Process("FLOW", &conf); err != nil {
+		sentry.CaptureException(err)
 		log.Fatal(err)
 	}
 
@@ -112,6 +113,7 @@ func main() {
 		var datastoreConf DatastoreConfig
 
 		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 
@@ -125,6 +127,7 @@ func main() {
 		)
 		if err != nil {
 			// If datastore is expected, panic when we can't init
+			sentry.CaptureException(err)
 			panic(err)
 		}
 	} else {
@@ -133,6 +136,7 @@ func main() {
 
 	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
+		sentry.CaptureException(err)
 		panic(err)
 	}
 
