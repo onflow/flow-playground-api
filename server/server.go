@@ -151,6 +151,7 @@ func main() {
 	prometheus.Register()
 
 	router := chi.NewRouter()
+	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
 		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
@@ -211,8 +212,6 @@ func main() {
 
 	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
-
-	router.Use(monitoring.Middleware())
 
 	logStartMessage(build.Version())
 
