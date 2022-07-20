@@ -20,7 +20,6 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
-	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -39,14 +38,11 @@ func (u *User) Load(ps []datastore.Property) error {
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		sentry.CaptureException(err)
 		return err
 	}
 
 	if err := u.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		wrappedErr := errors.Wrap(err, "failed to decode UUID")
-		sentry.CaptureException(wrappedErr)
-		return wrappedErr
+		return errors.Wrap(err, "failed to decode UUID")
 	}
 
 	return nil

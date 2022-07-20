@@ -91,8 +91,9 @@ func main() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:   sentryConf.Dsn,
-		Debug: sentryConf.Debug,
+		Dsn:              sentryConf.Dsn,
+		Debug:            sentryConf.Debug,
+		AttachStacktrace: true,
 	})
 
 	if err != nil {
@@ -100,11 +101,11 @@ func main() {
 	}
 
 	defer sentry.Flush(2 * time.Second)
+	defer sentry.Recover()
 
 	var conf Config
 
 	if err := envconfig.Process("FLOW", &conf); err != nil {
-		sentry.CaptureException(err)
 		log.Fatal(err)
 	}
 
@@ -114,7 +115,6 @@ func main() {
 		var datastoreConf DatastoreConfig
 
 		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
-			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 
@@ -127,8 +127,6 @@ func main() {
 			},
 		)
 		if err != nil {
-			// If datastore is expected, panic when we can't init
-			sentry.CaptureException(err)
 			log.Fatal(err)
 		}
 	} else {
@@ -137,7 +135,6 @@ func main() {
 
 	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
-		sentry.CaptureException(err)
 		log.Fatal(err)
 	}
 

@@ -21,13 +21,17 @@ package playground
 import (
 	"context"
 	"fmt"
+	"github.com/99designs/gqlgen/handler"
+	"github.com/getsentry/sentry-go"
 	"net/http"
 	"runtime/debug"
-
-	"github.com/99designs/gqlgen/handler"
+	"time"
 )
 
 func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
+	// init crash reporting
+	defer sentry.Flush(2 * time.Second)
+	defer sentry.Recover()
 
 	options = append(
 		options,
@@ -35,6 +39,8 @@ func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerF
 			return fmt.Errorf("panic: %s\n\n%s", err, string(debug.Stack()))
 		}),
 	)
+
+	panic("testing panic in handler.go")
 
 	return handler.GraphQL(
 		NewExecutableSchema(Config{Resolvers: resolver}),
