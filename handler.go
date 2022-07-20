@@ -40,8 +40,6 @@ func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerF
 		}),
 	)
 
-	panic("testing panic in handler.go")
-
 	return handler.GraphQL(
 		NewExecutableSchema(Config{Resolvers: resolver}),
 		options...,

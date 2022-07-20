@@ -622,7 +622,6 @@ func (r *projectResolver) ScriptExecutions(ctx context.Context, obj *model.Proje
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(ctx context.Context) (*model.PlaygroundInfo, error) {
-	panic("Testing API")
 	return &model.PlaygroundInfo{
 		APIVersion:     *r.version,
 		CadenceVersion: *semver.MustParse(cadence.Version),
