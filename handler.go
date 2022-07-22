@@ -29,7 +29,6 @@ import (
 )
 
 func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
-	// init crash reporting
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 

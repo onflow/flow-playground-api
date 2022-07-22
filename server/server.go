@@ -179,6 +179,7 @@ func main() {
 
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
+		r.Use(monitoring.Middleware())
 
 		r.Handle(
 			"/",
