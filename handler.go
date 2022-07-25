@@ -22,16 +22,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/99designs/gqlgen/handler"
-	"github.com/getsentry/sentry-go"
 	"net/http"
 	"runtime/debug"
-	"time"
 )
 
 func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
-	defer sentry.Flush(2 * time.Second)
-	defer sentry.Recover()
-
 	options = append(
 		options,
 		handler.RecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {

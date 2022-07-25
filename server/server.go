@@ -77,8 +77,9 @@ type DatastoreConfig struct {
 }
 
 type SentryConfig struct {
-	Dsn   string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
-	Debug bool   `default:"true"`
+	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug            bool   `default:"true"`
+	AttachStacktrace bool   `default:"true"`
 }
 
 const sessionName = "flow-playground"
@@ -93,7 +94,7 @@ func main() {
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
-		AttachStacktrace: true,
+		AttachStacktrace: sentryConf.AttachStacktrace,
 	})
 
 	if err != nil {
@@ -177,6 +178,20 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
+		// Create a new hub for this subroutine and bind current client and handle to scope
+		localHub := sentry.CurrentHub().Clone()
+		localHub.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTag("query", "/query")
+		})
+
+		defer func() {
+			err := recover()
+			if err != nil {
+				localHub.Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
@@ -185,7 +200,7 @@ func main() {
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				handler.RequestMiddleware(errors.Middleware(entry)),
+				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
 				handler.RequestMiddleware(prometheus.RequestMiddleware()),
 				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 			),

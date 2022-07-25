@@ -20,9 +20,11 @@ package monitoring
 
 import (
 	sentryhttp "github.com/getsentry/sentry-go/http"
-	"github.com/gorilla/mux"
+	"net/http"
 )
 
-func Middleware() mux.MiddlewareFunc {
-	return sentryhttp.New(sentryhttp.Options{}).Handle
+func Middleware() func(http.Handler) http.Handler {
+	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+
+	return sentryHandler.Handle
 }

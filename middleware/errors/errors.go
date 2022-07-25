@@ -20,6 +20,7 @@ package errors
 
 import (
 	"context"
+	"github.com/getsentry/sentry-go"
 
 	"github.com/sirupsen/logrus"
 
@@ -33,7 +34,7 @@ var (
 )
 
 // Middleware is a catch-all middleware for GQL request errors.
-func Middleware(entry *logrus.Entry) graphql.RequestMiddleware {
+func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.RequestMiddleware {
 	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
 		debugFields := logrus.Fields{}
 		ctx = context.WithValue(ctx, errLoggerFieldsCtxKey, debugFields)
@@ -51,6 +52,8 @@ func Middleware(entry *logrus.Entry) graphql.RequestMiddleware {
 			} else if err != nil {
 				contextEntry.WithError(err).Warnf("GQL Request Client Error: %v err = %+v", err.Extensions["general_error"], err)
 			}
+
+			localHub.RecoverWithContext(ctx, err)
 		}
 
 		return res
