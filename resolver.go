@@ -208,7 +208,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 	}
 
 	if result.Err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
+		return nil, errors.Wrap(result.Err, "failed to deploy account code")
 	}
 
 	states, err := r.getAccountStates(proj.ID, result.States)
@@ -565,7 +565,7 @@ func (r *projectResolver) Accounts(ctx context.Context, obj *model.Project) ([]*
 
 	err := r.store.GetAccountsForProject(obj.ID, &accs)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
+		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
 	exportedAccs := make([]*model.Account, len(accs))
