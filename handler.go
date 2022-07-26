@@ -21,14 +21,12 @@ package playground
 import (
 	"context"
 	"fmt"
+	"github.com/99designs/gqlgen/handler"
 	"net/http"
 	"runtime/debug"
-
-	"github.com/99designs/gqlgen/handler"
 )
 
 func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
-
 	options = append(
 		options,
 		handler.RecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {

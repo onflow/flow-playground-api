@@ -21,6 +21,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"log"
 	"net/http"
 	"strings"
@@ -76,8 +77,9 @@ type DatastoreConfig struct {
 }
 
 type SentryConfig struct {
-	Dsn		string	`default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
-	Debug	bool	`default:"true"`
+	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug            bool   `default:"true"`
+	AttachStacktrace bool   `default:"true"`
 }
 
 const sessionName = "flow-playground"
@@ -90,8 +92,9 @@ func main() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn: 			sentryConf.Dsn,
-		Debug: 			sentryConf.Debug,
+		Dsn:              sentryConf.Dsn,
+		Debug:            sentryConf.Debug,
+		AttachStacktrace: sentryConf.AttachStacktrace,
 	})
 
 	if err != nil {
@@ -99,7 +102,8 @@ func main() {
 	}
 
 	defer sentry.Flush(2 * time.Second)
-	
+	defer sentry.Recover()
+
 	var conf Config
 
 	if err := envconfig.Process("FLOW", &conf); err != nil {
@@ -124,8 +128,7 @@ func main() {
 			},
 		)
 		if err != nil {
-			// If datastore is expected, panic when we can't init
-			panic(err)
+			log.Fatal(err)
 		}
 	} else {
 		store = memory.NewStore()
@@ -133,7 +136,7 @@ func main() {
 
 	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
@@ -146,6 +149,7 @@ func main() {
 	prometheus.Register()
 
 	router := chi.NewRouter()
+	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
 		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
@@ -174,14 +178,29 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
+		// Create a new hub for this subroutine and bind current client and handle to scope
+		localHub := sentry.CurrentHub().Clone()
+		localHub.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTag("query", "/query")
+		})
+
+		defer func() {
+			err := recover()
+			if err != nil {
+				localHub.Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
+		r.Use(monitoring.Middleware())
 
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				handler.RequestMiddleware(errors.Middleware(entry)),
+				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
 				handler.RequestMiddleware(prometheus.RequestMiddleware()),
 				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 			),

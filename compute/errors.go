@@ -20,7 +20,6 @@ package compute
 
 import (
 	"errors"
-
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"

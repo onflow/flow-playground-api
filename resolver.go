@@ -21,8 +21,13 @@ package playground
 import (
 	"context"
 	"fmt"
-
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/compute"
+	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/migrate"
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -33,13 +38,6 @@ import (
 	"github.com/onflow/flow-go-sdk/templates"
 	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/auth"
-	"github.com/dapperlabs/flow-playground-api/compute"
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 const MaxAccounts = 5
