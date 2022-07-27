@@ -27,11 +27,18 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
-type gqlErrCtxKeyType string
+type errCtxKeyType string
 
 var (
-	errLoggerFieldsCtxKey = gqlErrCtxKeyType("error-logger-fields")
+	errLoggerFieldsCtxKey = errCtxKeyType("error-logger-fields")
+	sentryLevelCtxKey     = errCtxKeyType("sentry-level")
 )
+
+// SentryLogLevel is a helper method that gets the log level from the context.
+func SentryLogLevel(ctx context.Context) (sentry.Level, bool) {
+	sentryLevel, ok := ctx.Value(sentryLevelCtxKey).(sentry.Level)
+	return sentryLevel, ok
+}
 
 // Middleware is a catch-all middleware for GQL request errors.
 func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.RequestMiddleware {
@@ -49,11 +56,13 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.RequestMiddle
 				contextEntry.
 					WithError(cause.(error)).
 					Error("GQL Request Server Error")
+				sentryCtx := context.WithValue(ctx, sentryLevelCtxKey, sentry.LevelError)
+				localHub.RecoverWithContext(sentryCtx, err)
 			} else if err != nil {
 				contextEntry.WithError(err).Warnf("GQL Request Client Error: %v err = %+v", err.Extensions["general_error"], err)
+				sentryCtx := context.WithValue(ctx, sentryLevelCtxKey, sentry.LevelWarning)
+				localHub.RecoverWithContext(sentryCtx, err)
 			}
-
-			localHub.RecoverWithContext(ctx, err)
 		}
 
 		return res

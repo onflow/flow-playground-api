@@ -95,6 +95,14 @@ func main() {
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
+		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+			if hint.Context != nil {
+				if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
+					event.Level = sentryLevel
+				}
+			}
+			return event
+		},
 	})
 
 	if err != nil {
