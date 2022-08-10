@@ -19,7 +19,9 @@
 package controller
 
 import (
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
+	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/pkg/errors"
 
@@ -29,17 +31,20 @@ import (
 )
 
 type Scripts struct {
-	store    storage.Store
-	computer *compute.Computer
+	store      storage.Store
+	computer   *compute.Computer
+	blockchain blockchain.Blockchain
 }
 
 func NewScripts(
 	store storage.Store,
 	computer *compute.Computer,
+	blockchain blockchain.Blockchain,
 ) *Scripts {
 	return &Scripts{
-		store:    store,
-		computer: computer,
+		store:      store,
+		computer:   computer,
+		blockchain: blockchain,
 	}
 }
 
@@ -92,25 +97,47 @@ func (s *Scripts) CreateExecution(
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	result, err := s.computer.ExecuteScript(
-		proj.ID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := s.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
+	args := make([]cadence.Value, len(arguments))
+	for i, a := range arguments {
+		arg, err := jsoncdc.Decode(nil, []byte(a))
+		if err != nil {
+			return nil, err
+		}
 
-			return deltas, nil
-		},
-		script,
-		arguments,
-	)
+		args[i] = arg
+	}
+	res, err := s.blockchain.ExecuteScript(proj.ID, script, args)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute script")
+		return nil, err
 	}
 
+	result := compute.ScriptResult{
+		Value:  res.Value,
+		Err:    res.Error,
+		Logs:   res.Logs,
+		Events: nil, // todo fix
+	}
+
+	/*
+		result, err := s.computer.ExecuteScript(
+			proj.ID,
+			proj.TransactionCount,
+			func() ([]*model.RegisterDelta, error) {
+				var deltas []*model.RegisterDelta
+				err := s.store.GetRegisterDeltasForProject(proj.ID, &deltas)
+				if err != nil {
+					return nil, err
+				}
+
+				return deltas, nil
+			},
+			script,
+			arguments,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to execute script")
+		}
+	*/
 	exe := model.ScriptExecution{
 		ProjectChildID: model.ProjectChildID{
 			ID:        uuid.New(),
