@@ -34,7 +34,7 @@ import (
 	"github.com/onflow/cadence/runtime/ast"
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
-	"github.com/onflow/flow-go-sdk"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
 	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
@@ -389,7 +389,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	tx := flow.NewTransaction().
+	tx := flowsdk.NewTransaction().
 		SetScript([]byte(input.Script))
 
 	for i, argument := range input.Arguments {
@@ -734,7 +734,7 @@ func parseEvent(event flowgo.Event) (model.Event, error) {
 	}, nil
 }
 
-func toTransactionBody(tx *flow.Transaction) *flowgo.TransactionBody {
+func toTransactionBody(tx *flowsdk.Transaction) *flowgo.TransactionBody {
 	txBody := flowgo.NewTransactionBody()
 	txBody.SetScript(tx.Script)
 

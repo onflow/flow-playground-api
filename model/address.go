@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/onflow/flow-go-sdk"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
@@ -37,8 +37,8 @@ func NewAddressFromBytes(b []byte) Address {
 	return address
 }
 
-func (a *Address) ToFlowAddress() flow.Address {
-	return flow.BytesToAddress(a[len(a)-flow.AddressLength:])
+func (a *Address) ToFlowAddress() flowsdk.Address {
+	return flowsdk.BytesToAddress(a[len(a)-flowsdk.AddressLength:])
 }
 
 func (a *Address) UnmarshalGQL(v interface{}) error {

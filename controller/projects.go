@@ -23,7 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
-	"github.com/onflow/flow-go-sdk"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/onflow/flow-go/engine/execution/state/delta"
 	flowgo "github.com/onflow/flow-go/model/flow"
@@ -156,7 +156,7 @@ func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, 
 
 	for i := 0; i < p.numAccounts; i++ {
 
-		payer := flow.HexToAddress("01")
+		payer := flowsdk.HexToAddress("01")
 
 		tx, err := templates.CreateAccount(nil, nil, payer)
 		if err != nil {
@@ -244,7 +244,7 @@ func (p *Projects) Reset(proj *model.InternalProject) error {
 	return nil
 }
 
-func toTransactionBody(tx *flow.Transaction) *flowgo.TransactionBody {
+func toTransactionBody(tx *flowsdk.Transaction) *flowgo.TransactionBody {
 	txBody := flowgo.NewTransactionBody()
 	txBody.SetScript(tx.Script)
 
