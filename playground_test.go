@@ -2225,24 +2225,8 @@ func TestScriptExecutions(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, script, resp.CreateScriptExecution.Script)
-		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "[Error Code: 1110] computation exceeds limit (100000)",
-					StartPosition: &model.ProgramPosition{
-						Offset: 106,
-						Line:   5,
-						Column: 18,
-					},
-					EndPosition: &model.ProgramPosition{
-						Offset: 114,
-						Line:   5,
-						Column: 26,
-					},
-				},
-			},
-			resp.CreateScriptExecution.Errors,
-		)
+		require.Equal(t, 1, len(resp.CreateScriptExecution.Errors))
+		require.Contains(t, resp.CreateScriptExecution.Errors[0].Message, "[Error Code: 1110] computation exceeds limit (100000)")
 	})
 
 	t.Run("return address", func(t *testing.T) {

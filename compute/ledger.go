@@ -26,11 +26,10 @@ import (
 type Ledger map[string]flow.RegisterEntry
 
 func (l Ledger) NewView() *delta.View {
-	return delta.NewView(func(owner, controller, key string) ([]byte, error) {
+	return delta.NewView(func(owner, key string) ([]byte, error) {
 		id := flow.RegisterID{
-			Owner:      owner,
-			Controller: controller,
-			Key:        key,
+			Owner: owner,
+			Key:   key,
 		}
 		return l[id.String()].Value, nil
 	})

@@ -30,9 +30,9 @@ import (
 	"github.com/onflow/cadence/runtime/interpreter"
 	"github.com/onflow/flow-go/fvm/programs"
 	"github.com/onflow/flow-go/fvm/state"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/flow-go/engine/execution/state/delta"
@@ -294,7 +294,7 @@ func (a *apiEnv) SetProgram(location runtime.Location, program *interpreter.Prog
 }
 
 func (a *apiEnv) GetValue(owner, key []byte) (value []byte, err error) {
-	v, _ := a.Delta.Get(string(owner), "", string(key))
+	v, _ := a.Delta.Get(string(owner), string(key))
 	return v, nil
 }
 
@@ -332,7 +332,7 @@ func (a *apiEnv) UpdateAccountContractCode(_ runtime.Address, _ string, _ []byte
 
 func (a *apiEnv) GetAccountContractCode(address runtime.Address, name string) (code []byte, err error) {
 	addr := string(flow.BytesToAddress(address.Bytes()).Bytes())
-	v, _ := a.Delta.Get(addr, addr, state.ContractKey(name))
+	v, _ := a.Delta.Get(addr, state.ContractKey(name))
 	return v, nil
 }
 
@@ -428,7 +428,7 @@ func (a *apiEnv) MeterComputation(_ common.ComputationKind, _ uint) error {
 	panic("implement MeterComputation")
 }
 
-func (a *apiEnv) RecordTrace(_ string, _ common.Location, _ time.Duration, _ []opentracing.LogRecord) {
+func (a *apiEnv) RecordTrace(_ string, _ common.Location, _ time.Duration, _ []attribute.KeyValue) {
 	panic("implement RecordTrace")
 }
 

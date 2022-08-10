@@ -33,7 +33,7 @@ import (
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/ast"
 	"github.com/onflow/cadence/runtime/common"
-	"github.com/onflow/cadence/runtime/parser2"
+	"github.com/onflow/cadence/runtime/parser"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/templates"
 	flowgo "github.com/onflow/flow-go/model/flow"
@@ -221,7 +221,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func getSourceContractName(code string) (string, error) {
-	program, err := parser2.ParseProgram(code, nil)
+	program, err := parser.ParseProgram(code, nil)
 	if err != nil {
 		return "", err
 	}
