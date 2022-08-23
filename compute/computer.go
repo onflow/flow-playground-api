@@ -21,6 +21,7 @@ package compute
 import (
 	"math"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/onflow/atree"
@@ -29,6 +30,7 @@ import (
 	"github.com/onflow/cadence/runtime/interpreter"
 	"github.com/onflow/flow-go/fvm/programs"
 	"github.com/onflow/flow-go/fvm/state"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
@@ -109,7 +111,7 @@ func (c *Computer) ExecuteTransaction(
 	)
 
 	// Use the default gas limit
-	txBody.GasLimit = ctx.GasLimit
+	txBody.GasLimit = ctx.ComputationLimit
 
 	proc := fvm.Transaction(txBody, 0)
 
@@ -237,7 +239,13 @@ func (c *Computer) extractStateChangesFromDelta(d delta.Delta, p *programs.Progr
 		if len(addressBytes) != flow.AddressLength {
 			continue
 		}
-		commonAddress := common.BytesToAddress(addressBytes)
+
+		commonAddress, err := common.BytesToAddress(addressBytes)
+		if err != nil {
+			// Not a cadence value or problem getting value.
+			continue
+		}
+
 		modelAddress := model.NewAddressFromBytes(addressBytes)
 
 		value, err := getStored(commonAddress, id.Key)
@@ -404,14 +412,42 @@ func (a *apiEnv) ImplementationDebugLog(_ string) error {
 	panic("implement ImplementationDebugLog")
 }
 
-func (a *apiEnv) ValidatePublicKey(_ *runtime.PublicKey) (bool, error) {
+func (a *apiEnv) ValidatePublicKey(_ *runtime.PublicKey) error {
 	panic("implement ValidatePublicKey")
 }
 
-func (a *apiEnv) AllocateStorageIndex(owner []byte) (atree.StorageIndex, error) {
+func (a *apiEnv) AllocateStorageIndex(_ []byte) (atree.StorageIndex, error) {
 	panic("implement AllocateStorageIndex")
 }
 
-func (e *apiEnv) GetAccountContractNames(address runtime.Address) ([]string, error) {
+func (a *apiEnv) GetAccountContractNames(_ runtime.Address) ([]string, error) {
 	panic("implement GetAccountContractNames")
+}
+
+func (a *apiEnv) MeterComputation(_ common.ComputationKind, _ uint) error {
+	panic("implement MeterComputation")
+}
+
+func (a *apiEnv) RecordTrace(_ string, _ common.Location, _ time.Duration, _ []opentracing.LogRecord) {
+	panic("implement RecordTrace")
+}
+
+func (a *apiEnv) BLSVerifyPOP(_ *runtime.PublicKey, _ []byte) (bool, error) {
+	panic("implement BLSVerifyPOP")
+}
+
+func (a *apiEnv) BLSAggregateSignatures(_ [][]byte) ([]byte, error) {
+	panic("implement BLSAggregateSignatures")
+}
+
+func (a *apiEnv) BLSAggregatePublicKeys(_ []*runtime.PublicKey) (*runtime.PublicKey, error) {
+	panic("implement BLSAggregatePublicKeys")
+}
+
+func (a *apiEnv) ResourceOwnerChanged(_ *interpreter.Interpreter, _ *interpreter.CompositeValue, _ common.Address, _ common.Address) {
+	panic("implement ResourceOwnerChanged")
+}
+
+func (a *apiEnv) MeterMemory(_ common.MemoryUsage) error {
+	panic("implement MeterMemory")
 }

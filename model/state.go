@@ -71,7 +71,7 @@ func (v *serializableCadenceValue) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	value, err := jsoncdc.Decode(data)
+	value, err := jsoncdc.Decode(nil, data)
 	if err != nil {
 		return err
 	}

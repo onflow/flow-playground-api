@@ -1273,17 +1273,7 @@ func TestTransactionExecutions(t *testing.T) {
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "computation limited exceeded: 100000",
-					StartPosition: &model.ProgramPosition{
-						Offset: 139,
-						Line:   6,
-						Column: 22,
-					},
-					EndPosition: &model.ProgramPosition{
-						Offset: 147,
-						Line:   6,
-						Column: 30,
-					},
+					Message: "[Error Code: 1110] computation exceeds limit (100000)",
 				},
 			},
 			resp.CreateTransactionExecution.Errors,
@@ -2238,7 +2228,7 @@ func TestScriptExecutions(t *testing.T) {
 		require.Equal(t,
 			[]model.ProgramError{
 				{
-					Message: "computation limited exceeded: 100000",
+					Message: "[Error Code: 1110] computation exceeds limit (100000)",
 					StartPosition: &model.ProgramPosition{
 						Offset: 106,
 						Line:   5,
