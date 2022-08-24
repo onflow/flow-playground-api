@@ -21,11 +21,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog"
@@ -209,7 +210,7 @@ func main() {
 			playground.GraphQLHandler(
 				resolver,
 				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
-				handler.RequestMiddleware(prometheus.RequestMiddleware()),
+				// handler.RequestMiddleware(prometheus.RequestMiddleware()), // TODO: Prometheus using outdated GQLgen
 				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
 			),
 		)
