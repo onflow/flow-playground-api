@@ -21,7 +21,6 @@ package controller
 import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
-	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/pkg/errors"
 
@@ -32,18 +31,15 @@ import (
 
 type Scripts struct {
 	store      storage.Store
-	computer   *compute.Computer
 	blockchain blockchain.Blockchain
 }
 
 func NewScripts(
 	store storage.Store,
-	computer *compute.Computer,
 	blockchain blockchain.Blockchain,
 ) *Scripts {
 	return &Scripts{
 		store:      store,
-		computer:   computer,
 		blockchain: blockchain,
 	}
 }
@@ -92,23 +88,13 @@ func (s *Scripts) CreateExecution(
 	*model.ScriptExecution,
 	error,
 ) {
-
 	if len(script) == 0 {
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	args := make([]cadence.Value, len(arguments))
-	for i, a := range arguments {
-		arg, err := jsoncdc.Decode(nil, []byte(a))
-		if err != nil {
-			return nil, err
-		}
-
-		args[i] = arg
-	}
-	res, err := s.blockchain.ExecuteScript(proj.ID, script, args)
+	res, err := s.blockchain.ExecuteScript(script, arguments)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to execute script")
 	}
 
 	result := compute.ScriptResult{
@@ -118,26 +104,6 @@ func (s *Scripts) CreateExecution(
 		Events: nil, // todo fix
 	}
 
-	/*
-		result, err := s.computer.ExecuteScript(
-			proj.ID,
-			proj.TransactionCount,
-			func() ([]*model.RegisterDelta, error) {
-				var deltas []*model.RegisterDelta
-				err := s.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-				if err != nil {
-					return nil, err
-				}
-
-				return deltas, nil
-			},
-			script,
-			arguments,
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to execute script")
-		}
-	*/
 	exe := model.ScriptExecution{
 		ProjectChildID: model.ProjectChildID{
 			ID:        uuid.New(),

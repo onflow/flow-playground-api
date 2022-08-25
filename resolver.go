@@ -21,8 +21,12 @@ package playground
 import (
 	"context"
 	"fmt"
+
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/migrate"
@@ -30,12 +34,11 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/ast"
 	"github.com/onflow/cadence/runtime/common"
-	"github.com/onflow/cadence/runtime/parser2"
+	"github.com/onflow/cadence/runtime/parser"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/templates"
+	"github.com/onflow/flow-go/engine/execution/state/delta"
 	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
 )
@@ -45,32 +48,32 @@ const MaxAccounts = 5
 type Resolver struct {
 	version            *semver.Version
 	store              storage.Store
-	computer           *compute.Computer
 	auth               *auth.Authenticator
 	migrator           *migrate.Migrator
 	projects           *controller.Projects
 	scripts            *controller.Scripts
 	lastCreatedProject *model.InternalProject
+	blockchain         blockchain.Blockchain
 }
 
 func NewResolver(
 	version *semver.Version,
 	store storage.Store,
-	computer *compute.Computer,
 	auth *auth.Authenticator,
+	blockchain blockchain.Blockchain,
 ) *Resolver {
-	projects := controller.NewProjects(version, store, computer, MaxAccounts)
-	scripts := controller.NewScripts(store, computer)
+	projects := controller.NewProjects(version, store, MaxAccounts, blockchain)
+	scripts := controller.NewScripts(store, blockchain)
 	migrator := migrate.NewMigrator(projects)
 
 	return &Resolver{
-		version:  version,
-		store:    store,
-		computer: computer,
-		auth:     auth,
-		migrator: migrator,
-		projects: projects,
-		scripts:  scripts,
+		version:    version,
+		store:      store,
+		auth:       auth,
+		migrator:   migrator,
+		projects:   projects,
+		scripts:    scripts,
+		blockchain: blockchain,
 	}
 }
 
@@ -171,48 +174,18 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		}
 	}
 
-	address := acc.Address.ToFlowAddress()
-	source := *input.DeployedCode
-	contractName, err := getSourceContractName(source)
+	result, contractName, err := r.blockchain.DeployContract(acc.Address, *input.DeployedCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	tx := templates.AddAccountContract(address, templates.Contract{
-		Name:   contractName,
-		Source: source,
-	})
-
-	result, err := r.computer.ExecuteTransaction(
-		proj.ID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
-
-			return deltas, nil
-		},
-		toTransactionBody(tx),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to deploy account code")
-	}
-
-	if result.Err != nil {
-		return nil, errors.Wrap(result.Err, "failed to deploy account code")
-	}
-
-	states, err := r.getAccountStates(proj.ID, result.States)
-	if err != nil {
-		return nil, err
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to deploy account code")
 	}
 
 	input.DeployedContracts = &[]string{contractName}
 
-	err = r.store.UpdateAccountAfterDeployment(input, states, result.Delta, &acc)
+	err = r.store.UpdateAccountAfterDeployment(input, nil, delta.NewDelta(), &acc) // todo refactor
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update account")
 	}
@@ -221,7 +194,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func getSourceContractName(code string) (string, error) {
-	program, err := parser2.ParseProgram(code, nil)
+	program, err := parser.ParseProgram(code, nil)
 	if err != nil {
 		return "", err
 	}
@@ -389,43 +362,12 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	tx := flow.NewTransaction().
-		SetScript([]byte(input.Script))
-
-	for i, argument := range input.Arguments {
-		// Decode and then encode again to ensure the value is valid
-
-		value, err := jsoncdc.Decode(nil, []byte(argument))
-		if err == nil {
-			err = tx.AddArgument(value)
-		}
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("failed to decode argument %d", i))
-		}
-	}
-
-	for _, authorizer := range input.Signers {
-		tx.AddAuthorizer(authorizer.ToFlowAddress())
-	}
-
-	result, err := r.computer.ExecuteTransaction(
-		proj.ID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := r.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
-
-			return deltas, nil
-		},
-		toTransactionBody(tx),
-	)
+	result, err := r.blockchain.ExecuteTransaction(input.Script, input.Arguments, input.Signers)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
 
+	// todo refactor so the model has factory method that creates this model from transaction and serialises events, errors etc
 	exe := model.TransactionExecution{
 		ProjectChildID: model.ProjectChildID{
 			ID:        uuid.New(),
@@ -438,24 +380,18 @@ func (r *mutationResolver) CreateTransactionExecution(
 
 	var states map[uuid.UUID]model.AccountState
 
-	if result.Err != nil {
-		exe.Errors = compute.ExtractProgramErrors(result.Err)
-	} else {
-		var err error
-		states, err = r.getAccountStates(proj.ID, result.States)
-		if err != nil {
-			return nil, err
-		}
+	if result.Error != nil {
+		exe.Errors = compute.ExtractProgramErrors(result.Error)
 	}
 
 	events, err := parseEvents(result.Events)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse events")
+		return nil, err
 	}
 
 	exe.Events = events
 
-	err = r.store.InsertTransactionExecution(&exe, states, result.Delta)
+	err = r.store.InsertTransactionExecution(&exe, states, delta.NewDelta()) // todo refactor delta
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert transaction execution record")
 	}
@@ -697,7 +633,7 @@ func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.Transac
 	panic("not implemented")
 }
 
-func parseEvents(flowEvents []flowgo.Event) ([]model.Event, error) {
+func parseEvents(flowEvents []flow.Event) ([]model.Event, error) {
 	events := make([]model.Event, len(flowEvents))
 
 	for i, event := range flowEvents {
@@ -711,25 +647,15 @@ func parseEvents(flowEvents []flowgo.Event) ([]model.Event, error) {
 	return events, nil
 }
 
-func parseEvent(event flowgo.Event) (model.Event, error) {
-	payload, err := jsoncdc.Decode(nil, event.Payload)
-	if err != nil {
-		return model.Event{}, errors.Wrap(err, "failed to decode event payload (JSON-CDC)")
-	}
-
-	fields := payload.(cadence.Event).Fields
-	values := make([]string, len(fields))
-	for j, field := range fields {
-		enc, err := jsoncdc.Encode(field)
-		if err != nil {
-			return model.Event{}, errors.Wrap(err, "failed to encode event field to JSON-CDC")
-		}
-
-		values[j] = string(enc)
+func parseEvent(event flow.Event) (model.Event, error) {
+	values := make([]string, len(event.Value.Fields))
+	for j, field := range event.Value.Fields {
+		encoded, _ := jsoncdc.Encode(field)
+		values[j] = string(encoded)
 	}
 
 	return model.Event{
-		Type:   string(event.Type),
+		Type:   event.Type,
 		Values: values,
 	}, nil
 }

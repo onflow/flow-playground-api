@@ -20,16 +20,13 @@ package controller
 
 import (
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
-	"github.com/onflow/cadence"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/onflow/flow-go/engine/execution/state/delta"
 	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -37,21 +34,21 @@ import (
 type Projects struct {
 	version     *semver.Version
 	store       storage.Store
-	computer    *compute.Computer
 	numAccounts int
+	blockchain  blockchain.Blockchain
 }
 
 func NewProjects(
 	version *semver.Version,
 	store storage.Store,
-	computer *compute.Computer,
 	numAccounts int,
+	blockchain blockchain.Blockchain,
 ) *Projects {
 	return &Projects{
 		version:     version,
 		store:       store,
-		computer:    computer,
 		numAccounts: numAccounts,
+		blockchain:  blockchain,
 	}
 }
 
@@ -68,6 +65,15 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		Persist:     false,
 		Version:     p.version,
 	}
+
+	// todo change this, we just add it since we require project to exist in order to execute blockchain
+	_ = p.store.UpdateProject(model.UpdateProject{
+		ID:          proj.ID,
+		Title:       &proj.Title,
+		Description: &proj.Description,
+		Readme:      &proj.Readme,
+		Persist:     &proj.Persist,
+	}, proj)
 
 	accounts, deltas, err := p.createInitialAccounts(proj.ID, input.Accounts)
 	if err != nil {
@@ -118,7 +124,6 @@ func (p *Projects) createInitialAccounts(
 	projectID uuid.UUID,
 	initialContracts []string,
 ) ([]*model.InternalAccount, []delta.Delta, error) {
-
 	addresses, deltas, err := p.deployInitialAccounts(projectID)
 	if err != nil {
 		return nil, nil, err
@@ -149,56 +154,18 @@ func (p *Projects) createInitialAccounts(
 }
 
 func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, []delta.Delta, error) {
-
 	addresses := make([]model.Address, p.numAccounts)
-	deltas := make([]delta.Delta, p.numAccounts)
-	regDeltas := make([]*model.RegisterDelta, 0)
 
 	for i := 0; i < p.numAccounts; i++ {
-
-		payer := flow.HexToAddress("01")
-
-		tx, err := templates.CreateAccount(nil, nil, payer)
+		account, _, err := p.blockchain.CreateAccount()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to create account")
+			return nil, nil, err
 		}
 
-		result, err := p.computer.ExecuteTransaction(
-			projectID,
-			i,
-			func() ([]*model.RegisterDelta, error) { return regDeltas, nil },
-			toTransactionBody(tx),
-		)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to deploy account code")
-		}
-
-		if result.Err != nil {
-			return nil, nil, errors.Wrap(result.Err, "failed to deploy account code")
-		}
-
-		deltas[i] = result.Delta
-
-		regDeltas = append(regDeltas, &model.RegisterDelta{
-			ProjectID: projectID,
-			Index:     i,
-			Delta:     result.Delta,
-		})
-
-		event := result.Events[0]
-
-		eventPayload, err := jsoncdc.Decode(nil, event.Payload)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "failed to deploy account code")
-		}
-
-		addressValue := eventPayload.(cadence.Event).Fields[0].(cadence.Address)
-		address := model.NewAddressFromBytes(addressValue.Bytes())
-
-		addresses[i] = address
+		addresses[i] = model.Address(account.Address)
 	}
 
-	return addresses, deltas, nil
+	return addresses, nil, nil
 }
 
 func (p *Projects) Get(id uuid.UUID, proj *model.InternalProject) error {
@@ -239,7 +206,7 @@ func (p *Projects) Reset(proj *model.InternalProject) error {
 		return err
 	}
 
-	p.computer.ClearCacheForProject(proj.ID)
+	// todo clear cache
 
 	return nil
 }
