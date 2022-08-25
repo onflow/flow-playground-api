@@ -28,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
@@ -1019,14 +1021,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+		require.Len(t, respA.CreateTransactionExecution.Events, 6)
 
-		eventA := respA.CreateTransactionExecution.Events[0]
+		eventA := respA.CreateTransactionExecution.Events[5]
 
 		// first account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
@@ -1043,14 +1045,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respB.CreateTransactionExecution.Errors)
-		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+		require.Len(t, respB.CreateTransactionExecution.Events, 6)
 
-		eventB := respB.CreateTransactionExecution.Events[0]
+		eventB := respB.CreateTransactionExecution.Events[5]
 
 		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000007"}`,
+			`{"type":"Address","value":"0x000000000000000b"}`,
 			eventB.Values[0],
 		)
 	})
@@ -1059,8 +1061,9 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 		computer, _ := compute.NewComputer(zerolog.Nop(), 128)
+		chain, _ := blockchain.NewEmulator()
 		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, computer, authenticator)
+		resolver := playground.NewResolver(version, store, authenticator, chain)
 
 		c := newClientWithResolver(resolver)
 
@@ -1081,14 +1084,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+		require.Len(t, respA.CreateTransactionExecution.Events, 6)
 
-		eventA := respA.CreateTransactionExecution.Events[0]
+		eventA := respA.CreateTransactionExecution.Events[5]
 
 		// first account should have address 0x06
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
@@ -1114,7 +1117,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000007"}`,
+			`{"type":"Address","value":"0x000000000000000b"}`,
 			eventB.Values[0],
 		)
 	})
@@ -2361,11 +2364,9 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer, _ := compute.NewComputer(zerolog.Nop(), 128)
-
 	authenticator := auth.NewAuthenticator(store, sessionName)
-
-	resolver := playground.NewResolver(version, store, computer, authenticator)
+	chain, _ := blockchain.NewEmulator()
+	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)
 }
