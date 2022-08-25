@@ -21,11 +21,10 @@ package errors
 import (
 	"context"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/getsentry/sentry-go"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/99designs/gqlgen/graphql"
 )
 
 type errCtxKeyType string
