@@ -28,7 +28,6 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog"
 
