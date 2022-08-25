@@ -27,6 +27,8 @@ import (
 	"time"
 
 	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog"
 
@@ -200,8 +202,6 @@ func main() {
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
-
-		//handler.ResponseFunc(errors.Middleware(entry, localHub)),
 
 		r.Handle(
 			"/",
