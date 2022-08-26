@@ -1110,9 +1110,9 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+		require.Len(t, respB.CreateTransactionExecution.Events, 6)
 
-		eventB := respB.CreateTransactionExecution.Events[0]
+		eventB := respB.CreateTransactionExecution.Events[5]
 
 		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
@@ -1274,12 +1274,8 @@ func TestTransactionExecutions(t *testing.T) {
 
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "[Error Code: 1110] computation exceeds limit (100000)",
-				},
-			},
-			resp.CreateTransactionExecution.Errors,
+			"[Error Code: 1110] computation exceeds limit (100000)",
+			resp.CreateTransactionExecution.Errors[0].Message,
 		)
 	})
 

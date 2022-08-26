@@ -129,7 +129,7 @@ func (e *Emulator) DeployContract(address model.Address, script string) (*types.
 		Source: script,
 	})
 
-	result, err := e.sendTransaction(tx, []model.Address{address})
+	result, err := e.sendTransaction(tx, nil)
 	if err != nil {
 		return nil, "", err
 	}
@@ -156,13 +156,15 @@ func (e *Emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.
 	}
 
 	err = tx.SignEnvelope(e.blockchain.ServiceKey().Address, e.blockchain.ServiceKey().Index, signer)
-	if err != nil {
+	if err != nil { // todo should we return as transaction result error
 		return nil, err
 	}
 
 	err = e.blockchain.AddTransaction(*tx)
-	if err != nil {
-		return nil, err
+	if err != nil { // return as transaction result error
+		return &types.TransactionResult{
+			Error: err,
+		}, nil
 	}
 
 	_, res, err := e.blockchain.ExecuteAndCommitBlock()
