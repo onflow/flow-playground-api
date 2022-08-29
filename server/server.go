@@ -33,8 +33,7 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/controller"
 
-	"github.com/99designs/gqlgen/handler"
-
+	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
@@ -158,7 +157,7 @@ func main() {
 	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
-		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
+		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
 	logger := logrus.StandardLogger()
@@ -206,9 +205,10 @@ func main() {
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
+				errors.Middleware(entry, localHub),
 			),
 		)
+
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
@@ -236,6 +236,7 @@ func main() {
 }
 
 func ping(w http.ResponseWriter, r *http.Request) {
+	_ = r
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("ok"))
 }
