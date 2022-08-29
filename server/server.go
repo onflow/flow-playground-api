@@ -26,19 +26,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog"
 
 	"github.com/dapperlabs/flow-playground-api/controller"
 
-	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
+
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	gsessions "github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
@@ -52,6 +54,8 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type Config struct {
@@ -73,9 +77,42 @@ type DatastoreConfig struct {
 	Timeout      time.Duration `default:"5s"`
 }
 
+type SentryConfig struct {
+	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
+	Debug            bool   `default:"true"`
+	AttachStacktrace bool   `default:"true"`
+}
+
 const sessionName = "flow-playground"
 
 func main() {
+	var sentryConf SentryConfig
+
+	if err := envconfig.Process("SENTRY", &sentryConf); err != nil {
+		log.Fatal(err)
+	}
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              sentryConf.Dsn,
+		Debug:            sentryConf.Debug,
+		AttachStacktrace: sentryConf.AttachStacktrace,
+		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+			if hint.Context != nil {
+				if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
+					event.Level = sentryLevel
+				}
+			}
+			return event
+		},
+	})
+
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+
+	defer sentry.Flush(2 * time.Second)
+	defer sentry.Recover()
+
 	var conf Config
 
 	if err := envconfig.Process("FLOW", &conf); err != nil {
@@ -100,8 +137,7 @@ func main() {
 			},
 		)
 		if err != nil {
-			// If datastore is expected, panic when we can't init
-			panic(err)
+			log.Fatal(err)
 		}
 	} else {
 		store = memory.NewStore()
@@ -109,7 +145,7 @@ func main() {
 
 	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
@@ -118,10 +154,8 @@ func main() {
 
 	resolver := playground.NewResolver(build.Version(), store, computer, authenticator)
 
-	// Register gql metrics
-	prometheus.Register()
-
 	router := chi.NewRouter()
+	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
 		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
@@ -150,16 +184,29 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
+		// Create a new hub for this subroutine and bind current client and handle to scope
+		localHub := sentry.CurrentHub().Clone()
+		localHub.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTag("query", "/query")
+		})
+
+		defer func() {
+			err := recover()
+			if err != nil {
+				localHub.Recover(err)
+				sentry.Flush(time.Second * 5)
+			}
+		}()
+
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
+		r.Use(monitoring.Middleware())
 
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				handler.RequestMiddleware(errors.Middleware(entry)),
-				handler.RequestMiddleware(prometheus.RequestMiddleware()),
-				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
+				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
 			),
 		)
 	})
@@ -180,7 +227,6 @@ func main() {
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
 
-	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
 
 	logStartMessage(build.Version())

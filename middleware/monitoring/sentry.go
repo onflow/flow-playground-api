@@ -16,17 +16,13 @@
  * limitations under the License.
  */
 
-package client
+package monitoring
 
 import (
-	"encoding/json"
+	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/gorilla/mux"
 )
 
-// RawJsonError is a json formatted error from a GraphQL server.
-type RawJsonError struct {
-	json.RawMessage
-}
-
-func (r RawJsonError) Error() string {
-	return string(r.RawMessage)
+func Middleware() mux.MiddlewareFunc {
+	return sentryhttp.New(sentryhttp.Options{}).Handle
 }

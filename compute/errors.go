@@ -20,11 +20,11 @@ package compute
 
 import (
 	"errors"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
+
+	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 func ExtractProgramErrors(err error) (result []model.ProgramError) {
@@ -63,7 +63,7 @@ func convertProgramError(err error) model.ProgramError {
 
 	if position, ok := err.(ast.HasPosition); ok {
 		programError.StartPosition = convertPosition(position.StartPosition())
-		programError.EndPosition = convertPosition(position.EndPosition())
+		programError.EndPosition = convertPosition(position.EndPosition(nil))
 	}
 
 	return programError

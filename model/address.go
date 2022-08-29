@@ -27,7 +27,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const addressLength = 20
+const addressLength = 8
 
 type Address [addressLength]byte
 
