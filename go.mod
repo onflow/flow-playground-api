@@ -10,7 +10,6 @@ require (
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
 	github.com/alecthomas/chroma v0.8.1
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/google/uuid v1.3.0
