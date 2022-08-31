@@ -23,6 +23,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// todo ScriptTemplate and TransactionTemplate could be refactored into generic Templates
+
 type ScriptTemplate struct {
 	ProjectChildID
 	Title  string
