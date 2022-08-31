@@ -235,8 +235,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
 
-func ping(w http.ResponseWriter, r *http.Request) {
-	_ = r
+func ping(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("ok"))
 }
