@@ -8,7 +8,7 @@ import (
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
-	emulator "github.com/onflow/flow-emulator"
+	emu "github.com/onflow/flow-emulator"
 	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
@@ -17,45 +17,45 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Blockchain interface {
-	ExecuteTransaction(
+type blockchain interface {
+	executeTransaction(
 		script string,
 		arguments []string,
 		authorizers []model.Address,
 	) (*types.TransactionResult, error)
-	ExecuteScript(
+	executeScript(
 		script string,
 		arguments []string,
 	) (*types.ScriptResult, error)
-	CreateAccount() (*flowsdk.Account, *types.TransactionResult, error)
-	GetAccount(address model.Address) (*flowsdk.Account, error)
-	DeployContract(address model.Address, script string) (*types.TransactionResult, string, error)
+	createAccount() (*flowsdk.Account, *types.TransactionResult, error)
+	getAccount(address model.Address) (*flowsdk.Account, error)
+	deployContract(address model.Address, script string) (*types.TransactionResult, string, error)
 }
 
-var _ Blockchain = &Emulator{}
+var _ blockchain = &emulator{}
 
-type Emulator struct {
-	blockchain *emulator.Blockchain
+type emulator struct {
+	blockchain *emu.Blockchain
 }
 
-func NewEmulator() (*Emulator, error) {
-	blockchain, err := emulator.NewBlockchain(
-		emulator.WithStore(memstore.New()),
-		emulator.WithTransactionValidationEnabled(false),
-		emulator.WithSimpleAddresses(),
-		emulator.WithStorageLimitEnabled(false),
-		emulator.WithTransactionFeesEnabled(false),
+func newEmulator() (*emulator, error) {
+	blockchain, err := emu.NewBlockchain(
+		emu.WithStore(memstore.New()),
+		emu.WithTransactionValidationEnabled(false),
+		emu.WithSimpleAddresses(),
+		emu.WithStorageLimitEnabled(false),
+		emu.WithTransactionFeesEnabled(false),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Emulator{
+	return &emulator{
 		blockchain: blockchain,
 	}, nil
 }
 
-func (e *Emulator) ExecuteTransaction(
+func (e *emulator) executeTransaction(
 	script string,
 	arguments []string,
 	authorizers []model.Address,
@@ -72,7 +72,7 @@ func (e *Emulator) ExecuteTransaction(
 	return e.sendTransaction(tx, authorizers)
 }
 
-func (e *Emulator) ExecuteScript(script string, arguments []string) (*types.ScriptResult, error) {
+func (e *emulator) executeScript(script string, arguments []string) (*types.ScriptResult, error) {
 	args, err := parseArguments(arguments)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (e *Emulator) ExecuteScript(script string, arguments []string) (*types.Scri
 	return e.blockchain.ExecuteScript([]byte(script), args)
 }
 
-func (e *Emulator) CreateAccount() (*flowsdk.Account, *types.TransactionResult, error) {
+func (e *emulator) createAccount() (*flowsdk.Account, *types.TransactionResult, error) {
 	payer := e.blockchain.ServiceKey().Address
 	key := flowsdk.NewAccountKey()
 	key.FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
@@ -113,11 +113,11 @@ func (e *Emulator) CreateAccount() (*flowsdk.Account, *types.TransactionResult, 
 }
 
 // todo add storage to get account
-func (e *Emulator) GetAccount(address model.Address) (*flowsdk.Account, error) {
+func (e *emulator) getAccount(address model.Address) (*flowsdk.Account, error) {
 	return e.blockchain.GetAccount(address.ToFlowAddress())
 }
 
-func (e *Emulator) DeployContract(address model.Address, script string) (*types.TransactionResult, string, error) {
+func (e *emulator) deployContract(address model.Address, script string) (*types.TransactionResult, string, error) {
 	contractName, err := getSourceContractName(script)
 	if err != nil {
 		return nil, "", err
@@ -136,7 +136,7 @@ func (e *Emulator) DeployContract(address model.Address, script string) (*types.
 	return result, contractName, nil
 }
 
-func (e *Emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.Address) (*types.TransactionResult, error) {
+func (e *emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.Address) (*types.TransactionResult, error) {
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
 		return nil, err
