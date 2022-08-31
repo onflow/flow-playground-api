@@ -6,7 +6,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
-	"github.com/onflow/flow-emulator/types"
 )
 
 // todo create instance pool as a possible optimization: we can pre-instantiate empty instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
@@ -21,7 +20,7 @@ type State struct {
 }
 
 // bootstrap initializes an emulator and run transactions previously executed in the project to establish a state.
-func (s *State) bootstrap(ID uuid.UUID) (*Emulator, error) {
+func (s *State) bootstrap(projectID uuid.UUID) (*Emulator, error) {
 	// todo cache
 
 	emulator, err := NewEmulator()
@@ -30,7 +29,7 @@ func (s *State) bootstrap(ID uuid.UUID) (*Emulator, error) {
 	}
 
 	var executions []*model.TransactionExecution
-	err = s.store.GetTransactionExecutionsForProject(ID, &executions)
+	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +39,7 @@ func (s *State) bootstrap(ID uuid.UUID) (*Emulator, error) {
 		result, err := emulator.ExecuteTransaction(execution.Script, execution.Arguments, nil)
 		if err != nil || (!result.Succeeded() && len(execution.Errors) == 0) {
 			// todo handle a case where an existing project is not able to be recreated - track this in sentry
-			return nil, fmt.Errorf(fmt.Sprintf("not able to recreate a project %s", ID))
+			return nil, fmt.Errorf(fmt.Sprintf("not able to recreate a project %s", projectID))
 		}
 	}
 
@@ -52,12 +51,12 @@ func (s *State) new(ID uuid.UUID) (*Emulator, error) {
 }
 
 func (s *State) ExecuteTransaction(
-	ID uuid.UUID,
+	projectID uuid.UUID,
 	script string,
 	arguments []string,
 	authorizers []model.Address,
-) (*types.TransactionResult, error) {
-	emulator, err := s.bootstrap(ID)
+) (*model.TransactionExecution, error) {
+	emulator, err := s.bootstrap(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,19 +66,16 @@ func (s *State) ExecuteTransaction(
 		return nil, err
 	}
 
-	err = s.store.InsertTransactionExecution(&model.TransactionExecution{
-		ProjectChildID:   ID,
-		Index:            0,
-		Script:           script,
-		Arguments:        arguments,
-		SignerAccountIDs: signers,
-		Errors:           result.Error,
-		Events:           result.Events,
-		Logs:             result.Logs,
-	})
+	exe, err := model.TransactionExecutionFromFlow(result, projectID, script, arguments, authorizers)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, err
+	// todo should we save here or in transaction controller
+	err = s.store.InsertTransactionExecution(exe)
+	if err != nil {
+		return nil, err
+	}
+
+	return exe, err
 }
