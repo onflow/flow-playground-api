@@ -21,16 +21,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-chi/render"
-	"github.com/rs/zerolog"
-
 	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
+	"github.com/go-chi/render"
 
 	"github.com/99designs/gqlgen-contrib/prometheus"
 	"github.com/99designs/gqlgen/handler"
@@ -46,7 +45,6 @@ import (
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/build"
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
@@ -134,16 +132,11 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	sessionAuthKey := []byte(conf.SessionAuthKey)
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	resolver := playground.NewResolver(build.Version(), store, computer, authenticator)
+	resolver := playground.NewResolver(build.Version(), store, authenticator, blockchain)
 
 	// Register gql metrics
 	prometheus.Register()
