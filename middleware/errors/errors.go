@@ -20,11 +20,10 @@ package errors
 
 import (
 	"context"
-	"github.com/getsentry/sentry-go"
-
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/sirupsen/logrus"
 
-	"github.com/99designs/gqlgen/graphql"
+	"github.com/getsentry/sentry-go"
 )
 
 type errCtxKeyType string
@@ -41,14 +40,14 @@ func SentryLogLevel(ctx context.Context) (sentry.Level, bool) {
 }
 
 // Middleware is a catch-all middleware for GQL request errors.
-func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.RequestMiddleware {
-	return func(ctx context.Context, next func(ctx context.Context) []byte) []byte {
+func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddleware {
+	return func(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
 		debugFields := logrus.Fields{}
 		ctx = context.WithValue(ctx, errLoggerFieldsCtxKey, debugFields)
 		res := next(ctx)
-		reqCtx := graphql.GetRequestContext(ctx)
+		errList := graphql.GetErrors(ctx)
 
-		for _, err := range reqCtx.Errors {
+		for _, err := range errList {
 			contextEntry := entry.
 				WithFields(debugFields)
 

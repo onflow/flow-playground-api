@@ -18,4 +18,4 @@
 
 package playground
 
-//go:generate go run -mod=mod github.com/99designs/gqlgen -v
+//go:generate go run -mod=mod github.com/99designs/gqlgen --verbose

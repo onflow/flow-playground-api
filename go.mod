@@ -4,8 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/datastore v1.1.0
-	github.com/99designs/gqlgen v0.10.2
-	github.com/99designs/gqlgen-contrib v0.0.0-20191030030013-7aa27db3321a
+	github.com/99designs/gqlgen v0.17.5
 	github.com/Masterminds/semver v1.5.0
 	github.com/TV4/logrus-stackdriver-formatter v0.1.0
 	github.com/alecthomas/assert v0.0.0-20170929043011-405dbfeb8e38
@@ -27,26 +26,23 @@ require (
 	github.com/onflow/flow-go-sdk v0.26.2
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.12.1
 	github.com/rs/cors v1.8.0
 	github.com/rs/zerolog v1.26.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.1
-	github.com/vektah/gqlparser v1.2.0
+	github.com/vektah/gqlparser/v2 v2.4.2
 )
 
 require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.3.0 // indirect
 	github.com/HdrHistogram/hdrhistogram-go v1.1.2 // indirect
-	github.com/agnivade/levenshtein v1.0.1 // indirect
+	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/alecthomas/colour v0.0.0-20160524082231-60882d9e2721 // indirect
 	github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
@@ -86,7 +82,6 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -106,12 +101,9 @@ require (
 	github.com/onflow/sdks v0.4.4 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.33.0 // indirect
-	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/psiemens/sconfig v0.1.0 // indirect
 	github.com/rivo/uniseg v0.2.1-0.20211004051800-57c86be7915a // indirect
-	github.com/sergi/go-diff v1.0.0 // indirect
+	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sethvargo/go-retry v0.2.3 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
