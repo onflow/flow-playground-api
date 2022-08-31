@@ -62,13 +62,15 @@ func (s *Scripts) CreateTemplate(projectID uuid.UUID, input model.NewScriptTempl
 	return &tpl, nil
 }
 
-func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
-	err := s.store.UpdateScriptTemplate(input, tpl)
+func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
+	var tpl model.ScriptTemplate
+
+	err := s.store.UpdateScriptTemplate(input, &tpl)
 	if err != nil {
-		return errors.Wrap(err, "failed to update script template")
+		return nil, errors.Wrap(err, "failed to update script template")
 	}
 
-	return nil
+	return &tpl, nil
 }
 
 func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
@@ -79,6 +81,28 @@ func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
 
 	return nil
 }
+
+func (s *Scripts) AllTemplatesForProjectID(ID uuid.UUID) ([]*model.ScriptTemplate, error) {
+	var templates []*model.ScriptTemplate
+	err := s.store.GetScriptTemplatesForProject(ID, &templates)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script templates")
+	}
+
+	return templates, nil
+}
+
+func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
+	var tpl model.ScriptTemplate
+	err := s.store.GetScriptTemplate(model.NewProjectChildID(ID, projectID), &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script template")
+	}
+
+	return &tpl, nil
+}
+
+// todo decide about input arguments as native types or as input dto
 
 func (s *Scripts) CreateExecution(
 	proj *model.InternalProject,
@@ -92,16 +116,9 @@ func (s *Scripts) CreateExecution(
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	res, err := s.blockchain.ExecuteScript(script, arguments)
+	result, err := s.blockchain.ExecuteScript(script, arguments)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
-	}
-
-	result := compute.ScriptResult{
-		Value:  res.Value,
-		Err:    res.Error,
-		Logs:   res.Logs,
-		Events: nil, // todo fix
 	}
 
 	exe := model.ScriptExecution{
@@ -114,8 +131,8 @@ func (s *Scripts) CreateExecution(
 		Logs:      result.Logs,
 	}
 
-	if result.Err != nil {
-		exe.Errors = compute.ExtractProgramErrors(result.Err)
+	if result.Error != nil {
+		exe.Errors = compute.ExtractProgramErrors(result.Error)
 	} else {
 		enc, err := jsoncdc.Encode(result.Value)
 		if err != nil {
