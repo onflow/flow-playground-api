@@ -22,6 +22,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/dapperlabs/flow-playground-api/storage"
+
 	"cloud.google.com/go/datastore"
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
@@ -39,6 +41,8 @@ type Config struct {
 const (
 	defaultTimeout = time.Second * 5
 )
+
+var _ storage.Store = &Datastore{}
 
 type Datastore struct {
 	conf     *Config

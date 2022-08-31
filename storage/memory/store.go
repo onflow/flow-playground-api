@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/google/uuid"
-	"github.com/onflow/flow-go/engine/execution/state/delta"
-
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/google/uuid"
 )
+
+var _ storage.Store = &Store{}
 
 type Store struct {
 	mut                   sync.RWMutex
@@ -40,7 +40,6 @@ type Store struct {
 	transactionExecutions map[uuid.UUID]model.TransactionExecution
 	scriptTemplates       map[uuid.UUID]model.ScriptTemplate
 	scriptExecutions      map[uuid.UUID]model.ScriptExecution
-	registerDeltas        map[uuid.UUID][]model.RegisterDelta
 }
 
 func NewStore() *Store {
@@ -53,7 +52,6 @@ func NewStore() *Store {
 		transactionExecutions: make(map[uuid.UUID]model.TransactionExecution),
 		scriptTemplates:       make(map[uuid.UUID]model.ScriptTemplate),
 		scriptExecutions:      make(map[uuid.UUID]model.ScriptExecution),
-		registerDeltas:        make(map[uuid.UUID][]model.RegisterDelta),
 	}
 }
 
@@ -81,7 +79,6 @@ func (s *Store) GetUser(id uuid.UUID, user *model.User) error {
 
 func (s *Store) CreateProject(
 	proj *model.InternalProject,
-	deltas []delta.Delta,
 	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate,
@@ -91,12 +88,6 @@ func (s *Store) CreateProject(
 
 	if err := s.insertProject(proj); err != nil {
 		return err
-	}
-
-	for _, delta := range deltas {
-		if err := s.insertRegisterDelta(proj.ID, delta, true); err != nil {
-			return err
-		}
 	}
 
 	for _, account := range accounts {
@@ -256,87 +247,6 @@ func (s *Store) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) 
 	return nil
 }
 
-func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
-	return s.updateAccount(input, acc)
-}
-
-func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
-	a, ok := s.accounts[input.ID]
-	if !ok {
-		return storage.ErrNotFound
-	}
-
-	if input.DraftCode != nil {
-		a.DraftCode = *input.DraftCode
-	}
-
-	if input.DeployedCode != nil {
-		a.DeployedCode = *input.DeployedCode
-	}
-
-	if input.DeployedContracts != nil {
-		a.DeployedContracts = *input.DeployedContracts
-	}
-
-	s.accounts[input.ID] = a
-
-	*acc = a
-
-	err := s.markProjectUpdatedAt(a.ProjectID)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Store) UpdateAccountAfterDeployment(
-	input model.UpdateAccount,
-	states map[uuid.UUID]model.AccountState,
-	delta delta.Delta,
-	acc *model.InternalAccount,
-) error {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
-	err := s.updateAccount(input, acc)
-	if err != nil {
-		return err
-	}
-
-	for accountID, state := range states {
-		err = s.updateAccountState(accountID, state)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.insertRegisterDelta(input.ProjectID, delta, false)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Store) updateAccountState(id uuid.UUID, state model.AccountState) error {
-	a := s.accounts[id]
-
-	a.SetState(state)
-
-	s.accounts[id] = a
-
-	err := s.markProjectUpdatedAt(a.ProjectID)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (s *Store) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
 	s.mut.RLock()
 	defer s.mut.RUnlock()
@@ -355,7 +265,9 @@ func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Intern
 	}
 
 	// sort results by index
-	sort.Slice(res, func(i, j int) bool { return res[i].Index < res[j].Index })
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].Address.ToFlowAddress().String() < res[j].Address.ToFlowAddress().String()
+	})
 
 	*accs = res
 
@@ -504,11 +416,7 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 	return nil
 }
 
-func (s *Store) InsertTransactionExecution(
-	exe *model.TransactionExecution,
-	states map[uuid.UUID]model.AccountState,
-	delta delta.Delta,
-) error {
+func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 
@@ -522,20 +430,7 @@ func (s *Store) InsertTransactionExecution(
 
 	// set index to one after last
 	exe.Index = count
-
 	s.transactionExecutions[exe.ID] = *exe
-
-	for accountID, state := range states {
-		err = s.updateAccountState(accountID, state)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = s.insertRegisterDelta(exe.ProjectID, delta, false)
-	if err != nil {
-		return err
-	}
 
 	err = s.markProjectUpdatedAt(exe.ProjectID)
 	if err != nil {
@@ -743,82 +638,14 @@ func (s *Store) getScriptExecutionsForProject(projectID uuid.UUID, exes *[]*mode
 	return nil
 }
 
-func (s *Store) insertRegisterDelta(projectID uuid.UUID, delta delta.Delta, isAccountCreation bool) error {
-	p, ok := s.projects[projectID]
-	if !ok {
-		return storage.ErrNotFound
-	}
-
-	index := p.TransactionCount + 1
-
-	regDelta := model.RegisterDelta{
-		ProjectID: projectID,
-		Index:     index,
-		Delta:     delta,
-	}
-
-	s.registerDeltas[projectID] = append(s.registerDeltas[projectID], regDelta)
-
-	p.TransactionCount = index
-
-	s.projects[projectID] = p
-
-	return nil
-}
-
-func (s *Store) GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error {
-	s.mut.RLock()
-	defer s.mut.RUnlock()
-
-	res := make([]*model.RegisterDelta, 0)
-
-	for _, d := range s.registerDeltas[projectID] {
-		dCopy := d
-		res = append(res, &dCopy)
-	}
-
-	*deltas = res
-
-	return nil
-}
-
-func (s *Store) ResetProjectState(newDeltas []delta.Delta, proj *model.InternalProject) error {
+func (s *Store) ResetProjectState(proj *model.InternalProject) error {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-
-	// clear deployed code from accounts
-
-	for accountID, account := range s.accounts {
-		if account.ProjectID != proj.ID {
-			continue
-		}
-
-		account.DeployedCode = ""
-		account.DeployedContracts = nil
-
-		s.accounts[accountID] = account
-	}
-
-	// replace existing register deltas with new deltas
-
-	newRegisterDeltas := make([]model.RegisterDelta, len(newDeltas))
-
-	for i, delta := range newDeltas {
-		registerDelta := model.RegisterDelta{
-			ProjectID: proj.ID,
-			Index:     i,
-			Delta:     delta,
-		}
-
-		newRegisterDeltas = append(newRegisterDeltas, registerDelta)
-	}
-
-	s.registerDeltas[proj.ID] = newRegisterDeltas
 
 	// update transaction count
 
 	project := s.projects[proj.ID]
-	project.TransactionCount = len(newRegisterDeltas)
+	project.TransactionCount = 0
 	s.projects[proj.ID] = project
 
 	*proj = project
