@@ -22,9 +22,6 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
-	"github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go/engine/execution/state/delta"
-	flowgo "github.com/onflow/flow-go/model/flow"
 	"github.com/pkg/errors"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -66,16 +63,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		Version:     p.version,
 	}
 
-	// todo change this, we just add it since we require project to exist in order to execute blockchain
-	_ = p.store.UpdateProject(model.UpdateProject{
-		ID:          proj.ID,
-		Title:       &proj.Title,
-		Description: &proj.Description,
-		Readme:      &proj.Readme,
-		Persist:     &proj.Persist,
-	}, proj)
-
-	accounts, deltas, err := p.createInitialAccounts(proj.ID, input.Accounts)
+	accounts, err := p.createInitialAccounts(proj.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +100,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 
 	proj.UserID = user.ID
 
-	err = p.store.CreateProject(proj, deltas, accounts, ttpls, stpls)
+	err = p.store.CreateProject(proj, accounts, ttpls, stpls)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
 	}
@@ -120,13 +108,10 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 	return proj, nil
 }
 
-func (p *Projects) createInitialAccounts(
-	projectID uuid.UUID,
-	initialContracts []string,
-) ([]*model.InternalAccount, []delta.Delta, error) {
-	addresses, deltas, err := p.deployInitialAccounts(projectID)
+func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+	addresses, err := p.deployInitialAccounts()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	accounts := make([]*model.InternalAccount, len(addresses))
@@ -143,22 +128,22 @@ func (p *Projects) createInitialAccounts(
 		accounts[i] = &account
 	}
 
-	return accounts, deltas, nil
+	return accounts, nil
 }
 
-func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, []delta.Delta, error) {
+func (p *Projects) deployInitialAccounts() ([]model.Address, error) {
 	addresses := make([]model.Address, p.numAccounts)
 
 	for i := 0; i < p.numAccounts; i++ {
 		account, _, err := p.blockchain.CreateAccount()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		addresses[i] = model.Address(account.Address)
 	}
 
-	return addresses, nil, nil
+	return addresses, nil
 }
 
 func (p *Projects) Get(id uuid.UUID, proj *model.InternalProject) error {
@@ -189,12 +174,14 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 func (p *Projects) Reset(proj *model.InternalProject) error {
-	_, deltas, err := p.deployInitialAccounts(proj.ID)
+	// todo reset emulator state
+
+	_, err := p.deployInitialAccounts()
 	if err != nil {
 		return err
 	}
 
-	err = p.store.ResetProjectState(deltas, proj)
+	err = p.store.ResetProjectState(proj)
 	if err != nil {
 		return err
 	}
@@ -202,19 +189,4 @@ func (p *Projects) Reset(proj *model.InternalProject) error {
 	// todo clear cache
 
 	return nil
-}
-
-func toTransactionBody(tx *flow.Transaction) *flowgo.TransactionBody {
-	txBody := flowgo.NewTransactionBody()
-	txBody.SetScript(tx.Script)
-
-	for _, authorizer := range tx.Authorizers {
-		txBody.AddAuthorizer(flowgo.Address(authorizer))
-	}
-
-	for _, arg := range tx.Arguments {
-		txBody.AddArgument(arg)
-	}
-
-	return txBody
 }
