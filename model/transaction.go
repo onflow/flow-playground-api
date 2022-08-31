@@ -21,6 +21,9 @@ package model
 import (
 	"encoding/json"
 
+	"github.com/google/uuid"
+	"github.com/onflow/flow-emulator/types"
+
 	"cloud.google.com/go/datastore"
 	"github.com/pkg/errors"
 )
@@ -85,6 +88,36 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 	}, nil
+}
+
+func TransactionExecutionFromFlow(
+	result *types.TransactionResult,
+	projectID uuid.UUID,
+	script string,
+	args []string,
+	signers []Address,
+) (*TransactionExecution, error) {
+	id := ProjectChildID{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+	}
+
+	exe := &TransactionExecution{
+		ProjectChildID: id,
+		Script:         script,
+		Arguments:      args,
+		Signers:        signers,
+	}
+
+	events, err := EventsFromFlow(result.Events)
+	if err != nil {
+		return nil, err
+	}
+	exe.Events = events
+
+	exe.Errors = ProgramErrorFromFlow(result.Error)
+
+	return exe, nil
 }
 
 type TransactionExecution struct {
