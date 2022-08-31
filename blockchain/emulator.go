@@ -38,8 +38,6 @@ type Emulator struct {
 	blockchain *emulator.Blockchain
 }
 
-// todo think about using flowkit
-
 func NewEmulator() (*Emulator, error) {
 	blockchain, err := emulator.NewBlockchain(
 		emulator.WithStore(memstore.New()),
@@ -114,6 +112,7 @@ func (e *Emulator) CreateAccount() (*flowsdk.Account, *types.TransactionResult, 
 	}, result, nil
 }
 
+// todo add storage to get account
 func (e *Emulator) GetAccount(address model.Address) (*flowsdk.Account, error) {
 	return e.blockchain.GetAccount(address.ToFlowAddress())
 }
