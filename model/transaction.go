@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 
 	"cloud.google.com/go/datastore"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -90,13 +89,13 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 
 type TransactionExecution struct {
 	ProjectChildID
-	Index            int
-	Script           string
-	Arguments        []string
-	SignerAccountIDs []uuid.UUID
-	Errors           []ProgramError
-	Events           []Event
-	Logs             []string
+	Index     int
+	Script    string
+	Arguments []string
+	Signers   []Address
+	Errors    []ProgramError
+	Events    []Event
+	Logs      []string
 }
 
 func (t *TransactionExecution) NameKey() *datastore.Key {
@@ -105,14 +104,14 @@ func (t *TransactionExecution) NameKey() *datastore.Key {
 
 func (t *TransactionExecution) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID               string
-		ProjectID        string
-		Index            int
-		Script           string
-		Arguments        []string
-		SignerAccountIDs []string
-		Events           string
-		Logs             []string
+		ID        string
+		ProjectID string
+		Index     int
+		Script    string
+		Arguments []string
+		Signers   [][]byte
+		Events    string
+		Logs      []string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -126,12 +125,10 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 		return errors.Wrap(err, "failed to decode project UUID")
 	}
 
-	for _, aID := range tmp.SignerAccountIDs {
-		signer := uuid.UUID{}
-		if err := signer.UnmarshalText([]byte(aID)); err != nil {
-			return errors.Wrap(err, "failed to decode signer account UUID")
-		}
-		t.SignerAccountIDs = append(t.SignerAccountIDs, signer)
+	for _, sig := range tmp.Signers {
+		var signer Address
+		copy(signer[:], sig[:])
+		t.Signers = append(t.Signers, signer)
 	}
 
 	if err := json.Unmarshal([]byte(tmp.Events), &t.Events); err != nil {
@@ -146,9 +143,9 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 }
 
 func (t *TransactionExecution) Save() ([]datastore.Property, error) {
-	signerAccountIDs := make([]interface{}, 0, len(t.SignerAccountIDs))
-	for _, aID := range t.SignerAccountIDs {
-		signerAccountIDs = append(signerAccountIDs, aID.String())
+	signers := make([]interface{}, 0, len(t.Signers))
+	for _, sig := range t.Signers {
+		signers = append(signers, sig.ToFlowAddress().Bytes())
 	}
 
 	events, err := json.Marshal(t.Events)
@@ -176,10 +173,6 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			Value: t.ProjectID.String(),
 		},
 		{
-			Name:  "Index",
-			Value: t.Index,
-		},
-		{
 			Name:    "Script",
 			Value:   t.Script,
 			NoIndex: true,
@@ -190,8 +183,8 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 		{
-			Name:  "SignerAccountIDs",
-			Value: signerAccountIDs,
+			Name:  "Signers",
+			Value: signers,
 		},
 		{
 			Name:    "Events",

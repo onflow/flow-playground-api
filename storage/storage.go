@@ -22,10 +22,8 @@ import (
 	"errors"
 
 	"github.com/Masterminds/semver"
-	"github.com/google/uuid"
-	"github.com/onflow/flow-go/engine/execution/state/delta"
-
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/google/uuid"
 )
 
 type Store interface {
@@ -34,7 +32,6 @@ type Store interface {
 
 	CreateProject(
 		proj *model.InternalProject,
-		registerDeltas []delta.Delta,
 		accounts []*model.InternalAccount,
 		ttpl []*model.TransactionTemplate,
 		stpl []*model.ScriptTemplate,
@@ -42,18 +39,11 @@ type Store interface {
 	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
-	ResetProjectState(newDeltas []delta.Delta, proj *model.InternalProject) error
+	ResetProjectState(proj *model.InternalProject) error
 	GetProject(id uuid.UUID, proj *model.InternalProject) error
 
 	InsertAccount(acc *model.InternalAccount) error
 	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
-	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
-	UpdateAccountAfterDeployment(
-		input model.UpdateAccount,
-		states map[uuid.UUID]model.AccountState,
-		delta delta.Delta,
-		acc *model.InternalAccount,
-	) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
 
@@ -63,11 +53,7 @@ type Store interface {
 	GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error
 	DeleteTransactionTemplate(id model.ProjectChildID) error
 
-	InsertTransactionExecution(
-		exe *model.TransactionExecution,
-		states map[uuid.UUID]model.AccountState,
-		delta delta.Delta,
-	) error
+	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
 
 	InsertScriptTemplate(tpl *model.ScriptTemplate) error
@@ -78,8 +64,6 @@ type Store interface {
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
-
-	GetRegisterDeltasForProject(projectID uuid.UUID, deltas *[]*model.RegisterDelta) error
 }
 
 var ErrNotFound = errors.New("entity not found")
