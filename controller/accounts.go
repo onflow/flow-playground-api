@@ -44,20 +44,15 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
-	// todo revisit if this is needed
 	exported := make([]*model.Account, len(accounts))
-	for i, acc := range accounts {
-		exported[i] = acc.Export()
-
-		// todo refactor think about defining a different account model, blockchain account or similar
-		a, err := a.blockchain.GetAccount(projectID, acc.Address)
+	for i, account := range accounts {
+		acc, err := a.blockchain.GetAccount(projectID, account.Address)
 		if err != nil {
 			return nil, err
 		}
 
-		exported[i].State = a.State
-		exported[i].DeployedCode = a.DeployedCode
-		exported[i].DeployedContracts = a.DeployedContracts
+		acc.ID = account.ID
+		exported[i] = acc
 	}
 
 	return exported, nil
@@ -66,6 +61,7 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	var acc model.InternalAccount
 
+	// if we provided draft code then just do a storage update of an account
 	if input.DraftCode != nil {
 		err := a.store.UpdateAccount(input, &acc)
 		if err != nil {
@@ -80,6 +76,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, err
 	}
 
+	// if deployed code is not provided fail, else continue and deploy new contracts
 	if input.DeployedCode == nil {
 		return nil, fmt.Errorf("must provide either deployed code or draft code for update")
 	}
@@ -98,9 +95,6 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	// todo refactor ofc
-	returnAcc := acc.Export()
-	returnAcc.DeployedCode = account.DeployedCode
-	returnAcc.DeployedContracts = account.DeployedContracts
-	return returnAcc, nil
+	account.ID = acc.ID
+	return account, nil
 }

@@ -21,6 +21,7 @@ package model
 import (
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
@@ -107,4 +108,20 @@ type UpdateAccount struct {
 	DraftCode         *string   `json:"draftCode"`
 	DeployedCode      *string   `json:"deployedCode"`
 	DeployedContracts *[]string
+}
+
+func AccountFromFlow(account *flowsdk.Account) *Account {
+	contractNames := make([]string, 0)
+	contractCode := ""
+	for name, code := range account.Contracts {
+		contractNames = append(contractNames, name)
+		contractCode = string(code)
+		break // we only allow one deployed contract on account so only get the first if present
+	}
+
+	return &Account{
+		Address:           NewAddressFromBytes(account.Address.Bytes()),
+		DeployedCode:      contractCode,
+		DeployedContracts: contractNames,
+	}
 }
