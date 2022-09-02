@@ -61,6 +61,17 @@ func (p *Client) Websocket(query string, options ...Option) *Subscription {
 	return p.WebsocketWithPayload(query, nil, options...)
 }
 
+// Grab a single response from a websocket based query
+func (p *Client) WebsocketOnce(query string, resp interface{}, options ...Option) error {
+	sock := p.Websocket(query)
+
+	defer func() {
+		_ = sock.Close()
+	}()
+
+	return sock.Next(&resp)
+}
+
 func (p *Client) WebsocketWithPayload(query string, initPayload map[string]interface{}, options ...Option) *Subscription {
 	r, err := p.newRequest(query, options...)
 	if err != nil {

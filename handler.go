@@ -21,21 +21,22 @@ package playground
 import (
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/handler"
+	"github.com/99designs/gqlgen/graphql"
+	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
 	"net/http"
 	"runtime/debug"
 )
 
-func GraphQLHandler(resolver *Resolver, options ...handler.Option) http.HandlerFunc {
-	options = append(
-		options,
-		handler.RecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
-			return fmt.Errorf("panic: %s\n\n%s", err, string(debug.Stack()))
-		}),
-	)
+func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {
+	srv := gqlHandler.NewDefaultServer(NewExecutableSchema(Config{Resolvers: resolver}))
 
-	return handler.GraphQL(
-		NewExecutableSchema(Config{Resolvers: resolver}),
-		options...,
-	)
+	for _, middleware := range middlewares {
+		srv.AroundResponses(middleware)
+	}
+
+	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
+		return fmt.Errorf("panic: %s\n\n%s", err, string(debug.Stack()))
+	})
+
+	return srv.ServeHTTP
 }

@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
 	"github.com/golang/groupcache/lru"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -35,14 +37,13 @@ import (
 
 	"github.com/go-chi/render"
 
-	"github.com/99designs/gqlgen-contrib/prometheus"
-	"github.com/99designs/gqlgen/handler"
+	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/go-chi/chi"
 	gsessions "github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 
@@ -97,6 +98,14 @@ func main() {
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
+		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+			if hint.Context != nil {
+				if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
+					event.Level = sentryLevel
+				}
+			}
+			return event
+		},
 	})
 
 	if err != nil {
@@ -144,14 +153,11 @@ func main() {
 
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
-	// Register gql metrics
-	prometheus.Register()
-
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
-		router.Handle("/", handler.Playground("GraphQL playground", "/query"))
+		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
 	logger := logrus.StandardLogger()
@@ -199,11 +205,10 @@ func main() {
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				handler.RequestMiddleware(errors.Middleware(entry, localHub)),
-				handler.RequestMiddleware(prometheus.RequestMiddleware()),
-				handler.ResolverMiddleware(prometheus.ResolverMiddleware()),
+				errors.Middleware(entry, localHub),
 			),
 		)
+
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
@@ -222,7 +227,6 @@ func main() {
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
 
-	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/ping", ping)
 
 	logStartMessage(build.Version())
@@ -231,7 +235,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
 
-func ping(w http.ResponseWriter, r *http.Request) {
+func ping(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("ok"))
 }
