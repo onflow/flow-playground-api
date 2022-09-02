@@ -21,22 +21,20 @@ package controller
 import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 type Scripts struct {
 	store      storage.Store
-	blockchain blockchain.Blockchain
+	blockchain *blockchain.State
 }
 
 func NewScripts(
 	store storage.Store,
-	blockchain blockchain.Blockchain,
+	blockchain *blockchain.State,
 ) *Scripts {
 	return &Scripts{
 		store:      store,
@@ -102,7 +100,7 @@ func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.Script
 	return &tpl, nil
 }
 
-// todo decide about input arguments as native types or as input dto
+// todo review api arguments - should they accept DTO or raw data in native type
 
 func (s *Scripts) CreateExecution(
 	proj *model.InternalProject,
@@ -116,36 +114,15 @@ func (s *Scripts) CreateExecution(
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	result, err := s.blockchain.ExecuteScript(script, arguments)
+	execution, err := s.blockchain.ExecuteScript(proj.ID, script, arguments)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
 
-	exe := model.ScriptExecution{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-		},
-		Script:    script,
-		Arguments: arguments,
-		Logs:      result.Logs,
-	}
-
-	if result.Error != nil {
-		exe.Errors = compute.ExtractProgramErrors(result.Error)
-	} else {
-		enc, err := jsoncdc.Encode(result.Value)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
-		}
-
-		exe.Value = string(enc)
-	}
-
-	err = s.store.InsertScriptExecution(&exe)
+	err = s.store.InsertScriptExecution(execution)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert script execution record")
 	}
 
-	return &exe, nil
+	return execution, nil
 }
