@@ -22,13 +22,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/golang/groupcache/lru"
+
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -74,7 +75,7 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, migrated)
 
-		err = c.projects.Get(proj.ID, proj)
+		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, migrate.V0_1_0, proj.Version)
@@ -96,7 +97,7 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, migrated)
 
-		err = c.projects.Get(proj.ID, proj)
+		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, v0_2_0, proj.Version)
@@ -104,22 +105,20 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 }
 
 type migrateTestCase struct {
-	store    storage.Store
-	computer *compute.Computer
-	scripts  *controller.Scripts
-	projects *controller.Projects
-	migrator *migrate.Migrator
-	user     *model.User
+	store      storage.Store
+	blockchain *blockchain.State
+	scripts    *controller.Scripts
+	projects   *controller.Projects
+	migrator   *migrate.Migrator
+	user       *model.User
 }
 
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		computer, err := compute.NewComputer(zerolog.Nop(), cacheSize)
-		require.NoError(t, err)
-
-		scripts := controller.NewScripts(store, computer)
-		projects := controller.NewProjects(startVersion, store, computer, numAccounts)
+		chain := blockchain.NewState(store, lru.New(128))
+		scripts := controller.NewScripts(store, chain)
+		projects := controller.NewProjects(startVersion, store, numAccounts, chain)
 
 		migrator := migrate.NewMigrator(projects)
 
@@ -127,16 +126,16 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 			ID: uuid.New(),
 		}
 
-		err = store.InsertUser(&user)
+		err := store.InsertUser(&user)
 		require.NoError(t, err)
 
 		f(t, migrateTestCase{
-			store:    store,
-			computer: computer,
-			scripts:  scripts,
-			projects: projects,
-			migrator: migrator,
-			user:     &user,
+			store:      store,
+			blockchain: chain,
+			scripts:    scripts,
+			projects:   projects,
+			migrator:   migrator,
+			user:       &user,
 		})
 	}
 }
@@ -145,7 +144,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 	for i := 1; i <= numAccounts; i++ {
 		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 
-		result, err := scripts.CreateExecution(proj, model.NewScriptExecution{
+		result, err := scripts.CreateExecution(proj.ID, model.NewScriptExecution{
 			ProjectID: proj.ID,
 			Script:    script,
 			Arguments: nil,
