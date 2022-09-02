@@ -168,10 +168,5 @@ func (s *State) DeployContract(projectID uuid.UUID, address model.Address, scrip
 		return nil, err
 	}
 
-	account, err := s.GetAccount(projectID, address)
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
+	return s.GetAccount(projectID, address)
 }
