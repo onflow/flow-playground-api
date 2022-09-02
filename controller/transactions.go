@@ -10,12 +10,12 @@ import (
 
 type Transactions struct {
 	store      storage.Store
-	blockchain blockchain.Blockchain
+	blockchain *blockchain.State
 }
 
 func NewTransactions(
 	store storage.Store,
-	blockchain blockchain.Blockchain,
+	blockchain *blockchain.State,
 ) *Transactions {
 	return &Transactions{
 		store:      store,
@@ -94,25 +94,9 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 }
 
 func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	result, err := t.blockchain.ExecuteTransaction(input.Script, input.Arguments, input.Signers)
+	exe, err := t.blockchain.ExecuteTransaction(input.ProjectID, input.Script, input.Arguments, input.Signers)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
-	}
-
-	exe, err := model.TransactionExecutionFromFlow(
-		result,
-		input.ProjectID,
-		input.Script,
-		input.Arguments,
-		input.Signers,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = t.store.InsertTransactionExecution(exe)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert transaction execution record")
 	}
 
 	return exe, nil
