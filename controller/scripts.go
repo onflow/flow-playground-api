@@ -100,21 +100,18 @@ func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.Script
 	return &tpl, nil
 }
 
-// todo review api arguments - should they accept DTO or raw data in native type
-
 func (s *Scripts) CreateExecution(
-	proj *model.InternalProject,
-	script string,
-	arguments []string,
+	projectID uuid.UUID,
+	script model.NewScriptExecution,
 ) (
 	*model.ScriptExecution,
 	error,
 ) {
-	if len(script) == 0 {
+	if len(script.Script) == 0 {
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	execution, err := s.blockchain.ExecuteScript(proj.ID, script, arguments)
+	execution, err := s.blockchain.ExecuteScript(projectID, script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
