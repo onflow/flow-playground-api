@@ -20,6 +20,9 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
+	"github.com/google/uuid"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/flow-emulator/types"
 	"github.com/pkg/errors"
 )
 
@@ -85,6 +88,31 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 	}, nil
+}
+
+func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) (*ScriptExecution, error) {
+	exe := &ScriptExecution{
+		ProjectChildID: ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+		},
+		Script:    script,
+		Arguments: arguments,
+		Logs:      result.Logs,
+	}
+
+	if result.Error != nil {
+		exe.Errors = ProgramErrorFromFlow(result.Error)
+	} else {
+		enc, err := jsoncdc.Encode(result.Value)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
+		}
+
+		exe.Value = string(enc)
+	}
+
+	return exe, nil
 }
 
 type ScriptExecution struct {
