@@ -102,9 +102,9 @@ func TransactionExecutionFromFlow(
 		ProjectID: projectID,
 	}
 
-	args := make([]string, len(tx.Arguments))
-	for i, a := range tx.Arguments {
-		args[i] = string(a)
+	args := make([]string, 0)
+	for _, a := range tx.Arguments {
+		args = append(args, string(a))
 	}
 
 	signers := make([]Address, len(tx.Authorizers))
