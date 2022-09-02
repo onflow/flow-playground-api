@@ -33,7 +33,6 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,7 +40,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/client"
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -503,6 +501,10 @@ func TestProjects(t *testing.T) {
 		// project should still be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
+		assert.Equal(t, "0000000000000005", resp.CreateProject.Accounts[0].Address)
+		assert.Equal(t, "0000000000000006", resp.CreateProject.Accounts[1].Address)
+		assert.Equal(t, "0000000000000007", resp.CreateProject.Accounts[2].Address)
+		assert.Equal(t, "0000000000000008", resp.CreateProject.Accounts[3].Address)
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
 		assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
@@ -1025,7 +1027,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[5]
 
-		// first account should have address 0x06
+		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
 			`{"type":"Address","value":"0x000000000000000a"}`,
@@ -1060,8 +1062,8 @@ func TestTransactionExecutions(t *testing.T) {
 	t.Run("Multiple executions with cache reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer, _ := compute.NewComputer(zerolog.Nop(), 128)
-		chain, _ := blockchain.NewEmulator()
+
+		chain := blockchain.NewState(store)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, authenticator, chain)
 
@@ -1096,7 +1098,7 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 
 		// clear ledger cache
-		computer.ClearCache()
+		// todo computer.ClearCache()
 
 		var respB CreateTransactionExecutionResponse
 
@@ -2361,7 +2363,7 @@ func newClient() *Client {
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain, _ := blockchain.NewEmulator()
+	chain := blockchain.NewState(store)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)
@@ -2434,3 +2436,8 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 
 	return resp.CreateScriptTemplate.ID
 }
+
+// todo add tests for:
+// - checking account state
+// - deploying contract on account actually changes the returned account
+// - failed transactions with successful transactions work (bootstrap works)??
