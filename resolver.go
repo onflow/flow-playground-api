@@ -95,6 +95,19 @@ type mutationResolver struct {
 	*Resolver
 }
 
+func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
+	proj, err := r.projects.Get(ID)
+	if err != nil {
+		return errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
@@ -112,19 +125,12 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
-	// todo refactor auth check
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ID, &proj)
+	err := r.authorize(ctx, input.ID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
-	err = r.projects.Update(input, &proj)
+	proj, err := r.projects.Update(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update project")
 	}
@@ -133,14 +139,8 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
@@ -148,14 +148,8 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
@@ -163,14 +157,8 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 }
 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
@@ -178,15 +166,9 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 }
 
 func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(projectID, &proj)
+	err := r.authorize(ctx, projectID)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
-		return uuid.Nil, err
+		return uuid.UUID{}, err
 	}
 
 	err = r.transactions.DeleteTemplate(id, projectID)
@@ -201,14 +183,8 @@ func (r *mutationResolver) CreateTransactionExecution(
 	ctx context.Context,
 	input model.NewTransactionExecution,
 ) (*model.TransactionExecution, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
@@ -216,18 +192,12 @@ func (r *mutationResolver) CreateTransactionExecution(
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
-	tpl, err := r.scripts.CreateTemplate(proj.ID, input)
+	tpl, err := r.scripts.CreateTemplate(input.ProjectID, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create script template")
 	}
@@ -236,14 +206,8 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 }
 
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
@@ -255,15 +219,9 @@ func (r *mutationResolver) DeleteScriptTemplate(
 	id uuid.UUID,
 	projectID uuid.UUID,
 ) (uuid.UUID, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(projectID, &proj)
+	err := r.authorize(ctx, projectID)
 	if err != nil {
-		return uuid.Nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
-		return uuid.Nil, err
+		return uuid.UUID{}, err
 	}
 
 	err = r.scripts.DeleteTemplate(id, projectID)
@@ -278,18 +236,12 @@ func (r *mutationResolver) CreateScriptExecution(
 	ctx context.Context,
 	input model.NewScriptExecution,
 ) (*model.ScriptExecution, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(input.ProjectID, &proj)
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(&proj, input.Script, input.Arguments)
+	exe, err := r.scripts.CreateExecution(input.ProjectID, input)
 	if err != nil {
 		return nil, err
 	}
@@ -330,14 +282,12 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	var proj model.InternalProject
-
-	err := r.projects.Get(id, &proj)
+	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return proj.ExportPublicImmutable(), nil
 	}
 
@@ -351,7 +301,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	// reload project if needed
 
 	if migrated {
-		err := r.projects.Get(id, &proj)
+		proj, err = r.projects.Get(id)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get project")
 		}
