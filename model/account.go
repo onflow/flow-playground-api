@@ -26,7 +26,8 @@ import (
 
 type InternalAccount struct {
 	ProjectChildID
-	Address Address
+	Address   Address
+	DraftCode string
 }
 
 func (a *InternalAccount) NameKey() *datastore.Key {
@@ -38,6 +39,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		ID        string
 		ProjectID string
 		Address   []byte
+		DraftCode string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -53,6 +55,9 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	}
 
 	copy(a.Address[:], tmp.Address[:])
+
+	a.DraftCode = tmp.DraftCode
+
 	return nil
 }
 
@@ -70,6 +75,10 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 			Name:  "Address",
 			Value: a.Address[:],
 		},
+		{
+			Name:  "DraftCode",
+			Value: a.DraftCode,
+		},
 	}, nil
 }
 
@@ -78,11 +87,24 @@ func (a *InternalAccount) Export() *Account {
 		ID:        a.ID,
 		ProjectID: a.ProjectID,
 		Address:   a.Address,
+		DraftCode: a.DraftCode,
 	}
 }
 
 type Account struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Address   Address
+	ID                uuid.UUID
+	ProjectID         uuid.UUID
+	Address           Address
+	DraftCode         string
+	DeployedCode      string
+	DeployedContracts []string
+	State             string
+}
+
+type UpdateAccount struct {
+	ID                uuid.UUID `json:"id"`
+	ProjectID         uuid.UUID `json:"projectId"`
+	DraftCode         *string   `json:"draftCode"`
+	DeployedCode      *string   `json:"deployedCode"`
+	DeployedContracts *[]string
 }
