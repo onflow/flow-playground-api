@@ -32,14 +32,14 @@ type Projects struct {
 	version     *semver.Version
 	store       storage.Store
 	numAccounts int
-	blockchain  blockchain.Blockchain
+	blockchain  *blockchain.State
 }
 
 func NewProjects(
 	version *semver.Version,
 	store storage.Store,
 	numAccounts int,
-	blockchain blockchain.Blockchain,
+	blockchain *blockchain.State,
 ) *Projects {
 	return &Projects{
 		version:     version,
@@ -61,11 +61,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		Readme:      input.Readme,
 		Persist:     false,
 		Version:     p.version,
-	}
-
-	accounts, err := p.createInitialAccounts(proj.ID)
-	if err != nil {
-		return nil, err
 	}
 
 	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
@@ -100,16 +95,33 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 
 	proj.UserID = user.ID
 
-	err = p.store.CreateProject(proj, accounts, ttpls, stpls)
+	err := p.store.CreateProject(proj, ttpls, stpls)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
+	}
+
+	accounts, err := p.createInitialAccounts(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, account := range accounts {
+		// todo wrap in database transaction if it fails to create accounts
+		if i < len(input.Accounts) {
+			account.DraftCode = input.Accounts[i]
+		}
+
+		err := p.store.InsertAccount(account)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return proj, nil
 }
 
 func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
-	addresses, err := p.deployInitialAccounts()
+	addresses, err := p.deployInitialAccounts(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -131,11 +143,11 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 	return accounts, nil
 }
 
-func (p *Projects) deployInitialAccounts() ([]model.Address, error) {
+func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, error) {
 	addresses := make([]model.Address, p.numAccounts)
 
 	for i := 0; i < p.numAccounts; i++ {
-		account, _, err := p.blockchain.CreateAccount()
+		account, err := p.blockchain.CreateAccount(projectID)
 		if err != nil {
 			return nil, err
 		}
@@ -146,6 +158,7 @@ func (p *Projects) deployInitialAccounts() ([]model.Address, error) {
 	return addresses, nil
 }
 
+// todo don't accept pointer return
 func (p *Projects) Get(id uuid.UUID, proj *model.InternalProject) error {
 	err := p.store.GetProject(id, proj)
 	if err != nil {
@@ -176,7 +189,7 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 func (p *Projects) Reset(proj *model.InternalProject) error {
 	// todo reset emulator state
 
-	_, err := p.deployInitialAccounts()
+	_, err := p.deployInitialAccounts(proj.ID)
 	if err != nil {
 		return err
 	}
