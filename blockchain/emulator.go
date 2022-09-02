@@ -17,19 +17,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+// blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
+// consumer and communicates using flow native types.
 type blockchain interface {
+	// executeTransaction builds and executes a transaction and uses provided authorizers for signing.
 	executeTransaction(
 		script string,
 		arguments []string,
 		authorizers []model.Address,
-	) (*types.TransactionResult, error)
+	) (*types.TransactionResult, *flowsdk.Transaction, error)
+
+	// executeScript executes a provided script with the arguments.
 	executeScript(
 		script string,
 		arguments []string,
 	) (*types.ScriptResult, error)
+
+	// createAccount creates a new account and returns it along with transaction and result.
 	createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error)
-	getAccount(address model.Address) (*flowsdk.Account, *emu.AccountStorage, error)
-	deployContract(address model.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
+
+	// getAccount gets an account by the address and also returns its storage.
+	getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error)
+
+	// deployContract deploys a contract on the provided address and returns transaction and result.
+	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 }
 
 var _ blockchain = &emulator{}
@@ -59,13 +70,13 @@ func (e *emulator) executeTransaction(
 	script string,
 	arguments []string,
 	authorizers []model.Address,
-) (*types.TransactionResult, error) {
+) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
 
 	args, err := parseArguments(arguments)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tx.Arguments = args
 
@@ -83,44 +94,36 @@ func (e *emulator) executeScript(script string, arguments []string) (*types.Scri
 
 func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error) {
 	payer := e.blockchain.ServiceKey().Address
+
 	key := flowsdk.NewAccountKey()
 	key.FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
 	key.HashAlgo = crypto.SHA3_256
-	key.SetWeight(1000)
+	key.SetWeight(flowsdk.AccountKeyWeightThreshold)
 
 	tx, err := templates.CreateAccount([]*flowsdk.AccountKey{key}, nil, payer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	result, err := e.sendTransaction(tx, nil)
+	result, tx, err := e.sendTransaction(tx, nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	var address flowsdk.Address
-	for _, event := range result.Events {
-		if event.Type == flowsdk.EventAccountCreated {
-			addressValue := event.Value.Fields[0].(cadence.Address)
-			address = flowsdk.HexToAddress(addressValue.Hex())
-			break
-		}
+	account := &flowsdk.Account{
+		Address: parseEventAddress(result.Events),
 	}
 
-	return &flowsdk.Account{
-		Address: address,
-	}, tx, result, nil
+	return account, tx, result, nil
 }
 
-func (e *emulator) getAccount(address model.Address) (*flowsdk.Account, *emu.AccountStorage, error) {
-	addr := address.ToFlowAddress()
-
-	storage, err := e.blockchain.GetAccountStorage(addr)
+func (e *emulator) getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error) {
+	storage, err := e.blockchain.GetAccountStorage(address)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	account, err := e.blockchain.GetAccount(addr)
+	account, err := e.blockchain.GetAccount(address)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,29 +131,30 @@ func (e *emulator) getAccount(address model.Address) (*flowsdk.Account, *emu.Acc
 	return account, storage, nil
 }
 
-func (e *emulator) deployContract(address model.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error) {
+func (e *emulator) deployContract(
+	address flowsdk.Address,
+	script string,
+) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	contractName, err := getSourceContractName(script)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	tx := templates.AddAccountContract(address.ToFlowAddress(), templates.Contract{
+	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
 		Source: script,
 	})
 
-	result, err := e.sendTransaction(tx, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return result, tx, nil
+	return e.sendTransaction(tx, nil)
 }
 
-func (e *emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.Address) (*types.TransactionResult, error) {
+func (e *emulator) sendTransaction(
+	tx *flowsdk.Transaction,
+	authorizers []model.Address,
+) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
-		return nil, err
+		return nil, nil, errors.Wrap(err, "error getting service signer")
 	}
 
 	for _, auth := range authorizers {
@@ -165,34 +169,48 @@ func (e *emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.
 
 		err := tx.SignPayload(auth.ToFlowAddress(), 0, signer)
 		if err != nil {
-			return nil, err
+			return nil, nil, errors.Wrap(err, "error signing payload")
 		}
 	}
 
 	err = tx.SignEnvelope(e.blockchain.ServiceKey().Address, e.blockchain.ServiceKey().Index, signer)
 	if err != nil { // todo should we return as transaction result error
-		return nil, err
+		return nil, nil, errors.Wrap(err, "error signing the envelope")
 	}
 
 	err = e.blockchain.AddTransaction(*tx)
-	if err != nil { // return as transaction result error
+	if err != nil {
 		return &types.TransactionResult{
 			Error: err,
-		}, nil
+		}, nil, nil
 	}
 
 	_, res, err := e.blockchain.ExecuteAndCommitBlock()
 	if err != nil {
-		return nil, err
+		return nil, nil, errors.Wrap(err, "error executing the block")
 	}
 
+	// there should always be just one transaction per block execution, if not the case fail
 	if len(res) != 1 {
-		return nil, fmt.Errorf("failure during transaction execution")
+		// todo add sentry error
+		return nil, nil, fmt.Errorf("failure during transaction execution, multiple transactions executed")
 	}
 
-	return res[0], nil
+	return res[0], tx, nil
 }
 
+// parseEventAddress gets an address out of the account creation events payloads
+func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
+	for _, event := range events {
+		if event.Type == flowsdk.EventAccountCreated {
+			addressValue := event.Value.Fields[0].(cadence.Address)
+			return flowsdk.HexToAddress(addressValue.Hex())
+		}
+	}
+	return flowsdk.Address{}
+}
+
+// parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
 func parseArguments(args []string) ([][]byte, error) {
 	encodedArgs := make([][]byte, len(args))
 	for i, arg := range args {
@@ -208,6 +226,7 @@ func parseArguments(args []string) ([][]byte, error) {
 	return encodedArgs, nil
 }
 
+// getSourceContractName extracts contract name from its source
 func getSourceContractName(code string) (string, error) {
 	program, err := parser.ParseProgram(code, nil)
 	if err != nil {
