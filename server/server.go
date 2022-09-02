@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 
@@ -136,7 +138,9 @@ func main() {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	resolver := playground.NewResolver(build.Version(), store, authenticator, blockchain)
+	chain := blockchain.NewState(store)
+
+	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
 	// Register gql metrics
 	prometheus.Register()
