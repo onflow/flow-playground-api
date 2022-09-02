@@ -27,9 +27,9 @@ type blockchain interface {
 		script string,
 		arguments []string,
 	) (*types.ScriptResult, error)
-	createAccount() (*flowsdk.Account, *types.TransactionResult, error)
-	getAccount(address model.Address) (*flowsdk.Account, error)
-	deployContract(address model.Address, script string) (*types.TransactionResult, string, error)
+	createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error)
+	getAccount(address model.Address) (*flowsdk.Account, *emu.AccountStorage, error)
+	deployContract(address model.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 }
 
 var _ blockchain = &emulator{}
@@ -81,7 +81,7 @@ func (e *emulator) executeScript(script string, arguments []string) (*types.Scri
 	return e.blockchain.ExecuteScript([]byte(script), args)
 }
 
-func (e *emulator) createAccount() (*flowsdk.Account, *types.TransactionResult, error) {
+func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error) {
 	payer := e.blockchain.ServiceKey().Address
 	key := flowsdk.NewAccountKey()
 	key.FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
@@ -90,12 +90,12 @@ func (e *emulator) createAccount() (*flowsdk.Account, *types.TransactionResult, 
 
 	tx, err := templates.CreateAccount([]*flowsdk.AccountKey{key}, nil, payer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	result, err := e.sendTransaction(tx, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var address flowsdk.Address
@@ -109,18 +109,29 @@ func (e *emulator) createAccount() (*flowsdk.Account, *types.TransactionResult, 
 
 	return &flowsdk.Account{
 		Address: address,
-	}, result, nil
+	}, tx, result, nil
 }
 
-// todo add storage to get account
-func (e *emulator) getAccount(address model.Address) (*flowsdk.Account, error) {
-	return e.blockchain.GetAccount(address.ToFlowAddress())
+func (e *emulator) getAccount(address model.Address) (*flowsdk.Account, *emu.AccountStorage, error) {
+	addr := address.ToFlowAddress()
+
+	storage, err := e.blockchain.GetAccountStorage(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	account, err := e.blockchain.GetAccount(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return account, storage, nil
 }
 
-func (e *emulator) deployContract(address model.Address, script string) (*types.TransactionResult, string, error) {
+func (e *emulator) deployContract(address model.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	contractName, err := getSourceContractName(script)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
 	tx := templates.AddAccountContract(address.ToFlowAddress(), templates.Contract{
@@ -130,10 +141,10 @@ func (e *emulator) deployContract(address model.Address, script string) (*types.
 
 	result, err := e.sendTransaction(tx, nil)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 
-	return result, contractName, nil
+	return result, tx, nil
 }
 
 func (e *emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.Address) (*types.TransactionResult, error) {
@@ -148,6 +159,10 @@ func (e *emulator) sendTransaction(tx *flowsdk.Transaction, authorizers []model.
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
 
 	for _, auth := range authorizers {
+		if len(authorizers) == 1 && tx.Payer == authorizers[0].ToFlowAddress() {
+			break // don't sign if we have same authorizer and payer, only sign envelope
+		}
+
 		err := tx.SignPayload(auth.ToFlowAddress(), 0, signer)
 		if err != nil {
 			return nil, err
