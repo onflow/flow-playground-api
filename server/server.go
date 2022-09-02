@@ -26,27 +26,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
-
-	"github.com/golang/groupcache/lru"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
-
-	"github.com/go-chi/render"
-
-	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
-	"github.com/Masterminds/semver"
-	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
-	"github.com/go-chi/chi"
-	gsessions "github.com/gorilla/sessions"
-	"github.com/kelseyhightower/envconfig"
-
-	"github.com/rs/cors"
-	"github.com/sirupsen/logrus"
-
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/build"
@@ -57,7 +36,21 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
+	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
+	"github.com/Masterminds/semver"
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/getsentry/sentry-go"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
+	"github.com/golang/groupcache/lru"
+	gsessions "github.com/gorilla/sessions"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
