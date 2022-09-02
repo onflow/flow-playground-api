@@ -52,6 +52,7 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 		}
 
 		acc.ID = account.ID
+		acc.DraftCode = account.DraftCode
 		exported[i] = acc
 	}
 
@@ -95,6 +96,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
+	account.DraftCode = acc.DraftCode
 	account.ID = acc.ID
 	return account, nil
 }

@@ -2443,3 +2443,4 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 // - checking account state
 // - deploying contract on account actually changes the returned account
 // - failed transactions with successful transactions work (bootstrap works)??
+// - add benchmark test for cached / uncached versions
