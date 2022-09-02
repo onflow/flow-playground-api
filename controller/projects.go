@@ -158,23 +158,24 @@ func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, 
 	return addresses, nil
 }
 
-// todo don't accept pointer return
-func (p *Projects) Get(id uuid.UUID, proj *model.InternalProject) error {
-	err := p.store.GetProject(id, proj)
+func (p *Projects) Get(id uuid.UUID) (*model.InternalProject, error) {
+	var proj model.InternalProject
+	err := p.store.GetProject(id, &proj)
 	if err != nil {
-		return errors.Wrap(err, "failed to get project")
+		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	return nil
+	return &proj, nil
 }
 
-func (p *Projects) Update(input model.UpdateProject, proj *model.InternalProject) error {
-	err := p.store.UpdateProject(input, proj)
+func (p *Projects) Update(input model.UpdateProject) (*model.InternalProject, error) {
+	var proj model.InternalProject
+	err := p.store.UpdateProject(input, &proj)
 	if err != nil {
-		return errors.Wrap(err, "failed to update project")
+		return nil, errors.Wrap(err, "failed to update project")
 	}
 
-	return nil
+	return &proj, nil
 }
 
 func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
@@ -188,6 +189,7 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 
 func (p *Projects) Reset(proj *model.InternalProject) error {
 	// todo reset emulator state
+	// todo clear cache
 
 	_, err := p.deployInitialAccounts(proj.ID)
 	if err != nil {
@@ -198,8 +200,6 @@ func (p *Projects) Reset(proj *model.InternalProject) error {
 	if err != nil {
 		return err
 	}
-
-	// todo clear cache
 
 	return nil
 }
