@@ -21,6 +21,8 @@ package model
 import (
 	"encoding/json"
 
+	flowsdk "github.com/onflow/flow-go-sdk"
+
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
 
@@ -90,6 +92,26 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 	}, nil
 }
 
+// todo refactor name
+func TransactionExecutionFromFlowSDK(
+	projectID uuid.UUID,
+	result *types.TransactionResult,
+	tx *flowsdk.Transaction,
+) (*TransactionExecution, error) {
+	args := make([]string, len(tx.Arguments))
+	for i, a := range tx.Arguments {
+		args[i] = string(a)
+	}
+
+	signers := make([]Address, len(tx.Authorizers))
+	for i, a := range tx.Authorizers {
+		copy(signers[i][:], a[:])
+	}
+
+	return TransactionExecutionFromFlow(result, projectID, string(tx.Script), args, signers)
+}
+
+// todo refactor args order
 func TransactionExecutionFromFlow(
 	result *types.TransactionResult,
 	projectID uuid.UUID,
@@ -107,15 +129,20 @@ func TransactionExecutionFromFlow(
 		Script:         script,
 		Arguments:      args,
 		Signers:        signers,
+		Logs:           result.Logs,
 	}
 
-	events, err := EventsFromFlow(result.Events)
-	if err != nil {
-		return nil, err
+	if result.Events != nil {
+		events, err := EventsFromFlow(result.Events)
+		if err != nil {
+			return nil, err
+		}
+		exe.Events = events
 	}
-	exe.Events = events
 
-	exe.Errors = ProgramErrorFromFlow(result.Error)
+	if result.Error != nil {
+		exe.Errors = ProgramErrorFromFlow(result.Error)
+	}
 
 	return exe, nil
 }
