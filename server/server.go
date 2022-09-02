@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/groupcache/lru"
+
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -138,7 +140,7 @@ func main() {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	chain := blockchain.NewState(store)
+	chain := blockchain.NewState(store, lru.New(128))
 
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
