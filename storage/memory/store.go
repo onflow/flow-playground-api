@@ -79,7 +79,6 @@ func (s *Store) GetUser(id uuid.UUID, user *model.User) error {
 
 func (s *Store) CreateProject(
 	proj *model.InternalProject,
-	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate,
 ) error {
@@ -88,12 +87,6 @@ func (s *Store) CreateProject(
 
 	if err := s.insertProject(proj); err != nil {
 		return err
-	}
-
-	for _, account := range accounts {
-		if err := s.insertAccount(account); err != nil {
-			return err
-		}
 	}
 
 	for _, ttpl := range ttpls {
@@ -211,6 +204,35 @@ func (s *Store) markProjectUpdatedAt(id uuid.UUID) error {
 	p.UpdatedAt = time.Now()
 
 	s.projects[id] = p
+
+	return nil
+}
+
+func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	return s.updateAccount(input, acc)
+}
+
+func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
+	a, ok := s.accounts[input.ID]
+	if !ok {
+		return storage.ErrNotFound
+	}
+
+	if input.DraftCode != nil {
+		a.DraftCode = *input.DraftCode
+	}
+
+	s.accounts[input.ID] = a
+
+	*acc = a
+
+	err := s.markProjectUpdatedAt(a.ProjectID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

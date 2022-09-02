@@ -136,7 +136,6 @@ func (d *Datastore) GetUser(id uuid.UUID, user *model.User) error {
 
 func (d *Datastore) CreateProject(
 	proj *model.InternalProject,
-	accounts []*model.InternalAccount,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
@@ -146,11 +145,6 @@ func (d *Datastore) CreateProject(
 	keys := []*datastore.Key{proj.NameKey()}
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-
-		for _, acc := range accounts {
-			entitiesToPut = append(entitiesToPut, acc)
-			keys = append(keys, acc.NameKey())
-		}
 
 		for _, ttpl := range ttpls {
 			ttpl.Index = proj.TransactionTemplateCount
@@ -336,6 +330,35 @@ func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
 func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
 	acc.ProjectChildID = id
 	return d.get(acc)
+}
+
+func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
+	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
+	defer cancel()
+
+	acc.ID = input.ID
+	acc.ProjectID = input.ProjectID
+
+	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
+		err := tx.Get(acc.NameKey(), acc)
+		if err != nil {
+			return err
+		}
+
+		if input.DraftCode != nil {
+			acc.DraftCode = *input.DraftCode
+		}
+
+		err = d.markProjectUpdatedAt(tx, acc.ProjectID)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Put(acc.NameKey(), acc)
+		return err
+	})
+
+	return txErr
 }
 
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {

@@ -32,7 +32,6 @@ type Store interface {
 
 	CreateProject(
 		proj *model.InternalProject,
-		accounts []*model.InternalAccount,
 		ttpl []*model.TransactionTemplate,
 		stpl []*model.ScriptTemplate,
 	) error
@@ -46,6 +45,7 @@ type Store interface {
 	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
 	DeleteAccount(id model.ProjectChildID) error
+	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
