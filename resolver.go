@@ -45,14 +45,13 @@ type Resolver struct {
 	transactions       *controller.Transactions
 	accounts           *controller.Accounts
 	lastCreatedProject *model.InternalProject
-	blockchain         blockchain.Blockchain
 }
 
 func NewResolver(
 	version *semver.Version,
 	store storage.Store,
 	auth *auth.Authenticator,
-	blockchain blockchain.Blockchain,
+	blockchain *blockchain.State,
 ) *Resolver {
 	projects := controller.NewProjects(version, store, MaxAccounts, blockchain)
 	scripts := controller.NewScripts(store, blockchain)
@@ -69,7 +68,6 @@ func NewResolver(
 		scripts:      scripts,
 		transactions: transactions,
 		accounts:     accounts,
-		blockchain:   blockchain,
 	}
 }
 
@@ -114,6 +112,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
+	// todo refactor auth check
 	var proj model.InternalProject
 
 	err := r.projects.Get(input.ID, &proj)
@@ -133,8 +132,19 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
-func (r *mutationResolver) UpdateAccount(ctx context.Context, input any) (*model.Account, error) {
-	panic("not implemented")
+func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
+	var proj model.InternalProject
+
+	err := r.projects.Get(input.ProjectID, &proj)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get project")
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, &proj); err != nil {
+		return nil, err
+	}
+
+	return r.accounts.Update(input)
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
