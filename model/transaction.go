@@ -103,18 +103,24 @@ func TransactionExecutionFromFlow(
 	}
 
 	args := make([]string, 0)
-	for _, a := range tx.Arguments {
-		args = append(args, string(a))
-	}
+	signers := make([]Address, 0)
+	script := ""
+	// transaction could be nil in case where we get transaction result errors
+	if tx != nil {
+		for _, a := range tx.Arguments {
+			args = append(args, string(a))
+		}
 
-	signers := make([]Address, len(tx.Authorizers))
-	for i, a := range tx.Authorizers {
-		copy(signers[i][:], a[:])
+		for _, a := range tx.Authorizers {
+			signers = append(signers, NewAddressFromBytes(a.Bytes()))
+		}
+
+		script = string(tx.Script)
 	}
 
 	exe := &TransactionExecution{
 		ProjectChildID: id,
-		Script:         string(tx.Script),
+		Script:         script,
 		Arguments:      args,
 		Signers:        signers,
 		Logs:           result.Logs,
