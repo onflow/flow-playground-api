@@ -94,7 +94,7 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 }
 
 func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	exe, err := t.blockchain.ExecuteTransaction(input.ProjectID, input.Script, input.Arguments, input.Signers)
+	exe, err := t.blockchain.ExecuteTransaction(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
