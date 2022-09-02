@@ -92,12 +92,16 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 	}, nil
 }
 
-// todo refactor name
-func TransactionExecutionFromFlowSDK(
+func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
-) (*TransactionExecution, error) {
+) *TransactionExecution {
+	id := ProjectChildID{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+	}
+
 	args := make([]string, len(tx.Arguments))
 	for i, a := range tx.Arguments {
 		args[i] = string(a)
@@ -108,35 +112,16 @@ func TransactionExecutionFromFlowSDK(
 		copy(signers[i][:], a[:])
 	}
 
-	return TransactionExecutionFromFlow(result, projectID, string(tx.Script), args, signers)
-}
-
-// todo refactor args order
-func TransactionExecutionFromFlow(
-	result *types.TransactionResult,
-	projectID uuid.UUID,
-	script string,
-	args []string,
-	signers []Address,
-) (*TransactionExecution, error) {
-	id := ProjectChildID{
-		ID:        uuid.New(),
-		ProjectID: projectID,
-	}
-
 	exe := &TransactionExecution{
 		ProjectChildID: id,
-		Script:         script,
+		Script:         string(tx.Script),
 		Arguments:      args,
 		Signers:        signers,
 		Logs:           result.Logs,
 	}
 
 	if result.Events != nil {
-		events, err := EventsFromFlow(result.Events)
-		if err != nil {
-			return nil, err
-		}
+		events, _ := EventsFromFlow(result.Events)
 		exe.Events = events
 	}
 
@@ -144,7 +129,7 @@ func TransactionExecutionFromFlow(
 		exe.Errors = ProgramErrorFromFlow(result.Error)
 	}
 
-	return exe, nil
+	return exe
 }
 
 type TransactionExecution struct {
