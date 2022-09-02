@@ -4,27 +4,38 @@ import (
 	"encoding/json"
 	"fmt"
 
-	flowsdk "github.com/onflow/flow-go-sdk"
-
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+
+	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
-// todo create instance pool as a possible optimization: we can pre-instantiate empty instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
+// improvement: create instance pool as a possible optimization. We can pre-instantiate empty
+// instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
-func NewState(store storage.Store) *State {
-	return &State{store}
+// NewState creates an instance of the state with provided storage access and caching.
+func NewState(store storage.Store, cache *lru.Cache) *State {
+	return &State{store, cache}
 }
 
+// State implements stateful operations on the blockchain, keeping records of transaction executions.
+//
+// State exposes API to interact with the blockchain but also makes sure the state is persisted and
+// implements state recreation with caching and resource locking.
 type State struct {
 	store storage.Store
-	// cache
+	cache *lru.Cache
 }
 
 // bootstrap initializes an emulator and run transactions previously executed in the project to establish a state.
 func (s *State) bootstrap(projectID uuid.UUID) (*emulator, error) {
-	// todo cache
+	// todo add locking of resources
+	val, ok := s.cache.Get(projectID)
+	if ok {
+		return val.(*emulator), nil
+	}
 
 	emulator, err := newEmulator()
 	if err != nil {
@@ -38,38 +49,33 @@ func (s *State) bootstrap(projectID uuid.UUID) (*emulator, error) {
 	}
 
 	for _, execution := range executions {
-		// todo BE CAREFUL: there will be transactions recorded in transaction execution that failed, so they will fail again - treat that with care
-		result, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.Signers)
-		if err != nil || (!result.Succeeded() && len(execution.Errors) == 0) {
-			// todo refactor - handle a case where an existing project is not able to be recreated - track this in sentry
-			return nil, fmt.Errorf(fmt.Sprintf("not able to recreate a project %s", projectID))
+		result, _, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.Signers)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
+		}
+		if result.Error != nil && len(execution.Errors) == 0 {
+			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
 	}
+
+	s.cache.Add(projectID, emulator)
 
 	return emulator, nil
 }
 
-func (s *State) ExecuteTransaction(
-	projectID uuid.UUID,
-	script string,
-	arguments []string,
-	authorizers []model.Address,
-) (*model.TransactionExecution, error) {
-	emulator, err := s.bootstrap(projectID)
+// ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
+func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
+	emulator, err := s.bootstrap(execution.ProjectID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := emulator.executeTransaction(script, arguments, authorizers)
+	result, tx, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.Signers)
 	if err != nil {
 		return nil, err
 	}
 
-	exe, err := model.TransactionExecutionFromFlow(result, projectID, script, arguments, authorizers)
-	if err != nil {
-		return nil, err
-	}
-
+	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
 	err = s.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
@@ -78,55 +84,50 @@ func (s *State) ExecuteTransaction(
 	return exe, err
 }
 
-func (s *State) ExecuteScript(projectID uuid.UUID, script string, arguments []string) (*model.ScriptExecution, error) {
+// ExecuteScript executes the script.
+func (s *State) ExecuteScript(
+	projectID uuid.UUID,
+	execution model.NewScriptExecution,
+) (*model.ScriptExecution, error) {
 	emulator, err := s.bootstrap(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := emulator.executeScript(script, arguments)
+	result, err := emulator.executeScript(execution.Script, execution.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
-	return model.ScriptExecutionFromFlow(result, projectID, script, arguments)
+	return model.ScriptExecutionFromFlow(result, projectID, execution.Script, execution.Arguments)
 }
 
+// GetAccount by the address along with its storage information.
 func (s *State) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	emulator, err := s.bootstrap(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	account, store, err := emulator.getAccount(address)
+	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
 
-	jsonStorage, _ := json.Marshal(store)
-
-	var addr model.Address
-	copy(address[:], account.Address[:])
-
-	contractNames := make([]string, 0)
-	contractCode := ""
-	for name, code := range account.Contracts {
-		contractNames = append(contractNames, name)
-		contractCode = string(code)
-		break // we only allow one deployed contract on account so only get the first if present
+	jsonStorage, err := json.Marshal(store)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling account storage")
 	}
 
-	// todo refactor think about defining a different account model, blockchain account or similar
-	return &model.Account{
-		ProjectID:         projectID,
-		Address:           addr,
-		DeployedCode:      contractCode,
-		DeployedContracts: contractNames,
-		State:             string(jsonStorage),
-	}, nil
+	account := model.AccountFromFlow(flowAccount)
+	account.ProjectID = projectID
+	account.State = string(jsonStorage)
+
+	return account, nil
 }
 
-func (s *State) CreateAccount(projectID uuid.UUID) (*flowsdk.Account, error) {
+// CreateAccount creates a new account and return the account model as well as record the execution.
+func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	emulator, err := s.bootstrap(projectID)
 	if err != nil {
 		return nil, err
@@ -137,27 +138,23 @@ func (s *State) CreateAccount(projectID uuid.UUID) (*flowsdk.Account, error) {
 		return nil, err
 	}
 
-	exe, err := model.TransactionExecutionFromFlowSDK(projectID, result, tx)
-	if err != nil {
-		return nil, err
-	}
-
+	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = s.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
 
-	return account, nil
+	return model.AccountFromFlow(account), nil
 }
 
-// todo check return types what is needed and should we convert to model types
+// DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
 func (s *State) DeployContract(projectID uuid.UUID, address model.Address, script string) (*model.Account, error) {
 	emulator, err := s.bootstrap(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, tx, err := emulator.deployContract(address, script)
+	result, tx, err := emulator.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +162,7 @@ func (s *State) DeployContract(projectID uuid.UUID, address model.Address, scrip
 		return nil, result.Error
 	}
 
-	exe, err := model.TransactionExecutionFromFlowSDK(projectID, result, tx)
-	if err != nil {
-		return nil, err
-	}
-
+	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = s.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
