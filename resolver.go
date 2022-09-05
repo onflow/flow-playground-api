@@ -241,7 +241,7 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(input.ProjectID, input)
+	exe, err := r.scripts.CreateExecution(input)
 	if err != nil {
 		return nil, err
 	}

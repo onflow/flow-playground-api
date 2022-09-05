@@ -100,26 +100,14 @@ func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.Script
 	return &tpl, nil
 }
 
-func (s *Scripts) CreateExecution(
-	projectID uuid.UUID,
-	script model.NewScriptExecution,
-) (
-	*model.ScriptExecution,
-	error,
-) {
+func (s *Scripts) CreateExecution(script model.NewScriptExecution) (*model.ScriptExecution, error) {
 	if len(script.Script) == 0 {
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	execution, err := s.blockchain.ExecuteScript(projectID, script)
+	execution, err := s.blockchain.ExecuteScript(script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
-
-	err = s.store.InsertScriptExecution(execution)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert script execution record")
-	}
-
 	return execution, nil
 }

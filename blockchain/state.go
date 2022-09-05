@@ -100,9 +100,10 @@ func (s *State) readUnlock(uuid uuid.UUID) {
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	s.lock(execution.ProjectID)
-	defer s.unlock(execution.ProjectID)
-	emulator, err := s.load(execution.ProjectID)
+	projID := execution.ProjectID
+	s.lock(projID)
+	defer s.unlock(projID)
+	emulator, err := s.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,17 +119,15 @@ func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*mo
 		return nil, err
 	}
 
-	return exe, err
+	return exe, nil
 }
 
 // ExecuteScript executes the script.
-func (s *State) ExecuteScript(
-	projectID uuid.UUID,
-	execution model.NewScriptExecution,
-) (*model.ScriptExecution, error) {
-	s.readLock(projectID)
-	defer s.readUnlock(projectID)
-	emulator, err := s.load(projectID)
+func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
+	projID := execution.ProjectID
+	s.readLock(projID)
+	defer s.readUnlock(projID)
+	emulator, err := s.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +137,13 @@ func (s *State) ExecuteScript(
 		return nil, err
 	}
 
-	return model.ScriptExecutionFromFlow(result, projectID, execution.Script, execution.Arguments)
+	exe := model.ScriptExecutionFromFlow(result, projID, execution.Script, execution.Arguments)
+	err = s.store.InsertScriptExecution(exe)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to insert script execution record")
+	}
+
+	return exe, nil
 }
 
 // GetAccount by the address along with its storage information.

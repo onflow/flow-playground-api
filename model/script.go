@@ -90,7 +90,7 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 	}, nil
 }
 
-func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) (*ScriptExecution, error) {
+func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
 	exe := &ScriptExecution{
 		ProjectChildID: ProjectChildID{
 			ID:        uuid.New(),
@@ -104,15 +104,11 @@ func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, sc
 	if result.Error != nil {
 		exe.Errors = ProgramErrorFromFlow(result.Error)
 	} else {
-		enc, err := jsoncdc.Encode(result.Value)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
-		}
-
+		enc, _ := jsoncdc.Encode(result.Value)
 		exe.Value = string(enc)
 	}
 
-	return exe, nil
+	return exe
 }
 
 type ScriptExecution struct {
