@@ -29,8 +29,8 @@ type State struct {
 	cache *lru.Cache
 }
 
-// bootstrap initializes an emulator and run transactions previously executed in the project to establish a state.
-func (s *State) bootstrap(projectID uuid.UUID) (*emulator, error) {
+// load initializes an emulator and run transactions previously executed in the project to establish a state.
+func (s *State) load(projectID uuid.UUID) (*emulator, error) {
 	// todo add locking of resources
 	val, ok := s.cache.Get(projectID)
 	if ok {
@@ -65,7 +65,7 @@ func (s *State) bootstrap(projectID uuid.UUID) (*emulator, error) {
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	emulator, err := s.bootstrap(execution.ProjectID)
+	emulator, err := s.load(execution.ProjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (s *State) ExecuteScript(
 	projectID uuid.UUID,
 	execution model.NewScriptExecution,
 ) (*model.ScriptExecution, error) {
-	emulator, err := s.bootstrap(projectID)
+	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (s *State) ExecuteScript(
 
 // GetAccount by the address along with its storage information.
 func (s *State) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := s.bootstrap(projectID)
+	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (s *State) GetAccount(projectID uuid.UUID, address model.Address) (*model.A
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
 func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
-	emulator, err := s.bootstrap(projectID)
+	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
 func (s *State) DeployContract(projectID uuid.UUID, address model.Address, script string) (*model.Account, error) {
-	emulator, err := s.bootstrap(projectID)
+	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
 	}
