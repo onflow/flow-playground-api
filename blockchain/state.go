@@ -69,12 +69,12 @@ func (s *State) load(projectID uuid.UUID) (*emulator, error) {
 }
 
 func (s *State) lock(uuid uuid.UUID) {
-	m, ok := s.mu[uuid]
+	_, ok := s.mu[uuid]
 	if !ok {
-		m = &sync.RWMutex{}
+		s.mu[uuid] = &sync.RWMutex{}
 	}
 
-	m.Lock()
+	s.mu[uuid].Lock()
 }
 
 func (s *State) unlock(uuid uuid.UUID) {
@@ -84,12 +84,12 @@ func (s *State) unlock(uuid uuid.UUID) {
 }
 
 func (s *State) readLock(uuid uuid.UUID) {
-	m, ok := s.mu[uuid]
+	_, ok := s.mu[uuid]
 	if !ok {
-		m = &sync.RWMutex{}
+		s.mu[uuid] = &sync.RWMutex{}
 	}
 
-	m.RLock()
+	s.mu[uuid].RLock()
 }
 
 func (s *State) readUnlock(uuid uuid.UUID) {
