@@ -3,7 +3,6 @@ package blockchain
 import (
 	"fmt"
 
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
@@ -24,7 +23,7 @@ type blockchain interface {
 	executeTransaction(
 		script string,
 		arguments []string,
-		authorizers []model.Address,
+		authorizers []flowsdk.Address,
 	) (*types.TransactionResult, *flowsdk.Transaction, error)
 
 	// executeScript executes a provided script with the arguments.
@@ -69,7 +68,7 @@ func newEmulator() (*emulator, error) {
 func (e *emulator) executeTransaction(
 	script string,
 	arguments []string,
-	authorizers []model.Address,
+	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
@@ -150,7 +149,7 @@ func (e *emulator) deployContract(
 
 func (e *emulator) sendTransaction(
 	tx *flowsdk.Transaction,
-	authorizers []model.Address,
+	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
@@ -158,16 +157,16 @@ func (e *emulator) sendTransaction(
 	}
 
 	for _, auth := range authorizers {
-		tx.AddAuthorizer(auth.ToFlowAddress())
+		tx.AddAuthorizer(auth)
 	}
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
 
 	for _, auth := range authorizers {
-		if len(authorizers) == 1 && tx.Payer == authorizers[0].ToFlowAddress() {
+		if len(authorizers) == 1 && tx.Payer == authorizers[0] {
 			break // don't sign if we have same authorizer and payer, only sign envelope
 		}
 
-		err := tx.SignPayload(auth.ToFlowAddress(), 0, signer)
+		err := tx.SignPayload(auth, 0, signer)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "error signing payload")
 		}
