@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/httplog"
+
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/build"
@@ -150,6 +152,8 @@ func main() {
 	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
+		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true})
+		router.Use(httplog.RequestLogger(logger))
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
@@ -163,7 +167,6 @@ func main() {
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
-			Debug:            conf.Debug,
 		}).Handler)
 
 		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
@@ -213,7 +216,6 @@ func main() {
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins: conf.AllowedOrigins,
-			Debug:          conf.Debug,
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))
