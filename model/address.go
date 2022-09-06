@@ -32,13 +32,15 @@ const addressLength = 8
 type Address [addressLength]byte
 
 func NewAddressFromBytes(b []byte) Address {
+	b = shiftAddressFromFlow(b)
 	var address Address
 	copy(address[addressLength-len(b):], b[:])
 	return address
 }
 
 func (a *Address) ToFlowAddress() flow.Address {
-	return flow.BytesToAddress(a[len(a)-flow.AddressLength:])
+	addr := shiftAddressToFlow(a[:])
+	return flow.BytesToAddress(addr[len(addr)-flow.AddressLength:])
 }
 
 func (a *Address) UnmarshalGQL(v interface{}) error {
@@ -64,4 +66,21 @@ func (a *Address) UnmarshalGQL(v interface{}) error {
 func (a Address) MarshalGQL(w io.Writer) {
 	str := fmt.Sprintf("\"%x\"", a)
 	_, _ = io.WriteString(w, str)
+}
+
+const numberOfAccounts = 5
+
+// shiftAddressToFlow adds numberOfAccounts to the address since it was provided by the user
+// and was previously shifted by shiftAddressFromFlow.
+func shiftAddressToFlow(a []byte) []byte {
+	a[len(a)-1] = a[len(a)-1] + numberOfAccounts
+	return a
+}
+
+// shiftAddressFromFlow subtracts numberOfAccounts that were created during
+// bootstrap automatically by emulator, so the user see the numberOfAccounts+1 as
+// the first account
+func shiftAddressFromFlow(a []byte) []byte {
+	a[len(a)-1] = a[len(a)-1] - numberOfAccounts
+	return a
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	flowsdk "github.com/onflow/flow-go-sdk"
+
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 
@@ -30,9 +32,10 @@ func NewState(store storage.Store, cache *lru.Cache) *State {
 // State exposes API to interact with the blockchain but also makes sure the state is persisted and
 // implements state recreation with caching and resource locking.
 type State struct {
-	store storage.Store
-	cache *lru.Cache
-	mu    map[uuid.UUID]*sync.RWMutex
+	store     storage.Store
+	cache     *lru.Cache
+	mu        map[uuid.UUID]*sync.RWMutex
+	muCounter sync.Map
 }
 
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
@@ -54,7 +57,7 @@ func (s *State) load(projectID uuid.UUID) (*emulator, error) {
 	}
 
 	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.Signers)
+		result, _, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.SignersToFlow())
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
@@ -68,47 +71,54 @@ func (s *State) load(projectID uuid.UUID) (*emulator, error) {
 	return emulator, nil
 }
 
-func (s *State) lock(uuid uuid.UUID) {
-	_, ok := s.mu[uuid]
+// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
+func (s *State) loadLock(uuid uuid.UUID) *sync.RWMutex {
+	counter, ok := s.muCounter.LoadOrStore(uuid, 0)
+	s.muCounter.Store(uuid, counter.(int)+1)
+
+	_, ok = s.mu[uuid]
 	if !ok {
 		s.mu[uuid] = &sync.RWMutex{}
 	}
 
-	s.mu[uuid].Lock()
+	return s.mu[uuid]
 }
 
-func (s *State) unlock(uuid uuid.UUID) {
+// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
+func (s *State) removeLock(uuid uuid.UUID) *sync.RWMutex {
 	m := s.mu[uuid]
-	m.Unlock()
-	delete(s.mu, uuid)
-}
 
-func (s *State) readLock(uuid uuid.UUID) {
-	_, ok := s.mu[uuid]
-	if !ok {
-		s.mu[uuid] = &sync.RWMutex{}
+	counter, _ := s.muCounter.Load(uuid)
+	if counter == 0 {
+		delete(s.mu, uuid)
+		s.muCounter.Delete(uuid)
+	} else {
+		s.muCounter.Store(uuid, counter.(int)-1)
 	}
 
-	s.mu[uuid].RLock()
-}
-
-func (s *State) readUnlock(uuid uuid.UUID) {
-	m := s.mu[uuid]
-	m.RUnlock()
-	delete(s.mu, uuid)
+	return m
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	projID := execution.ProjectID
-	s.lock(projID)
-	defer s.unlock(projID)
+	s.loadLock(projID).Lock()
+	defer s.removeLock(projID).Unlock()
 	emulator, err := s.load(projID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, tx, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.Signers)
+	signers := make([]flowsdk.Address, len(execution.Signers))
+	for i, sig := range execution.Signers {
+		signers[i] = sig.ToFlowAddress()
+	}
+
+	result, tx, err := emulator.executeTransaction(
+		execution.Script,
+		execution.Arguments,
+		execution.SignersToFlow(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +135,8 @@ func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*mo
 // ExecuteScript executes the script.
 func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
 	projID := execution.ProjectID
-	s.readLock(projID)
-	defer s.readUnlock(projID)
+	s.loadLock(projID).RLock()
+	defer s.removeLock(projID).RUnlock()
 	emulator, err := s.load(projID)
 	if err != nil {
 		return nil, err
@@ -137,7 +147,12 @@ func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.Script
 		return nil, err
 	}
 
-	exe := model.ScriptExecutionFromFlow(result, projID, execution.Script, execution.Arguments)
+	exe := model.ScriptExecutionFromFlow(
+		result,
+		projID,
+		execution.Script,
+		execution.Arguments,
+	)
 	err = s.store.InsertScriptExecution(exe)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert script execution record")
@@ -148,9 +163,9 @@ func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.Script
 
 // GetAccount by the address along with its storage information.
 func (s *State) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	s.readLock(projectID)
+	s.loadLock(projectID).RLock()
 	account, err := s.getAccount(projectID, address)
-	s.readUnlock(projectID)
+	s.removeLock(projectID).RUnlock()
 	return account, err
 }
 
@@ -179,8 +194,8 @@ func (s *State) getAccount(projectID uuid.UUID, address model.Address) (*model.A
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
 func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
-	s.lock(projectID)
-	defer s.unlock(projectID)
+	s.loadLock(projectID).Lock()
+	defer s.removeLock(projectID).Unlock()
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
@@ -201,9 +216,13 @@ func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
-func (s *State) DeployContract(projectID uuid.UUID, address model.Address, script string) (*model.Account, error) {
-	s.lock(projectID)
-	defer s.unlock(projectID)
+func (s *State) DeployContract(
+	projectID uuid.UUID,
+	address model.Address,
+	script string,
+) (*model.Account, error) {
+	s.loadLock(projectID).Lock()
+	defer s.removeLock(projectID).Unlock()
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err

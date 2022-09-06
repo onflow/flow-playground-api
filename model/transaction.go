@@ -248,3 +248,20 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 		},
 	}, nil
 }
+
+func (t *TransactionExecution) SignersToFlow() []flowsdk.Address {
+	return convertSigners(t.Signers)
+}
+
+func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {
+	return convertSigners(n.Signers)
+}
+
+func convertSigners(signers []Address) []flowsdk.Address {
+	sigs := make([]flowsdk.Address, len(signers))
+	for i, sig := range signers {
+		sigs[i] = sig.ToFlowAddress()
+	}
+
+	return sigs
+}
