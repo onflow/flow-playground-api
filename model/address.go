@@ -68,19 +68,26 @@ func (a Address) MarshalGQL(w io.Writer) {
 	_, _ = io.WriteString(w, str)
 }
 
-const numberOfAccounts = 5
+const numberOfAccounts = 4
 
 // shiftAddressToFlow adds numberOfAccounts to the address since it was provided by the user
 // and was previously shifted by shiftAddressFromFlow.
 func shiftAddressToFlow(a []byte) []byte {
-	a[len(a)-1] = a[len(a)-1] + numberOfAccounts
-	return a
+	var b [8]byte // create a copy
+	copy(b[:], a[:])
+	b[len(b)-1] = b[len(b)-1] + numberOfAccounts
+	return b[:]
 }
 
 // shiftAddressFromFlow subtracts numberOfAccounts that were created during
 // bootstrap automatically by emulator, so the user see the numberOfAccounts+1 as
 // the first account
 func shiftAddressFromFlow(a []byte) []byte {
-	a[len(a)-1] = a[len(a)-1] - numberOfAccounts
-	return a
+	var b [8]byte
+	copy(b[:], a[:])
+	if b[len(b)-1] < numberOfAccounts { // ignore service account conversion
+		return b[:]
+	}
+	b[len(b)-1] = b[len(b)-1] - numberOfAccounts
+	return b[:]
 }

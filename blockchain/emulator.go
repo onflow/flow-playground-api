@@ -2,6 +2,9 @@ package blockchain
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -160,6 +163,22 @@ func (e *emulator) sendTransaction(
 		tx.AddAuthorizer(auth)
 	}
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
+
+	// we translate addresses from client address space to the emulator space
+	// client uses address starting at 0x01 whereas emulator starts at 0x05
+	r := regexp.MustCompile("0x0+([1-9])+")
+	found := r.FindAllStringSubmatch(string(tx.Script), -1)
+
+	if len(found) > 0 {
+		for _, f := range found {
+			// if found a match for address then convert to number and convert to emulator address space by the address offset
+			addressOffset := 4
+			addressNumber, _ := strconv.Atoi(f[1])
+			original := f[0]
+			replaced := strings.ReplaceAll(original, fmt.Sprintf("%d", addressNumber), fmt.Sprintf("%d", addressNumber+addressOffset))
+			tx.Script = []byte(strings.ReplaceAll(string(tx.Script), original, replaced))
+		}
+	}
 
 	for _, auth := range authorizers {
 		if len(authorizers) == 1 && tx.Payer == authorizers[0] {

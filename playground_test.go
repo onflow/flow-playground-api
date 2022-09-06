@@ -503,10 +503,10 @@ func TestProjects(t *testing.T) {
 		// project should still be created with 4 default accounts
 		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
 
-		assert.Equal(t, "0000000000000005", resp.CreateProject.Accounts[0].Address)
-		assert.Equal(t, "0000000000000006", resp.CreateProject.Accounts[1].Address)
-		assert.Equal(t, "0000000000000007", resp.CreateProject.Accounts[2].Address)
-		assert.Equal(t, "0000000000000008", resp.CreateProject.Accounts[3].Address)
+		assert.Equal(t, "0000000000000001", resp.CreateProject.Accounts[0].Address)
+		assert.Equal(t, "0000000000000002", resp.CreateProject.Accounts[1].Address)
+		assert.Equal(t, "0000000000000003", resp.CreateProject.Accounts[2].Address)
+		assert.Equal(t, "0000000000000004", resp.CreateProject.Accounts[3].Address)
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
 		assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)

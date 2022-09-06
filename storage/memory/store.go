@@ -288,7 +288,7 @@ func (s *Store) getAccountsForProject(projectID uuid.UUID, accs *[]*model.Intern
 
 	// sort results by index
 	sort.Slice(res, func(i, j int) bool {
-		return res[i].Address.ToFlowAddress().String() < res[j].Address.ToFlowAddress().String()
+		return res[i].Address[len(res[i].Address)-1] < res[j].Address[len(res[j].Address)-1]
 	})
 
 	*accs = res

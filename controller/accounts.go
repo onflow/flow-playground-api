@@ -90,7 +90,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	if account.DeployedCode != "" {
 		// todo reset state
 	}
-
+	// here we should have 0x01
 	account, err = a.blockchain.DeployContract(input.ProjectID, acc.Address, *input.DeployedCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")

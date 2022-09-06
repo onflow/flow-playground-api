@@ -127,7 +127,6 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 	}
 
 	accounts := make([]*model.InternalAccount, len(addresses))
-
 	for i, address := range addresses {
 		account := model.InternalAccount{
 			ProjectChildID: model.ProjectChildID{
@@ -145,14 +144,13 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 
 func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, error) {
 	addresses := make([]model.Address, p.numAccounts)
-
 	for i := 0; i < p.numAccounts; i++ {
 		account, err := p.blockchain.CreateAccount(projectID)
 		if err != nil {
 			return nil, err
 		}
 
-		addresses[i] = model.Address(account.Address)
+		addresses[i] = account.Address
 	}
 
 	return addresses, nil
