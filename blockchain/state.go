@@ -99,6 +99,18 @@ func (s *State) removeLock(uuid uuid.UUID) *sync.RWMutex {
 	return m
 }
 
+// Reset the blockchain state.
+func (s *State) Reset(project *model.InternalProject) error {
+	s.cache.Remove(project.ID)
+
+	err := s.store.ResetProjectState(project)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	projID := execution.ProjectID

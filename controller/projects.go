@@ -186,15 +186,13 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 func (p *Projects) Reset(proj *model.InternalProject) error {
-	// todo reset emulator state
-	// todo clear cache
-
-	_, err := p.deployInitialAccounts(proj.ID)
+	err := p.blockchain.Reset(proj)
 	if err != nil {
 		return err
 	}
 
-	err = p.store.ResetProjectState(proj)
+	// todo what happens with draft code
+	_, err = p.deployInitialAccounts(proj.ID)
 	if err != nil {
 		return err
 	}
