@@ -191,7 +191,6 @@ func (p *Projects) Reset(proj *model.InternalProject) error {
 		return err
 	}
 
-	// todo what happens with draft code
 	_, err = p.deployInitialAccounts(proj.ID)
 	if err != nil {
 		return err

@@ -260,13 +260,6 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 		return err
 	}
 
-	var accs []*model.InternalAccount
-
-	err = d.GetAccountsForProject(proj.ID, &accs)
-	if err != nil {
-		return err
-	}
-
 	var txExes []*model.TransactionExecution
 
 	err = d.GetTransactionExecutionsForProject(proj.ID, &txExes)
