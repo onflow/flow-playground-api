@@ -31,7 +31,7 @@ import (
 type Projects struct {
 	version     *semver.Version
 	store       storage.Store
-	numAccounts int
+	numAccounts int // todo move to state
 	blockchain  *blockchain.State
 }
 
@@ -100,7 +100,8 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	accounts, err := p.createInitialAccounts(proj.ID)
+	//accounts, err := p.createInitialAccounts(proj.ID)
+	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID, p.numAccounts)
 	if err != nil {
 		return nil, err
 	}
@@ -187,11 +188,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 
 func (p *Projects) Reset(proj *model.InternalProject) error {
 	err := p.blockchain.Reset(proj)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.deployInitialAccounts(proj.ID)
 	if err != nil {
 		return err
 	}

@@ -49,6 +49,7 @@ var _ blockchain = &emulator{}
 
 type emulator struct {
 	blockchain *emu.Blockchain
+	// todo put lock here
 }
 
 func newEmulator() (*emulator, error) {

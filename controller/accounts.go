@@ -88,8 +88,18 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	}
 
 	if account.DeployedCode != "" {
-		// todo reset state
+		var proj model.InternalProject
+		err := a.store.GetProject(input.ProjectID, &proj)
+		if err != nil {
+			return nil, err
+		}
+
+		err = a.blockchain.Reset(&proj)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	// here we should have 0x01
 	account, err = a.blockchain.DeployContract(input.ProjectID, acc.Address, *input.DeployedCode)
 	if err != nil {

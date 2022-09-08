@@ -108,6 +108,11 @@ func (s *State) Reset(project *model.InternalProject) error {
 		return err
 	}
 
+	_, err = s.CreateInitialAccounts(project.ID, 5)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -202,6 +207,26 @@ func (s *State) getAccount(projectID uuid.UUID, address model.Address) (*model.A
 	account.State = string(jsonStorage)
 
 	return account, nil
+}
+
+func (s *State) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
+	accounts := make([]*model.InternalAccount, numAccounts)
+	for i := 0; i < numAccounts; i++ {
+		account, err := s.CreateAccount(projectID)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts[i] = &model.InternalAccount{
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: projectID,
+			},
+			Address: account.Address,
+		}
+	}
+
+	return accounts, nil
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
