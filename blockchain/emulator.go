@@ -99,9 +99,9 @@ func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *typ
 	payer := e.blockchain.ServiceKey().Address
 
 	key := flowsdk.NewAccountKey()
-	key.FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
-	key.HashAlgo = crypto.SHA3_256
-	key.SetWeight(flowsdk.AccountKeyWeightThreshold)
+	    .FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
+	    .SetHashAlgo(crypto.SHA3_256)
+	    .SetWeight(flowsdk.AccountKeyWeightThreshold)
 
 	tx, err := templates.CreateAccount([]*flowsdk.AccountKey{key}, nil, payer)
 	if err != nil {
