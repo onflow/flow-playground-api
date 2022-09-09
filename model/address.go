@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-
 	"github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
@@ -34,14 +32,11 @@ const addressLength = 8
 type Address [addressLength]byte
 
 func NewAddressFromBytes(b []byte) Address {
-	b = shiftAddressFromFlow(b)
-	var address Address
-	copy(address[addressLength-len(b):], b[:])
-	return address
+	return shiftAddressFromFlow(b)
 }
 
-func (a *Address) ToFlowAddress() flow.Address {
-	addr := shiftAddressToFlow(a[:])
+func (a Address) ToFlowAddress() flow.Address {
+	addr := shiftAddressToFlow(a)
 	return flow.BytesToAddress(addr[len(addr)-flow.AddressLength:])
 }
 
@@ -70,24 +65,26 @@ func (a Address) MarshalGQL(w io.Writer) {
 	_, _ = io.WriteString(w, str)
 }
 
+const NumberOfServiceAccounts = 4
+
 // shiftAddressToFlow adds numberOfAccounts to the address since it was provided by the user
 // and was previously shifted by shiftAddressFromFlow.
-func shiftAddressToFlow(a []byte) []byte {
-	var b [8]byte // create a copy
-	copy(b[:], a[:])
-	b[len(b)-1] = b[len(b)-1] + blockchain.NumberOfServiceAccounts
-	return b[:]
+func shiftAddressToFlow(address Address) Address {
+	var b Address // create a copy
+	copy(b[:], address[:])
+	b[len(b)-1] = b[len(b)-1] + NumberOfServiceAccounts
+	return b
 }
 
 // shiftAddressFromFlow subtracts numberOfAccounts that were created during
 // bootstrap automatically by emulator, so the user see the numberOfAccounts+1 as
 // the first account
-func shiftAddressFromFlow(a []byte) []byte {
-	var b [8]byte
-	copy(b[:], a[:])
-	if b[len(b)-1] < blockchain.NumberOfServiceAccounts { // ignore service account conversion
-		return b[:]
+func shiftAddressFromFlow(a []byte) Address {
+	var b Address
+	copy(b[addressLength-len(a):], a[:])
+	if b[len(b)-1] < NumberOfServiceAccounts { // ignore service account conversion
+		return b
 	}
-	b[len(b)-1] = b[len(b)-1] - blockchain.NumberOfServiceAccounts
-	return b[:]
+	b[len(b)-1] = b[len(b)-1] - NumberOfServiceAccounts
+	return b
 }

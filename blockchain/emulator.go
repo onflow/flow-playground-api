@@ -3,8 +3,9 @@ package blockchain
 import (
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
+
+	"github.com/dapperlabs/flow-playground-api/model"
 
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -261,20 +262,21 @@ const NumberOfServiceAccounts = 4
 
 // translateAddresses translates addresses from client address space to the emulator space
 // client uses address starting at 0x01 whereas emulator starts at 0x05
+// todo this is temp workaround, refactor to configure FVM
 func translateAddresses(script []byte) []byte {
-	r := regexp.MustCompile("0x0+([1-9])+")
-	found := r.FindAllStringSubmatch(string(script), -1)
+	r := regexp.MustCompile("(0x\\d+)")
 
-	for _, f := range found {
-		// if found a match for address then convert to number and convert to emulator address space by the address offset
-		addressNumber, _ := strconv.Atoi(f[1])
-		original := f[0]
-		replaced := strings.ReplaceAll(
+	for _, addressMatch := range r.FindAllStringSubmatch(string(script), -1) {
+		original := addressMatch[0]
+		translated := model.NewAddressFromBytes(
+			flowsdk.HexToAddress(original).Bytes(),
+		).ToFlowAddress()
+
+		script = []byte(strings.ReplaceAll(
+			string(script),
 			original,
-			fmt.Sprintf("%d", addressNumber),
-			fmt.Sprintf("%d", addressNumber+NumberOfServiceAccounts),
-		)
-		script = []byte(strings.ReplaceAll(string(script), original, replaced))
+			fmt.Sprintf("0x%s", translated.Hex()),
+		))
 	}
 
 	return script
