@@ -256,6 +256,9 @@ func parseContractName(code string) (string, error) {
 	return "", fmt.Errorf("unable to determine contract name")
 }
 
+// NumberOfServiceAccounts temporary workaround address shifting, will be removed
+const NumberOfServiceAccounts = 4
+
 // translateAddresses translates addresses from client address space to the emulator space
 // client uses address starting at 0x01 whereas emulator starts at 0x05
 func translateAddresses(script []byte) []byte {
@@ -264,10 +267,13 @@ func translateAddresses(script []byte) []byte {
 
 	for _, f := range found {
 		// if found a match for address then convert to number and convert to emulator address space by the address offset
-		addressOffset := 4
 		addressNumber, _ := strconv.Atoi(f[1])
 		original := f[0]
-		replaced := strings.ReplaceAll(original, fmt.Sprintf("%d", addressNumber), fmt.Sprintf("%d", addressNumber+addressOffset))
+		replaced := strings.ReplaceAll(
+			original,
+			fmt.Sprintf("%d", addressNumber),
+			fmt.Sprintf("%d", addressNumber+NumberOfServiceAccounts),
+		)
 		script = []byte(strings.ReplaceAll(string(script), original, replaced))
 	}
 

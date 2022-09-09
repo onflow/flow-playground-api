@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+
 	"github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
@@ -68,14 +70,12 @@ func (a Address) MarshalGQL(w io.Writer) {
 	_, _ = io.WriteString(w, str)
 }
 
-const numberOfAccounts = 4
-
 // shiftAddressToFlow adds numberOfAccounts to the address since it was provided by the user
 // and was previously shifted by shiftAddressFromFlow.
 func shiftAddressToFlow(a []byte) []byte {
 	var b [8]byte // create a copy
 	copy(b[:], a[:])
-	b[len(b)-1] = b[len(b)-1] + numberOfAccounts
+	b[len(b)-1] = b[len(b)-1] + blockchain.NumberOfServiceAccounts
 	return b[:]
 }
 
@@ -85,9 +85,9 @@ func shiftAddressToFlow(a []byte) []byte {
 func shiftAddressFromFlow(a []byte) []byte {
 	var b [8]byte
 	copy(b[:], a[:])
-	if b[len(b)-1] < numberOfAccounts { // ignore service account conversion
+	if b[len(b)-1] < blockchain.NumberOfServiceAccounts { // ignore service account conversion
 		return b[:]
 	}
-	b[len(b)-1] = b[len(b)-1] - numberOfAccounts
+	b[len(b)-1] = b[len(b)-1] - blockchain.NumberOfServiceAccounts
 	return b[:]
 }
