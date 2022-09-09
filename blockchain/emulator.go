@@ -98,10 +98,10 @@ func (e *emulator) executeScript(script string, arguments []string) (*types.Scri
 func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error) {
 	payer := e.blockchain.ServiceKey().Address
 
-	key := flowsdk.NewAccountKey()
-	    .FromPrivateKey(e.blockchain.ServiceKey().PrivateKey)
-	    .SetHashAlgo(crypto.SHA3_256)
-	    .SetWeight(flowsdk.AccountKeyWeightThreshold)
+	key := flowsdk.NewAccountKey().
+		FromPrivateKey(e.blockchain.ServiceKey().PrivateKey).
+		SetHashAlgo(crypto.SHA3_256).
+		SetWeight(flowsdk.AccountKeyWeightThreshold)
 
 	tx, err := templates.CreateAccount([]*flowsdk.AccountKey{key}, nil, payer)
 	if err != nil {
@@ -165,21 +165,7 @@ func (e *emulator) sendTransaction(
 	}
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
 
-	// we translate addresses from client address space to the emulator space
-	// client uses address starting at 0x01 whereas emulator starts at 0x05
-	r := regexp.MustCompile("0x0+([1-9])+")
-	found := r.FindAllStringSubmatch(string(tx.Script), -1)
-
-	if len(found) > 0 {
-		for _, f := range found {
-			// if found a match for address then convert to number and convert to emulator address space by the address offset
-			addressOffset := 4
-			addressNumber, _ := strconv.Atoi(f[1])
-			original := f[0]
-			replaced := strings.ReplaceAll(original, fmt.Sprintf("%d", addressNumber), fmt.Sprintf("%d", addressNumber+addressOffset))
-			tx.Script = []byte(strings.ReplaceAll(string(tx.Script), original, replaced))
-		}
-	}
+	tx.Script = translateAddresses(tx.Script)
 
 	for _, auth := range authorizers {
 		if len(authorizers) == 1 && tx.Payer == authorizers[0] {
@@ -268,4 +254,22 @@ func parseContractName(code string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine contract name")
+}
+
+// translateAddresses translates addresses from client address space to the emulator space
+// client uses address starting at 0x01 whereas emulator starts at 0x05
+func translateAddresses(script []byte) []byte {
+	r := regexp.MustCompile("0x0+([1-9])+")
+	found := r.FindAllStringSubmatch(string(script), -1)
+
+	for _, f := range found {
+		// if found a match for address then convert to number and convert to emulator address space by the address offset
+		addressOffset := 4
+		addressNumber, _ := strconv.Atoi(f[1])
+		original := f[0]
+		replaced := strings.ReplaceAll(original, fmt.Sprintf("%d", addressNumber), fmt.Sprintf("%d", addressNumber+addressOffset))
+		script = []byte(strings.ReplaceAll(string(script), original, replaced))
+	}
+
+	return script
 }
