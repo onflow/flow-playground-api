@@ -51,7 +51,7 @@ func NewResolver(
 	version *semver.Version,
 	store storage.Store,
 	auth *auth.Authenticator,
-	blockchain *blockchain.State,
+	blockchain *blockchain.Projects,
 ) *Resolver {
 	projects := controller.NewProjects(version, store, MaxAccounts, blockchain)
 	scripts := controller.NewScripts(store, blockchain)

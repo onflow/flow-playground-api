@@ -18,20 +18,20 @@ import (
 // improvement: create instance pool as a possible optimization. We can pre-instantiate empty
 // instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
-// NewState creates an instance of the state with provided storage access and caching.
-func NewState(store storage.Store, cache *lru.Cache) *State {
-	return &State{
+// NewProjects creates an instance of the projects with provided storage access and caching.
+func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
+	return &Projects{
 		store: store,
 		cache: cache,
 		mu:    map[uuid.UUID]*sync.RWMutex{},
 	}
 }
 
-// State implements stateful operations on the blockchain, keeping records of transaction executions.
+// Projects implements stateful operations on the blockchain, keeping records of transaction executions.
 //
-// State exposes API to interact with the blockchain but also makes sure the state is persisted and
-// implements state recreation with caching and resource locking.
-type State struct {
+// Projects expose API to interact with the blockchain all in context of a project but also makes sure
+// the state is persisted and implements state recreation with caching and resource locking.
+type Projects struct {
 	store     storage.Store
 	cache     *lru.Cache
 	mu        map[uuid.UUID]*sync.RWMutex
@@ -39,7 +39,7 @@ type State struct {
 }
 
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
-func (s *State) load(projectID uuid.UUID) (*emulator, error) {
+func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
 	val, ok := s.cache.Get(projectID)
 	if ok {
 		return val.(*emulator), nil
@@ -72,7 +72,7 @@ func (s *State) load(projectID uuid.UUID) (*emulator, error) {
 }
 
 // loadLock retrieves the mutex lock by the project ID and increase the usage counter.
-func (s *State) loadLock(uuid uuid.UUID) *sync.RWMutex {
+func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
 	counter, ok := s.muCounter.LoadOrStore(uuid, 0)
 	s.muCounter.Store(uuid, counter.(int)+1)
 
@@ -85,7 +85,7 @@ func (s *State) loadLock(uuid uuid.UUID) *sync.RWMutex {
 }
 
 // removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
-func (s *State) removeLock(uuid uuid.UUID) *sync.RWMutex {
+func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
 	m := s.mu[uuid]
 
 	counter, _ := s.muCounter.Load(uuid)
@@ -100,7 +100,7 @@ func (s *State) removeLock(uuid uuid.UUID) *sync.RWMutex {
 }
 
 // Reset the blockchain state.
-func (s *State) Reset(project *model.InternalProject) error {
+func (s *Projects) Reset(project *model.InternalProject) error {
 	s.cache.Remove(project.ID)
 
 	err := s.store.ResetProjectState(project)
@@ -117,7 +117,7 @@ func (s *State) Reset(project *model.InternalProject) error {
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
-func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
+func (s *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	projID := execution.ProjectID
 	s.loadLock(projID).Lock()
 	defer s.removeLock(projID).Unlock()
@@ -150,7 +150,7 @@ func (s *State) ExecuteTransaction(execution model.NewTransactionExecution) (*mo
 }
 
 // ExecuteScript executes the script.
-func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
+func (s *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
 	projID := execution.ProjectID
 	s.loadLock(projID).RLock()
 	defer s.removeLock(projID).RUnlock()
@@ -179,14 +179,14 @@ func (s *State) ExecuteScript(execution model.NewScriptExecution) (*model.Script
 }
 
 // GetAccount by the address along with its storage information.
-func (s *State) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+func (s *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	s.loadLock(projectID).RLock()
 	account, err := s.getAccount(projectID, address)
 	s.removeLock(projectID).RUnlock()
 	return account, err
 }
 
-func (s *State) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
@@ -209,7 +209,7 @@ func (s *State) getAccount(projectID uuid.UUID, address model.Address) (*model.A
 	return account, nil
 }
 
-func (s *State) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
+func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
 	accounts := make([]*model.InternalAccount, numAccounts)
 	for i := 0; i < numAccounts; i++ {
 		account, err := s.CreateAccount(projectID)
@@ -230,7 +230,7 @@ func (s *State) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
-func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
+func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	s.loadLock(projectID).Lock()
 	defer s.removeLock(projectID).Unlock()
 	emulator, err := s.load(projectID)
@@ -253,7 +253,7 @@ func (s *State) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
-func (s *State) DeployContract(
+func (s *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,

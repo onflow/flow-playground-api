@@ -29,12 +29,12 @@ import (
 
 type Scripts struct {
 	store      storage.Store
-	blockchain *blockchain.State
+	blockchain *blockchain.Projects
 }
 
 func NewScripts(
 	store storage.Store,
-	blockchain *blockchain.State,
+	blockchain *blockchain.Projects,
 ) *Scripts {
 	return &Scripts{
 		store:      store,

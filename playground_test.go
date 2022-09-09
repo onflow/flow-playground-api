@@ -1065,7 +1065,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
-		chain := blockchain.NewState(store, lru.New(128))
+		chain := blockchain.NewProjects(store, lru.New(128))
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, authenticator, chain)
 
@@ -2365,7 +2365,7 @@ func newClient() *Client {
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewState(store, lru.New(128))
+	chain := blockchain.NewProjects(store, lru.New(128))
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)

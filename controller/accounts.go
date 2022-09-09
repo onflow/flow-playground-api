@@ -12,12 +12,12 @@ import (
 
 type Accounts struct {
 	store      storage.Store
-	blockchain *blockchain.State
+	blockchain *blockchain.Projects
 }
 
 func NewAccounts(
 	store storage.Store,
-	blockchain *blockchain.State,
+	blockchain *blockchain.Projects,
 ) *Accounts {
 	return &Accounts{
 		store:      store,

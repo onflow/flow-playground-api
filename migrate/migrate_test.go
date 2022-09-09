@@ -106,7 +106,7 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 
 type migrateTestCase struct {
 	store      storage.Store
-	blockchain *blockchain.State
+	blockchain *blockchain.Projects
 	scripts    *controller.Scripts
 	projects   *controller.Projects
 	migrator   *migrate.Migrator
@@ -116,7 +116,7 @@ type migrateTestCase struct {
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		chain := blockchain.NewState(store, lru.New(128))
+		chain := blockchain.NewProjects(store, lru.New(128))
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, numAccounts, chain)
 

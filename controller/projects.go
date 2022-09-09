@@ -32,14 +32,14 @@ type Projects struct {
 	version     *semver.Version
 	store       storage.Store
 	numAccounts int // todo move to state
-	blockchain  *blockchain.State
+	blockchain  *blockchain.Projects
 }
 
 func NewProjects(
 	version *semver.Version,
 	store storage.Store,
 	numAccounts int,
-	blockchain *blockchain.State,
+	blockchain *blockchain.Projects,
 ) *Projects {
 	return &Projects{
 		version:     version,

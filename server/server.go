@@ -144,7 +144,7 @@ func main() {
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 
-	chain := blockchain.NewState(store, lru.New(128))
+	chain := blockchain.NewProjects(store, lru.New(128))
 
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
