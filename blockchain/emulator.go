@@ -138,7 +138,7 @@ func (e *emulator) deployContract(
 	address flowsdk.Address,
 	script string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	contractName, err := getSourceContractName(script)
+	contractName, err := parseContractName(script)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -245,8 +245,8 @@ func parseArguments(args []string) ([][]byte, error) {
 	return encodedArgs, nil
 }
 
-// getSourceContractName extracts contract name from its source
-func getSourceContractName(code string) (string, error) {
+// parseContractName extracts contract name from its source
+func parseContractName(code string) (string, error) {
 	program, err := parser.ParseProgram(code, nil)
 	if err != nil {
 		return "", err
