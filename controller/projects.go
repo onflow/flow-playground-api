@@ -21,6 +21,7 @@ package controller
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -31,7 +32,7 @@ import (
 type Projects struct {
 	version     *semver.Version
 	store       storage.Store
-	numAccounts int // todo move to state
+	numAccounts int // TODO move to blockchain project
 	blockchain  *blockchain.Projects
 }
 
@@ -100,20 +101,19 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	//accounts, err := p.createInitialAccounts(proj.ID)
 	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID, p.numAccounts)
 	if err != nil {
 		return nil, err
 	}
 
 	for i, account := range accounts {
-		// todo wrap in database transaction if it fails to create accounts
 		if i < len(input.Accounts) {
 			account.DraftCode = input.Accounts[i]
 		}
 
 		err := p.store.InsertAccount(account)
 		if err != nil {
+			sentry.CaptureException(err)
 			return nil, err
 		}
 	}
