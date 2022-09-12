@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getsentry/sentry-go"
+
 	"github.com/dapperlabs/flow-playground-api/model"
 
 	"github.com/onflow/cadence"
@@ -198,7 +200,7 @@ func (e *emulator) sendTransaction(
 
 	// there should always be just one transaction per block execution, if not the case fail
 	if len(res) != 1 {
-		// todo add sentry error
+		sentry.CaptureMessage(fmt.Sprintf("%d transactions were executed: %v", len(res), res))
 		return nil, nil, fmt.Errorf("failure during transaction execution, multiple transactions executed")
 	}
 
