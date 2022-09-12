@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/getsentry/sentry-go"
+
 	flowsdk "github.com/onflow/flow-go-sdk"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -62,6 +64,13 @@ func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
 			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
+			sentry.CaptureMessage(fmt.Sprintf(
+				"project %s state recreation failure: execution %s failed with result: %s, debug: %s",
+				projectID.String(),
+				execution.ID.String(),
+				result.Error.Error(),
+				result.Debug.Message,
+			))
 			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
 	}
