@@ -21,12 +21,10 @@ package model
 import (
 	"encoding/json"
 
-	flowsdk "github.com/onflow/flow-go-sdk"
-
+	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
-
-	"cloud.google.com/go/datastore"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 

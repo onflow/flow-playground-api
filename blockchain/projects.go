@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/getsentry/sentry-go"
-
-	flowsdk "github.com/onflow/flow-go-sdk"
-
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 

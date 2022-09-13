@@ -5,10 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/getsentry/sentry-go"
-
 	"github.com/dapperlabs/flow-playground-api/model"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
