@@ -35,9 +35,20 @@ func NewAddressFromBytes(b []byte) Address {
 	return shiftAddressFromFlow(b)
 }
 
+func NewAddressFromString(address string) Address {
+	addr := flow.HexToAddress(address)
+	var newAddress Address
+	copy(newAddress[:], addr[:])
+	return newAddress
+}
+
 func (a Address) ToFlowAddress() flow.Address {
 	addr := shiftAddressToFlow(a)
 	return flow.BytesToAddress(addr[len(addr)-flow.AddressLength:])
+}
+
+func (a Address) ToFlowAddressWithoutTranslation() flow.Address {
+	return flow.BytesToAddress(a[len(a)-flow.AddressLength:])
 }
 
 func (a *Address) UnmarshalGQL(v interface{}) error {
