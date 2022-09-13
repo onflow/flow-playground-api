@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,10 @@ package model
 import (
 	"encoding/json"
 
-	flowsdk "github.com/onflow/flow-go-sdk"
-
+	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
-
-	"cloud.google.com/go/datastore"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
@@ -249,8 +247,13 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 	}, nil
 }
 
-func (t *TransactionExecution) SignersToFlow() []flowsdk.Address {
-	return convertSigners(t.Signers)
+func (t *TransactionExecution) SignersToFlowWithoutTranslation() []flowsdk.Address {
+	sigs := make([]flowsdk.Address, len(t.Signers))
+	for i, sig := range t.Signers {
+		sigs[i] = sig.ToFlowAddressWithoutTranslation()
+	}
+
+	return sigs
 }
 
 func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {

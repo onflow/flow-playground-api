@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ package controller
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -31,7 +32,7 @@ import (
 type Projects struct {
 	version     *semver.Version
 	store       storage.Store
-	numAccounts int // todo move to state
+	numAccounts int // TODO move to blockchain project
 	blockchain  *blockchain.Projects
 }
 
@@ -100,61 +101,24 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	//accounts, err := p.createInitialAccounts(proj.ID)
 	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID, p.numAccounts)
 	if err != nil {
 		return nil, err
 	}
 
 	for i, account := range accounts {
-		// todo wrap in database transaction if it fails to create accounts
 		if i < len(input.Accounts) {
 			account.DraftCode = input.Accounts[i]
 		}
 
 		err := p.store.InsertAccount(account)
 		if err != nil {
+			sentry.CaptureException(err)
 			return nil, err
 		}
 	}
 
 	return proj, nil
-}
-
-func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
-	addresses, err := p.deployInitialAccounts(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	accounts := make([]*model.InternalAccount, len(addresses))
-	for i, address := range addresses {
-		account := model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: projectID,
-			},
-			Address: address,
-		}
-
-		accounts[i] = &account
-	}
-
-	return accounts, nil
-}
-
-func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, error) {
-	addresses := make([]model.Address, p.numAccounts)
-	for i := 0; i < p.numAccounts; i++ {
-		account, err := p.blockchain.CreateAccount(projectID)
-		if err != nil {
-			return nil, err
-		}
-
-		addresses[i] = account.Address
-	}
-
-	return addresses, nil
 }
 
 func (p *Projects) Get(id uuid.UUID) (*model.InternalProject, error) {

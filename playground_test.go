@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1061,7 +1061,7 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 	})
 
-	t.Run("Multiple executions with cache reset", func(t *testing.T) {
+	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
@@ -1092,15 +1092,17 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[5]
 
-		// first account should have address 0x06
+		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
 			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
-		// clear ledger cache
-		// todo computer.ClearCache()
+		err = chain.Reset(&model.InternalProject{
+			ID: uuid.MustParse(project.ID),
+		})
+		require.NoError(t, err)
 
 		var respB CreateTransactionExecutionResponse
 
@@ -1118,10 +1120,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[5]
 
-		// second account should have address 0x07
+		// second account should have address 0x0a again due to reset
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000b"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventB.Values[0],
 		)
 	})

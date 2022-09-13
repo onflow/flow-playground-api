@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ package playground
 import (
 	"context"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql"
-	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
 	"net/http"
 	"runtime/debug"
+
+	"github.com/99designs/gqlgen/graphql"
+	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
 )
 
 func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {

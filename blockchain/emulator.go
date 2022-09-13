@@ -1,3 +1,21 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package blockchain
 
 import (
@@ -7,6 +25,7 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/model"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
@@ -50,7 +69,6 @@ var _ blockchain = &emulator{}
 
 type emulator struct {
 	blockchain *emu.Blockchain
-	// todo put lock here
 }
 
 func newEmulator() (*emulator, error) {
@@ -198,7 +216,7 @@ func (e *emulator) sendTransaction(
 
 	// there should always be just one transaction per block execution, if not the case fail
 	if len(res) != 1 {
-		// todo add sentry error
+		sentry.CaptureMessage(fmt.Sprintf("%d transactions were executed: %v", len(res), res))
 		return nil, nil, fmt.Errorf("failure during transaction execution, multiple transactions executed")
 	}
 
@@ -264,7 +282,7 @@ const NumberOfServiceAccounts = 4
 // client uses address starting at 0x01 whereas emulator starts at 0x05
 // todo this is temp workaround, refactor to configure FVM
 func translateAddresses(script []byte) []byte {
-	r := regexp.MustCompile("(0x\\d+)")
+	r := regexp.MustCompile(`(0x\d+)`)
 
 	for _, addressMatch := range r.FindAllStringSubmatch(string(script), -1) {
 		original := addressMatch[0]

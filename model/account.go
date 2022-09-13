@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ type UpdateAccount struct {
 	DeployedContracts *[]string
 }
 
-func AccountFromFlow(account *flowsdk.Account) *Account {
+func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 	contractNames := make([]string, 0)
 	contractCode := ""
 	for name, code := range account.Contracts {
@@ -120,6 +120,7 @@ func AccountFromFlow(account *flowsdk.Account) *Account {
 	}
 
 	return &Account{
+		ProjectID:         projectID,
 		Address:           NewAddressFromBytes(account.Address.Bytes()),
 		DeployedCode:      contractCode,
 		DeployedContracts: contractNames,
