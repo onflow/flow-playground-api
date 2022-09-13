@@ -37,10 +37,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
-const (
-	numAccounts = 4
-	cacheSize   = 256
-)
+const numAccounts = 4
 
 func TestMigrateNilToV0(t *testing.T) {
 	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
