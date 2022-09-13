@@ -265,7 +265,7 @@ const NumberOfServiceAccounts = 4
 // client uses address starting at 0x01 whereas emulator starts at 0x05
 // todo this is temp workaround, refactor to configure FVM
 func translateAddresses(script []byte) []byte {
-	r := regexp.MustCompile("(0x\\d+)")
+	r := regexp.MustCompile(`(0x\d+)`)
 
 	for _, addressMatch := range r.FindAllStringSubmatch(string(script), -1) {
 		original := addressMatch[0]

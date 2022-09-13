@@ -121,42 +121,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 	return proj, nil
 }
 
-func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
-	addresses, err := p.deployInitialAccounts(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	accounts := make([]*model.InternalAccount, len(addresses))
-	for i, address := range addresses {
-		account := model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: projectID,
-			},
-			Address: address,
-		}
-
-		accounts[i] = &account
-	}
-
-	return accounts, nil
-}
-
-func (p *Projects) deployInitialAccounts(projectID uuid.UUID) ([]model.Address, error) {
-	addresses := make([]model.Address, p.numAccounts)
-	for i := 0; i < p.numAccounts; i++ {
-		account, err := p.blockchain.CreateAccount(projectID)
-		if err != nil {
-			return nil, err
-		}
-
-		addresses[i] = account.Address
-	}
-
-	return addresses, nil
-}
-
 func (p *Projects) Get(id uuid.UUID) (*model.InternalProject, error) {
 	var proj model.InternalProject
 	err := p.store.GetProject(id, &proj)
