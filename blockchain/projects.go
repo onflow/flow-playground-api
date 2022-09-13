@@ -25,7 +25,6 @@ func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
 	return &Projects{
 		store: store,
 		cache: cache,
-		mu:    map[uuid.UUID]*sync.RWMutex{},
 	}
 }
 
@@ -36,11 +35,13 @@ func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
 type Projects struct {
 	store     storage.Store
 	cache     *lru.Cache
-	mu        map[uuid.UUID]*sync.RWMutex
+	mu        sync.Map
 	muCounter sync.Map
 }
 
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
+//
+// Do not call this method directly, it is not concurrency safe.
 func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
 	val, ok := s.cache.Get(projectID)
 	if ok {
@@ -59,17 +60,21 @@ func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
 	}
 
 	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(execution.Script, execution.Arguments, execution.SignersToFlow())
+		result, _, err := emulator.executeTransaction(
+			execution.Script,
+			execution.Arguments,
+			execution.SignersToFlowWithoutTranslation(),
+		)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution %s failed with result: %s, debug: %s",
+				"project %s state recreation failure: execution %s failed with result: %s, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
-				result.Debug.Message,
+				result.Debug,
 			))
 			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
 		}
@@ -82,30 +87,33 @@ func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
 
 // loadLock retrieves the mutex lock by the project ID and increase the usage counter.
 func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
-	counter, ok := s.muCounter.LoadOrStore(uuid, 0)
+	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
 	s.muCounter.Store(uuid, counter.(int)+1)
 
-	_, ok = s.mu[uuid]
-	if !ok {
-		s.mu[uuid] = &sync.RWMutex{}
-	}
-
-	return s.mu[uuid]
+	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
+	return mu.(*sync.RWMutex)
 }
 
 // removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
 func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
-	m := s.mu[uuid]
+	m, ok := s.mu.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex")
+	}
 
-	counter, _ := s.muCounter.Load(uuid)
+	counter, ok := s.muCounter.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex counter")
+	}
+
 	if counter == 0 {
-		delete(s.mu, uuid)
+		s.mu.Delete(uuid)
 		s.muCounter.Delete(uuid)
 	} else {
 		s.muCounter.Store(uuid, counter.(int)-1)
 	}
 
-	return m
+	return m.(*sync.RWMutex)
 }
 
 // Reset the blockchain state.
@@ -117,7 +125,7 @@ func (s *Projects) Reset(project *model.InternalProject) error {
 		return err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID, 5)
+	_, err = s.CreateInitialAccounts(project.ID, 5) // todo don't pass number literal
 	if err != nil {
 		return err
 	}
@@ -211,7 +219,7 @@ func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 		return nil, errors.Wrap(err, "error marshaling account storage")
 	}
 
-	account := model.AccountFromFlow(flowAccount)
+	account := model.AccountFromFlow(flowAccount, projectID)
 	account.ProjectID = projectID
 	account.State = string(jsonStorage)
 
@@ -242,6 +250,7 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) (
 func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	s.loadLock(projectID).Lock()
 	defer s.removeLock(projectID).Unlock()
+
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
@@ -258,7 +267,7 @@ func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 		return nil, err
 	}
 
-	return model.AccountFromFlow(account), nil
+	return model.AccountFromFlow(account, projectID), nil
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
