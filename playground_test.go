@@ -1120,10 +1120,10 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventB := respB.CreateTransactionExecution.Events[5]
 
-		// second account should have address 0x07
+		// second account should have address 0x0a again due to reset
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000b"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventB.Values[0],
 		)
 	})
