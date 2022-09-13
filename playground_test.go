@@ -1061,7 +1061,7 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 	})
 
-	t.Run("Multiple executions with cache reset", func(t *testing.T) {
+	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
@@ -1092,15 +1092,17 @@ func TestTransactionExecutions(t *testing.T) {
 
 		eventA := respA.CreateTransactionExecution.Events[5]
 
-		// first account should have address 0x06
+		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
 			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
-		// clear ledger cache
-		// todo computer.ClearCache()
+		err = chain.Reset(&model.InternalProject{
+			ID: uuid.MustParse(project.ID),
+		})
+		require.NoError(t, err)
 
 		var respB CreateTransactionExecutionResponse
 
