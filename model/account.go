@@ -110,7 +110,7 @@ type UpdateAccount struct {
 	DeployedContracts *[]string
 }
 
-func AccountFromFlow(account *flowsdk.Account) *Account {
+func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 	contractNames := make([]string, 0)
 	contractCode := ""
 	for name, code := range account.Contracts {
@@ -120,6 +120,7 @@ func AccountFromFlow(account *flowsdk.Account) *Account {
 	}
 
 	return &Account{
+		ProjectID:         projectID,
 		Address:           NewAddressFromBytes(account.Address.Bytes()),
 		DeployedCode:      contractCode,
 		DeployedContracts: contractNames,
