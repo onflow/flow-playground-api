@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -42,4 +43,20 @@ func Test_TranslateAddress(t *testing.T) {
 		assert.Equal(t, string(in[1]), string(out))
 	}
 
+}
+
+func Test_BasicAccounts(t *testing.T) {
+	emu, err := newEmulator()
+	assert.NoError(t, err)
+
+	account1, _, _, err := emu.createAccount()
+	assert.NoError(t, err)
+
+	fmt.Println("Account1 address:", account1.Address)
+
+	account2, _, err := emu.getAccount(account1.Address)
+
+	fmt.Println("Account2 address:", account2.Address)
+
+	assert.Equal(t, account1, account2)
 }
