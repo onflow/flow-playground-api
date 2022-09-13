@@ -43,7 +43,7 @@ start-datastore-emulator:
 	gcloud beta emulators datastore start --no-store-on-disk
 
 .PHONY: ci
-ci: test check-tidy test check-headers
+ci: check-tidy test check-headers
 
 .PHONY: install-linter
 install-linter:
