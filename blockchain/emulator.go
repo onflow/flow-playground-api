@@ -167,9 +167,11 @@ func (e *emulator) deployContract(
 		return nil, nil, err
 	}
 
+	translatedScript := translateAddresses([]byte(script))
+
 	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
-		Source: script,
+		Source: string(translatedScript),
 	})
 
 	return e.sendTransaction(tx, nil)
