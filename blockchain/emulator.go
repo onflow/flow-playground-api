@@ -284,8 +284,8 @@ func parseContractName(code string) (string, error) {
 	return "", fmt.Errorf("unable to determine contract name")
 }
 
-// NumberOfServiceAccounts temporary workaround address shifting, will be removed
-const NumberOfServiceAccounts = 4
+// numberOfServiceAccounts temporary workaround address shifting, will be removed
+const numberOfServiceAccounts = 4
 
 // translateAddresses translates addresses from client address space to the emulator space
 // client uses address starting at 0x01 whereas emulator starts at 0x05

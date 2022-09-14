@@ -27,7 +27,7 @@ import (
 )
 
 func Test_TranslateAddress(t *testing.T) {
-	assert.Equal(t, NumberOfServiceAccounts, model.NumberOfServiceAccounts) // avoid circular deps
+	assert.Equal(t, numberOfServiceAccounts, model.NumberOfServiceAccounts) // avoid circular deps
 
 	inputs := [][][]byte{{
 		[]byte(`
