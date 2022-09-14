@@ -55,83 +55,6 @@ type Projects struct {
 	muCounter sync.Map
 }
 
-// load initializes an emulator and run transactions previously executed in the project to establish a state.
-//
-// Do not call this method directly, it is not concurrency safe.
-func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
-	val, ok := s.cache.Get(projectID)
-	if ok {
-		return val.(blockchain), nil
-	}
-
-	emulator, err := newEmulator()
-	if err != nil {
-		return nil, err
-	}
-
-	var executions []*model.TransactionExecution
-	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(
-			execution.Script,
-			execution.Arguments,
-			execution.SignersToFlowWithoutTranslation(),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
-		}
-		if result.Error != nil && len(execution.Errors) == 0 {
-			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution %s failed with result: %s, debug: %v",
-				projectID.String(),
-				execution.ID.String(),
-				result.Error.Error(),
-				result.Debug,
-			))
-			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
-		}
-	}
-
-	s.cache.Add(projectID, emulator)
-
-	return emulator, nil
-}
-
-// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
-func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
-	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
-	s.muCounter.Store(uuid, counter.(int)+1)
-
-	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
-	return mu.(*sync.RWMutex)
-}
-
-// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
-func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
-	m, ok := s.mu.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex")
-	}
-
-	counter, ok := s.muCounter.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex counter")
-	}
-
-	if counter == 0 {
-		s.mu.Delete(uuid)
-		s.muCounter.Delete(uuid)
-	} else {
-		s.muCounter.Store(uuid, counter.(int)-1)
-	}
-
-	return m.(*sync.RWMutex)
-}
-
 // Reset the blockchain state.
 func (s *Projects) Reset(project *model.InternalProject) error {
 	s.cache.Remove(project.ID)
@@ -219,29 +142,6 @@ func (s *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, err
 }
 
-func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := s.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
-	if err != nil {
-		return nil, err
-	}
-
-	jsonStorage, err := json.Marshal(store)
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling account storage")
-	}
-
-	account := model.AccountFromFlow(flowAccount, projectID)
-	account.ProjectID = projectID
-	account.State = string(jsonStorage)
-
-	return account, nil
-}
-
 func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
 	accounts := make([]*model.InternalAccount, numAccounts)
 	for i := 0; i < numAccounts; i++ {
@@ -314,4 +214,104 @@ func (s *Projects) DeployContract(
 	}
 
 	return s.getAccount(projectID, address)
+}
+
+func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	emulator, err := s.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStorage, err := json.Marshal(store)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling account storage")
+	}
+
+	account := model.AccountFromFlow(flowAccount, projectID)
+	account.ProjectID = projectID
+	account.State = string(jsonStorage)
+
+	return account, nil
+}
+
+// load initializes an emulator and run transactions previously executed in the project to establish a state.
+//
+// Do not call this method directly, it is not concurrency safe.
+func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
+	val, ok := s.cache.Get(projectID)
+	if ok {
+		return val.(blockchain), nil
+	}
+
+	emulator, err := newEmulator()
+	if err != nil {
+		return nil, err
+	}
+
+	var executions []*model.TransactionExecution
+	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, execution := range executions {
+		result, _, err := emulator.executeTransaction(
+			execution.Script,
+			execution.Arguments,
+			execution.SignersToFlowWithoutTranslation(),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
+		}
+		if result.Error != nil && len(execution.Errors) == 0 {
+			sentry.CaptureMessage(fmt.Sprintf(
+				"project %s state recreation failure: execution %s failed with result: %s, debug: %v",
+				projectID.String(),
+				execution.ID.String(),
+				result.Error.Error(),
+				result.Debug,
+			))
+			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
+		}
+	}
+
+	s.cache.Add(projectID, emulator)
+
+	return emulator, nil
+}
+
+// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
+func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
+	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
+	s.muCounter.Store(uuid, counter.(int)+1)
+
+	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
+	return mu.(*sync.RWMutex)
+}
+
+// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
+func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
+	m, ok := s.mu.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex")
+	}
+
+	counter, ok := s.muCounter.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex counter")
+	}
+
+	if counter == 0 {
+		s.mu.Delete(uuid)
+		s.muCounter.Delete(uuid)
+	} else {
+		s.muCounter.Store(uuid, counter.(int)-1)
+	}
+
+	return m.(*sync.RWMutex)
 }
