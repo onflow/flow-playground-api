@@ -113,9 +113,9 @@ type migrateTestCase struct {
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		chain := blockchain.NewProjects(store, lru.New(128))
+		chain := blockchain.NewProjects(store, lru.New(128), 5)
 		scripts := controller.NewScripts(store, chain)
-		projects := controller.NewProjects(startVersion, store, numAccounts, chain)
+		projects := controller.NewProjects(startVersion, store, chain)
 
 		migrator := migrate.NewMigrator(projects)
 

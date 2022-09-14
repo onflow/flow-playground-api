@@ -33,8 +33,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const MaxAccounts = 5
-
 type Resolver struct {
 	version            *semver.Version
 	store              storage.Store
@@ -53,7 +51,7 @@ func NewResolver(
 	auth *auth.Authenticator,
 	blockchain *blockchain.Projects,
 ) *Resolver {
-	projects := controller.NewProjects(version, store, MaxAccounts, blockchain)
+	projects := controller.NewProjects(version, store, blockchain)
 	scripts := controller.NewScripts(store, blockchain)
 	transactions := controller.NewTransactions(store, blockchain)
 	accounts := controller.NewAccounts(store, blockchain)

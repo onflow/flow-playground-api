@@ -33,16 +33,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-const numberOfInitialAccounts = 5
-
 // improvement: create instance pool as a possible optimization. We can pre-instantiate empty
 // instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
 // NewProjects creates an instance of the projects with provided storage access and caching.
-func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
+func NewProjects(store storage.Store, cache *lru.Cache, initAccountsNumber int) *Projects {
 	return &Projects{
-		store: store,
-		cache: cache,
+		store:          store,
+		cache:          cache,
+		accountsNumber: initAccountsNumber,
 	}
 }
 
@@ -51,10 +50,11 @@ func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
 // Projects expose API to interact with the blockchain all in context of a project but also makes sure
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
-	store     storage.Store
-	cache     *lru.Cache
-	mu        sync.Map
-	muCounter sync.Map
+	store          storage.Store
+	cache          *lru.Cache
+	mu             sync.Map
+	muCounter      sync.Map
+	accountsNumber int
 }
 
 // Reset the blockchain state.
@@ -66,7 +66,7 @@ func (s *Projects) Reset(project *model.InternalProject) error {
 		return err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID, numberOfInitialAccounts)
+	_, err = s.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return err
 	}
@@ -144,9 +144,9 @@ func (s *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, err
 }
 
-func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
-	accounts := make([]*model.InternalAccount, numAccounts)
-	for i := 0; i < numAccounts; i++ {
+func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+	accounts := make([]*model.InternalAccount, s.accountsNumber)
+	for i := 0; i < s.accountsNumber; i++ {
 		account, err := s.CreateAccount(projectID)
 		if err != nil {
 			return nil, err

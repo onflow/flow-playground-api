@@ -452,6 +452,8 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
+const initAccounts = 5
+
 func TestProjects(t *testing.T) {
 	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
@@ -473,7 +475,7 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, version.String(), resp.CreateProject.Version)
 
 		// project should be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		// project should not be persisted
 		assert.False(t, resp.CreateProject.Persist)
@@ -501,7 +503,7 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		assert.Equal(t, "0000000000000001", resp.CreateProject.Accounts[0].Address)
 		assert.Equal(t, "0000000000000002", resp.CreateProject.Accounts[1].Address)
@@ -536,7 +538,7 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -1065,7 +1067,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
-		chain := blockchain.NewProjects(store, lru.New(128))
+		chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, authenticator, chain)
 
@@ -2367,7 +2369,7 @@ func newClient() *Client {
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128))
+	chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)

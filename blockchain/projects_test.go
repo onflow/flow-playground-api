@@ -37,9 +37,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const accountsNumber = 5
+
 func newProjects() (*Projects, *memory.Store) {
 	store := memory.NewStore()
-	chain := NewProjects(store, lru.New(128))
+	chain := NewProjects(store, lru.New(128), accountsNumber)
 
 	return chain, store
 }
@@ -327,7 +329,7 @@ func Test_TransactionExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		accounts, err := projects.CreateInitialAccounts(proj.ID, 5)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 
 		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
@@ -414,7 +416,7 @@ func Test_DeployContract(t *testing.T) {
 		script := `pub contract HelloWorld {}`
 
 		const numAccounts = 5
-		accounts, err := projects.CreateInitialAccounts(proj.ID, numAccounts)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		require.NoError(t, err)
 		require.Len(t, accounts, numAccounts)
 
@@ -467,7 +469,7 @@ func Test_DeployContract(t *testing.T) {
 				}
 			}`
 
-		accounts, err := projects.CreateInitialAccounts(proj.ID, 5)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 
 		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
