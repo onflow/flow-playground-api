@@ -58,10 +58,10 @@ type Projects struct {
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
-func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
+func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	val, ok := s.cache.Get(projectID)
 	if ok {
-		return val.(*emulator), nil
+		return val.(blockchain), nil
 	}
 
 	emulator, err := newEmulator()
