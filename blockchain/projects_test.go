@@ -105,7 +105,7 @@ func Test_LoadEmulator(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		block, err := emulator.blockchain.GetLatestBlock()
+		block, err := emulator.getLatestBlock()
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(0), block.Header.Height)
@@ -228,7 +228,7 @@ func Test_TransactionExecution(t *testing.T) {
 			require.Len(t, dbExe, exeLen)
 
 			em, _ := projects.load(proj.ID)
-			b, _ := em.blockchain.GetLatestBlock()
+			b, _ := em.getLatestBlock()
 			require.Equal(t, b.Header.Height, uint64(exeLen))
 
 			projects.cache.Remove(proj.ID)

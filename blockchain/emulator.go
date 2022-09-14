@@ -23,6 +23,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/onflow/flow-go/model/flow"
+
 	"github.com/dapperlabs/flow-playground-api/model"
 
 	"github.com/getsentry/sentry-go"
@@ -63,6 +65,9 @@ type blockchain interface {
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
+
+	// getLatestBlock from the network.
+	getLatestBlock() (*flow.Block, error)
 }
 
 var _ blockchain = &emulator{}
@@ -221,6 +226,10 @@ func (e *emulator) sendTransaction(
 	}
 
 	return res[0], tx, nil
+}
+
+func (e *emulator) getLatestBlock() (*flow.Block, error) {
+	return e.blockchain.GetLatestBlock()
 }
 
 // parseEventAddress gets an address out of the account creation events payloads
