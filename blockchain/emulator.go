@@ -240,7 +240,7 @@ func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 			return flowsdk.HexToAddress(addressValue.Hex())
 		}
 	}
-	return flowsdk.Address{}
+	return flowsdk.EmptyAddress
 }
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
