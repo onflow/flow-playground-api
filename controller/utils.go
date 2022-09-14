@@ -176,6 +176,8 @@ func scriptAdapterToOutput(script *model.ScriptExecution) *model.ScriptExecution
 		script.Arguments[i] = contentAddressToOutput(a)
 	}
 
+	script.Value = contentAddressToOutput(script.Value)
+
 	return script
 }
 
