@@ -33,6 +33,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const numberOfInitialAccounts = 5
+
 // improvement: create instance pool as a possible optimization. We can pre-instantiate empty
 // instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
@@ -64,7 +66,7 @@ func (s *Projects) Reset(project *model.InternalProject) error {
 		return err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID, 5) // todo don't pass number literal
+	_, err = s.CreateInitialAccounts(project.ID, numberOfInitialAccounts)
 	if err != nil {
 		return err
 	}
