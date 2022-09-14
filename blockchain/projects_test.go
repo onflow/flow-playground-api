@@ -318,6 +318,48 @@ func Test_TransactionExecution(t *testing.T) {
 		}
 	})
 
+	t.Run("transaction with contract import and cache reset", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
+
+		accounts, err := projects.CreateInitialAccounts(proj.ID, 5)
+
+		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+		assert.Equal(t, accA.DeployedCode, scriptA)
+
+		projects.cache.Remove(proj.ID)
+
+		script := `
+			import HelloWorldA from 0x05
+			transaction {
+				prepare (signer: AuthAccount) {} 
+				execute {
+					log(HelloWorldA.A)
+				}
+			}`
+
+		signers := []model.Address{
+			model.NewAddressFromString("0x06"),
+		}
+
+		tx := model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Signers:   signers,
+			Arguments: nil,
+		}
+
+		exe, err := projects.ExecuteTransaction(tx)
+		require.NoError(t, err)
+		assert.Len(t, exe.Errors, 0)
+	})
+
 }
 
 func Test_AccountCreation(t *testing.T) {
@@ -376,7 +418,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, accounts, numAccounts)
 
-		account, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), script)
+		account, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
 
 		require.NoError(t, err)
 		assert.Equal(t, []string{"HelloWorld"}, account.DeployedContracts)
@@ -393,7 +435,72 @@ func Test_DeployContract(t *testing.T) {
 		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
 		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
 		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
-		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}, txDeploy.Signers[0])
+		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
+	})
+
+	t.Run("multiple deploys with imports and cache reset", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
+
+		scriptB := `
+			import HelloWorldA from 0x05
+			pub contract HelloWorldB {
+				pub var B: String
+				pub init() {
+					self.B = "HelloWorldB"
+					log(HelloWorldA.A) 
+				}
+			}`
+
+		scriptC := `
+			import HelloWorldA from 0x05
+			import HelloWorldB from 0x06
+			pub contract HelloWorldC {
+				pub init() { 
+					log(HelloWorldA.A)
+					log(HelloWorldB.B)
+				}
+			}`
+
+		accounts, err := projects.CreateInitialAccounts(proj.ID, 5)
+
+		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+		assert.Equal(t, accA.DeployedCode, scriptA)
+
+		accB, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
+		require.NoError(t, err)
+		assert.Equal(t, accB.DeployedCode, scriptB)
+
+		var txExe []*model.TransactionExecution
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 7)
+
+		projects.cache.Remove(proj.ID)
+
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 7)
+
+		_, err = projects.DeployContract(proj.ID, accounts[2].Address, scriptC)
+		require.NoError(t, err)
+
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 8)
+
+		assert.Equal(t, txExe[7].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, txExe[6].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, txExe[5].Events[0].Type, "flow.AccountContractAdded")
+
+		assert.Equal(t, txExe[7].Logs[0], `"HelloWorldA"`)
+		assert.Equal(t, txExe[7].Logs[1], `"HelloWorldB"`)
 	})
 
 }

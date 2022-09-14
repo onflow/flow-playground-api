@@ -166,7 +166,6 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) (
 func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	s.loadLock(projectID).Lock()
 	defer s.removeLock(projectID).Unlock()
-
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
@@ -263,20 +262,28 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		result, _, err := emulator.executeTransaction(
 			execution.Script,
 			execution.Arguments,
-			execution.SignersToFlowWithoutTranslation(),
+			execution.SignersToFlow(),
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
+			return nil, errors.Wrap(err, fmt.Sprintf(
+				"execution error: not able to recreate the project state %s with execution ID %s",
+				projectID,
+				execution.ID.String(),
+			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution %s failed with result: %s, debug: %v",
+				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
 			))
-			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
+			return nil, errors.Wrap(err, fmt.Sprintf(
+				"result error: not able to recreate the project state %s with execution ID %s",
+				projectID,
+				execution.ID.String(),
+			))
 		}
 	}
 

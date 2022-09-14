@@ -20,12 +20,8 @@ package blockchain
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/onflow/flow-go/model/flow"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/onflow/cadence"
@@ -167,11 +163,9 @@ func (e *emulator) deployContract(
 		return nil, nil, err
 	}
 
-	translatedScript := translateAddresses([]byte(script))
-
 	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
-		Source: string(translatedScript),
+		Source: script,
 	})
 
 	return e.sendTransaction(tx, nil)
@@ -190,8 +184,6 @@ func (e *emulator) sendTransaction(
 		tx.AddAuthorizer(auth)
 	}
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
-
-	tx.Script = translateAddresses(tx.Script)
 
 	for _, auth := range authorizers {
 		if len(authorizers) == 1 && tx.Payer == authorizers[0] {
@@ -284,29 +276,4 @@ func parseContractName(code string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine contract name")
-}
-
-// numberOfServiceAccounts temporary workaround address shifting, will be removed
-const numberOfServiceAccounts = 4
-
-// translateAddresses translates addresses from client address space to the emulator space
-// client uses address starting at 0x01 whereas emulator starts at 0x05
-// todo this is temp workaround, refactor to configure FVM
-func translateAddresses(script []byte) []byte {
-	r := regexp.MustCompile(`(0x\d+)`)
-
-	for _, addressMatch := range r.FindAllStringSubmatch(string(script), -1) {
-		original := addressMatch[0]
-		translated := model.NewAddressFromBytes(
-			flowsdk.HexToAddress(original).Bytes(),
-		).ToFlowAddress()
-
-		script = []byte(strings.ReplaceAll(
-			string(script),
-			original,
-			fmt.Sprintf("0x%s", translated.Hex()),
-		))
-	}
-
-	return script
 }
