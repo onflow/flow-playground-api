@@ -91,6 +91,104 @@ func newWithSeededProject() (*Projects, *memory.Store, *model.InternalProject, e
 	return projects, store, proj, err
 }
 
+func Benchmark_LoadEmulator(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+
+	// current run ~110 000 000 ns/op ~ 0.110s/op
+	b.Run("without cache", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.load(proj.ID)
+			projects.cache.Remove(proj.ID) // clear cache
+		}
+	})
+
+	// current run ~15 ns/op
+	b.Run("with cache", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.load(proj.ID)
+		}
+	})
+}
+
+func Test_ConcurrentRequests(t *testing.T) {
+
+	testConcurrently := func(
+		numOfRequests int,
+		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject),
+		test func(ch chan any, proj *model.InternalProject),
+	) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		ch := make(chan any)
+		var wg sync.WaitGroup
+
+		wg.Add(numOfRequests)
+
+		for i := 0; i < numOfRequests; i++ {
+			go request(i, ch, &wg, projects, proj)
+		}
+
+		test(ch, proj)
+
+		wg.Wait()
+	}
+
+	t.Run("concurrent account creation", func(t *testing.T) {
+		const numOfRequests = 4
+
+		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+			defer wg.Done()
+
+			acc, err := projects.CreateAccount(proj.ID)
+			require.NoError(t, err)
+
+			ch <- acc
+		}
+
+		testAccount := func(ch chan any, proj *model.InternalProject) {
+			accounts := make([]*model.Account, 0)
+			for a := range ch {
+				account := a.(*model.Account)
+				accounts = append(accounts, account)
+
+				if len(accounts) == numOfRequests {
+					close(ch)
+				}
+			}
+
+			require.Len(t, accounts, numOfRequests)
+
+			addresses := make([]string, numOfRequests)
+			for i, acc := range accounts {
+				assert.Equal(t, proj.ID, acc.ProjectID)
+				addr := acc.Address.ToFlowAddress().String()
+				assert.NotContains(t, addresses, addr) // make sure unique address is returned
+				addresses[i] = addr
+			}
+		}
+
+		t.Run("with cache", func(t *testing.T) {
+			testConcurrently(numOfRequests, createAccount, testAccount)
+		})
+
+		t.Run("without cache", func(t *testing.T) {
+			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+				defer wg.Done()
+
+				acc, err := projects.CreateAccount(proj.ID)
+				require.NoError(t, err)
+
+				projects.cache.Remove(proj.ID)
+
+				ch <- acc
+			}
+
+			testConcurrently(numOfRequests, createAccountNoCache, testAccount)
+		})
+
+	})
+}
+
 func Test_LoadEmulator(t *testing.T) {
 
 	t.Run("successful load of emulator", func(t *testing.T) {
@@ -127,25 +225,6 @@ func Test_LoadEmulator(t *testing.T) {
 		for i := 0; i < len(testProjs); i++ {
 			_, err := projects.load(testProjs[i].ID)
 			require.NoError(t, err)
-		}
-	})
-}
-
-func Benchmark_LoadEmulator(b *testing.B) {
-	projects, _, proj, _ := newWithSeededProject()
-
-	// current run ~110 000 000 ns/op ~ 0.110s/op
-	b.Run("without cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = projects.load(proj.ID)
-			projects.cache.Remove(proj.ID) // clear cache
-		}
-	})
-
-	// current run ~15 ns/op
-	b.Run("with cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = projects.load(proj.ID)
 		}
 	})
 }
@@ -285,82 +364,36 @@ func Test_AccountCreation(t *testing.T) {
 	})
 }
 
-func Test_ConcurrentRequests(t *testing.T) {
+func Test_DeployContract(t *testing.T) {
 
-	testConcurrently := func(
-		numOfRequests int,
-		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject),
-		test func(ch chan any, proj *model.InternalProject),
-	) {
-		projects, _, proj, _ := newWithSeededProject()
+	t.Run("deploy single contract", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
 
-		ch := make(chan any)
-		var wg sync.WaitGroup
+		script := `pub contract HelloWorld {}`
 
-		wg.Add(numOfRequests)
+		const numAccounts = 5
+		accounts, err := projects.CreateInitialAccounts(proj.ID, numAccounts)
+		require.NoError(t, err)
+		require.Len(t, accounts, numAccounts)
 
-		for i := 0; i < numOfRequests; i++ {
-			go request(i, ch, &wg, projects, proj)
-		}
+		account, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), script)
 
-		test(ch, proj)
+		require.NoError(t, err)
+		assert.Equal(t, []string{"HelloWorld"}, account.DeployedContracts)
+		assert.Equal(t, script, account.DeployedCode)
+		assert.True(t, strings.Contains(account.State, "HelloWorld"))
+		assert.Equal(t, proj.ID, account.ProjectID)
 
-		wg.Wait()
-	}
+		var txExe []*model.TransactionExecution
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 6)
 
-	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 4
-
-		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
-			defer wg.Done()
-
-			acc, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-
-			ch <- acc
-		}
-
-		testAccount := func(ch chan any, proj *model.InternalProject) {
-			accounts := make([]*model.Account, 0)
-			for a := range ch {
-				account := a.(*model.Account)
-				accounts = append(accounts, account)
-
-				if len(accounts) == numOfRequests {
-					close(ch)
-				}
-			}
-
-			require.Len(t, accounts, numOfRequests)
-
-			addresses := make([]string, numOfRequests)
-			for i, acc := range accounts {
-				assert.Equal(t, proj.ID, acc.ProjectID)
-				addr := acc.Address.ToFlowAddress().String()
-				assert.NotContains(t, addresses, addr) // make sure unique address is returned
-				addresses[i] = addr
-			}
-		}
-
-		t.Run("with cache", func(t *testing.T) {
-			testConcurrently(numOfRequests, createAccount, testAccount)
-		})
-
-		t.Run("without cache", func(t *testing.T) {
-			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
-				defer wg.Done()
-
-				acc, err := projects.CreateAccount(proj.ID)
-				require.NoError(t, err)
-
-				projects.cache.Remove(proj.ID)
-
-				ch <- acc
-			}
-
-			testConcurrently(numOfRequests, createAccountNoCache, testAccount)
-		})
-
+		txDeploy := txExe[5]
+		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
+		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
+		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
+		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1}, txDeploy.Signers[0])
 	})
 
 }
