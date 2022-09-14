@@ -506,3 +506,85 @@ func Test_DeployContract(t *testing.T) {
 	})
 
 }
+
+func Test_ScriptExecution(t *testing.T) {
+
+	t.Run("single script execution", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		script := `pub fun main(): Int { 
+			log("purpose")
+			return 42 
+		}`
+
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: nil,
+		}
+
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Len(t, exe.Errors, 0)
+		assert.Equal(t, `"purpose"`, exe.Logs[0])
+		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
+		assert.Equal(t, proj.ID, exe.ProjectID)
+
+		var dbScripts []*model.ScriptExecution
+		err = store.GetScriptExecutionsForProject(proj.ID, &dbScripts)
+		require.NoError(t, err)
+
+		require.Len(t, dbScripts, 1)
+		assert.Equal(t, dbScripts[0].Script, script)
+	})
+
+	t.Run("script execution importing deployed contract, with cache reset", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
+
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
+
+		_, err = projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+
+		script := `
+			import HelloWorldA from 0x05
+			pub fun main(): String { 
+				return HelloWorldA.A
+			}`
+
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: nil,
+		}
+
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"type\":\"String\",\"value\":\"HelloWorldA\"}\n", exe.Value)
+	})
+
+	t.Run("script with arguments", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		script := `pub fun main(a: Int): Int { 
+			return a
+		}`
+
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: []string{"{\"type\":\"Int\",\"value\":\"42\"}"},
+		}
+
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
+	})
+
+}
