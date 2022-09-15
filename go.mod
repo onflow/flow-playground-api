@@ -30,6 +30,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.0
 	github.com/vektah/gqlparser/v2 v2.4.2
+	gotest.tools v2.2.0+incompatible
 )
 
 require (
