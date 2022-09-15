@@ -19,32 +19,34 @@
 package model
 
 import (
-	"encoding/json"
-	"fmt"
-	"io"
-
-	"github.com/99designs/gqlgen/graphql"
-	"github.com/Masterminds/semver"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
-func UnmarshalVersion(v interface{}) (version semver.Version, err error) {
-	str, ok := v.(string)
-	if !ok {
-		return version, fmt.Errorf("versions must be strings")
+func EventsFromFlow(flowEvents []flow.Event) ([]Event, error) {
+	events := make([]Event, len(flowEvents))
+
+	for i, event := range flowEvents {
+		parsedEvent, err := parseEvent(event)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse event")
+		}
+		events[i] = parsedEvent
 	}
 
-	err = json.Unmarshal([]byte(str), &version)
-	if err != nil {
-		return version, errors.Wrap(err, "failed to unmarshal versino")
-	}
-
-	return version, nil
+	return events, nil
 }
 
-func MarshalVersion(version semver.Version) graphql.Marshaler {
-	return graphql.WriterFunc(func(w io.Writer) {
-		enc := json.NewEncoder(w)
-		_ = enc.Encode(&version)
-	})
+func parseEvent(event flow.Event) (Event, error) {
+	values := make([]string, len(event.Value.Fields))
+	for j, field := range event.Value.Fields {
+		encoded, _ := jsoncdc.Encode(field)
+		values[j] = string(encoded)
+	}
+
+	return Event{
+		Type:   event.Type,
+		Values: values,
+	}, nil
 }

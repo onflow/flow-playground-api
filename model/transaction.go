@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-emulator/types"
+	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
@@ -88,15 +90,61 @@ func (t *TransactionTemplate) Save() ([]datastore.Property, error) {
 	}, nil
 }
 
+func TransactionExecutionFromFlow(
+	projectID uuid.UUID,
+	result *types.TransactionResult,
+	tx *flowsdk.Transaction,
+) *TransactionExecution {
+	id := ProjectChildID{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+	}
+
+	args := make([]string, 0)
+	signers := make([]Address, 0)
+	script := ""
+	// transaction could be nil in case where we get transaction result errors
+	if tx != nil {
+		for _, a := range tx.Arguments {
+			args = append(args, string(a))
+		}
+
+		for _, a := range tx.Authorizers {
+			signers = append(signers, NewAddressFromBytes(a.Bytes()))
+		}
+
+		script = string(tx.Script)
+	}
+
+	exe := &TransactionExecution{
+		ProjectChildID: id,
+		Script:         script,
+		Arguments:      args,
+		Signers:        signers,
+		Logs:           result.Logs,
+	}
+
+	if result.Events != nil {
+		events, _ := EventsFromFlow(result.Events)
+		exe.Events = events
+	}
+
+	if result.Error != nil {
+		exe.Errors = ProgramErrorFromFlow(result.Error)
+	}
+
+	return exe
+}
+
 type TransactionExecution struct {
 	ProjectChildID
-	Index            int
-	Script           string
-	Arguments        []string
-	SignerAccountIDs []uuid.UUID
-	Errors           []ProgramError
-	Events           []Event
-	Logs             []string
+	Index     int
+	Script    string
+	Arguments []string
+	Signers   []Address
+	Errors    []ProgramError
+	Events    []Event
+	Logs      []string
 }
 
 func (t *TransactionExecution) NameKey() *datastore.Key {
@@ -105,14 +153,14 @@ func (t *TransactionExecution) NameKey() *datastore.Key {
 
 func (t *TransactionExecution) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID               string
-		ProjectID        string
-		Index            int
-		Script           string
-		Arguments        []string
-		SignerAccountIDs []string
-		Events           string
-		Logs             []string
+		ID        string
+		ProjectID string
+		Index     int
+		Script    string
+		Arguments []string
+		Signers   [][]byte
+		Events    string
+		Logs      []string
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -126,12 +174,10 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 		return errors.Wrap(err, "failed to decode project UUID")
 	}
 
-	for _, aID := range tmp.SignerAccountIDs {
-		signer := uuid.UUID{}
-		if err := signer.UnmarshalText([]byte(aID)); err != nil {
-			return errors.Wrap(err, "failed to decode signer account UUID")
-		}
-		t.SignerAccountIDs = append(t.SignerAccountIDs, signer)
+	for _, sig := range tmp.Signers {
+		var signer Address
+		copy(signer[:], sig[:])
+		t.Signers = append(t.Signers, signer)
 	}
 
 	if err := json.Unmarshal([]byte(tmp.Events), &t.Events); err != nil {
@@ -146,9 +192,9 @@ func (t *TransactionExecution) Load(ps []datastore.Property) error {
 }
 
 func (t *TransactionExecution) Save() ([]datastore.Property, error) {
-	signerAccountIDs := make([]interface{}, 0, len(t.SignerAccountIDs))
-	for _, aID := range t.SignerAccountIDs {
-		signerAccountIDs = append(signerAccountIDs, aID.String())
+	signers := make([]interface{}, 0, len(t.Signers))
+	for _, sig := range t.Signers {
+		signers = append(signers, sig.ToFlowAddress().Bytes())
 	}
 
 	events, err := json.Marshal(t.Events)
@@ -176,10 +222,6 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			Value: t.ProjectID.String(),
 		},
 		{
-			Name:  "Index",
-			Value: t.Index,
-		},
-		{
 			Name:    "Script",
 			Value:   t.Script,
 			NoIndex: true,
@@ -190,8 +232,8 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 		{
-			Name:  "SignerAccountIDs",
-			Value: signerAccountIDs,
+			Name:  "Signers",
+			Value: signers,
 		},
 		{
 			Name:    "Events",
@@ -203,4 +245,21 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			Value: logs,
 		},
 	}, nil
+}
+
+func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {
+	return convertSigners(n.Signers)
+}
+
+func (t *TransactionExecution) SignersToFlow() []flowsdk.Address {
+	return convertSigners(t.Signers)
+}
+
+func convertSigners(signers []Address) []flowsdk.Address {
+	sigs := make([]flowsdk.Address, len(signers))
+	for i, sig := range signers {
+		sigs[i] = sig.ToFlowAddress()
+	}
+
+	return sigs
 }

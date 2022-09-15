@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,27 +19,26 @@
 package controller
 
 import (
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 type Scripts struct {
-	store    storage.Store
-	computer *compute.Computer
+	store      storage.Store
+	blockchain *blockchain.Projects
 }
 
 func NewScripts(
 	store storage.Store,
-	computer *compute.Computer,
+	blockchain *blockchain.Projects,
 ) *Scripts {
 	return &Scripts{
-		store:    store,
-		computer: computer,
+		store:      store,
+		blockchain: blockchain,
 	}
 }
 
@@ -61,13 +60,15 @@ func (s *Scripts) CreateTemplate(projectID uuid.UUID, input model.NewScriptTempl
 	return &tpl, nil
 }
 
-func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
-	err := s.store.UpdateScriptTemplate(input, tpl)
+func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
+	var tpl model.ScriptTemplate
+
+	err := s.store.UpdateScriptTemplate(input, &tpl)
 	if err != nil {
-		return errors.Wrap(err, "failed to update script template")
+		return nil, errors.Wrap(err, "failed to update script template")
 	}
 
-	return nil
+	return &tpl, nil
 }
 
 func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
@@ -79,63 +80,34 @@ func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
 	return nil
 }
 
-func (s *Scripts) CreateExecution(
-	proj *model.InternalProject,
-	script string,
-	arguments []string,
-) (
-	*model.ScriptExecution,
-	error,
-) {
+func (s *Scripts) AllTemplatesForProjectID(ID uuid.UUID) ([]*model.ScriptTemplate, error) {
+	var templates []*model.ScriptTemplate
+	err := s.store.GetScriptTemplatesForProject(ID, &templates)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script templates")
+	}
 
-	if len(script) == 0 {
+	return templates, nil
+}
+
+func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
+	var tpl model.ScriptTemplate
+	err := s.store.GetScriptTemplate(model.NewProjectChildID(ID, projectID), &tpl)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get script template")
+	}
+
+	return &tpl, nil
+}
+
+func (s *Scripts) CreateExecution(script model.NewScriptExecution) (*model.ScriptExecution, error) {
+	if len(script.Script) == 0 {
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	result, err := s.computer.ExecuteScript(
-		proj.ID,
-		proj.TransactionCount,
-		func() ([]*model.RegisterDelta, error) {
-			var deltas []*model.RegisterDelta
-			err := s.store.GetRegisterDeltasForProject(proj.ID, &deltas)
-			if err != nil {
-				return nil, err
-			}
-
-			return deltas, nil
-		},
-		script,
-		arguments,
-	)
+	execution, err := s.blockchain.ExecuteScript(script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
-
-	exe := model.ScriptExecution{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-		},
-		Script:    script,
-		Arguments: arguments,
-		Logs:      result.Logs,
-	}
-
-	if result.Err != nil {
-		exe.Errors = compute.ExtractProgramErrors(result.Err)
-	} else {
-		enc, err := jsoncdc.Encode(result.Value)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to encode to JSON-CDC")
-		}
-
-		exe.Value = string(enc)
-	}
-
-	err = s.store.InsertScriptExecution(&exe)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to insert script execution record")
-	}
-
-	return &exe, nil
+	return execution, nil
 }

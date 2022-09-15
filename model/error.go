@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,18 @@
  * limitations under the License.
  */
 
-package compute
+package model
 
 import (
-	"errors"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
-
-	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/pkg/errors"
 )
 
-func ExtractProgramErrors(err error) (result []model.ProgramError) {
+func ProgramErrorFromFlow(err error) (result []ProgramError) {
 	// set the default return value
-	result = []model.ProgramError{
+	result = []ProgramError{
 		convertProgramError(err),
 	}
 
@@ -46,8 +44,8 @@ func ExtractProgramErrors(err error) (result []model.ProgramError) {
 	return convertProgramErrors(parentError.ChildErrors())
 }
 
-func convertProgramErrors(errors []error) []model.ProgramError {
-	result := make([]model.ProgramError, len(errors))
+func convertProgramErrors(errors []error) []ProgramError {
+	result := make([]ProgramError, len(errors))
 
 	for i, err := range errors {
 		result[i] = convertProgramError(err)
@@ -56,9 +54,14 @@ func convertProgramErrors(errors []error) []model.ProgramError {
 	return result
 }
 
-func convertProgramError(err error) model.ProgramError {
-	programError := model.ProgramError{
+func convertProgramError(err error) ProgramError {
+	programError := ProgramError{
 		Message: err.Error(),
+	}
+
+	var unexpectedErr runtimeErrors.UnexpectedError
+	if errors.As(err, &unexpectedErr) {
+		programError.Message = unexpectedErr.Err.Error() // remove error stack
 	}
 
 	if position, ok := err.(ast.HasPosition); ok {
@@ -69,7 +72,7 @@ func convertProgramError(err error) model.ProgramError {
 	return programError
 }
 
-func convertPosition(astPosition ast.Position) *model.ProgramPosition {
-	programPosition := model.ProgramPosition(astPosition)
+func convertPosition(astPosition ast.Position) *ProgramPosition {
+	programPosition := ProgramPosition(astPosition)
 	return &programPosition
 }

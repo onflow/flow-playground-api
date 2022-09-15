@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,13 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
+	"github.com/google/uuid"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/flow-emulator/types"
 	"github.com/pkg/errors"
 )
+
+// todo ScriptTemplate and TransactionTemplate could be refactored into generic Templates
 
 type ScriptTemplate struct {
 	ProjectChildID
@@ -83,6 +88,27 @@ func (s *ScriptTemplate) Save() ([]datastore.Property, error) {
 			NoIndex: true,
 		},
 	}, nil
+}
+
+func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
+	exe := &ScriptExecution{
+		ProjectChildID: ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+		},
+		Script:    script,
+		Arguments: arguments,
+		Logs:      result.Logs,
+	}
+
+	if result.Error != nil {
+		exe.Errors = ProgramErrorFromFlow(result.Error)
+	} else {
+		enc, _ := jsoncdc.Encode(result.Value)
+		exe.Value = string(enc)
+	}
+
+	return exe
 }
 
 type ScriptExecution struct {

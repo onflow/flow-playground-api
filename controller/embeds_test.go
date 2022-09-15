@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ import (
 	"github.com/alecthomas/assert"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/onflow/flow-go/engine/execution/state/delta"
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -116,14 +115,12 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 		Version:  version,
 	}
 
-	accounts := make([]*model.InternalAccount, 0)
-	deltas := make([]delta.Delta, 0)
 	ttpls := make([]*model.TransactionTemplate, 0)
 	stpls := make([]*model.ScriptTemplate, 0)
 
 	internalProj.UserID = user.ID
 
-	projErr := store.CreateProject(internalProj, deltas, accounts, ttpls, stpls)
+	projErr := store.CreateProject(internalProj, ttpls, stpls)
 	require.NoError(t, projErr)
 
 	script := `

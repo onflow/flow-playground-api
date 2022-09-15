@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,20 @@ const addressLength = 8
 
 type Address [addressLength]byte
 
-func NewAddressFromBytes(b []byte) Address {
-	var address Address
-	copy(address[addressLength-len(b):], b[:])
-	return address
+func NewAddressFromBytes(a []byte) Address {
+	var b Address
+	copy(b[addressLength-len(a):], a[:])
+	return b
 }
 
-func (a *Address) ToFlowAddress() flow.Address {
+func NewAddressFromString(address string) Address {
+	addr := flow.HexToAddress(address)
+	var newAddress Address
+	copy(newAddress[:], addr[:])
+	return newAddress
+}
+
+func (a Address) ToFlowAddress() flow.Address {
 	return flow.BytesToAddress(a[len(a)-flow.AddressLength:])
 }
 

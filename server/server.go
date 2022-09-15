@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,27 +26,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
-
-	"github.com/go-chi/render"
-	"github.com/rs/zerolog"
-
-	"github.com/dapperlabs/flow-playground-api/controller"
-
-	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
-	"github.com/Masterminds/semver"
-	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
-	"github.com/go-chi/chi"
-	gsessions "github.com/gorilla/sessions"
-	"github.com/kelseyhightower/envconfig"
-
-	"github.com/rs/cors"
-	"github.com/sirupsen/logrus"
+	"github.com/go-chi/httplog"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/build"
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
@@ -54,7 +38,21 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+
+	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
+	"github.com/Masterminds/semver"
+	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/getsentry/sentry-go"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
+	"github.com/golang/groupcache/lru"
+	gsessions "github.com/gorilla/sessions"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/rs/cors"
+	"github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -142,21 +140,19 @@ func main() {
 		store = memory.NewStore()
 	}
 
-	computer, err := compute.NewComputer(zerolog.Nop(), conf.LedgerCacheSize)
-	if err != nil {
-		log.Fatal(err)
-	}
+	const initAccountsNumber = 5
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
-
 	authenticator := auth.NewAuthenticator(store, sessionName)
-
-	resolver := playground.NewResolver(build.Version(), store, computer, authenticator)
+	chain := blockchain.NewProjects(store, lru.New(128), initAccountsNumber)
+	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
+		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true})
+		router.Use(httplog.RequestLogger(logger))
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
@@ -170,7 +166,6 @@ func main() {
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
-			Debug:            conf.Debug,
 		}).Handler)
 
 		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
@@ -220,7 +215,6 @@ func main() {
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins: conf.AllowedOrigins,
-			Debug:          conf.Debug,
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))

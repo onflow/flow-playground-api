@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package playground_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -28,10 +29,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/groupcache/lru"
+
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,7 +43,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/client"
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -219,16 +222,20 @@ mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
     address
     draftCode
     deployedCode
+    deployedContracts
+    state
   }
 }
 `
 
 type UpdateAccountResponse struct {
 	UpdateAccount struct {
-		ID           string
-		Address      string
-		DraftCode    string
-		DeployedCode string
+		ID                string
+		Address           string
+		DraftCode         string
+		DeployedCode      string
+		DeployedContracts []string
+		State             string
 	}
 }
 
@@ -450,6 +457,8 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
+const initAccounts = 5
+
 func TestProjects(t *testing.T) {
 	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
@@ -471,7 +480,7 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, version.String(), resp.CreateProject.Version)
 
 		// project should be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		// project should not be persisted
 		assert.False(t, resp.CreateProject.Persist)
@@ -499,8 +508,12 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
+		assert.Equal(t, "0000000000000001", resp.CreateProject.Accounts[0].Address)
+		assert.Equal(t, "0000000000000002", resp.CreateProject.Accounts[1].Address)
+		assert.Equal(t, "0000000000000003", resp.CreateProject.Accounts[2].Address)
+		assert.Equal(t, "0000000000000004", resp.CreateProject.Accounts[3].Address)
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
 		assert.Equal(t, "", resp.CreateProject.Accounts[2].DraftCode)
@@ -530,7 +543,7 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -1019,14 +1032,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+		require.Len(t, respA.CreateTransactionExecution.Events, 6)
 
-		eventA := respA.CreateTransactionExecution.Events[0]
+		eventA := respA.CreateTransactionExecution.Events[5]
 
-		// first account should have address 0x06
+		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
@@ -1043,24 +1056,25 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respB.CreateTransactionExecution.Errors)
-		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+		require.Len(t, respB.CreateTransactionExecution.Events, 6)
 
-		eventB := respB.CreateTransactionExecution.Events[0]
+		eventB := respB.CreateTransactionExecution.Events[5]
 
 		// second account should have address 0x07
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000007"}`,
+			`{"type":"Address","value":"0x000000000000000b"}`,
 			eventB.Values[0],
 		)
 	})
 
-	t.Run("Multiple executions with cache reset", func(t *testing.T) {
+	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
-		computer, _ := compute.NewComputer(zerolog.Nop(), 128)
+
+		chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, computer, authenticator)
+		resolver := playground.NewResolver(version, store, authenticator, chain)
 
 		c := newClientWithResolver(resolver)
 
@@ -1081,19 +1095,21 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 1)
+		require.Len(t, respA.CreateTransactionExecution.Events, 6)
 
-		eventA := respA.CreateTransactionExecution.Events[0]
+		eventA := respA.CreateTransactionExecution.Events[5]
 
-		// first account should have address 0x06
+		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000006"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventA.Values[0],
 		)
 
-		// clear ledger cache
-		computer.ClearCache()
+		err = chain.Reset(&model.InternalProject{
+			ID: uuid.MustParse(project.ID),
+		})
+		require.NoError(t, err)
 
 		var respB CreateTransactionExecutionResponse
 
@@ -1107,14 +1123,14 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Len(t, respB.CreateTransactionExecution.Events, 1)
+		require.Len(t, respB.CreateTransactionExecution.Events, 6)
 
-		eventB := respB.CreateTransactionExecution.Events[0]
+		eventB := respB.CreateTransactionExecution.Events[5]
 
-		// second account should have address 0x07
+		// second account should have address 0x0a again due to reset
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
 		assert.JSONEq(t,
-			`{"type":"Address","value":"0x0000000000000007"}`,
+			`{"type":"Address","value":"0x000000000000000a"}`,
 			eventB.Values[0],
 		)
 	})
@@ -1271,12 +1287,8 @@ func TestTransactionExecutions(t *testing.T) {
 
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "[Error Code: 1110] computation exceeds limit (100000)",
-				},
-			},
-			resp.CreateTransactionExecution.Errors,
+			"[Error Code: 1110] computation exceeds limit (100000)",
+			resp.CreateTransactionExecution.Errors[0].Message,
 		)
 	})
 
@@ -1784,6 +1796,7 @@ func TestAccounts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+		assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
@@ -1890,6 +1903,124 @@ func TestContractInteraction(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Errors)
+}
+
+func TestContractImport(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+
+	accountA := project.Accounts[0]
+	accountB := project.Accounts[1]
+
+	contractA := `
+	pub contract HelloWorldA {
+		pub var A: String
+		pub init() { self.A = "HelloWorldA" }
+	}`
+
+	contractB := `
+	import HelloWorldA from 0x01
+	pub contract HelloWorldB {
+		pub init() {
+			log(HelloWorldA.A)
+		}
+	}`
+
+	var respA UpdateAccountResponse
+
+	err := c.Post(
+		MutationUpdateAccountDeployedCode,
+		&respA,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", accountA.ID),
+		client.Var("code", contractA),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, contractA, respA.UpdateAccount.DeployedCode)
+
+	var respB UpdateAccountResponse
+
+	err = c.Post(
+		MutationUpdateAccountDeployedCode,
+		&respB,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", accountB.ID),
+		client.Var("code", contractB),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+}
+
+func TestAccountStorage(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+	account := project.Accounts[0]
+
+	var accResp GetAccountResponse
+
+	err := c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.Equal(t, `"{}"`, accResp.Account.State)
+
+	var resp CreateTransactionExecutionResponse
+
+	const script = `
+		transaction {
+		  prepare(signer: AuthAccount) {
+			  	signer.save("storage value", to: /storage/storageTest)
+ 				signer.link<&String>(/public/publicTest, target: /storage/storageTest)
+				signer.link<&String>(/private/privateTest, target: /storage/storageTest)
+		  }
+   		}`
+
+	err = c.Post(
+		MutationCreateTransactionExecution,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("script", script),
+		client.Var("signers", []string{account.Address}),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	err = c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.NotEmpty(t, accResp.Account.State)
+
+	type accountStorage struct {
+		Private map[string]any
+		Public  map[string]any
+		Storage map[string]any
+	}
+
+	var accStorage accountStorage
+	err = json.Unmarshal([]byte(accResp.Account.State), &accStorage)
+	require.NoError(t, err)
+
+	assert.Equal(t, "storage value", accStorage.Storage["storageTest"])
+	assert.NotEmpty(t, accStorage.Private["privateTest"])
+	assert.NotEmpty(t, accStorage.Public["publicTest"])
+
+	assert.NotContains(t, accStorage.Public, "flowTokenBalance")
+	assert.NotContains(t, accStorage.Public, "flowTokenReceiver")
+	assert.NotContains(t, accStorage.Storage, "flowTokenVault")
 }
 
 func TestAuthentication(t *testing.T) {
@@ -2361,11 +2492,9 @@ func newClient() *Client {
 		store = memory.NewStore()
 	}
 
-	computer, _ := compute.NewComputer(zerolog.Nop(), 128)
-
 	authenticator := auth.NewAuthenticator(store, sessionName)
-
-	resolver := playground.NewResolver(version, store, computer, authenticator)
+	chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
+	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)
 }
@@ -2437,3 +2566,9 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 
 	return resp.CreateScriptTemplate.ID
 }
+
+// todo add tests for:
+// - checking account state
+// - deploying contract on account actually changes the returned account
+// - failed transactions with successful transactions work (bootstrap works)??
+// - add benchmark test for cached / uncached versions

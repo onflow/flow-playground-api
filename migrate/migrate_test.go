@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/golang/groupcache/lru"
+
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dapperlabs/flow-playground-api/compute"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -36,10 +37,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
-const (
-	numAccounts = 4
-	cacheSize   = 256
-)
+const numAccounts = 4
 
 func TestMigrateNilToV0(t *testing.T) {
 	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
@@ -74,7 +72,7 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, migrated)
 
-		err = c.projects.Get(proj.ID, proj)
+		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, migrate.V0_1_0, proj.Version)
@@ -96,7 +94,7 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, migrated)
 
-		err = c.projects.Get(proj.ID, proj)
+		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
 		assert.Equal(t, v0_2_0, proj.Version)
@@ -104,22 +102,20 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 }
 
 type migrateTestCase struct {
-	store    storage.Store
-	computer *compute.Computer
-	scripts  *controller.Scripts
-	projects *controller.Projects
-	migrator *migrate.Migrator
-	user     *model.User
+	store      storage.Store
+	blockchain *blockchain.Projects
+	scripts    *controller.Scripts
+	projects   *controller.Projects
+	migrator   *migrate.Migrator
+	user       *model.User
 }
 
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		computer, err := compute.NewComputer(zerolog.Nop(), cacheSize)
-		require.NoError(t, err)
-
-		scripts := controller.NewScripts(store, computer)
-		projects := controller.NewProjects(startVersion, store, computer, numAccounts)
+		chain := blockchain.NewProjects(store, lru.New(128), 5)
+		scripts := controller.NewScripts(store, chain)
+		projects := controller.NewProjects(startVersion, store, chain)
 
 		migrator := migrate.NewMigrator(projects)
 
@@ -127,16 +123,16 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 			ID: uuid.New(),
 		}
 
-		err = store.InsertUser(&user)
+		err := store.InsertUser(&user)
 		require.NoError(t, err)
 
 		f(t, migrateTestCase{
-			store:    store,
-			computer: computer,
-			scripts:  scripts,
-			projects: projects,
-			migrator: migrator,
-			user:     &user,
+			store:      store,
+			blockchain: chain,
+			scripts:    scripts,
+			projects:   projects,
+			migrator:   migrator,
+			user:       &user,
 		})
 	}
 }
@@ -145,7 +141,11 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 	for i := 1; i <= numAccounts; i++ {
 		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 
-		result, err := scripts.CreateExecution(proj, script, nil)
+		result, err := scripts.CreateExecution(model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: nil,
+		})
 		require.NoError(t, err)
 
 		assert.Empty(t, result.Errors)

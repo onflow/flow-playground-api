@@ -1,7 +1,7 @@
 /*
  * Flow Playground
  *
- * Copyright 2019-2021 Dapper Labs, Inc.
+ * Copyright 2019 Dapper Labs, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ func (p *Client) Websocket(query string, options ...Option) *Subscription {
 	return p.WebsocketWithPayload(query, nil, options...)
 }
 
-// Grab a single response from a websocket based query
+// WebsocketOnce grabs a single response from a websocket based query
 func (p *Client) WebsocketOnce(query string, resp interface{}, options ...Option) error {
 	sock := p.Websocket(query)
 
