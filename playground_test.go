@@ -1968,8 +1968,7 @@ func TestAccountStorage(t *testing.T) {
  				signer.link<&String>(/public/publicTest, target: /storage/storageTest)
 				signer.link<&String>(/private/privateTest, target: /storage/storageTest)
 		  }
-   		}
-	`
+   		}`
 
 	err := c.Post(
 		MutationCreateTransactionExecution,
