@@ -20,6 +20,7 @@ package playground_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -1956,6 +1957,7 @@ func TestAccountStorage(t *testing.T) {
 	c := newClient()
 
 	project := createProject(t, c)
+	account := project.Accounts[0]
 
 	var resp CreateTransactionExecutionResponse
 
@@ -1974,11 +1976,11 @@ func TestAccountStorage(t *testing.T) {
 		&resp,
 		client.Var("projectId", project.ID),
 		client.Var("script", script),
+		client.Var("signers", []string{account.Address}),
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
-	account := project.Accounts[0]
 	var accResp GetAccountResponse
 
 	err = c.Post(
@@ -1992,7 +1994,23 @@ func TestAccountStorage(t *testing.T) {
 	assert.Equal(t, account.ID, accResp.Account.ID)
 	assert.NotEmpty(t, accResp.Account.State)
 
-	fmt.Println(accResp.Account.State)
+	type accountStorage struct {
+		Private map[string]any
+		Public  map[string]any
+		Storage map[string]any
+	}
+
+	var accStorage accountStorage
+	err = json.Unmarshal([]byte(accResp.Account.State), &accStorage)
+	require.NoError(t, err)
+
+	assert.Equal(t, "storage value", accStorage.Storage["storageTest"])
+	assert.NotEmpty(t, accStorage.Private["privateTest"])
+	assert.NotEmpty(t, accStorage.Public["publicTest"])
+
+	assert.NotContains(t, accStorage.Public, "flowTokenBalance")
+	assert.NotContains(t, accStorage.Public, "flowTokenReceiver")
+	assert.NotContains(t, accStorage.Storage, "flowTokenVault")
 }
 
 func TestAuthentication(t *testing.T) {

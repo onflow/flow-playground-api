@@ -89,7 +89,7 @@ func AccountToAPI(account *model.Account) *model.Account {
 	account.Address = addressToAPI(account.Address)
 	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
 
-	// todo storage adapter
+	account.State = stateToAPI(account.State)
 
 	return account
 }

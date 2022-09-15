@@ -18,8 +18,29 @@
 
 package adapter
 
-func storageToAPI() {
+import "encoding/json"
 
+type accountState struct {
+	Private map[string]any
+	Public  map[string]any
+	Storage map[string]any
+}
+
+// stateToAPI removes any state values that are blockchain system values and not relevant to user usage of the playground.
+func stateToAPI(state string) string {
+	if state == "" {
+		return state
+	}
+
+	var accState accountState
+	_ = json.Unmarshal([]byte(state), &accState) // state will always be valid JSON
+
+	delete(accState.Public, "flowTokenBalance")
+	delete(accState.Public, "flowTokenReceiver")
+	delete(accState.Storage, "flowTokenVault")
+
+	adaptedState, _ := json.Marshal(accState)
+	return string(adaptedState)
 }
 
 // todo remove fee vaults
