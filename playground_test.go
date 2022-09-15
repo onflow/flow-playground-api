@@ -1959,6 +1959,19 @@ func TestAccountStorage(t *testing.T) {
 	project := createProject(t, c)
 	account := project.Accounts[0]
 
+	var accResp GetAccountResponse
+
+	err := c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.Equal(t, `"{}"`, accResp.Account.State)
+
 	var resp CreateTransactionExecutionResponse
 
 	const script = `
@@ -1970,7 +1983,7 @@ func TestAccountStorage(t *testing.T) {
 		  }
    		}`
 
-	err := c.Post(
+	err = c.Post(
 		MutationCreateTransactionExecution,
 		&resp,
 		client.Var("projectId", project.ID),
@@ -1979,8 +1992,6 @@ func TestAccountStorage(t *testing.T) {
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
-
-	var accResp GetAccountResponse
 
 	err = c.Post(
 		QueryGetAccount,

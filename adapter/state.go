@@ -39,6 +39,12 @@ func stateToAPI(state string) string {
 	delete(accState.Public, "flowTokenReceiver")
 	delete(accState.Storage, "flowTokenVault")
 
+	// return empty as empty object, no keys - v0 adapter
+	if len(accState.Public)+len(accState.Private)+len(accState.Storage) == 0 {
+		emptyState, _ := json.Marshal("{}")
+		return string(emptyState)
+	}
+
 	adaptedState, _ := json.Marshal(accState)
 	return string(adaptedState)
 }
