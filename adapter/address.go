@@ -37,13 +37,13 @@ import (
 const numberOfServiceAccounts = 4
 const addressLength = 8
 
-// contentAddressesFromInput converts addresses found in content from the user input.
-func contentAddressesFromInput(input string) string {
+// contentAddressFromAPI converts addresses found in content from the user input.
+func contentAddressFromAPI(input string) string {
 	return contentAdapter(input, true)
 }
 
-// contentAddressesFromInput converts addresses found in content to the user output.
-func contentAddressToOutput(input string) string {
+// contentAddressToAPI converts addresses found in content to the user output.
+func contentAddressToAPI(input string) string {
 	return contentAdapter(input, false)
 }
 
@@ -69,34 +69,32 @@ func contentAdapter(input string, fromInput bool) string {
 	return input
 }
 
-// todo temp workaround to prevent API breaking changes, remove this in the v2.
-// addressFromInput converts the address from the user input and shifts it for number of service accounts.
-func addressFromInput(address model.Address) model.Address {
+// addressFromAPI converts the address from the user input and shifts it for number of service accounts.
+func addressFromAPI(address model.Address) model.Address {
 	var b model.Address // create a copy
 	copy(b[:], address[:])
 	b[len(b)-1] = b[len(b)-1] + numberOfServiceAccounts
 	return b
 }
 
-func addressesFromInput(addresses []model.Address) []model.Address {
+func addressesFromAPI(addresses []model.Address) []model.Address {
 	for i, address := range addresses {
-		addresses[i] = addressFromInput(address)
+		addresses[i] = addressFromAPI(address)
 	}
 	return addresses
 }
 
-// todo temp workaround to prevent API breaking changes, remove this in the v2.
-// addressFromInput converts the address to the user output by subtracting the number of service accounts.
-func addressToOutput(address model.Address) model.Address {
+// addressToAPI converts the address to the user output by subtracting the number of service accounts.
+func addressToAPI(address model.Address) model.Address {
 	var b model.Address
 	copy(b[addressLength-len(address):], address[:])
 	b[len(b)-1] = b[len(b)-1] - numberOfServiceAccounts
 	return b
 }
 
-func addressesToOutput(addresses []model.Address) []model.Address {
+func addressesToAPI(addresses []model.Address) []model.Address {
 	for i, address := range addresses {
-		addresses[i] = addressToOutput(address)
+		addresses[i] = addressToAPI(address)
 	}
 	return addresses
 }

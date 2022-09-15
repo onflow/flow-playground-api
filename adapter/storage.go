@@ -17,3 +17,9 @@
  */
 
 package adapter
+
+func storageToAPI() {
+
+}
+
+// todo remove fee vaults

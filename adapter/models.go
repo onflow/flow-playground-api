@@ -23,32 +23,32 @@ import "github.com/dapperlabs/flow-playground-api/model"
 // models adapters compose different adapters in a single adapter.
 
 func TransactionFromAPI(tx model.NewTransactionExecution) model.NewTransactionExecution {
-	tx.Script = contentAddressesFromInput(tx.Script)
-	tx.Signers = addressesFromInput(tx.Signers)
+	tx.Script = contentAddressFromAPI(tx.Script)
+	tx.Signers = addressesFromAPI(tx.Signers)
 
 	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressesFromInput(arg)
+		tx.Arguments[i] = contentAddressFromAPI(arg)
 	}
 
 	return tx
 }
 
 func TransactionToAPI(tx *model.TransactionExecution) *model.TransactionExecution {
-	tx.Script = contentAddressToOutput(tx.Script)
-	tx.Signers = addressesToOutput(tx.Signers)
+	tx.Script = contentAddressToAPI(tx.Script)
+	tx.Signers = addressesToAPI(tx.Signers)
 
 	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressesFromInput(arg)
+		tx.Arguments[i] = contentAddressFromAPI(arg)
 	}
 
 	for i, e := range tx.Events {
 		for j, v := range e.Values {
-			tx.Events[i].Values[j] = contentAddressToOutput(v)
+			tx.Events[i].Values[j] = contentAddressToAPI(v)
 		}
 	}
 
 	for i, e := range tx.Errors {
-		tx.Errors[i].Message = contentAddressToOutput(e.Message)
+		tx.Errors[i].Message = contentAddressToAPI(e.Message)
 	}
 
 	return tx
@@ -62,32 +62,32 @@ func TransactionsToAPI(txs []*model.TransactionExecution) []*model.TransactionEx
 }
 
 func ScriptFromAPI(script model.NewScriptExecution) model.NewScriptExecution {
-	script.Script = contentAddressesFromInput(script.Script)
+	script.Script = contentAddressFromAPI(script.Script)
 	for i, a := range script.Arguments {
-		script.Arguments[i] = contentAddressesFromInput(a)
+		script.Arguments[i] = contentAddressFromAPI(a)
 	}
 	return script
 }
 
 func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
-	script.Script = contentAddressToOutput(script.Script)
+	script.Script = contentAddressToAPI(script.Script)
 
 	for i, e := range script.Errors {
-		script.Errors[i].Message = contentAddressToOutput(e.Message)
+		script.Errors[i].Message = contentAddressToAPI(e.Message)
 	}
 
 	for i, a := range script.Arguments {
-		script.Arguments[i] = contentAddressToOutput(a)
+		script.Arguments[i] = contentAddressToAPI(a)
 	}
 
-	script.Value = contentAddressToOutput(script.Value)
+	script.Value = contentAddressToAPI(script.Value)
 
 	return script
 }
 
 func AccountToAPI(account *model.Account) *model.Account {
-	account.Address = addressToOutput(account.Address)
-	account.DeployedCode = contentAddressToOutput(account.DeployedCode)
+	account.Address = addressToAPI(account.Address)
+	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
 
 	// todo storage adapter
 
@@ -102,7 +102,7 @@ func AccountsToAPI(accounts []*model.Account) []*model.Account {
 }
 
 func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
-	adaptedCode := contentAddressesFromInput(*account.DeployedCode)
+	adaptedCode := contentAddressFromAPI(*account.DeployedCode)
 	account.DeployedCode = &adaptedCode
 	return account
 }
