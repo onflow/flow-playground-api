@@ -221,16 +221,20 @@ mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
     address
     draftCode
     deployedCode
+    deployedContracts
+    state
   }
 }
 `
 
 type UpdateAccountResponse struct {
 	UpdateAccount struct {
-		ID           string
-		Address      string
-		DraftCode    string
-		DeployedCode string
+		ID                string
+		Address           string
+		DraftCode         string
+		DeployedCode      string
+		DeployedContracts []string
+		State             string
 	}
 }
 
@@ -1791,6 +1795,7 @@ func TestAccounts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+		assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
