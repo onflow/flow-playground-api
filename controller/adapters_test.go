@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package controller
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/alecthomas/assert"
 	"github.com/dapperlabs/flow-playground-api/model"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_ContentAdapter(t *testing.T) {
