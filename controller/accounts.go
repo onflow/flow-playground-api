@@ -51,7 +51,14 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	return acc.Export(), nil
+	account, err := a.blockchain.GetAccount(projectID, acc.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	account.ID = acc.ID
+	account.DraftCode = acc.DraftCode
+	return account, nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {

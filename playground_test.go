@@ -1952,6 +1952,49 @@ func TestContractImport(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestAccountStorage(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+
+	var resp CreateTransactionExecutionResponse
+
+	const script = `
+		transaction {
+		  prepare(signer: AuthAccount) {
+			  	signer.save("storage value", to: /storage/storageTest)
+ 				signer.link<&String>(/public/publicTest, target: /storage/storageTest)
+				signer.link<&String>(/private/privateTest, target: /storage/storageTest)
+		  }
+   		}
+	`
+
+	err := c.Post(
+		MutationCreateTransactionExecution,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("script", script),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	account := project.Accounts[0]
+	var accResp GetAccountResponse
+
+	err = c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.NotEmpty(t, accResp.Account.State)
+
+	fmt.Println(accResp.Account.State)
+}
+
 func TestAuthentication(t *testing.T) {
 	t.Run("Migrate legacy auth", func(t *testing.T) {
 		c := newClient()
