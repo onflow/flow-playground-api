@@ -108,7 +108,7 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 		return nil, errors.Wrap(err, "failed to get transaction executions")
 	}
 
-	return transactionsAdapterToOutput(exes), nil
+	return exes, nil
 }
 
 func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExecution) (*model.TransactionExecution, error) {
@@ -116,9 +116,7 @@ func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExec
 		return nil, errors.New("cannot execute empty transaction script")
 	}
 
-	exe, err := t.blockchain.ExecuteTransaction(
-		transactionAdapterFromInput(input),
-	)
+	exe, err := t.blockchain.ExecuteTransaction(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}

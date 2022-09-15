@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package controller
+package adapter
 
 import (
 	"fmt"
@@ -99,78 +99,4 @@ func addressesToOutput(addresses []model.Address) []model.Address {
 		addresses[i] = addressToOutput(address)
 	}
 	return addresses
-}
-
-// models adapters.
-
-func transactionAdapterFromInput(tx model.NewTransactionExecution) model.NewTransactionExecution {
-	tx.Script = contentAddressesFromInput(tx.Script)
-	tx.Signers = addressesFromInput(tx.Signers)
-
-	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressesFromInput(arg)
-	}
-
-	return tx
-}
-
-func transactionAdapterToOutput(tx *model.TransactionExecution) *model.TransactionExecution {
-	tx.Script = contentAddressToOutput(tx.Script)
-	tx.Signers = addressesToOutput(tx.Signers)
-
-	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressesFromInput(arg)
-	}
-
-	for i, e := range tx.Events {
-		for j, v := range e.Values {
-			tx.Events[i].Values[j] = contentAddressToOutput(v)
-		}
-	}
-
-	for i, e := range tx.Errors {
-		tx.Errors[i].Message = contentAddressToOutput(e.Message)
-	}
-
-	return tx
-}
-
-func transactionsAdapterToOutput(txs []*model.TransactionExecution) []*model.TransactionExecution {
-	for i, tx := range txs {
-		txs[i] = transactionAdapterToOutput(tx)
-	}
-	return txs
-}
-
-func scriptAdapterFromInput(script model.NewScriptExecution) model.NewScriptExecution {
-	script.Script = contentAddressesFromInput(script.Script)
-	for i, a := range script.Arguments {
-		script.Arguments[i] = contentAddressesFromInput(a)
-	}
-	return script
-}
-
-func scriptAdapterToOutput(script *model.ScriptExecution) *model.ScriptExecution {
-	script.Script = contentAddressToOutput(script.Script)
-
-	for i, e := range script.Errors {
-		script.Errors[i].Message = contentAddressToOutput(e.Message)
-	}
-
-	for i, a := range script.Arguments {
-		script.Arguments[i] = contentAddressToOutput(a)
-	}
-
-	script.Value = contentAddressToOutput(script.Value)
-
-	return script
-}
-
-func accountAdapterToOutput(account *model.Account) *model.Account {
-	account.Address = addressToOutput(account.Address)
-	account.DeployedCode = contentAddressToOutput(account.DeployedCode)
-
-	// todo storage adapter
-
-	return account
 }

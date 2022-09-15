@@ -105,11 +105,9 @@ func (s *Scripts) CreateExecution(script model.NewScriptExecution) (*model.Scrip
 		return nil, errors.New("cannot execute empty script")
 	}
 
-	execution, err := s.blockchain.ExecuteScript(
-		scriptAdapterFromInput(script),
-	)
+	execution, err := s.blockchain.ExecuteScript(script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
-	return scriptAdapterToOutput(execution), nil
+	return execution, nil
 }

@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-package controller
+package adapter
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/alecthomas/assert"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"gotest.tools/assert"
 )
 
 func Test_ContentAdapter(t *testing.T) {

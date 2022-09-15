@@ -51,7 +51,7 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, errors.Wrap(err, "failed to get account")
 	}
 
-	return accountAdapterToOutput(acc.Export()), nil
+	return acc.Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {
@@ -71,7 +71,7 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 
 		acc.ID = account.ID
 		acc.DraftCode = account.DraftCode
-		exported[i] = accountAdapterToOutput(acc)
+		exported[i] = acc
 	}
 
 	return exported, nil
@@ -118,8 +118,6 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		}
 	}
 
-	adaptedCode := contentAddressesFromInput(*input.DeployedCode)
-	input.DeployedCode = &adaptedCode
 	account, err = a.blockchain.DeployContract(input.ProjectID, acc.Address, *input.DeployedCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
@@ -127,5 +125,5 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 
 	account.DraftCode = acc.DraftCode
 	account.ID = acc.ID
-	return accountAdapterToOutput(account), nil
+	return account, nil
 }
