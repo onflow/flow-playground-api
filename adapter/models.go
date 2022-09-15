@@ -102,7 +102,9 @@ func AccountsToAPI(accounts []*model.Account) []*model.Account {
 }
 
 func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
-	adaptedCode := contentAddressFromAPI(*account.DeployedCode)
-	account.DeployedCode = &adaptedCode
+	if account.DeployedCode != nil {
+		adaptedCode := contentAddressFromAPI(*account.DeployedCode)
+		account.DeployedCode = &adaptedCode
+	}
 	return account
 }
