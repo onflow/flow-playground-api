@@ -106,7 +106,7 @@ func Test_DeployContracts(t *testing.T) {
 		assert.NoError(t, err)
 		account, _, _, err := emu.createAccount()
 
-		const numContracts int = 1000
+		const numContracts int = 10
 
 		const baseName string = "Foo"
 		var deployedContracts []string
