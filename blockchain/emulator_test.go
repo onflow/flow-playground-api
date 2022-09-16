@@ -19,9 +19,9 @@
 package blockchain
 
 import (
-	"fmt"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -72,16 +72,14 @@ func Test_NewEmulator(t *testing.T) {
 
 	var accountList []*flowsdk.Account
 
-	const testAccounts int = 1000
+	const testAccounts int = 10
 
-	fmt.Println("Creating", testAccounts, "new accounts...")
 	for i := 0; i < testAccounts; i++ {
 		account, _, _, err := emu.createAccount()
 		assert.NoError(t, err)
 		accountList = append(accountList, account)
 	}
 
-	fmt.Println("Validating account storage...")
 	for i := 0; i < testAccounts; i++ {
 		_, accountStorage, err := emu.getAccount(accountList[i].Address)
 		assert.NoError(t, err)
@@ -91,95 +89,86 @@ func Test_NewEmulator(t *testing.T) {
 	}
 }
 
-// Test_DeployEmptyContract tests deployment of an empty contract
-func Test_DeployEmptyContract(t *testing.T) {
-	emu, err := newEmulator()
-	assert.NoError(t, err)
-	account, _, _, err := emu.createAccount()
-	_, _, err = emu.deployContract(account.Address, "")
-	assert.Error(t, err)
-}
-
-// Test_DeployBasicContracts tests deployment of a large number of basic contracts to a single account
-func Test_DeployBasicContracts(t *testing.T) {
-	emu, err := newEmulator()
-	assert.NoError(t, err)
-	account, _, _, err := emu.createAccount()
-
-	const numContracts int = 1000
-
-	const baseName string = "Foo"
-	var deployedContracts []string
-
-	for i := 0; i < numContracts; i++ {
-		name := baseName + strconv.Itoa(i)
-		contract := "pub contract " + name + "{}"
-		deployedContracts = append(deployedContracts, name)
-
-		_, tx, err := emu.deployContract(account.Address, contract)
+// Test_DeployContracts tests deployment of different contracts
+func Test_DeployContracts(t *testing.T) {
+	// Test deploying an empty contract
+	t.Run("Empty Contract", func(t *testing.T) {
+		emu, err := newEmulator()
 		assert.NoError(t, err)
-		assert.Equal(t, tx.Authorizers[0], account.Address)
-	}
+		account, _, _, err := emu.createAccount()
+		_, _, err = emu.deployContract(account.Address, "")
+		assert.Error(t, err)
+	})
 
-	account, _, err = emu.getAccount(account.Address)
+	// Test deploying many contracts to a single account
+	t.Run("Basic Contracts", func(t *testing.T) {
+		emu, err := newEmulator()
+		assert.NoError(t, err)
+		account, _, _, err := emu.createAccount()
 
-	keys := make([]string, 0, len(account.Contracts))
-	for k := range account.Contracts {
-		keys = append(keys, k)
-	}
+		const numContracts int = 1000
 
-	// Verify that every deployed contract is included
-	for _, deployed := range deployedContracts {
-		contains := false
-		for _, contract := range keys {
-			if contract == deployed {
-				contains = true
-				break
-			}
+		const baseName string = "Foo"
+		var deployedContracts []string
+
+		for i := 0; i < numContracts; i++ {
+			name := baseName + strconv.Itoa(i)
+			contract := "pub contract " + name + "{}"
+			deployedContracts = append(deployedContracts, name)
+
+			_, tx, err := emu.deployContract(account.Address, contract)
+			assert.NoError(t, err)
+			assert.Equal(t, tx.Authorizers[0], account.Address)
 		}
-		assert.Equal(t, contains, true)
-	}
+
+		account, _, err = emu.getAccount(account.Address)
+
+		keys := make([]string, 0, len(account.Contracts))
+		for k := range account.Contracts {
+			keys = append(keys, k)
+		}
+
+		// Verify that every deployed contract is included
+		for _, deployed := range deployedContracts {
+			contains := false
+			for _, contract := range keys {
+				if contract == deployed {
+					contains = true
+					break
+				}
+			}
+			assert.Equal(t, contains, true)
+		}
+	})
 }
 
 // Test_ParseContractName tests contract name parsing returns the correct name
 func Test_ParseContractName(t *testing.T) {
-	contract := "pub contract foo {}"
-	name, err := parseContractName(contract)
-	assert.NoError(t, err)
-	assert.Equal(t, name, "foo")
-
-	longName := "foo"
-	for i := 0; i < 100000; i++ {
-		longName += "long"
+	type testCase struct {
+		inputContract string
+		expected      string
+		errExpected   bool
 	}
 
-	contract = "pub contract " + longName + " {}"
-	name, err = parseContractName(contract)
-	assert.NoError(t, err)
-	assert.Equal(t, name, longName)
+	longName := "foo" + strings.Repeat("long", 100000)
 
-	contract = "pub contract foo_bar {}"
-	name, err = parseContractName(contract)
-	assert.NoError(t, err)
-	assert.Equal(t, name, "foo_bar")
+	tests := []testCase{
+		{"pub contract foo {}", "foo", false},
+		{"pub contract " + longName + " {}", longName, false},
+		{"pub contract foo_bar {}", "foo_bar", false},
+		{"pub contract foo bar {}", "", true},
+		{"pub contract {}", "", true},
+		{"pub contract 123foo {}", "", true},
+		{"pub contract foo! {}", "", true},
+	}
 
-	// Double name
-	contract = "pub contract foo bar {}"
-	name, err = parseContractName(contract)
-	assert.Error(t, err)
-
-	// No name
-	contract = "pub contract {}"
-	name, err = parseContractName(contract)
-	assert.Error(t, err)
-
-	// Decimal name
-	contract = "pub contract 123foo {}"
-	name, err = parseContractName(contract)
-	assert.Error(t, err)
-
-	// Invalid character
-	contract = "pub contract foo! {}"
-	name, err = parseContractName(contract)
-	assert.Error(t, err)
+	for _, tc := range tests {
+		name, err := parseContractName(tc.inputContract)
+		if tc.errExpected {
+			assert.Error(t, err)
+		} else {
+			assert.NoError(t, err)
+		}
+		assert.Equal(t, name, tc.expected)
+	}
 }
