@@ -29,6 +29,7 @@ type InternalAccount struct {
 	ProjectChildID
 	Address   Address
 	DraftCode string
+	Index     int
 }
 
 func (a *InternalAccount) NameKey() *datastore.Key {
