@@ -112,6 +112,10 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 }
 
 func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExecution) (*model.TransactionExecution, error) {
+	if input.Script == "" {
+		return nil, errors.New("cannot execute empty transaction script")
+	}
+
 	exe, err := t.blockchain.ExecuteTransaction(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute transaction")

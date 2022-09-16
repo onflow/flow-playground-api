@@ -37,9 +37,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const accountsNumber = 5
+
 func newProjects() (*Projects, *memory.Store) {
 	store := memory.NewStore()
-	chain := NewProjects(store, lru.New(128))
+	chain := NewProjects(store, lru.New(128), accountsNumber)
 
 	return chain, store
 }
@@ -91,6 +93,104 @@ func newWithSeededProject() (*Projects, *memory.Store, *model.InternalProject, e
 	return projects, store, proj, err
 }
 
+func Benchmark_LoadEmulator(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+
+	// current run ~110 000 000 ns/op ~ 0.110s/op
+	b.Run("without cache", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.load(proj.ID)
+			projects.cache.Remove(proj.ID) // clear cache
+		}
+	})
+
+	// current run ~15 ns/op
+	b.Run("with cache", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.load(proj.ID)
+		}
+	})
+}
+
+func Test_ConcurrentRequests(t *testing.T) {
+
+	testConcurrently := func(
+		numOfRequests int,
+		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject),
+		test func(ch chan any, proj *model.InternalProject),
+	) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		ch := make(chan any)
+		var wg sync.WaitGroup
+
+		wg.Add(numOfRequests)
+
+		for i := 0; i < numOfRequests; i++ {
+			go request(i, ch, &wg, projects, proj)
+		}
+
+		test(ch, proj)
+
+		wg.Wait()
+	}
+
+	t.Run("concurrent account creation", func(t *testing.T) {
+		const numOfRequests = 4
+
+		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+			defer wg.Done()
+
+			acc, err := projects.CreateAccount(proj.ID)
+			require.NoError(t, err)
+
+			ch <- acc
+		}
+
+		testAccount := func(ch chan any, proj *model.InternalProject) {
+			accounts := make([]*model.Account, 0)
+			for a := range ch {
+				account := a.(*model.Account)
+				accounts = append(accounts, account)
+
+				if len(accounts) == numOfRequests {
+					close(ch)
+				}
+			}
+
+			require.Len(t, accounts, numOfRequests)
+
+			addresses := make([]string, numOfRequests)
+			for i, acc := range accounts {
+				assert.Equal(t, proj.ID, acc.ProjectID)
+				addr := acc.Address.ToFlowAddress().String()
+				assert.NotContains(t, addresses, addr) // make sure unique address is returned
+				addresses[i] = addr
+			}
+		}
+
+		t.Run("with cache", func(t *testing.T) {
+			testConcurrently(numOfRequests, createAccount, testAccount)
+		})
+
+		t.Run("without cache", func(t *testing.T) {
+			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+				defer wg.Done()
+
+				acc, err := projects.CreateAccount(proj.ID)
+				require.NoError(t, err)
+
+				projects.cache.Remove(proj.ID)
+
+				ch <- acc
+			}
+
+			testConcurrently(numOfRequests, createAccountNoCache, testAccount)
+		})
+
+	})
+}
+
 func Test_LoadEmulator(t *testing.T) {
 
 	t.Run("successful load of emulator", func(t *testing.T) {
@@ -105,7 +205,7 @@ func Test_LoadEmulator(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		block, err := emulator.blockchain.GetLatestBlock()
+		block, err := emulator.getLatestBlock()
 		require.NoError(t, err)
 
 		require.Equal(t, uint64(0), block.Header.Height)
@@ -127,25 +227,6 @@ func Test_LoadEmulator(t *testing.T) {
 		for i := 0; i < len(testProjs); i++ {
 			_, err := projects.load(testProjs[i].ID)
 			require.NoError(t, err)
-		}
-	})
-}
-
-func Benchmark_LoadEmulator(b *testing.B) {
-	projects, _, proj, _ := newWithSeededProject()
-
-	// current run ~110 000 000 ns/op ~ 0.110s/op
-	b.Run("without cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = projects.load(proj.ID)
-			projects.cache.Remove(proj.ID) // clear cache
-		}
-	})
-
-	// current run ~15 ns/op
-	b.Run("with cache", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = projects.load(proj.ID)
 		}
 	})
 }
@@ -228,7 +309,7 @@ func Test_TransactionExecution(t *testing.T) {
 			require.Len(t, dbExe, exeLen)
 
 			em, _ := projects.load(proj.ID)
-			b, _ := em.blockchain.GetLatestBlock()
+			b, _ := em.getLatestBlock()
 			require.Equal(t, b.Header.Height, uint64(exeLen))
 
 			projects.cache.Remove(proj.ID)
@@ -237,6 +318,48 @@ func Test_TransactionExecution(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			executeAndAssert(i + 1)
 		}
+	})
+
+	t.Run("transaction with contract import and cache reset", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
+
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
+
+		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+		assert.Equal(t, accA.DeployedCode, scriptA)
+
+		projects.cache.Remove(proj.ID)
+
+		script := `
+			import HelloWorldA from 0x05
+			transaction {
+				prepare (signer: AuthAccount) {} 
+				execute {
+					log(HelloWorldA.A)
+				}
+			}`
+
+		signers := []model.Address{
+			model.NewAddressFromString("0x06"),
+		}
+
+		tx := model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Signers:   signers,
+			Arguments: nil,
+		}
+
+		exe, err := projects.ExecuteTransaction(tx)
+		require.NoError(t, err)
+		assert.Len(t, exe.Errors, 0)
 	})
 
 }
@@ -285,82 +408,183 @@ func Test_AccountCreation(t *testing.T) {
 	})
 }
 
-func Test_ConcurrentRequests(t *testing.T) {
+func Test_DeployContract(t *testing.T) {
 
-	testConcurrently := func(
-		numOfRequests int,
-		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject),
-		test func(ch chan any, proj *model.InternalProject),
-	) {
+	t.Run("deploy single contract", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		script := `pub contract HelloWorld {}`
+
+		const numAccounts = 5
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
+		require.NoError(t, err)
+		require.Len(t, accounts, numAccounts)
+
+		account, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
+
+		require.NoError(t, err)
+		assert.Equal(t, []string{"HelloWorld"}, account.DeployedContracts)
+		assert.Equal(t, script, account.DeployedCode)
+		assert.True(t, strings.Contains(account.State, "HelloWorld"))
+		assert.Equal(t, proj.ID, account.ProjectID)
+
+		var txExe []*model.TransactionExecution
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 6)
+
+		txDeploy := txExe[5]
+		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
+		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
+		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
+		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
+	})
+
+	t.Run("multiple deploys with imports and cache reset", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
+
+		scriptB := `
+			import HelloWorldA from 0x05
+			pub contract HelloWorldB {
+				pub var B: String
+				pub init() {
+					self.B = "HelloWorldB"
+					log(HelloWorldA.A) 
+				}
+			}`
+
+		scriptC := `
+			import HelloWorldA from 0x05
+			import HelloWorldB from 0x06
+			pub contract HelloWorldC {
+				pub init() { 
+					log(HelloWorldA.A)
+					log(HelloWorldB.B)
+				}
+			}`
+
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
+
+		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+		assert.Equal(t, accA.DeployedCode, scriptA)
+
+		accB, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
+		require.NoError(t, err)
+		assert.Equal(t, accB.DeployedCode, scriptB)
+
+		var txExe []*model.TransactionExecution
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 7)
+
+		projects.cache.Remove(proj.ID)
+
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 7)
+
+		_, err = projects.DeployContract(proj.ID, accounts[2].Address, scriptC)
+		require.NoError(t, err)
+
+		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		require.NoError(t, err)
+		require.Len(t, txExe, 8)
+
+		assert.Equal(t, txExe[7].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, txExe[6].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, txExe[5].Events[0].Type, "flow.AccountContractAdded")
+
+		assert.Equal(t, txExe[7].Logs[0], `"HelloWorldA"`)
+		assert.Equal(t, txExe[7].Logs[1], `"HelloWorldB"`)
+	})
+
+}
+
+func Test_ScriptExecution(t *testing.T) {
+
+	t.Run("single script execution", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		script := `pub fun main(): Int { 
+			log("purpose")
+			return 42 
+		}`
+
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: nil,
+		}
+
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Len(t, exe.Errors, 0)
+		assert.Equal(t, `"purpose"`, exe.Logs[0])
+		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
+		assert.Equal(t, proj.ID, exe.ProjectID)
+
+		var dbScripts []*model.ScriptExecution
+		err = store.GetScriptExecutionsForProject(proj.ID, &dbScripts)
+		require.NoError(t, err)
+
+		require.Len(t, dbScripts, 1)
+		assert.Equal(t, dbScripts[0].Script, script)
+	})
+
+	t.Run("script execution importing deployed contract, with cache reset", func(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
-		ch := make(chan any)
-		var wg sync.WaitGroup
+		scriptA := `
+			pub contract HelloWorldA {
+				pub var A: String
+				pub init() { self.A = "HelloWorldA" }
+			}`
 
-		wg.Add(numOfRequests)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 
-		for i := 0; i < numOfRequests; i++ {
-			go request(i, ch, &wg, projects, proj)
+		_, err = projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		require.NoError(t, err)
+
+		script := `
+			import HelloWorldA from 0x05
+			pub fun main(): String { 
+				return HelloWorldA.A
+			}`
+
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: nil,
 		}
 
-		test(ch, proj)
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"type\":\"String\",\"value\":\"HelloWorldA\"}\n", exe.Value)
+	})
 
-		wg.Wait()
-	}
+	t.Run("script with arguments", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
 
-	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 4
+		script := `pub fun main(a: Int): Int { 
+			return a
+		}`
 
-		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
-			defer wg.Done()
-
-			acc, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-
-			ch <- acc
+		scriptExe := model.NewScriptExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Arguments: []string{"{\"type\":\"Int\",\"value\":\"42\"}"},
 		}
 
-		testAccount := func(ch chan any, proj *model.InternalProject) {
-			accounts := make([]*model.Account, 0)
-			for a := range ch {
-				account := a.(*model.Account)
-				accounts = append(accounts, account)
-
-				if len(accounts) == numOfRequests {
-					close(ch)
-				}
-			}
-
-			require.Len(t, accounts, numOfRequests)
-
-			addresses := make([]string, numOfRequests)
-			for i, acc := range accounts {
-				assert.Equal(t, proj.ID, acc.ProjectID)
-				addr := acc.Address.ToFlowAddress().String()
-				assert.NotContains(t, addresses, addr) // make sure unique address is returned
-				addresses[i] = addr
-			}
-		}
-
-		t.Run("with cache", func(t *testing.T) {
-			testConcurrently(numOfRequests, createAccount, testAccount)
-		})
-
-		t.Run("without cache", func(t *testing.T) {
-			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
-				defer wg.Done()
-
-				acc, err := projects.CreateAccount(proj.ID)
-				require.NoError(t, err)
-
-				projects.cache.Remove(proj.ID)
-
-				ch <- acc
-			}
-
-			testConcurrently(numOfRequests, createAccountNoCache, testAccount)
-		})
-
+		exe, err := projects.ExecuteScript(scriptExe)
+		require.NoError(t, err)
+		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
 	})
 
 }

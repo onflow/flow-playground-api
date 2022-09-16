@@ -30,23 +30,20 @@ import (
 )
 
 type Projects struct {
-	version     *semver.Version
-	store       storage.Store
-	numAccounts int // TODO move to blockchain project
-	blockchain  *blockchain.Projects
+	version    *semver.Version
+	store      storage.Store
+	blockchain *blockchain.Projects
 }
 
 func NewProjects(
 	version *semver.Version,
 	store storage.Store,
-	numAccounts int,
 	blockchain *blockchain.Projects,
 ) *Projects {
 	return &Projects{
-		version:     version,
-		store:       store,
-		numAccounts: numAccounts,
-		blockchain:  blockchain,
+		version:    version,
+		store:      store,
+		blockchain: blockchain,
 	}
 }
 
@@ -101,7 +98,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID, p.numAccounts)
+	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID)
 	if err != nil {
 		return nil, err
 	}

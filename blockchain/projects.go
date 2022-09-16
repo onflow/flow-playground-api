@@ -37,10 +37,11 @@ import (
 // instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
 // NewProjects creates an instance of the projects with provided storage access and caching.
-func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
+func NewProjects(store storage.Store, cache *lru.Cache, initAccountsNumber int) *Projects {
 	return &Projects{
-		store: store,
-		cache: cache,
+		store:          store,
+		cache:          cache,
+		accountsNumber: initAccountsNumber,
 	}
 }
 
@@ -49,87 +50,11 @@ func NewProjects(store storage.Store, cache *lru.Cache) *Projects {
 // Projects expose API to interact with the blockchain all in context of a project but also makes sure
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
-	store     storage.Store
-	cache     *lru.Cache
-	mu        sync.Map
-	muCounter sync.Map
-}
-
-// load initializes an emulator and run transactions previously executed in the project to establish a state.
-//
-// Do not call this method directly, it is not concurrency safe.
-func (s *Projects) load(projectID uuid.UUID) (*emulator, error) {
-	val, ok := s.cache.Get(projectID)
-	if ok {
-		return val.(*emulator), nil
-	}
-
-	emulator, err := newEmulator()
-	if err != nil {
-		return nil, err
-	}
-
-	var executions []*model.TransactionExecution
-	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(
-			execution.Script,
-			execution.Arguments,
-			execution.SignersToFlowWithoutTranslation(),
-		)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("not able to recreate the project state %s", projectID))
-		}
-		if result.Error != nil && len(execution.Errors) == 0 {
-			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution %s failed with result: %s, debug: %v",
-				projectID.String(),
-				execution.ID.String(),
-				result.Error.Error(),
-				result.Debug,
-			))
-			return nil, errors.Wrap(result.Error, fmt.Sprintf("not able to recreate the project state %s", projectID))
-		}
-	}
-
-	s.cache.Add(projectID, emulator)
-
-	return emulator, nil
-}
-
-// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
-func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
-	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
-	s.muCounter.Store(uuid, counter.(int)+1)
-
-	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
-	return mu.(*sync.RWMutex)
-}
-
-// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
-func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
-	m, ok := s.mu.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex")
-	}
-
-	counter, ok := s.muCounter.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex counter")
-	}
-
-	if counter == 0 {
-		s.mu.Delete(uuid)
-		s.muCounter.Delete(uuid)
-	} else {
-		s.muCounter.Store(uuid, counter.(int)-1)
-	}
-
-	return m.(*sync.RWMutex)
+	store          storage.Store
+	cache          *lru.Cache
+	mu             sync.Map
+	muCounter      sync.Map
+	accountsNumber int
 }
 
 // Reset the blockchain state.
@@ -141,7 +66,7 @@ func (s *Projects) Reset(project *model.InternalProject) error {
 		return err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID, 5) // todo don't pass number literal
+	_, err = s.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return err
 	}
@@ -219,32 +144,9 @@ func (s *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, err
 }
 
-func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := s.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
-	if err != nil {
-		return nil, err
-	}
-
-	jsonStorage, err := json.Marshal(store)
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling account storage")
-	}
-
-	account := model.AccountFromFlow(flowAccount, projectID)
-	account.ProjectID = projectID
-	account.State = string(jsonStorage)
-
-	return account, nil
-}
-
-func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) ([]*model.InternalAccount, error) {
-	accounts := make([]*model.InternalAccount, numAccounts)
-	for i := 0; i < numAccounts; i++ {
+func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+	accounts := make([]*model.InternalAccount, s.accountsNumber)
+	for i := 0; i < s.accountsNumber; i++ {
 		account, err := s.CreateAccount(projectID)
 		if err != nil {
 			return nil, err
@@ -266,7 +168,6 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID, numAccounts int) (
 func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	s.loadLock(projectID).Lock()
 	defer s.removeLock(projectID).Unlock()
-
 	emulator, err := s.load(projectID)
 	if err != nil {
 		return nil, err
@@ -314,4 +215,112 @@ func (s *Projects) DeployContract(
 	}
 
 	return s.getAccount(projectID, address)
+}
+
+func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	emulator, err := s.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStorage, err := json.Marshal(store)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling account storage")
+	}
+
+	account := model.AccountFromFlow(flowAccount, projectID)
+	account.ProjectID = projectID
+	account.State = string(jsonStorage)
+
+	return account, nil
+}
+
+// load initializes an emulator and run transactions previously executed in the project to establish a state.
+//
+// Do not call this method directly, it is not concurrency safe.
+func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
+	val, ok := s.cache.Get(projectID)
+	if ok {
+		return val.(blockchain), nil
+	}
+
+	emulator, err := newEmulator()
+	if err != nil {
+		return nil, err
+	}
+
+	var executions []*model.TransactionExecution
+	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, execution := range executions {
+		result, _, err := emulator.executeTransaction(
+			execution.Script,
+			execution.Arguments,
+			execution.SignersToFlow(),
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf(
+				"execution error: not able to recreate the project state %s with execution ID %s",
+				projectID,
+				execution.ID.String(),
+			))
+		}
+		if result.Error != nil && len(execution.Errors) == 0 {
+			sentry.CaptureMessage(fmt.Sprintf(
+				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+				projectID.String(),
+				execution.ID.String(),
+				result.Error.Error(),
+				result.Debug,
+			))
+			return nil, errors.Wrap(err, fmt.Sprintf(
+				"result error: not able to recreate the project state %s with execution ID %s",
+				projectID,
+				execution.ID.String(),
+			))
+		}
+	}
+
+	s.cache.Add(projectID, emulator)
+
+	return emulator, nil
+}
+
+// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
+func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
+	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
+	s.muCounter.Store(uuid, counter.(int)+1)
+
+	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
+	return mu.(*sync.RWMutex)
+}
+
+// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
+func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
+	m, ok := s.mu.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex")
+	}
+
+	counter, ok := s.muCounter.Load(uuid)
+	if !ok {
+		sentry.CaptureMessage("trying to access non-existing mutex counter")
+	}
+
+	if counter == 0 {
+		s.mu.Delete(uuid)
+		s.muCounter.Delete(uuid)
+	} else {
+		s.muCounter.Store(uuid, counter.(int)-1)
+	}
+
+	return m.(*sync.RWMutex)
 }

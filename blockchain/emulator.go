@@ -20,10 +20,8 @@ package blockchain
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 
-	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/onflow/flow-go/model/flow"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/onflow/cadence"
@@ -63,6 +61,9 @@ type blockchain interface {
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
+
+	// getLatestBlock from the network.
+	getLatestBlock() (*flow.Block, error)
 }
 
 var _ blockchain = &emulator{}
@@ -184,8 +185,6 @@ func (e *emulator) sendTransaction(
 	}
 	tx.SetPayer(e.blockchain.ServiceKey().Address)
 
-	tx.Script = translateAddresses(tx.Script)
-
 	for _, auth := range authorizers {
 		if len(authorizers) == 1 && tx.Payer == authorizers[0] {
 			break // don't sign if we have same authorizer and payer, only sign envelope
@@ -223,6 +222,10 @@ func (e *emulator) sendTransaction(
 	return res[0], tx, nil
 }
 
+func (e *emulator) getLatestBlock() (*flow.Block, error) {
+	return e.blockchain.GetLatestBlock()
+}
+
 // parseEventAddress gets an address out of the account creation events payloads
 func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 	for _, event := range events {
@@ -231,7 +234,7 @@ func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 			return flowsdk.HexToAddress(addressValue.Hex())
 		}
 	}
-	return flowsdk.Address{}
+	return flowsdk.EmptyAddress
 }
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
@@ -273,29 +276,4 @@ func parseContractName(code string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine contract name")
-}
-
-// NumberOfServiceAccounts temporary workaround address shifting, will be removed
-const NumberOfServiceAccounts = 4
-
-// translateAddresses translates addresses from client address space to the emulator space
-// client uses address starting at 0x01 whereas emulator starts at 0x05
-// todo this is temp workaround, refactor to configure FVM
-func translateAddresses(script []byte) []byte {
-	r := regexp.MustCompile(`(0x\d+)`)
-
-	for _, addressMatch := range r.FindAllStringSubmatch(string(script), -1) {
-		original := addressMatch[0]
-		translated := model.NewAddressFromBytes(
-			flowsdk.HexToAddress(original).Bytes(),
-		).ToFlowAddress()
-
-		script = []byte(strings.ReplaceAll(
-			string(script),
-			original,
-			fmt.Sprintf("0x%s", translated.Hex()),
-		))
-	}
-
-	return script
 }

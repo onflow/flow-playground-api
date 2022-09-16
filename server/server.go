@@ -140,12 +140,11 @@ func main() {
 		store = memory.NewStore()
 	}
 
+	const initAccountsNumber = 5
+
 	sessionAuthKey := []byte(conf.SessionAuthKey)
-
 	authenticator := auth.NewAuthenticator(store, sessionName)
-
-	chain := blockchain.NewProjects(store, lru.New(128))
-
+	chain := blockchain.NewProjects(store, lru.New(128), initAccountsNumber)
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
 	router := chi.NewRouter()

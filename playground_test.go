@@ -20,6 +20,7 @@ package playground_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -221,16 +222,20 @@ mutation($accountId: UUID!, $projectId: UUID!, $code: String!) {
     address
     draftCode
     deployedCode
+    deployedContracts
+    state
   }
 }
 `
 
 type UpdateAccountResponse struct {
 	UpdateAccount struct {
-		ID           string
-		Address      string
-		DraftCode    string
-		DeployedCode string
+		ID                string
+		Address           string
+		DraftCode         string
+		DeployedCode      string
+		DeployedContracts []string
+		State             string
 	}
 }
 
@@ -452,6 +457,8 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
+const initAccounts = 5
+
 func TestProjects(t *testing.T) {
 	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
@@ -473,7 +480,7 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, version.String(), resp.CreateProject.Version)
 
 		// project should be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		// project should not be persisted
 		assert.False(t, resp.CreateProject.Persist)
@@ -501,7 +508,7 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		assert.Equal(t, "0000000000000001", resp.CreateProject.Accounts[0].Address)
 		assert.Equal(t, "0000000000000002", resp.CreateProject.Accounts[1].Address)
@@ -536,7 +543,7 @@ func TestProjects(t *testing.T) {
 		require.NoError(t, err)
 
 		// project should still be created with 4 default accounts
-		assert.Len(t, resp.CreateProject.Accounts, playground.MaxAccounts)
+		assert.Len(t, resp.CreateProject.Accounts, initAccounts)
 
 		assert.Equal(t, accounts[0], resp.CreateProject.Accounts[0].DraftCode)
 		assert.Equal(t, accounts[1], resp.CreateProject.Accounts[1].DraftCode)
@@ -1065,7 +1072,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
-		chain := blockchain.NewProjects(store, lru.New(128))
+		chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, authenticator, chain)
 
@@ -1789,6 +1796,7 @@ func TestAccounts(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+		assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
@@ -1895,6 +1903,124 @@ func TestContractInteraction(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Empty(t, respB.CreateTransactionExecution.Errors)
+}
+
+func TestContractImport(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+
+	accountA := project.Accounts[0]
+	accountB := project.Accounts[1]
+
+	contractA := `
+	pub contract HelloWorldA {
+		pub var A: String
+		pub init() { self.A = "HelloWorldA" }
+	}`
+
+	contractB := `
+	import HelloWorldA from 0x01
+	pub contract HelloWorldB {
+		pub init() {
+			log(HelloWorldA.A)
+		}
+	}`
+
+	var respA UpdateAccountResponse
+
+	err := c.Post(
+		MutationUpdateAccountDeployedCode,
+		&respA,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", accountA.ID),
+		client.Var("code", contractA),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, contractA, respA.UpdateAccount.DeployedCode)
+
+	var respB UpdateAccountResponse
+
+	err = c.Post(
+		MutationUpdateAccountDeployedCode,
+		&respB,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", accountB.ID),
+		client.Var("code", contractB),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+}
+
+func TestAccountStorage(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+	account := project.Accounts[0]
+
+	var accResp GetAccountResponse
+
+	err := c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.Equal(t, `"{}"`, accResp.Account.State)
+
+	var resp CreateTransactionExecutionResponse
+
+	const script = `
+		transaction {
+		  prepare(signer: AuthAccount) {
+			  	signer.save("storage value", to: /storage/storageTest)
+ 				signer.link<&String>(/public/publicTest, target: /storage/storageTest)
+				signer.link<&String>(/private/privateTest, target: /storage/storageTest)
+		  }
+   		}`
+
+	err = c.Post(
+		MutationCreateTransactionExecution,
+		&resp,
+		client.Var("projectId", project.ID),
+		client.Var("script", script),
+		client.Var("signers", []string{account.Address}),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	err = c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("accountId", account.ID),
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.NotEmpty(t, accResp.Account.State)
+
+	type accountStorage struct {
+		Private map[string]any
+		Public  map[string]any
+		Storage map[string]any
+	}
+
+	var accStorage accountStorage
+	err = json.Unmarshal([]byte(accResp.Account.State), &accStorage)
+	require.NoError(t, err)
+
+	assert.Equal(t, "storage value", accStorage.Storage["storageTest"])
+	assert.NotEmpty(t, accStorage.Private["privateTest"])
+	assert.NotEmpty(t, accStorage.Public["publicTest"])
+
+	assert.NotContains(t, accStorage.Public, "flowTokenBalance")
+	assert.NotContains(t, accStorage.Public, "flowTokenReceiver")
+	assert.NotContains(t, accStorage.Storage, "flowTokenVault")
 }
 
 func TestAuthentication(t *testing.T) {
@@ -2367,7 +2493,7 @@ func newClient() *Client {
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128))
+	chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)

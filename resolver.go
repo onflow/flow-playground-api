@@ -21,6 +21,8 @@ package playground
 import (
 	"context"
 
+	"github.com/dapperlabs/flow-playground-api/adapter"
+
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -32,8 +34,6 @@ import (
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
 )
-
-const MaxAccounts = 5
 
 type Resolver struct {
 	version            *semver.Version
@@ -53,7 +53,7 @@ func NewResolver(
 	auth *auth.Authenticator,
 	blockchain *blockchain.Projects,
 ) *Resolver {
-	projects := controller.NewProjects(version, store, MaxAccounts, blockchain)
+	projects := controller.NewProjects(version, store, blockchain)
 	scripts := controller.NewScripts(store, blockchain)
 	transactions := controller.NewTransactions(store, blockchain)
 	accounts := controller.NewAccounts(store, blockchain)
@@ -144,7 +144,12 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 		return nil, err
 	}
 
-	return r.accounts.Update(input)
+	acc, err := r.accounts.Update(adapter.AccountFromAPI(input))
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountToAPI(acc), nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -188,7 +193,14 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	return r.transactions.CreateTransactionExecution(input)
+	exe, err := r.transactions.CreateTransactionExecution(
+		adapter.TransactionFromAPI(input),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.TransactionToAPI(exe), nil
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
@@ -241,18 +253,23 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(input)
+	exe, err := r.scripts.CreateExecution(adapter.ScriptFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
 
-	return exe, nil
+	return adapter.ScriptToAPI(exe), nil
 }
 
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
-	return r.accounts.AllForProjectID(proj.ID)
+	accounts, err := r.accounts.AllForProjectID(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountsToAPI(accounts), nil
 }
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
@@ -260,7 +277,12 @@ func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Pr
 }
 
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
-	return r.transactions.AllExecutionsForProjectID(proj.ID)
+	exes, err := r.transactions.AllExecutionsForProjectID(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.TransactionsToAPI(exes), nil
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
@@ -311,7 +333,12 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 }
 
 func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	return r.accounts.GetByID(id, projectID)
+	acc, err := r.accounts.GetByID(id, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountToAPI(acc), nil
 }
 
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
