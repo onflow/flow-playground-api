@@ -58,7 +58,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	}
 
 	copy(a.Address[:], tmp.Address[:])
-
+	a.Index = tmp.Index
 	a.DraftCode = tmp.DraftCode
 
 	return nil
