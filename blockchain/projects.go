@@ -158,6 +158,7 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 				ProjectID: projectID,
 			},
 			Address: account.Address,
+			Index:   i,
 		}
 	}
 

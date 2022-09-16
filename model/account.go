@@ -29,6 +29,7 @@ type InternalAccount struct {
 	ProjectChildID
 	Address   Address
 	DraftCode string
+	Index     int
 }
 
 func (a *InternalAccount) NameKey() *datastore.Key {
@@ -41,6 +42,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		ProjectID string
 		Address   []byte
 		DraftCode string
+		Index     int
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -56,7 +58,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 	}
 
 	copy(a.Address[:], tmp.Address[:])
-
+	a.Index = tmp.Index
 	a.DraftCode = tmp.DraftCode
 
 	return nil
@@ -79,6 +81,10 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		{
 			Name:  "DraftCode",
 			Value: a.DraftCode,
+		},
+		{
+			Name:  "Index",
+			Value: a.Index,
 		},
 	}, nil
 }
