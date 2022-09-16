@@ -42,6 +42,7 @@ func (a *InternalAccount) Load(ps []datastore.Property) error {
 		ProjectID string
 		Address   []byte
 		DraftCode string
+		Index     int
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {
@@ -80,6 +81,10 @@ func (a *InternalAccount) Save() ([]datastore.Property, error) {
 		{
 			Name:  "DraftCode",
 			Value: a.DraftCode,
+		},
+		{
+			Name:  "Index",
+			Value: a.Index,
 		},
 	}, nil
 }
