@@ -278,7 +278,7 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 		proj.TransactionCount = 0
 		proj.UpdatedAt = time.Now()
 
-		_, err = tx.Put(proj.NameKey(), &proj)
+		_, err = tx.Put(proj.NameKey(), proj)
 		if err != nil {
 			return err
 		}

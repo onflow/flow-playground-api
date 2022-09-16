@@ -19,8 +19,6 @@
 package controller
 
 import (
-	"fmt"
-
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -88,7 +86,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	var acc model.InternalAccount
 
 	// if we provided draft code then just do a storage update of an account
-	if input.DraftCode != nil {
+	if input.DeployedCode == nil {
 		err := a.store.UpdateAccount(input, &acc)
 		if err != nil {
 			return nil, err
@@ -100,11 +98,6 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	err := a.store.GetAccount(model.NewProjectChildID(input.ID, input.ProjectID), &acc)
 	if err != nil {
 		return nil, err
-	}
-
-	// if deployed code is not provided fail, else continue and deploy new contracts
-	if input.DeployedCode == nil {
-		return nil, fmt.Errorf("must provide either deployed code or draft code for update")
 	}
 
 	account, err := a.blockchain.GetAccount(input.ProjectID, acc.Address)
