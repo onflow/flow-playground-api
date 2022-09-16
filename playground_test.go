@@ -59,9 +59,10 @@ type Project struct {
 	Persist     bool
 	Version     string
 	Accounts    []struct {
-		ID        string
-		Address   string
-		DraftCode string
+		ID           string
+		Address      string
+		DraftCode    string
+		DeployedCode string
 	}
 	TransactionTemplates []TransactionTemplate
 	Secret               string
@@ -103,6 +104,8 @@ query($projectId: UUID!) {
     accounts {
       id
       address
+      draftCode
+      deployedCode
     }
   }
 }
@@ -1072,9 +1075,9 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
-		chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
+		projects := blockchain.NewProjects(store, lru.New(128), initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, authenticator, chain)
+		resolver := playground.NewResolver(version, store, authenticator, projects)
 
 		c := newClientWithResolver(resolver)
 
@@ -1106,7 +1109,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		err = chain.Reset(&model.InternalProject{
+		err = projects.Reset(&model.InternalProject{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -1797,6 +1800,74 @@ func TestAccounts(t *testing.T) {
 
 		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
 		assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
+	})
+
+	t.Run("Update account and redeploy code", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		account := project.Accounts[0]
+
+		var respA GetAccountResponse
+
+		err := c.Post(
+			QueryGetAccount,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("accountId", account.ID),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, "", respA.Account.DeployedCode)
+
+		var respB UpdateAccountResponse
+
+		const contract = "pub contract Foo {}"
+
+		err = c.Post(
+			MutationUpdateAccountDeployedCode,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("accountId", account.ID),
+			client.Var("code", contract),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+		assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
+
+		var respC UpdateAccountResponse
+
+		const contract2 = "pub contract Bar {}"
+
+		err = c.Post(
+			MutationUpdateAccountDeployedCode,
+			&respC,
+			client.Var("projectId", project.ID),
+			client.Var("accountId", account.ID),
+			client.Var("code", contract2),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, contract2, respC.UpdateAccount.DeployedCode)
+		assert.Contains(t, respC.UpdateAccount.DeployedContracts, "Bar")
+
+		var resp GetProjectResponse
+
+		err = c.Post(
+			QueryGetProject,
+			&resp,
+			client.Var("projectId", project.ID),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, project.ID, resp.Project.ID)
+		assert.Len(t, resp.Project.Accounts, 5)
+
+		assert.Equal(t, contract2, resp.Project.Accounts[0].DeployedCode)
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
