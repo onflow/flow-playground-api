@@ -37,8 +37,8 @@ import (
 const numberOfServiceAccounts = 4
 const addressLength = 8
 
-// contentAddressFromAPI converts addresses found in content from the user input.
-func contentAddressFromAPI(input string) string {
+// ContentAddressFromAPI converts addresses found in content from the user input.
+func ContentAddressFromAPI(input string) string {
 	return contentAdapter(input, true)
 }
 
@@ -69,8 +69,8 @@ func contentAdapter(input string, fromInput bool) string {
 	return input
 }
 
-// addressFromAPI converts the address from the user input and shifts it for number of service accounts.
-func addressFromAPI(address model.Address) model.Address {
+// AddressFromAPI converts the address from the user input and shifts it for number of service accounts.
+func AddressFromAPI(address model.Address) model.Address {
 	var b model.Address // create a copy
 	copy(b[:], address[:])
 	b[len(b)-1] = b[len(b)-1] + numberOfServiceAccounts
@@ -79,7 +79,7 @@ func addressFromAPI(address model.Address) model.Address {
 
 func addressesFromAPI(addresses []model.Address) []model.Address {
 	for i, address := range addresses {
-		addresses[i] = addressFromAPI(address)
+		addresses[i] = AddressFromAPI(address)
 	}
 	return addresses
 }

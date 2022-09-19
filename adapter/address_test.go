@@ -81,7 +81,7 @@ func Test_AddressAdapter(t *testing.T) {
 		}
 
 		for _, vector := range testVectors {
-			out := addressFromAPI(vector[0])
+			out := AddressFromAPI(vector[0])
 			assert.Equal(t, vector[1], out)
 		}
 	})

@@ -57,7 +57,7 @@ func NewResolver(
 	scripts := controller.NewScripts(store, blockchain)
 	transactions := controller.NewTransactions(store, blockchain)
 	accounts := controller.NewAccounts(store, blockchain)
-	migrator := migrate.NewMigrator(projects)
+	migrator := migrate.NewMigrator(store, projects)
 
 	return &Resolver{
 		version:      version,
@@ -309,24 +309,22 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-		return proj.ExportPublicImmutable(), nil
-	}
-
 	// only migrate if current user has access to this project
-
 	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to migrate project")
 	}
 
 	// reload project if needed
-
 	if migrated {
 		proj, err = r.projects.Get(id)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get project")
 		}
+	}
+
+	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
+		return proj.ExportPublicImmutable(), nil
 	}
 
 	return proj.ExportPublicMutable(), nil

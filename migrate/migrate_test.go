@@ -117,7 +117,7 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
 
-		migrator := migrate.NewMigrator(projects)
+		migrator := migrate.NewMigrator(store, projects)
 
 		user := model.User{
 			ID: uuid.New(),

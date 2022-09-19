@@ -224,7 +224,9 @@ func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 		return nil, err
 	}
 
-	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
+	addr := address.ToFlowAddress()
+
+	flowAccount, store, err := emulator.getAccount(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -249,11 +251,13 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	if ok {
 		return val.(blockchain), nil
 	}
+	fmt.Println("no cache")
 
 	emulator, err := newEmulator()
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("emulator", emulator)
 
 	var executions []*model.TransactionExecution
 	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
@@ -262,6 +266,7 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	}
 
 	for _, execution := range executions {
+		fmt.Println("execution", execution.ID)
 		result, _, err := emulator.executeTransaction(
 			execution.Script,
 			execution.Arguments,
@@ -275,6 +280,8 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
+			fmt.Println("error", result.Error)
+
 			sentry.CaptureMessage(fmt.Sprintf(
 				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
@@ -290,6 +297,7 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
+	fmt.Println("add to cache", emulator)
 	s.cache.Add(projectID, emulator)
 
 	return emulator, nil

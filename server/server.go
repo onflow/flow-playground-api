@@ -151,7 +151,7 @@ func main() {
 	router.Use(monitoring.Middleware())
 
 	if conf.Debug {
-		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true})
+		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true, JSON: true})
 		router.Use(httplog.RequestLogger(logger))
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
