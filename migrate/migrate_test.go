@@ -20,6 +20,8 @@ package migrate_test
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/storage"
+	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"testing"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -33,8 +35,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 const numAccounts = 4

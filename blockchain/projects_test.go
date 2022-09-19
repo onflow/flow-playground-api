@@ -20,6 +20,7 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"strings"
 	"sync"
 	"testing"
@@ -32,7 +33,6 @@ import (
 	"github.com/Masterminds/semver"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
 )

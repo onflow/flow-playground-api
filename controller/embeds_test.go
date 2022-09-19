@@ -21,6 +21,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,7 +36,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 // version to create project

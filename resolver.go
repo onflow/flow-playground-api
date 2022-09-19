@@ -20,6 +20,7 @@ package playground
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/server/storage"
 
 	"github.com/dapperlabs/flow-playground-api/adapter"
 
@@ -29,7 +30,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"

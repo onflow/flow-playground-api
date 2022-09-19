@@ -20,6 +20,7 @@ package auth
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/server/storage"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -27,7 +28,6 @@ import (
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 // An Authenticator manages user authentication for the Playground API.

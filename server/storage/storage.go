@@ -19,12 +19,54 @@
 package storage
 
 import (
-	"errors"
+	"context"
+	"github.com/dapperlabs/flow-playground-api/server/config"
+	"github.com/dapperlabs/flow-playground-api/server/storage/datastore"
+	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
+	"github.com/kelseyhightower/envconfig"
+	"log"
+	"strings"
+	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 )
+
+// Global storage
+var store Store = nil
+
+func GetStorage() Store {
+	if store == nil {
+		if strings.EqualFold(config.GetConfig().StorageBackend, "datastore") {
+			var datastoreConf DatastoreConfig
+
+			if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+				log.Fatal(err)
+			}
+
+			var err error
+			store, err = datastore.NewDatastore(
+				context.Background(),
+				&datastore.Config{
+					DatastoreProjectID: datastoreConf.GCPProjectID,
+					DatastoreTimeout:   datastoreConf.Timeout,
+				},
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			store = memory.NewStore()
+		}
+	}
+	return store
+}
+
+type DatastoreConfig struct {
+	GCPProjectID string        `required:"true"`
+	Timeout      time.Duration `default:"5s"`
+}
 
 type Store interface {
 	InsertUser(user *model.User) error
@@ -65,5 +107,3 @@ type Store interface {
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
 }
-
-var ErrNotFound = errors.New("entity not found")

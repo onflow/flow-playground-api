@@ -19,17 +19,17 @@
 package memory
 
 import (
+	"github.com/pkg/errors"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 )
 
-var _ storage.Store = &Store{}
+var ErrNotFound = errors.New("entity not found")
 
 type Store struct {
 	mut                   sync.RWMutex
@@ -69,7 +69,7 @@ func (s *Store) GetUser(id uuid.UUID, user *model.User) error {
 
 	u, ok := s.users[id]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	*user = u
@@ -118,7 +118,7 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 
 	p, ok := s.projects[input.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	if input.Title != nil {
@@ -155,7 +155,7 @@ func (s *Store) UpdateProjectOwner(id, userID uuid.UUID) error {
 
 	p, ok := s.projects[id]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	p.UserID = userID
@@ -171,7 +171,7 @@ func (s *Store) UpdateProjectVersion(id uuid.UUID, version *semver.Version) erro
 
 	p, ok := s.projects[id]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	p.Version = version
@@ -187,7 +187,7 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 
 	p, ok := s.projects[id]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	*proj = p
@@ -198,7 +198,7 @@ func (s *Store) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 func (s *Store) markProjectUpdatedAt(id uuid.UUID) error {
 	p, ok := s.projects[id]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	p.UpdatedAt = time.Now()
@@ -218,7 +218,7 @@ func (s *Store) UpdateAccount(input model.UpdateAccount, acc *model.InternalAcco
 func (s *Store) updateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	a, ok := s.accounts[input.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	if input.DraftCode != nil {
@@ -261,7 +261,7 @@ func (s *Store) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) 
 
 	p, ok := s.accounts[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	*acc = p
@@ -302,7 +302,7 @@ func (s *Store) DeleteAccount(id model.ProjectChildID) error {
 
 	_, ok := s.accounts[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	delete(s.accounts, id.ID)
@@ -353,7 +353,7 @@ func (s *Store) UpdateTransactionTemplate(
 
 	t, ok := s.transactionTemplates[input.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	if input.Title != nil {
@@ -386,7 +386,7 @@ func (s *Store) GetTransactionTemplate(id model.ProjectChildID, tpl *model.Trans
 
 	t, ok := s.transactionTemplates[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	*tpl = t
@@ -425,7 +425,7 @@ func (s *Store) DeleteTransactionTemplate(id model.ProjectChildID) error {
 
 	_, ok := s.transactionTemplates[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	delete(s.transactionTemplates, id.ID)
@@ -525,7 +525,7 @@ func (s *Store) UpdateScriptTemplate(
 
 	t, ok := s.scriptTemplates[input.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	if input.Title != nil {
@@ -558,7 +558,7 @@ func (s *Store) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemp
 
 	t, ok := s.scriptTemplates[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	*tpl = t
@@ -597,7 +597,7 @@ func (s *Store) DeleteScriptTemplate(id model.ProjectChildID) error {
 
 	_, ok := s.scriptTemplates[id.ID]
 	if !ok {
-		return storage.ErrNotFound
+		return ErrNotFound
 	}
 
 	delete(s.scriptTemplates, id.ID)

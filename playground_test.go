@@ -22,6 +22,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/storage"
+	"github.com/dapperlabs/flow-playground-api/server/storage/datastore"
+	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,9 +48,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/client"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 type Project struct {

@@ -1,4 +1,4 @@
-/* config.go contains the global playground configuration */
+// Package config contains the global playground configuration */
 package config
 
 import (

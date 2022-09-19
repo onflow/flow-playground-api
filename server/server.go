@@ -19,29 +19,24 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
+	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-chi/httplog"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
-	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
+	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 
 	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
@@ -55,11 +50,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
-
-type DatastoreConfig struct {
-	GCPProjectID string        `required:"true"`
-	Timeout      time.Duration `default:"5s"`
-}
 
 type SentryConfig struct {
 	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
@@ -97,36 +87,12 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 
-	var store storage.Store
-
-	if strings.EqualFold(config.GetConfig().StorageBackend, "datastore") {
-		var datastoreConf DatastoreConfig
-
-		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
-			log.Fatal(err)
-		}
-
-		var err error
-		store, err = datastore.NewDatastore(
-			context.Background(),
-			&datastore.Config{
-				DatastoreProjectID: datastoreConf.GCPProjectID,
-				DatastoreTimeout:   datastoreConf.Timeout,
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		store = memory.NewStore()
-	}
-
 	const initAccountsNumber = 5
 
 	sessionAuthKey := []byte(config.GetConfig().SessionAuthKey)
-	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128), initAccountsNumber)
-	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
+	authenticator := auth.NewAuthenticator(storage.GetStorage(), sessionName)
+	chain := blockchain.NewProjects(storage.GetStorage(), lru.New(128), initAccountsNumber)
+	resolver := playground.NewResolver(build.Version(), storage.GetStorage(), authenticator, chain)
 
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
@@ -187,7 +153,7 @@ func main() {
 
 	})
 
-	embedsHandler := controller.NewEmbedsHandler(store, config.GetConfig().PlaygroundBaseURL)
+	embedsHandler := controller.NewEmbedsHandler(storage.GetStorage(), config.GetConfig().PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
 
 	utilsHandler := controller.NewUtilsHandler()
