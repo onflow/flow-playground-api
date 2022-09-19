@@ -1109,7 +1109,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		err = projects.Reset(&model.InternalProject{
+		_, err = projects.Reset(&model.InternalProject{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -2639,7 +2639,4 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 }
 
 // todo add tests for:
-// - checking account state
-// - deploying contract on account actually changes the returned account
 // - failed transactions with successful transactions work (bootstrap works)??
-// - add benchmark test for cached / uncached versions
