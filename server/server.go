@@ -97,11 +97,9 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 
-	var conf = config.GetConfig()
-
 	var store storage.Store
 
-	if strings.EqualFold(conf.StorageBackend, "datastore") {
+	if strings.EqualFold(config.GetConfig().StorageBackend, "datastore") {
 		var datastoreConf DatastoreConfig
 
 		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
@@ -125,7 +123,7 @@ func main() {
 
 	const initAccountsNumber = 5
 
-	sessionAuthKey := []byte(conf.SessionAuthKey)
+	sessionAuthKey := []byte(config.GetConfig().SessionAuthKey)
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, lru.New(128), initAccountsNumber)
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
@@ -133,7 +131,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
 
-	if conf.Debug {
+	if config.GetConfig().Debug {
 		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true})
 		router.Use(httplog.RequestLogger(logger))
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
@@ -147,17 +145,17 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   conf.AllowedOrigins,
+			AllowedOrigins:   config.GetConfig().AllowedOrigins,
 			AllowCredentials: true,
 		}).Handler)
 
 		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
-		cookieStore.MaxAge(int(conf.SessionMaxAge.Seconds()))
+		cookieStore.MaxAge(int(config.GetConfig().SessionMaxAge.Seconds()))
 
-		cookieStore.Options.Secure = conf.SessionCookiesSecure
-		cookieStore.Options.HttpOnly = conf.SessionCookiesHTTPOnly
+		cookieStore.Options.Secure = config.GetConfig().SessionCookiesSecure
+		cookieStore.Options.HttpOnly = config.GetConfig().SessionCookiesHTTPOnly
 
-		if conf.SessionCookiesSameSiteNone {
+		if config.GetConfig().SessionCookiesSameSiteNone {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
@@ -189,7 +187,7 @@ func main() {
 
 	})
 
-	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
+	embedsHandler := controller.NewEmbedsHandler(store, config.GetConfig().PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
 
 	utilsHandler := controller.NewUtilsHandler()
@@ -197,7 +195,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins: conf.AllowedOrigins,
+			AllowedOrigins: config.GetConfig().AllowedOrigins,
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))
@@ -208,8 +206,8 @@ func main() {
 
 	logStartMessage(build.Version())
 
-	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", conf.Port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
+	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", config.GetConfig().Port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.GetConfig().Port), router))
 }
 
 func ping(w http.ResponseWriter, _ *http.Request) {

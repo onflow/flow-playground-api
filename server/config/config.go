@@ -1,5 +1,4 @@
 /* config.go contains the global playground configuration */
-
 package config
 
 import (
@@ -26,6 +25,7 @@ type Config struct {
 
 func GetConfig() Config {
 	if conf == nil {
+		conf = &Config{}
 		if err := envconfig.Process("FLOW", conf); err != nil {
 			log.Fatal(err)
 		}
