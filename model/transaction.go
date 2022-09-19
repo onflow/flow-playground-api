@@ -244,6 +244,10 @@ func (t *TransactionExecution) Save() ([]datastore.Property, error) {
 			Name:  "Logs",
 			Value: logs,
 		},
+		{
+			Name:  "Index",
+			Value: t.Index,
+		},
 	}, nil
 }
 
