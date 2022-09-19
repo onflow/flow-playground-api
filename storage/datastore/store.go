@@ -261,14 +261,12 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 	}
 
 	var txExes []*model.TransactionExecution
-
 	err = d.GetTransactionExecutionsForProject(proj.ID, &txExes)
 	if err != nil {
 		return err
 	}
 
 	var scriptExes []*model.ScriptExecution
-
 	err = d.GetScriptExecutionsForProject(proj.ID, &scriptExes)
 	if err != nil {
 		return err
@@ -276,6 +274,7 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		proj.TransactionCount = 0
+		proj.TransactionExecutionCount = 0
 		proj.UpdatedAt = time.Now()
 
 		_, err = tx.Put(proj.NameKey(), proj)
@@ -513,6 +512,7 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) 
 	return txErr
 
 }
+
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	q := datastore.NewQuery("TransactionExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)

@@ -19,8 +19,12 @@
 package migrate_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
+
+	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/golang/groupcache/lru"
@@ -117,7 +121,7 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
 
-		migrator := migrate.NewMigrator(projects)
+		migrator := migrate.NewMigrator(store, projects)
 
 		user := model.User{
 			ID: uuid.New(),
@@ -150,4 +154,144 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 
 		assert.Empty(t, result.Errors)
 	}
+}
+
+func Test_MigrationV0_12_0(t *testing.T) {
+	testID := fmt.Sprintf("migration-test-%s", uuid.New())
+	store, err := datastore.NewDatastore(
+		context.Background(),
+		&datastore.Config{
+			DatastoreProjectID: testID, // connect to empty database everytime
+			DatastoreTimeout:   time.Second * 5,
+		},
+	)
+	if err != nil {
+		t.Skip("skipping migration test, requires datastore connection")
+	}
+
+	chain := blockchain.NewProjects(store, lru.New(128), 5)
+	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
+
+	migrator := migrate.NewMigrator(store, projects)
+
+	user := model.User{
+		ID: uuid.New(),
+	}
+
+	err = store.InsertUser(&user)
+	require.NoError(t, err)
+
+	projID := uuid.New()
+	err = store.CreateProject(&model.InternalProject{
+		ID:                        projID,
+		UserID:                    user.ID,
+		Secret:                    uuid.New(),
+		PublicID:                  uuid.New(),
+		ParentID:                  nil,
+		Title:                     "test project",
+		Description:               "test description",
+		Readme:                    "",
+		Seed:                      1,
+		TransactionCount:          5,
+		TransactionExecutionCount: 5,
+		TransactionTemplateCount:  1,
+		ScriptTemplateCount:       1,
+		Persist:                   true,
+		CreatedAt:                 time.Now(),
+		UpdatedAt:                 time.Now(),
+		Version:                   semver.MustParse("v0.10.0"),
+	}, []*model.TransactionTemplate{{
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projID,
+		},
+		Title: "tx template",
+		Script: `
+			import A from 0x01
+			transaction {}
+		`,
+		Index: 0,
+	}}, []*model.ScriptTemplate{{
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projID,
+		},
+		Title: "script template",
+		Script: `
+			import Foo from 0x01
+			transaction {}
+		`,
+	}})
+	require.NoError(t, err)
+
+	accTmpl := `
+		import A%d from 0x0%d
+		pub contract B {}`
+
+	for i := 0; i < 5; i++ {
+		err = store.InsertAccount(&model.InternalAccount{
+			ProjectChildID: model.ProjectChildID{
+				ID:        uuid.New(),
+				ProjectID: projID,
+			},
+			Address:   model.NewAddressFromString(fmt.Sprintf("0x0%d", i+1)),
+			DraftCode: fmt.Sprintf(accTmpl, i, i+1),
+			Index:     i,
+		})
+		require.NoError(t, err)
+	}
+
+	err = store.InsertTransactionExecution(&model.TransactionExecution{
+		ProjectChildID: model.ProjectChildID{
+			ID:        uuid.New(),
+			ProjectID: projID,
+		},
+		Index: 0,
+		Script: `
+			import Bar from 0x01
+			transaction {}
+		`,
+		Arguments: []string{`{ "type": "Address", "value": "0x01" }`},
+		Signers:   []model.Address{model.NewAddressFromString("0x01")},
+		Errors:    nil,
+		Events:    nil,
+		Logs:      nil,
+	})
+	require.NoError(t, err)
+
+	newVer := semver.MustParse("0.12.0")
+	migrated, err := migrator.MigrateProject(projID, semver.MustParse("v0.10.0"), newVer)
+	require.NoError(t, err)
+	assert.True(t, migrated)
+
+	var accs []*model.InternalAccount
+	err = store.GetAccountsForProject(projID, &accs)
+	require.NoError(t, err)
+	assert.Len(t, accs, 5)
+	for i, a := range accs {
+		assert.Equal(t, model.NewAddressFromString(fmt.Sprintf("0x0%d", i+5)), a.Address) // assert address was shifted
+		assert.Equal(t, fmt.Sprintf(accTmpl, i, i+5), a.DraftCode)                        // assert code script was shifted
+	}
+
+	var exes []*model.TransactionExecution
+	err = store.GetTransactionExecutionsForProject(projID, &exes)
+	require.NoError(t, err)
+	assert.Len(t, exes, 5)
+	for i, exe := range exes {
+		assert.Equal(t, "flow.AccountCreated", exe.Events[5].Type)
+		assert.Equal(t, i, exes[i].Index)
+	}
+
+	var scriptExes []*model.ScriptExecution
+	err = store.GetScriptExecutionsForProject(projID, &scriptExes)
+	require.NoError(t, err)
+	assert.Len(t, scriptExes, 0)
+
+	var project model.InternalProject
+	err = store.GetProject(projID, &project)
+	require.NoError(t, err)
+
+	assert.Equal(t, newVer, project.Version)
+	assert.Equal(t, 5, project.TransactionExecutionCount)
+	assert.Equal(t, 5, project.TransactionCount)
 }

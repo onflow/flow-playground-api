@@ -147,11 +147,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	return nil
 }
 
-func (p *Projects) Reset(proj *model.InternalProject) error {
-	err := p.blockchain.Reset(proj)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (p *Projects) Reset(proj *model.InternalProject) ([]*model.InternalAccount, error) {
+	return p.blockchain.Reset(proj)
 }

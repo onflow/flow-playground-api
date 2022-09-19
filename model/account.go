@@ -38,11 +38,14 @@ func (a *InternalAccount) NameKey() *datastore.Key {
 
 func (a *InternalAccount) Load(ps []datastore.Property) error {
 	tmp := struct {
-		ID        string
-		ProjectID string
-		Address   []byte
-		DraftCode string
-		Index     int
+		ID                string
+		ProjectID         string
+		Address           []byte
+		DraftCode         string
+		Index             int
+		DeployedCode      any // leave it for backward compatibility
+		State             any // leave it for backward compatibility
+		DeployedContracts any // leave it for backward compatibility
 	}{}
 
 	if err := datastore.LoadStruct(&tmp, ps); err != nil {

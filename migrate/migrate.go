@@ -19,23 +19,29 @@
 package migrate
 
 import (
-	"github.com/Masterminds/semver"
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
+	"fmt"
 
+	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 type Migrator struct {
+	store    storage.Store
 	projects *controller.Projects
 }
 
 var V0 = semver.MustParse("v0.0.0")
 var V0_1_0 = semver.MustParse("v0.1.0")
+var V0_12_0 = semver.MustParse("v0.12.0")
 
-func NewMigrator(projects *controller.Projects) *Migrator {
+func NewMigrator(store storage.Store, projects *controller.Projects) *Migrator {
 	return &Migrator{
+		store:    store,
 		projects: projects,
 	}
 }
@@ -58,6 +64,12 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		err := m.migrateToV0_1_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
+		}
+	}
+	if from.LessThan(V0_12_0) {
+		err := m.migrateToV0_12_0(id)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_12_0)
 		}
 	}
 
@@ -86,13 +98,61 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	//  same transaction.
 
 	// Step 1/2
-	err := m.projects.Reset(&proj)
+	_, err := m.projects.Reset(&proj)
 	if err != nil {
 		return errors.Wrap(err, "failed to reset project state")
 	}
 
 	// Step 2/2
 	err = m.projects.UpdateVersion(id, V0_1_0)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project version")
+	}
+
+	return nil
+}
+
+// migrateToV0_12_0 migrates a project to the version v0.12.0
+//
+// Steps:
+// - 1. Reset project state recreate initial accounts
+// - 2. Get all accounts for project and update with shifted addresses and removed unused fields
+func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
+	// 1. reset project state
+	createdAccounts, err := m.projects.Reset(&model.InternalProject{
+		ID: projectID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "migration failed to reset project state")
+	}
+
+	var accounts []*model.InternalAccount
+	err = m.store.GetAccountsForProject(projectID, &accounts)
+	if err != nil {
+		return errors.Wrap(err, "migration failed to get accounts")
+	}
+
+	if len(accounts) != len(createdAccounts) {
+		return fmt.Errorf("migration failture, created accounts length doesn't match existing accounts")
+	}
+
+	// 2. migrate accounts
+	for i, acc := range accounts {
+		acc.Address = createdAccounts[i].Address
+		acc.DraftCode = adapter.ContentAddressFromAPI(acc.DraftCode)
+
+		err = m.store.DeleteAccount(acc.ProjectChildID)
+		if err != nil {
+			return errors.Wrap(err, "migration failed to migrate accounts")
+		}
+
+		err = m.store.InsertAccount(acc)
+		if err != nil {
+			return errors.Wrap(err, "migration failed to migrate accounts")
+		}
+	}
+
+	err = m.projects.UpdateVersion(projectID, V0_12_0)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project version")
 	}

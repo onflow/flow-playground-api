@@ -112,7 +112,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 			return nil, err
 		}
 
-		err = a.blockchain.Reset(&proj)
+		_, err = a.blockchain.Reset(&proj)
 		if err != nil {
 			return nil, err
 		}

@@ -1109,7 +1109,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		err = projects.Reset(&model.InternalProject{
+		_, err = projects.Reset(&model.InternalProject{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -2547,7 +2547,6 @@ var version, _ = semver.NewVersion("0.1.0")
 func newClient() *Client {
 	var store storage.Store
 
-	// TODO: Should eventually start up the emulator and run all tests with datastore backend
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
 		var err error
 		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
@@ -2639,7 +2638,4 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 }
 
 // todo add tests for:
-// - checking account state
-// - deploying contract on account actually changes the returned account
 // - failed transactions with successful transactions work (bootstrap works)??
-// - add benchmark test for cached / uncached versions

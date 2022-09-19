@@ -16,7 +16,12 @@ test:
 
 .PHONY: test-datastore
 test-datastore:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./...
+	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test -v ./...
+
+.PHONY: test-migration
+test-migration:
+	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./migrate/... -run Test_MigrationV0_12_0
+
 
 .PHONY: run
 run:

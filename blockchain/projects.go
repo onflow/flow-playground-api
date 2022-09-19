@@ -58,20 +58,20 @@ type Projects struct {
 }
 
 // Reset the blockchain state.
-func (s *Projects) Reset(project *model.InternalProject) error {
+func (s *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
 	s.cache.Remove(project.ID)
 
 	err := s.store.ResetProjectState(project)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID)
+	accounts, err := s.CreateInitialAccounts(project.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return accounts, nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.

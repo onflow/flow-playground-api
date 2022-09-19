@@ -23,11 +23,11 @@ import "github.com/dapperlabs/flow-playground-api/model"
 // models adapters compose different adapters in a single adapter.
 
 func TransactionFromAPI(tx model.NewTransactionExecution) model.NewTransactionExecution {
-	tx.Script = contentAddressFromAPI(tx.Script)
+	tx.Script = ContentAddressFromAPI(tx.Script)
 	tx.Signers = addressesFromAPI(tx.Signers)
 
 	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressFromAPI(arg)
+		tx.Arguments[i] = ContentAddressFromAPI(arg)
 	}
 
 	return tx
@@ -38,7 +38,7 @@ func TransactionToAPI(tx *model.TransactionExecution) *model.TransactionExecutio
 	tx.Signers = addressesToAPI(tx.Signers)
 
 	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = contentAddressFromAPI(arg)
+		tx.Arguments[i] = ContentAddressFromAPI(arg)
 	}
 
 	for i, e := range tx.Events {
@@ -62,9 +62,9 @@ func TransactionsToAPI(txs []*model.TransactionExecution) []*model.TransactionEx
 }
 
 func ScriptFromAPI(script model.NewScriptExecution) model.NewScriptExecution {
-	script.Script = contentAddressFromAPI(script.Script)
+	script.Script = ContentAddressFromAPI(script.Script)
 	for i, a := range script.Arguments {
-		script.Arguments[i] = contentAddressFromAPI(a)
+		script.Arguments[i] = ContentAddressFromAPI(a)
 	}
 	return script
 }
@@ -103,7 +103,7 @@ func AccountsToAPI(accounts []*model.Account) []*model.Account {
 
 func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
 	if account.DeployedCode != nil {
-		adaptedCode := contentAddressFromAPI(*account.DeployedCode)
+		adaptedCode := ContentAddressFromAPI(*account.DeployedCode)
 		account.DeployedCode = &adaptedCode
 	}
 	return account
