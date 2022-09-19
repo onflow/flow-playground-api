@@ -224,9 +224,7 @@ func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 		return nil, err
 	}
 
-	addr := address.ToFlowAddress()
-
-	flowAccount, store, err := emulator.getAccount(addr)
+	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
