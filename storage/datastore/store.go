@@ -497,7 +497,6 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) 
 		}
 
 		exe.Index = proj.TransactionExecutionCount
-		// todo bug this is not saved to db for some reason
 
 		proj.TransactionExecutionCount++
 		proj.TransactionCount++
