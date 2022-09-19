@@ -48,5 +48,3 @@ func stateToAPI(state string) string {
 	adaptedState, _ := json.Marshal(accState)
 	return string(adaptedState)
 }
-
-// todo remove fee vaults
