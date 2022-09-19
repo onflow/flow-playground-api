@@ -309,6 +309,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
+	// todo
 	// only migrate if current user has access to this project
 	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
