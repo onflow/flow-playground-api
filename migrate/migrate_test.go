@@ -258,7 +258,8 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	migrated, err := migrator.MigrateProject(projID, semver.MustParse("v0.10.0"), semver.MustParse("v0.12.0"))
+	newVer := semver.MustParse("v0.12.0")
+	migrated, err := migrator.MigrateProject(projID, semver.MustParse("v0.10.0"), newVer)
 	require.NoError(t, err)
 	assert.True(t, migrated)
 
@@ -267,8 +268,8 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, accs, 5)
 	for i, a := range accs {
-		assert.Equal(t, model.NewAddressFromString(fmt.Sprintf("0x0%d", i+5)), a.Address)
-		assert.Equal(t, fmt.Sprintf(accTmpl, i, i+5), a.DraftCode)
+		assert.Equal(t, model.NewAddressFromString(fmt.Sprintf("0x0%d", i+5)), a.Address) // assert address was shifted
+		assert.Equal(t, fmt.Sprintf(accTmpl, i, i+5), a.DraftCode)                        // assert code script was shifted
 	}
 
 	var exes []*model.TransactionExecution
@@ -280,4 +281,11 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	err = store.GetScriptExecutionsForProject(projID, &scriptExes)
 	require.NoError(t, err)
 	assert.Len(t, scriptExes, 0)
+
+	var project model.InternalProject
+	err = store.GetProject(projID, &project)
+	require.NoError(t, err)
+	assert.Equal(t, newVer, project.Version)
+	assert.Equal(t, project.TransactionExecutionCount, 0)
+	assert.Equal(t, project.TransactionCount, 0)
 }
