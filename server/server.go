@@ -28,8 +28,6 @@ import (
 	"net/http"
 )
 
-// TODO: Get rid of passing storage, version, etc globals everywhere.
-
 func main() {
 	sentryWrapper.InitializeSentry()
 	defer sentryWrapper.Cleanup()

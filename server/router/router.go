@@ -4,7 +4,7 @@ import (
 	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	playground "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler"
-	controller2 "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/controller"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/controller"
 	"github.com/dapperlabs/flow-playground-api/server/router/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/server/router/middleware/monitoring"
 	"github.com/dapperlabs/flow-playground-api/server/router/middleware/sessions"
@@ -54,10 +54,10 @@ func InitializeRouter() *chi.Mux {
 		r.Handle("/", gqlHandler)
 	})
 
-	embedsHandler := controller2.NewEmbedsHandler(storage.GetStorage(), config.GetConfig().PlaygroundBaseURL)
+	embedsHandler := controller.NewEmbedsHandler(storage.GetStorage(), config.GetConfig().PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
 
-	utilsHandler := controller2.NewUtilsHandler()
+	utilsHandler := controller.NewUtilsHandler()
 	router.Route("/utils", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing

@@ -1003,6 +1003,7 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
+		fmt.Println("ERROR: ", err)
 		require.NoError(t, err)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Errors)
@@ -2589,6 +2590,7 @@ func createProject(t *testing.T, c *Client) Project {
 		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
 	)
+	fmt.Println("ERROR", err)
 	require.NoError(t, err)
 
 	proj := resp.CreateProject
