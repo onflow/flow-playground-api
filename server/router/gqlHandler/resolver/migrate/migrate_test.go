@@ -20,21 +20,20 @@ package migrate_test
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/blockchain"
+	controller2 "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/controller"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/migrate"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"testing"
 
-	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/golang/groupcache/lru"
 
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 const numAccounts = 4
@@ -104,8 +103,8 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 type migrateTestCase struct {
 	store      storage.Store
 	blockchain *blockchain.Projects
-	scripts    *controller.Scripts
-	projects   *controller.Projects
+	scripts    *controller2.Scripts
+	projects   *controller2.Projects
 	migrator   *migrate.Migrator
 	user       *model.User
 }
@@ -114,8 +113,8 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 	return func(t *testing.T) {
 		store := memory.NewStore()
 		chain := blockchain.NewProjects(store, lru.New(128), 5)
-		scripts := controller.NewScripts(store, chain)
-		projects := controller.NewProjects(startVersion, store, chain)
+		scripts := controller2.NewScripts(store, chain)
+		projects := controller2.NewProjects(startVersion, store, chain)
 
 		migrator := migrate.NewMigrator(projects)
 
@@ -137,7 +136,7 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 	}
 }
 
-func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *model.InternalProject) {
+func assertAllAccountsExist(t *testing.T, scripts *controller2.Scripts, proj *model.InternalProject) {
 	for i := 1; i <= numAccounts; i++ {
 		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 

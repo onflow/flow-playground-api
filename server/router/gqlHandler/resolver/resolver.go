@@ -16,20 +16,22 @@
  * limitations under the License.
  */
 
-package playground
+package resolver
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api"
+	"github.com/dapperlabs/flow-playground-api/server/build"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/adapter"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/auth"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/blockchain"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/controller"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/migrate"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
-
-	"github.com/dapperlabs/flow-playground-api/adapter"
+	"github.com/golang/groupcache/lru"
 
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/auth"
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
@@ -47,22 +49,22 @@ type Resolver struct {
 	lastCreatedProject *model.InternalProject
 }
 
-func NewResolver(
-	version *semver.Version,
-	store storage.Store,
-	auth *auth.Authenticator,
-	blockchain *blockchain.Projects,
-) *Resolver {
-	projects := controller.NewProjects(version, store, blockchain)
-	scripts := controller.NewScripts(store, blockchain)
-	transactions := controller.NewTransactions(store, blockchain)
-	accounts := controller.NewAccounts(store, blockchain)
+func NewResolver() *Resolver {
+	const initAccountsNumber = 5
+	const sessionName = "flow-playground"
+	authenticator := auth.NewAuthenticator(storage.GetStorage(), sessionName)
+	chain := blockchain.NewProjects(storage.GetStorage(), lru.New(128), initAccountsNumber)
+
+	projects := controller.NewProjects(build.Version(), storage.GetStorage(), chain)
+	scripts := controller.NewScripts(storage.GetStorage(), chain)
+	transactions := controller.NewTransactions(storage.GetStorage(), chain)
+	accounts := controller.NewAccounts(storage.GetStorage(), chain)
 	migrator := migrate.NewMigrator(projects)
 
 	return &Resolver{
-		version:      version,
-		store:        store,
-		auth:         auth,
+		version:      build.Version(),
+		store:        storage.GetStorage(),
+		auth:         authenticator,
 		migrator:     migrator,
 		projects:     projects,
 		scripts:      scripts,
@@ -71,19 +73,23 @@ func NewResolver(
 	}
 }
 
-func (r *Resolver) Mutation() MutationResolver {
+func (r *Resolver) GetProjects() *controller.Projects {
+	return r.projects
+}
+
+func (r *Resolver) Mutation() playground.MutationResolver {
 	return &mutationResolver{r}
 }
 
-func (r *Resolver) Project() ProjectResolver {
+func (r *Resolver) Project() playground.ProjectResolver {
 	return &projectResolver{r}
 }
 
-func (r *Resolver) Query() QueryResolver {
+func (r *Resolver) Query() playground.QueryResolver {
 	return &queryResolver{r}
 }
 
-func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
+func (r *Resolver) TransactionExecution() playground.TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
 

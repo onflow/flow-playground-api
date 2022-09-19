@@ -21,13 +21,12 @@ package legacy
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/middleware/sessions"
 	"net/http"
 	"net/http/httptest"
 
 	gorillasessions "github.com/gorilla/sessions"
-
-	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 const projectSecretKeyName = "project-secret"

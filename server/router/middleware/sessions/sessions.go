@@ -20,11 +20,10 @@ package sessions
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/server/router/middleware/httpcontext"
 	"net/http"
 
 	"github.com/gorilla/sessions"
-
-	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 )
 
 type sessionCtxKey string

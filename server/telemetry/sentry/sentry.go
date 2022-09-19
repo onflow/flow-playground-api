@@ -1,7 +1,7 @@
 package sentry
 
 import (
-	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/middleware/errors"
 	"github.com/getsentry/sentry-go"
 	"github.com/kelseyhightower/envconfig"
 	"log"

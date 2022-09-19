@@ -21,10 +21,10 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"sync"
 
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"

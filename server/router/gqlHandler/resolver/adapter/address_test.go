@@ -20,9 +20,9 @@ package adapter
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"testing"
 
-	"github.com/dapperlabs/flow-playground-api/model"
 	"gotest.tools/assert"
 )
 

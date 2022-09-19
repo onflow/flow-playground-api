@@ -20,11 +20,10 @@ package adapter
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 // Backward compatibility address adapters.

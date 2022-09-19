@@ -20,11 +20,10 @@ package migrate
 
 import (
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/controller"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type Migrator struct {

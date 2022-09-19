@@ -19,13 +19,13 @@
 package memory
 
 import (
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"github.com/pkg/errors"
 	"sort"
 	"sync"
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 )
 

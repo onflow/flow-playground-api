@@ -22,9 +22,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler"
+	playground "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver"
+	legacyauth "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/auth/legacy"
+	"github.com/dapperlabs/flow-playground-api/server/router/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"github.com/dapperlabs/flow-playground-api/server/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
+	client2 "github.com/dapperlabs/flow-playground-api/test/client"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -32,22 +38,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/groupcache/lru"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	playground "github.com/dapperlabs/flow-playground-api"
-	"github.com/dapperlabs/flow-playground-api/auth"
-	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
-	"github.com/dapperlabs/flow-playground-api/client"
-	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type Project struct {
@@ -471,10 +466,10 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client.Var("title", "foo"),
-			client.Var("description", "bar"),
-			client.Var("readme", "bah"),
-			client.Var("seed", 42),
+			client2.Var("title", "foo"),
+			client2.Var("description", "bar"),
+			client2.Var("readme", "bah"),
+			client2.Var("seed", 42),
 		)
 		require.NoError(t, err)
 
@@ -502,11 +497,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client.Var("title", "foo"),
-			client.Var("description", "desc"),
-			client.Var("readme", "rtfm"),
-			client.Var("seed", 42),
-			client.Var("accounts", accounts),
+			client2.Var("title", "foo"),
+			client2.Var("description", "desc"),
+			client2.Var("readme", "rtfm"),
+			client2.Var("seed", 42),
+			client2.Var("accounts", accounts),
 		)
 		require.NoError(t, err)
 
@@ -537,11 +532,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client.Var("title", "foo"),
-			client.Var("seed", 42),
-			client.Var("description", "desc"),
-			client.Var("readme", "rtfm"),
-			client.Var("accounts", accounts),
+			client2.Var("title", "foo"),
+			client2.Var("seed", 42),
+			client2.Var("description", "desc"),
+			client2.Var("readme", "rtfm"),
+			client2.Var("accounts", accounts),
 		)
 		require.NoError(t, err)
 
@@ -573,11 +568,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client.Var("title", "foo"),
-			client.Var("seed", 42),
-			client.Var("description", "desc"),
-			client.Var("readme", "rtfm"),
-			client.Var("transactionTemplates", templates),
+			client2.Var("title", "foo"),
+			client2.Var("seed", 42),
+			client2.Var("description", "desc"),
+			client2.Var("readme", "rtfm"),
+			client2.Var("transactionTemplates", templates),
 		)
 		require.NoError(t, err)
 
@@ -598,7 +593,7 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			QueryGetProject,
 			&resp,
-			client.Var("projectId", project.ID),
+			client2.Var("projectId", project.ID),
 		)
 		require.NoError(t, err)
 
@@ -615,7 +610,7 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			QueryGetProject,
 			&resp,
-			client.Var("projectId", badID),
+			client2.Var("projectId", badID),
 		)
 
 		assert.Error(t, err)
@@ -631,11 +626,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", true),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", project.Title),
+			client2.Var("description", project.Description),
+			client2.Var("readme", project.Readme),
+			client2.Var("persist", true),
 		)
 
 		assert.Error(t, err)
@@ -651,12 +646,12 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", true),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", project.Title),
+			client2.Var("description", project.Description),
+			client2.Var("readme", project.Readme),
+			client2.Var("persist", true),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -679,9 +674,9 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -698,10 +693,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -720,10 +715,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -732,8 +727,8 @@ func TestTransactionTemplates(t *testing.T) {
 		err = c.Post(
 			QueryGetTransactionTemplate,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", respA.CreateTransactionTemplate.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", respA.CreateTransactionTemplate.ID),
 		)
 		require.NoError(t, err)
 
@@ -753,8 +748,8 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			QueryGetTransactionTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", badID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", badID),
 		)
 
 		assert.Error(t, err)
@@ -770,10 +765,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "apple"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -784,9 +779,9 @@ func TestTransactionTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("script", "orange"),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("script", "orange"),
 		)
 		assert.Error(t, err)
 	})
@@ -801,10 +796,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "apple"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -815,10 +810,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("script", "orange"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("script", "orange"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -837,10 +832,10 @@ func TestTransactionTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateTransactionTemplateIndex,
 			&respC,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("index", 1),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("index", 1),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -861,9 +856,9 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationUpdateTransactionTemplateScript,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", badID),
-			client.Var("script", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", badID),
+			client2.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -883,7 +878,7 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			QueryGetProjectTransactionTemplates,
 			&resp,
-			client.Var("projectId", project.ID),
+			client2.Var("projectId", project.ID),
 		)
 		require.NoError(t, err)
 
@@ -907,7 +902,7 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			QueryGetProjectTransactionTemplates,
 			&resp,
-			client.Var("projectId", badID),
+			client2.Var("projectId", badID),
 		)
 
 		assert.Error(t, err)
@@ -925,8 +920,8 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationDeleteTransactionTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", template.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", template.ID),
 		)
 
 		assert.Error(t, err)
@@ -945,9 +940,9 @@ func TestTransactionTemplates(t *testing.T) {
 		err := c.Post(
 			MutationDeleteTransactionTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", template.ID),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", template.ID),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -966,8 +961,8 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", badID),
-			client.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
+			client2.Var("projectId", badID),
+			client2.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
 		)
 
 		assert.Error(t, err)
@@ -985,8 +980,8 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
 		)
 
 		assert.Error(t, err)
@@ -1004,9 +999,9 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1027,10 +1022,10 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{project.Accounts[0].Address}),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1051,10 +1046,10 @@ func TestTransactionExecutions(t *testing.T) {
 		err = c.Post(
 			MutationCreateTransactionExecution,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{project.Accounts[0].Address}),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1073,13 +1068,14 @@ func TestTransactionExecutions(t *testing.T) {
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
-		store := memory.NewStore()
+		//store := memory.NewStore()
 
-		projects := blockchain.NewProjects(store, lru.New(128), initAccounts)
-		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, authenticator, projects)
+		//projects := blockchain.NewProjects(store, lru.New(128), initAccounts)
+		//authenticator := auth.NewAuthenticator(store, sessionName)
+		//resolver := playground.NewResolver()
+		projects := gqlHandler.GetResolver().GetProjects()
 
-		c := newClientWithResolver(resolver)
+		c := newClientWithResolver()
 
 		project := createProject(t, c)
 
@@ -1090,10 +1086,10 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{project.Accounts[0].Address}),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1119,10 +1115,10 @@ func TestTransactionExecutions(t *testing.T) {
 		err = c.Post(
 			MutationCreateTransactionExecution,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("signers", []string{project.Accounts[0].Address}),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{project.Accounts[0].Address}),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1152,9 +1148,9 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1193,9 +1189,9 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1234,9 +1230,9 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1282,9 +1278,9 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1313,12 +1309,12 @@ func TestTransactionExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("arguments", []string{
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("arguments", []string{
 				`{"type": "Int", "value": "42"}`,
 			}),
-			client.AddCookie(c.SessionCookie()),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1338,9 +1334,9 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -1357,10 +1353,10 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1379,10 +1375,10 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "bar"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "bar"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1391,8 +1387,8 @@ func TestScriptTemplates(t *testing.T) {
 		err = c.Post(
 			QueryGetScriptTemplate,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", respA.CreateScriptTemplate.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", respA.CreateScriptTemplate.ID),
 		)
 		require.NoError(t, err)
 
@@ -1412,8 +1408,8 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			QueryGetScriptTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", badID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", badID),
 		)
 
 		assert.Error(t, err)
@@ -1429,10 +1425,10 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "apple"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1443,9 +1439,9 @@ func TestScriptTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateScriptTemplateScript,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("script", "orange"),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("script", "orange"),
 		)
 		assert.Error(t, err)
 	})
@@ -1460,10 +1456,10 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptTemplate,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", "foo"),
-			client.Var("script", "apple"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", "foo"),
+			client2.Var("script", "apple"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1474,10 +1470,10 @@ func TestScriptTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateScriptTemplateScript,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("script", "orange"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("script", "orange"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1490,10 +1486,10 @@ func TestScriptTemplates(t *testing.T) {
 		err = c.Post(
 			MutationUpdateScriptTemplateIndex,
 			&respC,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.Var("index", 1),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.Var("index", 1),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1514,9 +1510,9 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationUpdateScriptTemplateScript,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", badID),
-			client.Var("script", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", badID),
+			client2.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -1536,7 +1532,7 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			QueryGetProjectScriptTemplates,
 			&resp,
-			client.Var("projectId", project.ID),
+			client2.Var("projectId", project.ID),
 		)
 		require.NoError(t, err)
 
@@ -1561,7 +1557,7 @@ func TestScriptTemplates(t *testing.T) {
 
 			QueryGetProjectScriptTemplates,
 			&resp,
-			client.Var("projectId", badID),
+			client2.Var("projectId", badID),
 		)
 
 		assert.Error(t, err)
@@ -1579,8 +1575,8 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationDeleteScriptTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
 		)
 
 		assert.Error(t, err)
@@ -1598,9 +1594,9 @@ func TestScriptTemplates(t *testing.T) {
 		err := c.Post(
 			MutationDeleteScriptTemplate,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("templateId", templateID),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("templateId", templateID),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1620,8 +1616,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1640,8 +1636,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", badID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", badID),
 		)
 
 		assert.Error(t, err)
@@ -1658,8 +1654,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1670,9 +1666,9 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDraftCode,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -1689,8 +1685,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1701,10 +1697,10 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDraftCode,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "bar"),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", "bar"),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1722,8 +1718,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1734,9 +1730,9 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", "INVALID CADENCE"),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", "INVALID CADENCE"),
 		)
 
 		assert.Error(t, err)
@@ -1757,9 +1753,9 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			MutationUpdateAccountDeployedCode,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", contract),
 		)
 
 		assert.Error(t, err)
@@ -1777,8 +1773,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1791,10 +1787,10 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", contract),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1814,8 +1810,8 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			QueryGetAccount,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
 		)
 		require.NoError(t, err)
 
@@ -1828,10 +1824,10 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", contract),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1845,10 +1841,10 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			MutationUpdateAccountDeployedCode,
 			&respC,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", account.ID),
-			client.Var("code", contract2),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", account.ID),
+			client2.Var("code", contract2),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -1860,7 +1856,7 @@ func TestAccounts(t *testing.T) {
 		err = c.Post(
 			QueryGetProject,
 			&resp,
-			client.Var("projectId", project.ID),
+			client2.Var("projectId", project.ID),
 		)
 		require.NoError(t, err)
 
@@ -1882,9 +1878,9 @@ func TestAccounts(t *testing.T) {
 		err := c.Post(
 			MutationUpdateAccountDraftCode,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("accountId", badID),
-			client.Var("script", "bar"),
+			client2.Var("projectId", project.ID),
+			client2.Var("accountId", badID),
+			client2.Var("script", "bar"),
 		)
 
 		assert.Error(t, err)
@@ -1950,10 +1946,10 @@ func TestContractInteraction(t *testing.T) {
 	err := c.Post(
 		MutationUpdateAccountDeployedCode,
 		&respA,
-		client.Var("projectId", project.ID),
-		client.Var("accountId", accountA.ID),
-		client.Var("code", counterContract),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("accountId", accountA.ID),
+		client2.Var("code", counterContract),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
@@ -1966,10 +1962,10 @@ func TestContractInteraction(t *testing.T) {
 	err = c.Post(
 		MutationCreateTransactionExecution,
 		&respB,
-		client.Var("projectId", project.ID),
-		client.Var("script", addScript),
-		client.Var("signers", []string{accountB.Address}),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("script", addScript),
+		client2.Var("signers", []string{accountB.Address}),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
@@ -2003,10 +1999,10 @@ func TestContractImport(t *testing.T) {
 	err := c.Post(
 		MutationUpdateAccountDeployedCode,
 		&respA,
-		client.Var("projectId", project.ID),
-		client.Var("accountId", accountA.ID),
-		client.Var("code", contractA),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("accountId", accountA.ID),
+		client2.Var("code", contractA),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 	assert.Equal(t, contractA, respA.UpdateAccount.DeployedCode)
@@ -2016,10 +2012,10 @@ func TestContractImport(t *testing.T) {
 	err = c.Post(
 		MutationUpdateAccountDeployedCode,
 		&respB,
-		client.Var("projectId", project.ID),
-		client.Var("accountId", accountB.ID),
-		client.Var("code", contractB),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("accountId", accountB.ID),
+		client2.Var("code", contractB),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 }
@@ -2035,8 +2031,8 @@ func TestAccountStorage(t *testing.T) {
 	err := c.Post(
 		QueryGetAccount,
 		&accResp,
-		client.Var("projectId", project.ID),
-		client.Var("accountId", account.ID),
+		client2.Var("projectId", project.ID),
+		client2.Var("accountId", account.ID),
 	)
 	require.NoError(t, err)
 
@@ -2057,18 +2053,18 @@ func TestAccountStorage(t *testing.T) {
 	err = c.Post(
 		MutationCreateTransactionExecution,
 		&resp,
-		client.Var("projectId", project.ID),
-		client.Var("script", script),
-		client.Var("signers", []string{account.Address}),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("script", script),
+		client2.Var("signers", []string{account.Address}),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
 	err = c.Post(
 		QueryGetAccount,
 		&accResp,
-		client.Var("projectId", project.ID),
-		client.Var("accountId", account.ID),
+		client2.Var("projectId", project.ID),
+		client2.Var("accountId", account.ID),
 	)
 	require.NoError(t, err)
 
@@ -2110,12 +2106,12 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", true),
-			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", project.Title),
+			client2.Var("description", project.Description),
+			client2.Var("readme", project.Readme),
+			client2.Var("persist", true),
+			client2.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 		require.NoError(t, err)
 
@@ -2134,12 +2130,12 @@ func TestAuthentication(t *testing.T) {
 		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", false),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("title", project.Title),
+			client2.Var("description", project.Description),
+			client2.Var("readme", project.Readme),
+			client2.Var("persist", false),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -2164,11 +2160,11 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&respA,
-			client.Var("title", "foo"),
-			client.Var("description", "desc"),
-			client.Var("readme", "rtfm"),
-			client.Var("seed", 42),
-			client.AddCookie(&malformedCookie),
+			client2.Var("title", "foo"),
+			client2.Var("description", "desc"),
+			client2.Var("readme", "rtfm"),
+			client2.Var("seed", 42),
+			client2.AddCookie(&malformedCookie),
 		)
 		require.NoError(t, err)
 
@@ -2188,12 +2184,12 @@ func TestAuthentication(t *testing.T) {
 		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
-			client.Var("projectId", projectID),
-			client.Var("title", projectTitle),
-			client.Var("description", projectDescription),
-			client.Var("readme", projectReadme),
-			client.Var("persist", true),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", projectID),
+			client2.Var("title", projectTitle),
+			client2.Var("description", projectDescription),
+			client2.Var("readme", projectReadme),
+			client2.Var("persist", true),
+			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -2222,9 +2218,9 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("persist", true),
-			client.AddCookie(&malformedCookie),
+			client2.Var("projectId", project.ID),
+			client2.Var("persist", true),
+			client2.AddCookie(&malformedCookie),
 		)
 
 		assert.Error(t, err)
@@ -2246,9 +2242,9 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client.Var("projectId", projectA.ID),
-			client.Var("persist", true),
-			client.AddCookie(cookieB),
+			client2.Var("projectId", projectA.ID),
+			client2.Var("persist", true),
+			client2.AddCookie(cookieB),
 		)
 
 		// should not be able to update project A with cookie B
@@ -2271,9 +2267,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2293,9 +2289,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2333,9 +2329,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2373,9 +2369,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2420,9 +2416,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2460,9 +2456,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.AddCookie(c.SessionCookie()),
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2487,12 +2483,12 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client.Var("projectId", project.ID),
-			client.Var("script", script),
-			client.Var("arguments", []string{
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("arguments", []string{
 				`{"type":"Int","value":"2"}`,
 			}),
-			client.AddCookie(c.SessionCookie()),
+			client2.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -2506,12 +2502,12 @@ func TestScriptExecutions(t *testing.T) {
 }
 
 type Client struct {
-	client        *client.Client
+	client        *client2.Client
 	resolver      *playground.Resolver
 	sessionCookie *http.Cookie
 }
 
-func (c *Client) Post(query string, response interface{}, options ...client.Option) error {
+func (c *Client) Post(query string, response interface{}, options ...client2.Option) error {
 	w := httptest.NewRecorder()
 
 	err := c.client.Post(w, query, response, options...)
@@ -2525,7 +2521,7 @@ func (c *Client) Post(query string, response interface{}, options ...client.Opti
 	return err
 }
 
-func (c *Client) MustPost(query string, response interface{}, options ...client.Option) {
+func (c *Client) MustPost(query string, response interface{}, options ...client2.Option) {
 	err := c.Post(query, response, options...)
 	if err != nil {
 		panic(err)
@@ -2562,24 +2558,21 @@ func newClient() *Client {
 	} else {
 		store = memory.NewStore()
 	}
+	storage.SetStorage(store)
 
-	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
-	resolver := playground.NewResolver(version, store, authenticator, chain)
-
-	return newClientWithResolver(resolver)
+	return newClientWithResolver()
 }
 
-func newClientWithResolver(resolver *playground.Resolver) *Client {
+func newClientWithResolver() *Client {
 	router := chi.NewRouter()
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle("/", playground.GraphQLHandler(resolver))
+	router.Handle("/", gqlHandler.GraphQLHandler())
 
 	return &Client{
-		client:   client.New(router),
-		resolver: resolver,
+		client:   client2.New(router),
+		resolver: gqlHandler.GetResolver(),
 	}
 }
 
@@ -2589,12 +2582,12 @@ func createProject(t *testing.T, c *Client) Project {
 	err := c.Post(
 		MutationCreateProject,
 		&resp,
-		client.Var("title", "foo"),
-		client.Var("seed", 42),
-		client.Var("description", "desc"),
-		client.Var("readme", "rtfm"),
-		client.Var("accounts", []string{}),
-		client.Var("transactionTemplates", []string{}),
+		client2.Var("title", "foo"),
+		client2.Var("seed", 42),
+		client2.Var("description", "desc"),
+		client2.Var("readme", "rtfm"),
+		client2.Var("accounts", []string{}),
+		client2.Var("transactionTemplates", []string{}),
 	)
 	require.NoError(t, err)
 
@@ -2612,10 +2605,10 @@ func createTransactionTemplate(t *testing.T, c *Client, project Project) Transac
 	err := c.Post(
 		MutationCreateTransactionTemplate,
 		&resp,
-		client.Var("projectId", project.ID),
-		client.Var("title", "foo"),
-		client.Var("script", "bar"),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("title", "foo"),
+		client2.Var("script", "bar"),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
@@ -2628,10 +2621,10 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 	err := c.Post(
 		MutationCreateScriptTemplate,
 		&resp,
-		client.Var("projectId", project.ID),
-		client.Var("title", "foo"),
-		client.Var("script", "bar"),
-		client.AddCookie(c.SessionCookie()),
+		client2.Var("projectId", project.ID),
+		client2.Var("title", "foo"),
+		client2.Var("script", "bar"),
+		client2.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 

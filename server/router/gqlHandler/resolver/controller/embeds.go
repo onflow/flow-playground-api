@@ -21,6 +21,7 @@ package controller
 import (
 	"bytes"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"net/http"
 	"strings"
@@ -30,8 +31,6 @@ import (
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
 	"github.com/google/uuid"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type Snippet struct {

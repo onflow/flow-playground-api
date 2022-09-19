@@ -20,14 +20,13 @@ package datastore
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"time"
 
 	"cloud.google.com/go/datastore"
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 // Config is the configuration required to connect to Datastore.

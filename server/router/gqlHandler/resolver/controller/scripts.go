@@ -19,12 +19,11 @@
 package controller
 
 import (
-	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/server/model"
+	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/blockchain"
 	"github.com/dapperlabs/flow-playground-api/server/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 type Scripts struct {

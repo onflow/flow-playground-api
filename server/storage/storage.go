@@ -21,6 +21,7 @@ package storage
 import (
 	"context"
 	"github.com/dapperlabs/flow-playground-api/server/config"
+	"github.com/dapperlabs/flow-playground-api/server/model"
 	"github.com/dapperlabs/flow-playground-api/server/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"github.com/kelseyhightower/envconfig"
@@ -29,13 +30,13 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 )
 
 // Global storage
 var store Store = nil
 
+// GetStorage returns global storage based on global configuration
 func GetStorage() Store {
 	if store == nil {
 		if strings.EqualFold(config.GetConfig().StorageBackend, "datastore") {
@@ -61,6 +62,11 @@ func GetStorage() Store {
 		}
 	}
 	return store
+}
+
+// SetStorage sets global storage to a specified storage
+func SetStorage(newStore Store) {
+	store = newStore
 }
 
 type DatastoreConfig struct {
