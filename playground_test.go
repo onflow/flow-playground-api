@@ -2547,7 +2547,6 @@ var version, _ = semver.NewVersion("0.1.0")
 func newClient() *Client {
 	var store storage.Store
 
-	// TODO: Should eventually start up the emulator and run all tests with datastore backend
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
 		var err error
 		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{

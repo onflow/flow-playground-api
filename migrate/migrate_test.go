@@ -157,11 +157,12 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 }
 
 func Test_MigrationV0_12_0(t *testing.T) {
+	testID := fmt.Sprintf("migration-test-%s", uuid.New())
 	store, err := datastore.NewDatastore(
 		context.Background(),
 		&datastore.Config{
-			DatastoreProjectID: "migration-test" + uuid.New().String(), // connect to empty database everytime
-			DatastoreTimeout:   time.Second * 2,
+			DatastoreProjectID: testID, // connect to empty database everytime
+			DatastoreTimeout:   time.Second * 5,
 		},
 	)
 	if err != nil {
@@ -258,7 +259,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	newVer := semver.MustParse("v0.12.0")
+	newVer := semver.MustParse("0.12.0")
 	migrated, err := migrator.MigrateProject(projID, semver.MustParse("v0.10.0"), newVer)
 	require.NoError(t, err)
 	assert.True(t, migrated)
@@ -275,7 +276,11 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	var exes []*model.TransactionExecution
 	err = store.GetTransactionExecutionsForProject(projID, &exes)
 	require.NoError(t, err)
-	assert.Len(t, exes, 0)
+	assert.Len(t, exes, 5)
+	for i, exe := range exes {
+		assert.Equal(t, "flow.AccountCreated", exe.Events[5].Type)
+		assert.Equal(t, i, exes[i].Index)
+	}
 
 	var scriptExes []*model.ScriptExecution
 	err = store.GetScriptExecutionsForProject(projID, &scriptExes)
@@ -285,7 +290,8 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	var project model.InternalProject
 	err = store.GetProject(projID, &project)
 	require.NoError(t, err)
+
 	assert.Equal(t, newVer, project.Version)
-	assert.Equal(t, project.TransactionExecutionCount, 0)
-	assert.Equal(t, project.TransactionCount, 0)
+	assert.Equal(t, 5, project.TransactionExecutionCount)
+	assert.Equal(t, 5, project.TransactionCount)
 }

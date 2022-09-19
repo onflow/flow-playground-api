@@ -261,14 +261,12 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 	}
 
 	var txExes []*model.TransactionExecution
-
 	err = d.GetTransactionExecutionsForProject(proj.ID, &txExes)
 	if err != nil {
 		return err
 	}
 
 	var scriptExes []*model.ScriptExecution
-
 	err = d.GetScriptExecutionsForProject(proj.ID, &scriptExes)
 	if err != nil {
 		return err

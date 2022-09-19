@@ -138,7 +138,6 @@ func (s *Store) UpdateProject(input model.UpdateProject, proj *model.InternalPro
 	}
 
 	s.projects[input.ID] = p
-
 	*proj = p
 
 	err := s.markProjectUpdatedAt(input.ID)
@@ -453,6 +452,11 @@ func (s *Store) InsertTransactionExecution(exe *model.TransactionExecution) erro
 	// set index to one after last
 	exe.Index = count
 	s.transactionExecutions[exe.ID] = *exe
+
+	proj := s.projects[exe.ProjectID]
+	proj.TransactionExecutionCount += 1
+	proj.TransactionCount += 1
+	s.projects[exe.ProjectID] = proj
 
 	err = s.markProjectUpdatedAt(exe.ProjectID)
 	if err != nil {
