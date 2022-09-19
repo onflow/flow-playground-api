@@ -34,9 +34,10 @@ import (
 	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
 )
 
-var flowResolver = resolver.NewResolver()
+var flowResolver *resolver.Resolver = nil
 
 func GraphQLHandler() http.HandlerFunc {
+	flowResolver = resolver.NewResolver()
 	srv := gqlHandler.NewDefaultServer(playground.NewExecutableSchema(playground.Config{Resolvers: flowResolver}))
 
 	// Add middleware
