@@ -21,6 +21,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"log"
 	"net/http"
 	"strings"
@@ -54,20 +55,6 @@ import (
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
-
-type Config struct {
-	Port                       int           `default:"8080"`
-	Debug                      bool          `default:"false"`
-	AllowedOrigins             []string      `default:"http://localhost:3000"`
-	SessionAuthKey             string        `default:"428ce08c21b93e5f0eca24fbeb0c7673"`
-	SessionMaxAge              time.Duration `default:"157680000s"`
-	SessionCookiesSecure       bool          `default:"true"`
-	SessionCookiesHTTPOnly     bool          `default:"true"`
-	SessionCookiesSameSiteNone bool          `default:"false"`
-	LedgerCacheSize            int           `default:"128"`
-	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
-	StorageBackend             string
-}
 
 type DatastoreConfig struct {
 	GCPProjectID string        `required:"true"`
@@ -110,11 +97,7 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 
-	var conf Config
-
-	if err := envconfig.Process("FLOW", &conf); err != nil {
-		log.Fatal(err)
-	}
+	var conf = config.GetConfig()
 
 	var store storage.Store
 
