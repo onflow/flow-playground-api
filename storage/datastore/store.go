@@ -276,6 +276,7 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		proj.TransactionCount = 0
+		proj.TransactionExecutionCount = 0
 		proj.UpdatedAt = time.Now()
 
 		_, err = tx.Put(proj.NameKey(), proj)
@@ -513,38 +514,6 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) 
 
 	return txErr
 
-}
-
-func (d *Datastore) MigrateToV0_12_0(
-	project model.InternalProject,
-	accounts []*model.InternalAccount,
-	exes []*model.TransactionExecution,
-	scripts []*model.ScriptExecution,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
-	defer cancel()
-
-	var keys []*datastore.Key
-	var values []interface{}
-
-	keys = append(keys, project.NameKey())
-	values = append(values, project)
-
-	for _, exe := range exes {
-		keys = append(keys, exe.NameKey())
-		values = append(values, exe)
-	}
-	for _, acc := range accounts {
-		keys = append(keys, acc.NameKey())
-		values = append(values, acc)
-	}
-	for _, s := range scripts {
-		keys = append(keys, s.NameKey())
-		values = append(values, s)
-	}
-
-	_, err := d.dsClient.PutMulti(ctx, keys, values)
-	return err
 }
 
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {

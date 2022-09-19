@@ -386,6 +386,7 @@ func Test_AccountCreation(t *testing.T) {
 		assert.True(t, strings.Contains(executions[0].Script, "AuthAccount(payer: signer)"))
 	})
 
+	// todo multiple account creations no reset cache - is saving emulator to cache after modifications needed
 	t.Run("multiple account creations, reset cache", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 

@@ -668,6 +668,7 @@ func (s *Store) ResetProjectState(proj *model.InternalProject) error {
 
 	project := s.projects[proj.ID]
 	project.TransactionCount = 0
+	project.TransactionExecutionCount = 0
 	s.projects[proj.ID] = project
 
 	*proj = project

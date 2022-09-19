@@ -21,8 +21,6 @@ package migrate
 import (
 	"fmt"
 
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -68,9 +66,7 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
 		}
 	}
-	fmt.Println("migrate v0.12")
 	if from.LessThan(V0_12_0) {
-		fmt.Println("migrating v0.12")
 		err := m.migrateToV0_12_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_12_0)
@@ -102,7 +98,7 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	//  same transaction.
 
 	// Step 1/2
-	err := m.projects.Reset(&proj)
+	_, err := m.projects.Reset(&proj)
 	if err != nil {
 		return errors.Wrap(err, "failed to reset project state")
 	}
@@ -121,27 +117,11 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 // Steps:
 // - 1. Reset project state recreate initial accounts
 // - 2. Get all accounts for project and update with shifted addresses and removed unused fields
-// - 3. Get all transaction executions and update with shifted addresses in script, arguments and signers
-// - 4. Get all script executions and update with shifted addresses in script and arguments
 func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
-	fmt.Println("MIGRATION start")
-
-	store, ok := m.store.(*datastore.Datastore)
-	if !ok {
-		return nil // only migrate datastore
-	}
-
-	var project model.InternalProject
-	err := store.GetProject(projectID, &project)
-	if err != nil {
-		return errors.Wrap(err, "migration failed to get project")
-	}
-
-	// update to migrated version
-	project.Version = V0_12_0
-
 	// 1. reset project state
-	err = m.projects.Reset(&project)
+	createdAccounts, err := m.projects.Reset(&model.InternalProject{
+		ID: projectID,
+	})
 	if err != nil {
 		return errors.Wrap(err, "migration failed to reset project state")
 	}
@@ -152,44 +132,32 @@ func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 		return errors.Wrap(err, "migration failed to get accounts")
 	}
 
+	if len(accounts) != len(createdAccounts) {
+		return fmt.Errorf("migration failture, created accounts length doesn't match existing accounts")
+	}
+
 	// 2. migrate accounts
 	for i, acc := range accounts {
-		accounts[i].Address = adapter.AddressFromAPI(acc.Address)
-		accounts[i].DraftCode = adapter.ContentAddressFromAPI(acc.DraftCode)
+		acc.Address = createdAccounts[i].Address
+		acc.DraftCode = adapter.ContentAddressFromAPI(acc.DraftCode)
+
+		err = m.store.DeleteAccount(acc.ProjectChildID)
+		if err != nil {
+			return errors.Wrap(err, "migration failed to migrate accounts")
+		}
+
+		err = m.store.InsertAccount(acc)
+		if err != nil {
+			return errors.Wrap(err, "migration failed to migrate accounts")
+		}
 	}
 
-	var exes []*model.TransactionExecution
-	err = m.store.GetTransactionExecutionsForProject(projectID, &exes)
+	err = m.projects.UpdateVersion(projectID, V0_12_0)
 	if err != nil {
-		return errors.Wrap(err, "migration failed to get executions")
+		return errors.Wrap(err, "failed to update project version")
 	}
 
-	// 3. migrate transaction executions
-	for i, exe := range exes {
-		exes[i].Script = adapter.ContentAddressFromAPI(exe.Script)
-		for j, sig := range exe.Signers {
-			exes[i].Signers[j] = adapter.AddressFromAPI(sig)
-		}
-		for j, arg := range exe.Arguments {
-			exes[i].Arguments[j] = adapter.ContentAddressFromAPI(arg)
-		}
-	}
-
-	var scripts []*model.ScriptExecution
-	err = m.store.GetScriptExecutionsForProject(projectID, &scripts)
-	if err != nil {
-		return errors.Wrap(err, "migration failed to get scripts")
-	}
-
-	// 4. migrate scripts
-	for i, s := range scripts {
-		scripts[i].Script = adapter.ContentAddressFromAPI(s.Script)
-		for j, arg := range s.Arguments {
-			scripts[i].Arguments[j] = adapter.ContentAddressFromAPI(arg)
-		}
-	}
-
-	return store.MigrateToV0_12_0(project, accounts, exes, scripts)
+	return nil
 }
 
 func sanitizeVersion(version *semver.Version) *semver.Version {

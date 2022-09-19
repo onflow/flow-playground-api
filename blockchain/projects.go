@@ -58,20 +58,20 @@ type Projects struct {
 }
 
 // Reset the blockchain state.
-func (s *Projects) Reset(project *model.InternalProject) error {
+func (s *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
 	s.cache.Remove(project.ID)
 
 	err := s.store.ResetProjectState(project)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = s.CreateInitialAccounts(project.ID)
+	accounts, err := s.CreateInitialAccounts(project.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return accounts, nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
@@ -251,13 +251,11 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	if ok {
 		return val.(blockchain), nil
 	}
-	fmt.Println("no cache")
 
 	emulator, err := newEmulator()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("emulator", emulator)
 
 	var executions []*model.TransactionExecution
 	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
@@ -266,7 +264,6 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	}
 
 	for _, execution := range executions {
-		fmt.Println("execution", execution.ID)
 		result, _, err := emulator.executeTransaction(
 			execution.Script,
 			execution.Arguments,
@@ -280,8 +277,6 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			fmt.Println("error", result.Error)
-
 			sentry.CaptureMessage(fmt.Sprintf(
 				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
@@ -297,7 +292,6 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	fmt.Println("add to cache", emulator)
 	s.cache.Add(projectID, emulator)
 
 	return emulator, nil
