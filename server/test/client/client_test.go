@@ -20,7 +20,7 @@ package client_test
 
 import (
 	"encoding/json"
-	client2 "github.com/dapperlabs/flow-playground-api/test/client"
+	"github.com/dapperlabs/flow-playground-api/server/test/client"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -47,7 +47,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 
-	c := client2.New(h)
+	c := client.New(h)
 
 	var resp struct {
 		Name string
@@ -55,7 +55,7 @@ func TestClient(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	err := c.Post(w, "user(id:$id){name}", &resp, client2.Var("id", 1))
+	err := c.Post(w, "user(id:$id){name}", &resp, client.Var("id", 1))
 	require.NoError(t, err)
 
 	require.Equal(t, "bob", resp.Name)
@@ -68,14 +68,14 @@ func TestAddHeader(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	c := client2.New(h)
+	c := client.New(h)
 
 	var resp struct{}
 
 	w := httptest.NewRecorder()
 
 	err := c.Post(w, "{ id }", &resp,
-		client2.AddHeader("Test-Key", "ASDF"),
+		client.AddHeader("Test-Key", "ASDF"),
 	)
 	require.NoError(t, err)
 }
@@ -87,7 +87,7 @@ func TestAddClientHeader(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	c := client2.New(h, client2.AddHeader("Test-Key", "ASDF"))
+	c := client.New(h, client.AddHeader("Test-Key", "ASDF"))
 
 	var resp struct{}
 
@@ -107,14 +107,14 @@ func TestBasicAuth(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	c := client2.New(h)
+	c := client.New(h)
 
 	var resp struct{}
 
 	w := httptest.NewRecorder()
 
 	err := c.Post(w, "{ id }", &resp,
-		client2.BasicAuth("user", "pass"),
+		client.BasicAuth("user", "pass"),
 	)
 	require.NoError(t, err)
 }
@@ -128,14 +128,14 @@ func TestAddCookie(t *testing.T) {
 		_, _ = w.Write([]byte(`{}`))
 	})
 
-	c := client2.New(h)
+	c := client.New(h)
 
 	var resp struct{}
 
 	w := httptest.NewRecorder()
 
 	err := c.Post(w, "{ id }", &resp,
-		client2.AddCookie(&http.Cookie{Name: "foo", Value: "value"}),
+		client.AddCookie(&http.Cookie{Name: "foo", Value: "value"}),
 	)
 	require.NoError(t, err)
 }
