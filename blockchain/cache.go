@@ -64,7 +64,7 @@ func (c *cache) get(
 	}
 
 	// this should never happen, sanity check
-	if int(latest.Header.Height) >= len(executions) {
+	if int(latest.Header.Height) > len(executions) {
 		err := fmt.Errorf("cache failure, block height is higher than executions count")
 		sentry.CaptureException(err)
 		return nil, nil, err
