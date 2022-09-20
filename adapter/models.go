@@ -18,7 +18,10 @@
 
 package adapter
 
-import "github.com/dapperlabs/flow-playground-api/model"
+import (
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
+)
 
 // models adapters compose different adapters in a single adapter.
 
@@ -86,11 +89,13 @@ func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
 }
 
 func AccountToAPI(account *model.Account) *model.Account {
+	telemetry.DebugLog("[models] Account to API start")
 	account.Address = addressToAPI(account.Address)
 	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
 
 	account.State = stateToAPI(account.State)
 
+	telemetry.DebugLog("[models] Account to API end")
 	return account
 }
 

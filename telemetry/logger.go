@@ -2,12 +2,15 @@ package telemetry
 
 import "github.com/sirupsen/logrus"
 
+const loggerActive = true
+
 var logger *logrus.Logger
 
-// todo temp telemtry
-func Logger() *logrus.Logger {
-	if logger == nil {
-		logger = logrus.StandardLogger()
+func DebugLog(message string) {
+	if loggerActive {
+		if logger == nil {
+			logger = logrus.StandardLogger()
+		}
+		logger.Info(message)
 	}
-	return logger
 }

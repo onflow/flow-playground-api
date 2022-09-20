@@ -160,7 +160,7 @@ func main() {
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
 
-	telemetry.Logger().Info("server startup")
+	telemetry.DebugLog("server startup")
 
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
@@ -198,7 +198,7 @@ func main() {
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
 
-		telemetry.Logger().Info("GraphQL request")
+		telemetry.DebugLog("GraphQL request")
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(

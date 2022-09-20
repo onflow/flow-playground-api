@@ -20,6 +20,7 @@ package auth
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -90,6 +91,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.InternalProject) error {
+	telemetry.DebugLog("[auth] Check Project Access")
 	var user *model.User
 	var err error
 
@@ -103,6 +105,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	}
 
 	if a.hasProjectAccess(user, proj) {
+		telemetry.DebugLog("[auth] Check Project Access")
 		err = sessions.Save(ctx, session)
 		if err != nil {
 			return errors.New("access denied")

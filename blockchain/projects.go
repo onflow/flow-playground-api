@@ -58,26 +58,26 @@ type Projects struct {
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
 	p.cache.reset(project.ID)
-	playground.Logger().Info("[projects] reset - start")
+	playground.DebugLog("[projects] reset - start")
 
 	err := p.store.ResetProjectState(project)
 	if err != nil {
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] reset - project state reset")
+	playground.DebugLog("[projects] reset - project state reset")
 	accounts, err := p.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] reset - accounts created")
+	playground.DebugLog("[projects] reset - accounts created")
 	return accounts, nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	playground.Logger().Info("[projects] execute transaction - start")
+	playground.DebugLog("[projects] execute transaction - start")
 
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
@@ -87,7 +87,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] execute transaction - emulator loaded")
+	playground.DebugLog("[projects] execute transaction - emulator loaded")
 
 	signers := make([]flowsdk.Address, len(execution.Signers))
 	for i, sig := range execution.Signers {
@@ -103,7 +103,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] execute transaction - emulator executed")
+	playground.DebugLog("[projects] execute transaction - emulator executed")
 
 	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
@@ -111,7 +111,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] execute transaction - execution inserted")
+	playground.DebugLog("[projects] execute transaction - execution inserted")
 
 	return exe, nil
 }
@@ -200,7 +200,7 @@ func (p *Projects) DeployContract(
 	address model.Address,
 	script string,
 ) (*model.Account, error) {
-	playground.Logger().Info("[projects] deploy contract - start")
+	playground.DebugLog("[projects] deploy contract - start")
 
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
@@ -209,7 +209,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] deploy contract - emulator loaded")
+	playground.DebugLog("[projects] deploy contract - emulator loaded")
 
 	result, tx, err := emulator.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
@@ -219,7 +219,7 @@ func (p *Projects) DeployContract(
 		return nil, result.Error
 	}
 
-	playground.Logger().Info("[projects] deploy contract - contract deployed")
+	playground.DebugLog("[projects] deploy contract - contract deployed")
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
@@ -227,7 +227,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] deploy contract - execution inserted")
+	playground.DebugLog("[projects] deploy contract - execution inserted")
 
 	return p.getAccount(projectID, address)
 }
@@ -238,14 +238,14 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] get account - emulator loaded")
+	playground.DebugLog("[projects] get account - emulator loaded")
 
 	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] get account - account retrieved from emualator")
+	playground.DebugLog("[projects] get account - account retrieved from emualator")
 
 	jsonStorage, err := json.Marshal(store)
 	if err != nil {
@@ -264,7 +264,7 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 
-	playground.Logger().Info("[projects] load - start")
+	playground.DebugLog("[projects] load - start")
 
 	var executions []*model.TransactionExecution
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
@@ -272,7 +272,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	playground.Logger().Info("[projects] load - retrieve executions")
+	playground.DebugLog("[projects] load - retrieve executions")
 
 	emulator, executions, err := p.cache.get(projectID, executions)
 	if emulator == nil || err != nil {
@@ -282,7 +282,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	playground.Logger().Info("[projects] load - resolve cache")
+	playground.DebugLog("[projects] load - resolve cache")
 
 	for _, execution := range executions {
 		result, _, err := emulator.executeTransaction(
@@ -313,7 +313,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	playground.Logger().Info("[projects] load - executions completed")
+	playground.DebugLog("[projects] load - executions completed")
 
 	p.cache.add(projectID, emulator)
 
