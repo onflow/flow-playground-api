@@ -257,12 +257,9 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 
 		if latest.Header.Height == uint64(len(executions)) {
-			fmt.Println("in sync")
 			return emulator, nil
 		}
 	}
-
-	fmt.Println("rebuild emulator")
 
 	emulator, err := newEmulator()
 	if err != nil {

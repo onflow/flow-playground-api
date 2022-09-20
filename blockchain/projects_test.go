@@ -229,6 +229,42 @@ func Test_LoadEmulator(t *testing.T) {
 			require.NoError(t, err)
 		}
 	})
+
+	t.Run("test stale cache", func(t *testing.T) {
+		projects, store, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		_, err = projects.ExecuteTransaction(model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    `transaction {}`,
+			Signers:   nil,
+			Arguments: nil,
+		})
+		require.NoError(t, err)
+
+		// force to cache again
+		_, err = projects.load(proj.ID)
+		require.NoError(t, err)
+
+		// add another transaction directly to the database to simulate request coming from another replica
+		err = store.InsertTransactionExecution(&model.TransactionExecution{
+			ProjectChildID: model.NewProjectChildID(uuid.New(), proj.ID),
+			Script: `transaction {
+				execute {
+					log("hello")
+				}
+			}`,
+		})
+		require.NoError(t, err)
+
+		emulator, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
+		latest, err := emulator.getLatestBlock()
+		require.NoError(t, err)
+		// there should be two blocks created, one from first execution and second from direct db execution from above
+		assert.Equal(t, uint64(2), latest.Header.Height)
+	})
 }
 
 func Test_TransactionExecution(t *testing.T) {
