@@ -153,12 +153,9 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 		}
 
 		accounts[i] = &model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: projectID,
-			},
-			Address: account.Address,
-			Index:   i,
+			ProjectChildID: model.NewProjectChildID(uuid.New(), projectID),
+			Address:        account.Address,
+			Index:          i,
 		}
 	}
 
@@ -245,18 +242,29 @@ func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 //
 // Do not call this method directly, it is not concurrency safe.
 func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
-	val, ok := s.cache.Get(projectID)
-	if ok {
-		return val.(blockchain), nil
-	}
-
-	emulator, err := newEmulator()
+	var executions []*model.TransactionExecution
+	err := s.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
 
-	var executions []*model.TransactionExecution
-	err = s.store.GetTransactionExecutionsForProject(projectID, &executions)
+	val, ok := s.cache.Get(projectID)
+	if ok {
+		emulator := val.(blockchain)
+		latest, err := emulator.getLatestBlock()
+		if err != nil {
+			return nil, err
+		}
+
+		if latest.Header.Height == uint64(len(executions)) {
+			fmt.Println("in sync")
+			return emulator, nil
+		}
+	}
+
+	fmt.Println("rebuild emulator")
+
+	emulator, err := newEmulator()
 	if err != nil {
 		return nil, err
 	}
