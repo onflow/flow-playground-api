@@ -27,7 +27,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
@@ -37,10 +36,10 @@ import (
 // instances of emulators waiting around to be assigned to a project if init time will be proved to be an issue
 
 // NewProjects creates an instance of the projects with provided storage access and caching.
-func NewProjects(store storage.Store, cache *lru.Cache, initAccountsNumber int) *Projects {
+func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 	return &Projects{
 		store:          store,
-		cache:          cache,
+		cache:          newCache(128),
 		accountsNumber: initAccountsNumber,
 	}
 }
@@ -51,7 +50,7 @@ func NewProjects(store storage.Store, cache *lru.Cache, initAccountsNumber int) 
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
 	store          storage.Store
-	cache          *lru.Cache
+	cache          *cache
 	mu             sync.Map
 	muCounter      sync.Map
 	accountsNumber int
@@ -59,7 +58,7 @@ type Projects struct {
 
 // Reset the blockchain state.
 func (s *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
-	s.cache.Remove(project.ID)
+	s.cache.reset(project.ID)
 
 	err := s.store.ResetProjectState(project)
 	if err != nil {
@@ -248,22 +247,12 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	val, ok := s.cache.Get(projectID)
-	if ok {
-		emulator := val.(blockchain)
-		latest, err := emulator.getLatestBlock()
+	emulator, executions, err := s.cache.get(projectID, executions)
+	if emulator == nil || err != nil {
+		emulator, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
-
-		if latest.Header.Height == uint64(len(executions)) {
-			return emulator, nil
-		}
-	}
-
-	emulator, err := newEmulator()
-	if err != nil {
-		return nil, err
 	}
 
 	for _, execution := range executions {
@@ -295,7 +284,7 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	s.cache.Add(projectID, emulator)
+	s.cache.add(projectID, emulator)
 
 	return emulator, nil
 }
