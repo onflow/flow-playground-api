@@ -1,16 +1,17 @@
 package telemetry
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+)
 
-const loggerActive = true
-
-var logger *logrus.Logger
+const loggerActive = false
 
 func DebugLog(message string) {
-	if loggerActive {
-		if logger == nil {
-			logger = logrus.StandardLogger()
-		}
-		logger.Info(message)
+	if !loggerActive {
+		return
 	}
+	if logger == nil {
+		logger = logrus.StandardLogger()
+	}
+	logger.Info(message)
 }

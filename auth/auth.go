@@ -91,6 +91,8 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.InternalProject) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
 	telemetry.DebugLog("[auth] Check Project Access")
 	var user *model.User
 	var err error
@@ -134,6 +136,8 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
 	var user model.User
 
 	var userID uuid.UUID
