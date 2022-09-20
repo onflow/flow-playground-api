@@ -21,8 +21,6 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
-
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 
@@ -40,6 +38,7 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 	return &Projects{
 		store:          store,
 		cache:          newCache(128),
+		mutex:          newMutex(),
 		accountsNumber: initAccountsNumber,
 	}
 }
@@ -51,21 +50,20 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 type Projects struct {
 	store          storage.Store
 	cache          *cache
-	mu             sync.Map
-	muCounter      sync.Map
+	mutex          *mutex
 	accountsNumber int
 }
 
 // Reset the blockchain state.
-func (s *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
-	s.cache.reset(project.ID)
+func (p *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
+	p.cache.reset(project.ID)
 
-	err := s.store.ResetProjectState(project)
+	err := p.store.ResetProjectState(project)
 	if err != nil {
 		return nil, err
 	}
 
-	accounts, err := s.CreateInitialAccounts(project.ID)
+	accounts, err := p.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,11 +72,11 @@ func (s *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccou
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
-func (s *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
+func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	projID := execution.ProjectID
-	s.loadLock(projID).Lock()
-	defer s.removeLock(projID).Unlock()
-	emulator, err := s.load(projID)
+	p.mutex.load(projID).Lock()
+	defer p.mutex.remove(projID).Unlock()
+	emulator, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +96,7 @@ func (s *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	}
 
 	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
-	err = s.store.InsertTransactionExecution(exe)
+	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +105,11 @@ func (s *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 }
 
 // ExecuteScript executes the script.
-func (s *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
+func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
 	projID := execution.ProjectID
-	s.loadLock(projID).RLock()
-	defer s.removeLock(projID).RUnlock()
-	emulator, err := s.load(projID)
+	p.mutex.load(projID).RLock()
+	defer p.mutex.remove(projID).RUnlock()
+	emulator, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +125,7 @@ func (s *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 		execution.Script,
 		execution.Arguments,
 	)
-	err = s.store.InsertScriptExecution(exe)
+	err = p.store.InsertScriptExecution(exe)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to insert script execution record")
 	}
@@ -136,17 +134,17 @@ func (s *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 }
 
 // GetAccount by the address along with its storage information.
-func (s *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	s.loadLock(projectID).RLock()
-	account, err := s.getAccount(projectID, address)
-	s.removeLock(projectID).RUnlock()
+func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	p.mutex.load(projectID).RLock()
+	account, err := p.getAccount(projectID, address)
+	p.mutex.remove(projectID).RUnlock()
 	return account, err
 }
 
-func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
-	accounts := make([]*model.InternalAccount, s.accountsNumber)
-	for i := 0; i < s.accountsNumber; i++ {
-		account, err := s.CreateAccount(projectID)
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+	accounts := make([]*model.InternalAccount, p.accountsNumber)
+	for i := 0; i < p.accountsNumber; i++ {
+		account, err := p.CreateAccount(projectID)
 		if err != nil {
 			return nil, err
 		}
@@ -162,10 +160,10 @@ func (s *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
-func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
-	s.loadLock(projectID).Lock()
-	defer s.removeLock(projectID).Unlock()
-	emulator, err := s.load(projectID)
+func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +174,7 @@ func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	err = s.store.InsertTransactionExecution(exe)
+	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
@@ -185,14 +183,14 @@ func (s *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
-func (s *Projects) DeployContract(
+func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,
 ) (*model.Account, error) {
-	s.loadLock(projectID).Lock()
-	defer s.removeLock(projectID).Unlock()
-	emulator, err := s.load(projectID)
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -206,16 +204,16 @@ func (s *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	err = s.store.InsertTransactionExecution(exe)
+	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
 
-	return s.getAccount(projectID, address)
+	return p.getAccount(projectID, address)
 }
 
-func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := s.load(projectID)
+func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -240,14 +238,14 @@ func (s *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
-func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
+func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	var executions []*model.TransactionExecution
-	err := s.store.GetTransactionExecutionsForProject(projectID, &executions)
+	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
 
-	emulator, executions, err := s.cache.get(projectID, executions)
+	emulator, executions, err := p.cache.get(projectID, executions)
 	if emulator == nil || err != nil {
 		emulator, err = newEmulator()
 		if err != nil {
@@ -263,59 +261,28 @@ func (s *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf(
-				"execution error: not able to recreate the project state %s with execution ID %s",
+				"execution error: not able to recreate the project state %p with execution ID %p",
 				projectID,
 				execution.ID.String(),
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+				"project %p state recreation failure: execution ID %p failed with result: %p, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
 			))
 			return nil, errors.Wrap(err, fmt.Sprintf(
-				"result error: not able to recreate the project state %s with execution ID %s",
+				"result error: not able to recreate the project state %p with execution ID %p",
 				projectID,
 				execution.ID.String(),
 			))
 		}
 	}
 
-	s.cache.add(projectID, emulator)
+	p.cache.add(projectID, emulator)
 
 	return emulator, nil
-}
-
-// loadLock retrieves the mutex lock by the project ID and increase the usage counter.
-func (s *Projects) loadLock(uuid uuid.UUID) *sync.RWMutex {
-	counter, _ := s.muCounter.LoadOrStore(uuid, 0)
-	s.muCounter.Store(uuid, counter.(int)+1)
-
-	mu, _ := s.mu.LoadOrStore(uuid, &sync.RWMutex{})
-	return mu.(*sync.RWMutex)
-}
-
-// removeLock returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
-func (s *Projects) removeLock(uuid uuid.UUID) *sync.RWMutex {
-	m, ok := s.mu.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex")
-	}
-
-	counter, ok := s.muCounter.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex counter")
-	}
-
-	if counter == 0 {
-		s.mu.Delete(uuid)
-		s.muCounter.Delete(uuid)
-	} else {
-		s.muCounter.Store(uuid, counter.(int)-1)
-	}
-
-	return m.(*sync.RWMutex)
 }
