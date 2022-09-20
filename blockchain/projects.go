@@ -261,21 +261,21 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf(
-				"execution error: not able to recreate the project state %p with execution ID %p",
+				"execution error: not able to recreate the project state %s with execution ID %s",
 				projectID,
 				execution.ID.String(),
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			sentry.CaptureMessage(fmt.Sprintf(
-				"project %p state recreation failure: execution ID %p failed with result: %p, debug: %v",
+				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
 			))
 			return nil, errors.Wrap(err, fmt.Sprintf(
-				"result error: not able to recreate the project state %p with execution ID %p",
+				"result error: not able to recreate the project state %s with execution ID %s",
 				projectID,
 				execution.ID.String(),
 			))
