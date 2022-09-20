@@ -26,10 +26,8 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/golang/groupcache/lru"
-
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -117,7 +115,7 @@ type migrateTestCase struct {
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
 		store := memory.NewStore()
-		chain := blockchain.NewProjects(store, lru.New(128), 5)
+		chain := blockchain.NewProjects(store, 5)
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
 
@@ -169,7 +167,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		t.Skip("skipping migration test, requires datastore connection")
 	}
 
-	chain := blockchain.NewProjects(store, lru.New(128), 5)
+	chain := blockchain.NewProjects(store, 5)
 	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
 
 	migrator := migrate.NewMigrator(store, projects)
