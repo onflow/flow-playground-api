@@ -21,45 +21,81 @@ package blockchain
 import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"math/rand"
+	"sync"
 	"testing"
+	"time"
 )
 
 func Test_Mutex(t *testing.T) {
-	mutex := newMutex()
+	mut := newMutex()
 
 	testUuid := uuid.New()
 
-	m := mutex.load(testUuid)
+	m := mut.load(testUuid)
 	m.Lock()
 
-	v, _ := mutex.muCounter.Load(testUuid)
-	assert.Equal(t, 1, v.(int))
+	assert.Equal(t, 1, mut.counter[testUuid])
 
-	_, exists := mutex.mu.Load(testUuid)
+	_, exists := mut.pMutex[testUuid]
 	assert.True(t, exists)
 
-	m1 := mutex.load(testUuid)
+	m1 := mut.load(testUuid)
+
+	assert.Equal(t, m, m1) // should get access to the same mutex
+
 	locked := m1.TryLock()
 	// should fail since we already have one lock
 	assert.False(t, locked)
 
-	v, _ = mutex.muCounter.Load(testUuid)
-	assert.Equal(t, 2, v.(int))
+	assert.Equal(t, 2, mut.counter[testUuid])
 
-	mutex.remove(testUuid).Unlock()
+	mut.remove(testUuid).Unlock()
 
-	v, _ = mutex.muCounter.Load(testUuid)
-	assert.Equal(t, 1, v.(int))
+	assert.Equal(t, 1, mut.counter[testUuid])
 
 	locked = m1.TryLock()
 	assert.True(t, locked) // should succeed now
 
-	mutex.remove(testUuid).Unlock()
+	mut.remove(testUuid).Unlock()
 
 	// after all locks are released there shouldn't be any counter left
-	_, found := mutex.muCounter.Load(testUuid)
+	_, found := mut.counter[testUuid]
 	assert.False(t, found)
 
-	_, found = mutex.mu.Load(testUuid)
+	_, found = mut.pMutex[testUuid]
 	assert.False(t, found)
+}
+
+func Test_ConcurrentAccess(t *testing.T) {
+	mu := newMutex()
+	testID := uuid.New()
+
+	// simulate shared memory access
+	shared := 0
+
+	const subCount = 20
+	wg := sync.WaitGroup{}
+	wg.Add(subCount)
+
+	uniques := make([]int, subCount)
+	for i := 0; i < subCount; i++ {
+		go func(x int) {
+			mu.load(testID).Lock()
+			defer mu.remove(testID).Unlock()
+
+			shared += 1
+			time.Sleep(time.Duration(rand.Intn(subCount)) * time.Millisecond) // make sure first routine lasts longer then to shortest
+			uniques[x] = shared
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	visited := make(map[int]bool)
+	for _, u := range uniques {
+		assert.False(t, visited[u])
+		visited[u] = true
+	}
 }

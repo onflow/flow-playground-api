@@ -131,15 +131,6 @@ func Test_ConcurrentRequests(t *testing.T) {
 	t.Run("concurrent account creation", func(t *testing.T) {
 		const numOfRequests = 4
 
-		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
-			defer wg.Done()
-
-			acc, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-
-			ch <- acc
-		}
-
 		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
 			for a := range ch {
@@ -163,10 +154,21 @@ func Test_ConcurrentRequests(t *testing.T) {
 		}
 
 		t.Run("with cache", func(t *testing.T) {
+			// create accounts
+			createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
+				defer wg.Done()
+
+				acc, err := projects.CreateAccount(proj.ID)
+				require.NoError(t, err)
+
+				ch <- acc
+			}
+
 			testConcurrently(numOfRequests, createAccount, testAccount)
 		})
 
 		t.Run("without cache", func(t *testing.T) {
+			// create accounts but reset cache in between
 			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
 				defer wg.Done()
 
