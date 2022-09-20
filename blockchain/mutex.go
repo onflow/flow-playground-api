@@ -43,7 +43,7 @@ func (m *mutex) remove(uuid uuid.UUID) *sync.RWMutex {
 		sentry.CaptureMessage("trying to access non-existing mutex counter")
 	}
 
-	if counter == 0 {
+	if counter == 1 { // if last one remove it after
 		m.mu.Delete(uuid)
 		m.muCounter.Delete(uuid)
 	} else {

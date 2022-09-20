@@ -21,7 +21,8 @@ func Test_Mutex(t *testing.T) {
 	assert.True(t, exists)
 
 	m1 := mutex.load(testUuid)
-	locked := m1.TryLock() // should fail since we already have one lock
+	locked := m1.TryLock()
+	// should fail since we already have one lock
 	assert.False(t, locked)
 
 	v, _ = mutex.muCounter.Load(testUuid)
@@ -38,9 +39,9 @@ func Test_Mutex(t *testing.T) {
 	mutex.remove(testUuid).Unlock()
 
 	// after all locks are released there shouldn't be any counter left
-	_, counterExists := mutex.muCounter.Load(testUuid)
-	assert.False(t, counterExists)
+	_, found := mutex.muCounter.Load(testUuid)
+	assert.False(t, found)
 
-	_, exists = mutex.mu.Load(testUuid)
-	assert.False(t, exists)
+	_, found = mutex.mu.Load(testUuid)
+	assert.False(t, found)
 }
