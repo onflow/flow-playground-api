@@ -81,7 +81,7 @@ func newEmulator() (*emulator, error) {
 		emu.WithTransactionFeesEnabled(false),
 	)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create a new emulator instance")
 	}
 
 	return &emulator{

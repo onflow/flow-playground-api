@@ -33,7 +33,6 @@ import (
 
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
-	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
 )
 
@@ -41,7 +40,7 @@ const accountsNumber = 5
 
 func newProjects() (*Projects, *memory.Store) {
 	store := memory.NewStore()
-	chain := NewProjects(store, lru.New(128), accountsNumber)
+	chain := NewProjects(store, accountsNumber)
 
 	return chain, store
 }
@@ -100,7 +99,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
-			projects.cache.Remove(proj.ID) // clear cache
+			projects.cache.reset(proj.ID) // clear cache
 		}
 	})
 
@@ -180,7 +179,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 				acc, err := projects.CreateAccount(proj.ID)
 				require.NoError(t, err)
 
-				projects.cache.Remove(proj.ID)
+				projects.cache.reset(proj.ID)
 
 				ch <- acc
 			}
@@ -213,9 +212,8 @@ func Test_LoadEmulator(t *testing.T) {
 
 	t.Run("multiple loads with low cache", func(t *testing.T) {
 		projects, store := newProjects()
-		projects.cache = lru.New(2)
 
-		testProjs := make([]*model.InternalProject, 10)
+		testProjs := make([]*model.InternalProject, 150)
 
 		for i := 0; i < len(testProjs); i++ {
 			proj, txTpls, scriptTpls := projectSeed()
@@ -228,6 +226,42 @@ func Test_LoadEmulator(t *testing.T) {
 			_, err := projects.load(testProjs[i].ID)
 			require.NoError(t, err)
 		}
+	})
+
+	t.Run("test stale cache", func(t *testing.T) {
+		projects, store, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		_, err = projects.ExecuteTransaction(model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    `transaction {}`,
+			Signers:   nil,
+			Arguments: nil,
+		})
+		require.NoError(t, err)
+
+		// force to cache again
+		_, err = projects.load(proj.ID)
+		require.NoError(t, err)
+
+		// add another transaction directly to the database to simulate request coming from another replica
+		err = store.InsertTransactionExecution(&model.TransactionExecution{
+			ProjectChildID: model.NewProjectChildID(uuid.New(), proj.ID),
+			Script: `transaction {
+				execute {
+					log("hello")
+				}
+			}`,
+		})
+		require.NoError(t, err)
+
+		emulator, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
+		latest, err := emulator.getLatestBlock()
+		require.NoError(t, err)
+		// there should be two blocks created, one from first execution and second from direct db execution from above
+		assert.Equal(t, uint64(2), latest.Header.Height)
 	})
 }
 
@@ -312,7 +346,7 @@ func Test_TransactionExecution(t *testing.T) {
 			b, _ := em.getLatestBlock()
 			require.Equal(t, b.Header.Height, uint64(exeLen))
 
-			projects.cache.Remove(proj.ID)
+			projects.cache.reset(proj.ID)
 		}
 
 		for i := 0; i < 5; i++ {
@@ -335,7 +369,7 @@ func Test_TransactionExecution(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, accA.DeployedCode, scriptA)
 
-		projects.cache.Remove(proj.ID)
+		projects.cache.reset(proj.ID)
 
 		script := `
 			import HelloWorldA from 0x05
@@ -395,7 +429,7 @@ func Test_AccountCreation(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, fmt.Sprintf("000000000000000%d", createNumber+4), account.Address.ToFlowAddress().String())
 
-			projects.cache.Remove(proj.ID)
+			projects.cache.reset(proj.ID)
 
 			var executions []*model.TransactionExecution
 			err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
@@ -485,7 +519,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 7)
 
-		projects.cache.Remove(proj.ID)
+		projects.cache.reset(proj.ID)
 
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
 		require.NoError(t, err)

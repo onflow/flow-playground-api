@@ -32,7 +32,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage/memory"
-	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +61,7 @@ func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	err := store.InsertUser(user)
 	require.NoError(t, err)
 
-	chain := blockchain.NewProjects(store, lru.New(128), 5)
+	chain := blockchain.NewProjects(store, 5)
 	return NewProjects(version, store, chain), store, user
 }
 

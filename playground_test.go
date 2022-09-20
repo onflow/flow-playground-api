@@ -29,8 +29,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/groupcache/lru"
-
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 
 	"github.com/Masterminds/semver"
@@ -1075,7 +1073,7 @@ func TestTransactionExecutions(t *testing.T) {
 		// manually construct resolver
 		store := memory.NewStore()
 
-		projects := blockchain.NewProjects(store, lru.New(128), initAccounts)
+		projects := blockchain.NewProjects(store, initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
 		resolver := playground.NewResolver(version, store, authenticator, projects)
 
@@ -2563,7 +2561,7 @@ func newClient() *Client {
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128), initAccounts)
+	chain := blockchain.NewProjects(store, initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	return newClientWithResolver(resolver)
