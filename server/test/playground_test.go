@@ -19,30 +19,22 @@
 package playground_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/server/model"
 	"github.com/dapperlabs/flow-playground-api/server/router/gqlHandler"
 	playground "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver"
 	legacyauth "github.com/dapperlabs/flow-playground-api/server/router/gqlHandler/resolver/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/server/router/middleware/httpcontext"
-	"github.com/dapperlabs/flow-playground-api/server/storage"
-	"github.com/dapperlabs/flow-playground-api/server/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/server/storage/memory"
 	"github.com/dapperlabs/flow-playground-api/server/test/client"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 type Project struct {
@@ -1074,9 +1066,10 @@ func TestTransactionExecutions(t *testing.T) {
 		//projects := blockchain.NewProjects(store, lru.New(128), initAccounts)
 		//authenticator := auth.NewAuthenticator(store, sessionName)
 		//resolver := playground.NewResolver()
-		projects := gqlHandler.GetResolver().GetProjects()
+		//projects := gqlHandler.GetResolver().GetProjects()
 
 		c := newClientWithResolver()
+		projects := c.resolver.GetProjects()
 
 		project := createProject(t, c)
 
@@ -2542,25 +2535,26 @@ const sessionName = "flow-playground-test"
 var version, _ = semver.NewVersion("0.1.0")
 
 func newClient() *Client {
-	var store storage.Store
+	/*
+		var store storage.Store
 
-	// TODO: Should eventually start up the emulator and run all tests with datastore backend
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
-		var err error
-		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
-			DatastoreProjectID: "dl-flow",
-			DatastoreTimeout:   time.Second * 5,
-		})
+		// TODO: Should eventually start up the emulator and run all tests with datastore backend
+		if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
+			var err error
+			store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
+				DatastoreProjectID: "dl-flow",
+				DatastoreTimeout:   time.Second * 5,
+			})
 
-		if err != nil {
-			// If datastore is expected, panic when we can't init
-			panic(err)
+			if err != nil {
+				// If datastore is expected, panic when we can't init
+				panic(err)
+			}
+		} else {
+			store = memory.NewStore()
 		}
-	} else {
-		store = memory.NewStore()
-	}
-	storage.SetStorage(store)
-
+		storage.SetStorage(store)
+	*/
 	return newClientWithResolver()
 }
 
@@ -2569,11 +2563,13 @@ func newClientWithResolver() *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle("/", gqlHandler.GraphQLHandler())
+	handler, resolver := gqlHandler.GraphQLHandler()
+
+	router.Handle("/", handler)
 
 	return &Client{
 		client:   client.New(router),
-		resolver: gqlHandler.GetResolver(),
+		resolver: resolver,
 	}
 }
 
