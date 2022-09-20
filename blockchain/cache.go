@@ -19,7 +19,9 @@
 package blockchain
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -59,6 +61,13 @@ func (c *cache) get(
 	latest, err := emulator.getLatestBlock()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "cache failure")
+	}
+
+	// this should never happen, sanity check
+	if int(latest.Header.Height) >= len(executions) {
+		err := fmt.Errorf("cache failure, block height is higher than executions count")
+		sentry.CaptureException(err)
+		return nil, nil, err
 	}
 
 	// this will return only executions that are missing from the emulator
