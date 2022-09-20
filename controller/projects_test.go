@@ -159,6 +159,8 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		accounts, err := projects.Reset(proj)
+		assert.NoError(t, err)
+
 		require.Len(t, accounts, 5)
 
 		var dbProj model.InternalProject
