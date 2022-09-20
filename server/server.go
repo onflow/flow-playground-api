@@ -48,7 +48,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
-	"github.com/golang/groupcache/lru"
 	gsessions "github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/cors"
@@ -144,7 +143,7 @@ func main() {
 
 	sessionAuthKey := []byte(conf.SessionAuthKey)
 	authenticator := auth.NewAuthenticator(store, sessionName)
-	chain := blockchain.NewProjects(store, lru.New(128), initAccountsNumber)
+	chain := blockchain.NewProjects(store, initAccountsNumber)
 	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
 
 	router := chi.NewRouter()
