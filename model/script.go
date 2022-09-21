@@ -19,11 +19,9 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-emulator/types"
-	"github.com/pkg/errors"
 )
 
 type ScriptTemplate struct {
@@ -62,68 +60,4 @@ type ScriptExecution struct {
 	Value     string
 	Errors    []ProgramError
 	Logs      []string
-}
-
-/* */
-
-func (s *ScriptTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptTemplate", s.ID.String(), ProjectNameKey(s.ProjectID))
-}
-
-func (s *ScriptTemplate) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID        string
-		ProjectID string
-		Title     string
-		Index     int
-		Script    string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
-	}
-
-	if err := s.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode script template UUID")
-	}
-	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode project UUID")
-	}
-	s.Title = tmp.Title
-	s.Index = tmp.Index
-	s.Script = tmp.Script
-	return nil
-}
-
-func (s *ScriptExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("ScriptExecution", s.ID.String(), ProjectNameKey(s.ProjectID))
-}
-
-func (s *ScriptExecution) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID        string
-		ProjectID string
-		Index     int
-		Script    string
-		Arguments []string
-		Value     string
-		Logs      []string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
-	}
-
-	if err := s.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode script execution UUID")
-	}
-	if err := s.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode project UUID")
-	}
-	s.Index = tmp.Index
-	s.Script = tmp.Script
-	s.Arguments = tmp.Arguments
-	s.Value = tmp.Value
-	s.Logs = tmp.Logs
-	return nil
 }

@@ -19,12 +19,9 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
-	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
-	"github.com/pkg/errors"
 )
 
 type TransactionTemplate struct {
@@ -104,78 +101,4 @@ func convertSigners(signers []Address) []flowsdk.Address {
 	}
 
 	return sigs
-}
-
-/* Function below are for sql migration */
-func (t *TransactionTemplate) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionTemplate", t.ID.String(), ProjectNameKey(t.ProjectID))
-}
-
-func (t *TransactionTemplate) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID        string
-		ProjectID string
-		Title     string
-		Index     int
-		Script    string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
-	}
-
-	if err := t.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode transaction template UUID")
-	}
-	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode project UUID")
-	}
-	t.Title = tmp.Title
-	t.Index = tmp.Index
-	t.Script = tmp.Script
-	return nil
-}
-
-func (t *TransactionExecution) NameKey() *datastore.Key {
-	return datastore.NameKey("TransactionExecution", t.ID.String(), ProjectNameKey(t.ProjectID))
-}
-
-func (t *TransactionExecution) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID        string
-		ProjectID string
-		Index     int
-		Script    string
-		Arguments []string
-		Signers   [][]byte
-		Events    string
-		Logs      []string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
-	}
-
-	if err := t.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode transaction execution UUID")
-	}
-	if err := t.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode project UUID")
-	}
-
-	for _, sig := range tmp.Signers {
-		var signer Address
-		copy(signer[:], sig[:])
-		t.Signers = append(t.Signers, signer)
-	}
-
-	if err := json.Unmarshal([]byte(tmp.Events), &t.Events); err != nil {
-		return errors.Wrap(err, "failed to decode Events")
-	}
-
-	t.Index = tmp.Index
-	t.Script = tmp.Script
-	t.Arguments = tmp.Arguments
-	t.Logs = tmp.Logs
-	return nil
 }

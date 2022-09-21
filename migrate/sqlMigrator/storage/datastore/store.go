@@ -1,3 +1,21 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package datastore
 
 import (
@@ -88,7 +106,7 @@ func (d *Datastore) put(src DatastoreEntity) error {
 }
 
 func (d *Datastore) markProjectUpdatedAt(tx *datastore.Transaction, projectID uuid.UUID) error {
-	var proj model.Project
+	var proj model.InternalProject
 
 	key := model.ProjectNameKey(projectID)
 
@@ -121,7 +139,7 @@ func (d *Datastore) GetUser(id uuid.UUID, user *model.User) error {
 // Projects
 
 func (d *Datastore) CreateProject(
-	proj *model.Project,
+	proj *model.InternalProject,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
@@ -158,7 +176,7 @@ func (d *Datastore) CreateProject(
 	return txErr
 }
 
-func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.Project) error {
+func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -200,7 +218,7 @@ func (d *Datastore) UpdateProjectOwner(id, userID uuid.UUID) error {
 	defer cancel()
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-		var proj model.Project
+		var proj model.InternalProject
 
 		err := tx.Get(model.ProjectNameKey(id), &proj)
 		if err != nil {
@@ -221,7 +239,7 @@ func (d *Datastore) UpdateProjectVersion(id uuid.UUID, version *semver.Version) 
 	defer cancel()
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-		var proj model.Project
+		var proj model.InternalProject
 
 		err := tx.Get(model.ProjectNameKey(id), &proj)
 		if err != nil {
@@ -237,7 +255,7 @@ func (d *Datastore) UpdateProjectVersion(id uuid.UUID, version *semver.Version) 
 	return txErr
 }
 
-func (d *Datastore) ResetProjectState(proj *model.Project) error {
+func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -294,23 +312,23 @@ func (d *Datastore) ResetProjectState(proj *model.Project) error {
 	return nil
 }
 
-func (d *Datastore) GetProject(id uuid.UUID, proj *model.Project) error {
+func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error {
 	proj.ID = id
 	return d.get(proj)
 }
 
 // Accounts
 
-func (d *Datastore) InsertAccount(acc *model.Account) error {
+func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
 	return d.put(acc)
 }
 
-func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.Account) error {
+func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
 	acc.ProjectChildID = id
 	return d.get(acc)
 }
 
-func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -339,13 +357,13 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Account)
 	return txErr
 }
 
-func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error {
+func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
 	q := datastore.NewQuery("Account").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, accs)
 }
 
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
-	acc := model.Account{ProjectChildID: id}
+	acc := model.InternalAccount{ProjectChildID: id}
 
 	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
 		err := tx.Delete(acc.NameKey())
@@ -372,7 +390,7 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
-		proj := &model.Project{
+		proj := &model.InternalProject{
 			ID: tpl.ProjectID,
 		}
 
@@ -473,7 +491,7 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) 
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 
-		proj := &model.Project{
+		proj := &model.InternalProject{
 			ID: exe.ProjectID,
 		}
 
@@ -511,7 +529,7 @@ func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	defer cancel()
 
 	_, txErr := d.dsClient.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
-		proj := &model.Project{
+		proj := &model.InternalProject{
 			ID: tpl.ProjectID,
 		}
 		err := tx.Get(proj.NameKey(), proj)

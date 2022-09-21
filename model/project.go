@@ -164,16 +164,3 @@ func (p *Project) Load(ps []datastore.Property) error {
 
 	return nil
 }
-
-type ProjectChildID struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-}
-
-func ProjectNameKey(id uuid.UUID) *datastore.Key {
-	return datastore.NameKey("Project", id.String(), nil)
-}
-
-func (p *Project) NameKey() *datastore.Key {
-	return ProjectNameKey(p.ID)
-}
