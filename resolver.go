@@ -21,13 +21,13 @@ package playground
 import (
 	"context"
 	"github.com/dapperlabs/flow-playground-api/adapter"
+	"github.com/dapperlabs/flow-playground-api/migrate/apiVersion"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
@@ -39,7 +39,7 @@ type Resolver struct {
 	version            *semver.Version
 	store              storage.Store
 	auth               *auth.Authenticator
-	migrator           *migrate.Migrator
+	migrator           *apiVersion.Migrator
 	projects           *controller.Projects
 	scripts            *controller.Scripts
 	transactions       *controller.Transactions
@@ -57,7 +57,7 @@ func NewResolver(
 	scripts := controller.NewScripts(store, blockchain)
 	transactions := controller.NewTransactions(store, blockchain)
 	accounts := controller.NewAccounts(store, blockchain)
-	migrator := migrate.NewMigrator(store, projects)
+	migrator := apiVersion.NewMigrator(store, projects)
 
 	return &Resolver{
 		version:      version,

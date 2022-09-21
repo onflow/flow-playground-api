@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package migrate
+package apiVersion
 
 import (
 	"fmt"

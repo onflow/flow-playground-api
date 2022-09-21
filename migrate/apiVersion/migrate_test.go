@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package migrate_test
+package apiVersion_test
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/migrate/apiVersion"
 	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"testing"
 	"time"
@@ -31,7 +32,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 )
@@ -39,55 +39,55 @@ import (
 const numAccounts = 4
 
 func TestMigrateNilToV0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
+	migrateTest(apiVersion.V0, func(t *testing.T, c migrateTestCase) {
 		projID := uuid.New()
 
-		migrated, err := c.migrator.MigrateProject(projID, nil, migrate.V0)
+		migrated, err := c.migrator.MigrateProject(projID, nil, apiVersion.V0)
 		require.NoError(t, err)
 		assert.False(t, migrated)
 	})(t)
 }
 
 func TestMigrateV0ToV0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
+	migrateTest(apiVersion.V0, func(t *testing.T, c migrateTestCase) {
 		projID := uuid.New()
 
-		migrated, err := c.migrator.MigrateProject(projID, migrate.V0, migrate.V0)
+		migrated, err := c.migrator.MigrateProject(projID, apiVersion.V0, apiVersion.V0)
 		require.NoError(t, err)
 		assert.False(t, migrated)
 	})(t)
 }
 
 func TestMigrateV0ToV0_1_0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
+	migrateTest(apiVersion.V0, func(t *testing.T, c migrateTestCase) {
 		proj, err := c.projects.Create(c.user, model.NewProject{})
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0, proj.Version)
+		assert.Equal(t, apiVersion.V0, proj.Version)
 
 		assertAllAccountsExist(t, c.scripts, proj)
 
-		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, migrate.V0_1_0)
+		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, apiVersion.V0_1_0)
 		require.NoError(t, err)
 		assert.True(t, migrated)
 
 		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0_1_0, proj.Version)
+		assert.Equal(t, apiVersion.V0_1_0, proj.Version)
 
 		assertAllAccountsExist(t, c.scripts, proj)
 	})(t)
 }
 
 func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
-	migrateTest(migrate.V0_1_0, func(t *testing.T, c migrateTestCase) {
+	migrateTest(apiVersion.V0_1_0, func(t *testing.T, c migrateTestCase) {
 		v0_2_0 := semver.MustParse("v0.2.0")
 
 		proj, err := c.projects.Create(c.user, model.NewProject{})
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0_1_0, proj.Version)
+		assert.Equal(t, apiVersion.V0_1_0, proj.Version)
 
 		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, v0_2_0)
 		require.NoError(t, err)
@@ -105,7 +105,7 @@ type migrateTestCase struct {
 	blockchain *blockchain.Projects
 	scripts    *controller.Scripts
 	projects   *controller.Projects
-	migrator   *migrate.Migrator
+	migrator   *apiVersion.Migrator
 	user       *model.User
 }
 
@@ -116,7 +116,7 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
 
-		migrator := migrate.NewMigrator(store, projects)
+		migrator := apiVersion.NewMigrator(store, projects)
 
 		user := model.User{
 			ID: uuid.New(),
@@ -157,7 +157,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	chain := blockchain.NewProjects(store, 5)
 	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
 
-	migrator := migrate.NewMigrator(store, projects)
+	migrator := apiVersion.NewMigrator(store, projects)
 
 	user := model.User{
 		ID: uuid.New(),
