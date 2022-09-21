@@ -362,6 +362,15 @@ func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.In
 	return d.getAll(q, accs)
 }
 
+// GetAllProjects populates list of projects
+func (d *Datastore) GetAllProjects(projects *[]*model.InternalProject) error {
+	// TODO: Query to get all Projects or Project UUIDs in a list
+	// If I can only query for all the UUIDs of projects then do that
+	// And format the projects into the list as expected here
+	q := datastore.NewQuery("Project")
+	return d.getAll(q, projects)
+}
+
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
 	acc := model.InternalAccount{ProjectChildID: id}
 

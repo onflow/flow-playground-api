@@ -13,81 +13,147 @@ import (
 )
 
 func main() {
-	// Connect to datastore
+	dstore := connectToDatastore()
+	sqlDB := sql.NewPostgreSQL()
+
+	fmt.Println("Obtaining projects from datastore...")
+	projects := *getAllProjects(dstore)
+	if projects == nil {
+		fmt.Println("Failed to obtain any projects from datastore")
+		return
+	}
+
+	fmt.Println("Starting migration of", len(projects), "projects...")
+	for _, proj := range projects {
+		sqlProj := migrateProject(proj)
+		if !sqlProj.Persist {
+			continue
+		}
+
+		// Migrate transaction templates for project
+		sqlTtpl := migrateTransactionTemplates(dstore, proj.ID)
+		if sqlTtpl == nil {
+			fmt.Println("Error: could not migrate transaction templates for project ID", proj.ID.String(),
+				"skipping project")
+			continue
+		}
+
+		// Migrate script templates for project
+		sqlStpl := migrateScriptTemplates(dstore, proj.ID)
+		if sqlStpl == nil {
+			fmt.Println("Error: could not migrate script templates for project ID", proj.ID.String(),
+				"skipping project")
+			continue
+		}
+
+		// Store migrated project in SQL db
+		err := sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
+		if err != nil {
+			fmt.Println("Error: could not store project ID", proj.ID.String(),
+				"in sql db. Skipping project.", err)
+			continue
+		}
+
+		// Migrate accounts for project
+		// TODO: Migrate accounts for the project like this? Why doesn't project have accounts in it?
+		sqlAccounts := migrateAccounts(dstore, proj.ID)
+		err = sqlDB.InsertAccounts(*sqlAccounts)
+		if err != nil {
+			fmt.Println("Error on migrate accounts for project ID", proj.ID.String(), err)
+		}
+	}
+	fmt.Println("Migration completed")
+}
+
+func connectToDatastore() *datastore.Datastore {
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
 		DatastoreProjectID: "dl-flow",
 		DatastoreTimeout:   time.Second * 5,
 	})
 	if err != nil {
 		fmt.Println(err)
-		return
+		panic("Could not connect to datastore")
 	}
-
-	// TODO: Connect to SQL db
-	sqldb := sql.NewPostgreSQL()
-
-	fmt.Println("Obtaining all projects from datastore...")
-
-	// TODO: Get all projects for migration
-	id, _ := uuid.NewUUID()
-
-	var test = []int{1, 2, 3}
-
-	// Get each project from datastore and migrate to sql
-	for i, _ := range test {
-		proj := &model.InternalProject{}
-		err := store.GetProject(id, proj)
-		if err != nil {
-			// TODO: handle error
-			fmt.Println("Could not get project", err)
-		}
-
-		sqlProj := migrateProject(proj)
-
-		// Drop projects that aren't supposed to be persisted
-		if !sqlProj.Persist {
-			continue
-		}
-
-		// Get script and transaction templates
-		var ttpl []*model.TransactionTemplate
-		err = store.GetTransactionTemplatesForProject(id, &ttpl)
-		if err != nil {
-			// TODO: handle error
-		}
-		// TODO: convert ttpl []*model.TransactionTemplate to sqlttpl []*sqlmodel.TransactionTemplate
-		//sqlttpl := migrateTransactionTemplate(ttpl)
-
-		// TODO: stpl migration
-		var stpl []*model.ScriptTemplate
-		store.GetScriptTemplatesForProject(id, &stpl)
-
-		// Store sqlProj in SQL db
-		err := sqldb.CreateProject(sqlProj, sqlttpl, stpl)
-	}
-
+	return store
 }
 
-func migrateTransactionTemplate(ttpl *[]*model.TransactionTemplate) *[]*sqlModel.TransactionTemplate {
-	var sqlttpl []*sqlModel.TransactionTemplate
+// getAllProjects returns a list of all projects in the datastore
+func getAllProjects(store *datastore.Datastore) *[]*model.InternalProject {
+	var projects []*model.InternalProject
+	err := store.GetAllProjects(&projects)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return &projects
+}
 
-	for i, ttp := range *ttpl {
-		sqlttp := sqlModel.TransactionTemplate{}
-		sqlttp.ID = ttp.ID
-		sqlttp.ProjectID = ttp.ID
-		sqlttp.Title = ttp.Title
-		sqlttp.Index = ttp.Index
-		sqlttp.Script = ttp.Script
-		sqlttpl = append(sqlttpl, &sqlttp)
+// migrateAccounts converts datastore accounts to sql accounts
+func migrateAccounts(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.Account {
+	var accounts []*model.InternalAccount
+	err := dstore.GetAccountsForProject(projID, &accounts)
+	if err != nil {
+		return nil
 	}
 
-	return &sqlttpl
+	var sqlAccounts []*sqlModel.Account
+	for _, acc := range accounts {
+		tmp := sqlModel.Account{}
+		tmp.ID = acc.ID
+		tmp.ProjectID = acc.ProjectID
+		tmp.Address = sqlModel.Address(acc.Address)
+		tmp.Index = acc.Index
+		tmp.DraftCode = acc.DraftCode
+		sqlAccounts = append(sqlAccounts, &tmp)
+	}
+	return &sqlAccounts
 }
 
-func migrateAccount(acc *model.Account) *sqlModel.Account {
+// migrateTransactionTemplates converts datastore transaction templates to sql transaction templates
+func migrateTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.TransactionTemplate {
+	var ttpl []*model.TransactionTemplate
+	err := dstore.GetTransactionTemplatesForProject(projID, &ttpl)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
+	var sqlTtpl []*sqlModel.TransactionTemplate
+	for _, ttp := range ttpl {
+		tmp := sqlModel.TransactionTemplate{}
+		tmp.ID = ttp.ID
+		tmp.ProjectID = ttp.ID
+		tmp.Title = ttp.Title
+		tmp.Index = ttp.Index
+		tmp.Script = ttp.Script
+		sqlTtpl = append(sqlTtpl, &tmp)
+	}
+	return &sqlTtpl
 }
 
+// migrateScriptTemplates converts datastore script templates to sql script templates
+func migrateScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.ScriptTemplate {
+	var stpl []*model.ScriptTemplate
+	err := dstore.GetScriptTemplatesForProject(projID, &stpl)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	var sqlStpl []*sqlModel.ScriptTemplate
+	for _, ttp := range stpl {
+		tmp := sqlModel.ScriptTemplate{}
+		tmp.ID = ttp.ID
+		tmp.ProjectID = ttp.ID
+		tmp.Title = ttp.Title
+		tmp.Index = ttp.Index
+		tmp.Script = ttp.Script
+		sqlStpl = append(sqlStpl, &tmp)
+	}
+	return &sqlStpl
+}
+
+// migrateProject converts datastore project to sql project
 func migrateProject(proj *model.InternalProject) *sqlModel.Project {
 	sqlProj := &sqlModel.Project{}
 	sqlProj.ID = proj.ID
