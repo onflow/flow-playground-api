@@ -35,10 +35,7 @@ type Project struct {
 	Description               string
 	Readme                    string
 	Seed                      int
-	TransactionCount          int
 	TransactionExecutionCount int
-	TransactionTemplateCount  int
-	ScriptTemplateCount       int
 	Persist                   bool
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time

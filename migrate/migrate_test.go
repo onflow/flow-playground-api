@@ -176,10 +176,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		Description:               "test description",
 		Readme:                    "",
 		Seed:                      1,
-		TransactionCount:          5,
 		TransactionExecutionCount: 5,
-		TransactionTemplateCount:  1,
-		ScriptTemplateCount:       1,
 		Persist:                   true,
 		CreatedAt:                 time.Now(),
 		UpdatedAt:                 time.Now(),
@@ -269,5 +266,4 @@ func Test_MigrationV0_12_0(t *testing.T) {
 
 	assert.Equal(t, newVer, project.Version)
 	assert.Equal(t, 5, project.TransactionExecutionCount)
-	assert.Equal(t, 5, project.TransactionCount)
 }

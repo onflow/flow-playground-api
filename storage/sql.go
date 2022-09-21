@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"time"
 )
 
@@ -16,7 +17,9 @@ const PostgreSQL = "postgresql"
 
 func NewInMemory() *SQL {
 	cxn := ":memory:"
-	database, err := gorm.Open(sqlite.Open(cxn))
+	database, err := gorm.Open(sqlite.Open(cxn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
 	}
@@ -74,11 +77,17 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 		if err := tx.Create(proj).Error; err != nil {
 			return err
 		}
-		if err := tx.Create(ttpl).Error; err != nil {
-			return err
+
+		if len(ttpl) > 0 {
+			if err := tx.Create(ttpl).Error; err != nil {
+				return err
+			}
 		}
-		if err := tx.Create(stpl).Error; err != nil {
-			return err
+
+		if len(stpl) > 0 {
+			if err := tx.Create(stpl).Error; err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -138,7 +147,6 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 		}
 
 		err = tx.Model(proj).Updates(&model.Project{
-			TransactionCount:          0,
 			TransactionExecutionCount: 0,
 			UpdatedAt:                 time.Now(),
 		}).Error

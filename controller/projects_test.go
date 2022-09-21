@@ -94,10 +94,8 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, project.Title, dbProj.Title)
+		assert.Equal(t, project.Description, dbProj.Description)
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
-		assert.Equal(t, 5, dbProj.TransactionCount)
-		assert.Equal(t, 0, dbProj.ScriptTemplateCount)
-		assert.Equal(t, 0, dbProj.TransactionTemplateCount)
 	})
 
 	t.Run("successful update", func(t *testing.T) {
@@ -150,6 +148,5 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
-		assert.Equal(t, 5, dbProj.TransactionCount)
 	})
 }
