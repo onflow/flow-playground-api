@@ -43,7 +43,18 @@ func NewPostgreSQL() *SQL {
 }
 
 func migrate(db *gorm.DB) {
-	// todo implement
+	err := db.AutoMigrate(
+		&model.Project{},
+		&model.Account{},
+		&model.ScriptTemplate{},
+		&model.ScriptExecution{},
+		&model.TransactionTemplate{},
+		&model.TransactionExecution{},
+		&model.User{},
+	)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type SQL struct {

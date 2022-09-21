@@ -38,8 +38,8 @@ type Account struct {
 	Index             int
 	Address           Address
 	DraftCode         string
-	DeployedCode      string // todo drop this in db
-	DeployedContracts []string
+	DeployedCode      string   // todo drop this in db
+	DeployedContracts []string `gorm:"serializer:json"`
 	State             string
 }
 

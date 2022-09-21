@@ -42,8 +42,8 @@ type Project struct {
 	Persist                   bool
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
-	Version                   *semver.Version
-	Mutable                   bool // todo don't persist this
+	Version                   *semver.Version `gorm:"serializer:json"`
+	Mutable                   bool            // todo don't persist this
 }
 
 func (p *Project) IsOwnedBy(userID uuid.UUID) bool {

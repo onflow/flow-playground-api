@@ -20,7 +20,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"log"
 	"net/http"
 	"strings"
@@ -144,8 +143,6 @@ func main() {
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
 
-	telemetry.DebugLog("server startup")
-
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
@@ -182,7 +179,6 @@ func main() {
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
 
-		telemetry.DebugLog("GraphQL request")
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(

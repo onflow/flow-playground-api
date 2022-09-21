@@ -98,10 +98,8 @@ type mutationResolver struct {
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[resolver] authorize - start")
 
 	proj, err := r.projects.Get(ID)
-	telemetry.DebugLog("[resolver] authorize update - got project from ID")
 
 	if err != nil {
 		return errors.Wrap(err, "failed to get project")
@@ -110,7 +108,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return err
 	}
-	telemetry.DebugLog("[resolver] authorize update - Checked project access")
 
 	return nil
 }

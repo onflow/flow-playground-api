@@ -56,8 +56,8 @@ type ScriptExecution struct {
 	ProjectID uuid.UUID
 	Index     int
 	Script    string
-	Arguments []string
+	Arguments []string `gorm:"serializer:json"`
 	Value     string
-	Errors    []ProgramError
-	Logs      []string
+	Errors    []ProgramError `gorm:"serializer:json"`
+	Logs      []string       `gorm:"serializer:json"`
 }
