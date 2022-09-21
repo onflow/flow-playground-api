@@ -2624,3 +2624,4 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 
 // todo add tests for:
 // - failed transactions with successful transactions work (bootstrap works)??
+// - assert we don't leak any internal model data to API
