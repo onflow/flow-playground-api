@@ -20,6 +20,7 @@ package datastore
 
 import (
 	"context"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"time"
 
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -124,10 +125,16 @@ func (d *Datastore) markProjectUpdatedAt(tx *datastore.Transaction, projectID uu
 // Users
 
 func (d *Datastore) InsertUser(user *model.User) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	return d.put(user)
 }
 
 func (d *Datastore) GetUser(id uuid.UUID, user *model.User) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	user.ID = id
 	return d.get(user)
 }
@@ -138,6 +145,9 @@ func (d *Datastore) CreateProject(
 	proj *model.InternalProject,
 	ttpls []*model.TransactionTemplate,
 	stpls []*model.ScriptTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -173,6 +183,9 @@ func (d *Datastore) CreateProject(
 }
 
 func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.InternalProject) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -210,6 +223,9 @@ func (d *Datastore) UpdateProject(input model.UpdateProject, proj *model.Interna
 }
 
 func (d *Datastore) UpdateProjectOwner(id, userID uuid.UUID) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -231,6 +247,9 @@ func (d *Datastore) UpdateProjectOwner(id, userID uuid.UUID) error {
 }
 
 func (d *Datastore) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -252,6 +271,9 @@ func (d *Datastore) UpdateProjectVersion(id uuid.UUID, version *semver.Version) 
 }
 
 func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -309,6 +331,9 @@ func (d *Datastore) ResetProjectState(proj *model.InternalProject) error {
 }
 
 func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	proj.ID = id
 	return d.get(proj)
 }
@@ -316,15 +341,24 @@ func (d *Datastore) GetProject(id uuid.UUID, proj *model.InternalProject) error 
 // Accounts
 
 func (d *Datastore) InsertAccount(acc *model.InternalAccount) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	return d.put(acc)
 }
 
 func (d *Datastore) GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	acc.ProjectChildID = id
 	return d.get(acc)
 }
 
 func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -354,11 +388,17 @@ func (d *Datastore) UpdateAccount(input model.UpdateAccount, acc *model.Internal
 }
 
 func (d *Datastore) GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	q := datastore.NewQuery("Account").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, accs)
 }
 
 func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	acc := model.InternalAccount{ProjectChildID: id}
 
 	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
@@ -381,6 +421,9 @@ func (d *Datastore) DeleteAccount(id model.ProjectChildID) error {
 // Transaction Templates
 
 func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -412,6 +455,9 @@ func (d *Datastore) InsertTransactionTemplate(tpl *model.TransactionTemplate) er
 
 }
 func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -450,16 +496,25 @@ func (d *Datastore) UpdateTransactionTemplate(input model.UpdateTransactionTempl
 }
 
 func (d *Datastore) GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
 
 func (d *Datastore) GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	q := datastore.NewQuery("TransactionTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
 
 func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ttpl := model.TransactionTemplate{ProjectChildID: id}
 
 	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
@@ -482,6 +537,9 @@ func (d *Datastore) DeleteTransactionTemplate(id model.ProjectChildID) error {
 // Transaction Executions
 
 func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -514,6 +572,9 @@ func (d *Datastore) InsertTransactionExecution(exe *model.TransactionExecution) 
 }
 
 func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	q := datastore.NewQuery("TransactionExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)
 }
@@ -521,6 +582,9 @@ func (d *Datastore) GetTransactionExecutionsForProject(projectID uuid.UUID, exes
 // Script Templates
 
 func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -550,6 +614,9 @@ func (d *Datastore) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 }
 
 func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -587,16 +654,25 @@ func (d *Datastore) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *
 }
 
 func (d *Datastore) GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	tpl.ProjectChildID = id
 	return d.get(tpl)
 }
 
 func (d *Datastore) GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	q := datastore.NewQuery("ScriptTemplate").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, tpls)
 }
 
 func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	stpl := model.ScriptTemplate{ProjectChildID: id}
 
 	_, txErr := d.dsClient.RunInTransaction(context.Background(), func(tx *datastore.Transaction) error {
@@ -619,6 +695,9 @@ func (d *Datastore) DeleteScriptTemplate(id model.ProjectChildID) error {
 // Script Executions
 
 func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	ctx, cancel := context.WithTimeout(context.Background(), d.conf.DatastoreTimeout)
 	defer cancel()
 
@@ -641,6 +720,9 @@ func (d *Datastore) InsertScriptExecution(exe *model.ScriptExecution) error {
 }
 
 func (d *Datastore) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	q := datastore.NewQuery("ScriptExecution").Ancestor(model.ProjectNameKey(projectID)).Order("Index")
 	return d.getAll(q, exes)
 }
