@@ -57,21 +57,21 @@ type Projects struct {
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccount, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	p.cache.reset(project.ID)
-	telemetry.DebugLog("[projects] reset - start")
 
 	err := p.store.ResetProjectState(project)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[projects] reset - project state reset")
 	accounts, err := p.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[projects] reset - accounts created")
 	return accounts, nil
 }
 
@@ -79,7 +79,6 @@ func (p *Projects) Reset(project *model.InternalProject) ([]*model.InternalAccou
 func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[projects] execute transaction - start")
 
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
@@ -88,8 +87,6 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[projects] execute transaction - emulator loaded")
 
 	signers := make([]flowsdk.Address, len(execution.Signers))
 	for i, sig := range execution.Signers {
@@ -105,21 +102,20 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	telemetry.DebugLog("[projects] execute transaction - emulator executed")
-
 	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[projects] execute transaction - execution inserted")
-
 	return exe, nil
 }
 
 // ExecuteScript executes the script.
 func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()
@@ -158,7 +154,7 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[projects] create initial accounts - start")
+
 	accounts := make([]*model.InternalAccount, p.accountsNumber)
 	for i := 0; i < p.accountsNumber; i++ {
 		account, err := p.CreateAccount(projectID)
@@ -172,7 +168,7 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 			Index:          i,
 		}
 	}
-	telemetry.DebugLog("[projects] create initial accounts - end")
+
 	return accounts, nil
 }
 
@@ -180,7 +176,6 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[projects] create account")
 
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
@@ -195,12 +190,11 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	telemetry.DebugLog("[projects] create account - insert executions in store")
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
-	telemetry.DebugLog("[projects] create account - end")
+
 	return model.AccountFromFlow(account, projectID), nil
 }
 
@@ -213,16 +207,12 @@ func (p *Projects) DeployContract(
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
 
-	telemetry.DebugLog("[projects] deploy contract - start")
-
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[projects] deploy contract - emulator loaded")
 
 	result, tx, err := emulator.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
@@ -232,15 +222,11 @@ func (p *Projects) DeployContract(
 		return nil, result.Error
 	}
 
-	telemetry.DebugLog("[projects] deploy contract - contract deployed")
-
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[projects] deploy contract - execution inserted")
 
 	return p.getAccount(projectID, address)
 }
@@ -248,19 +234,16 @@ func (p *Projects) DeployContract(
 func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
+
 	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[projects] get account - emulator loaded")
-
 	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[projects] get account - account retrieved from emualator")
 
 	jsonStorage, err := json.Marshal(store)
 	if err != nil {
@@ -280,15 +263,12 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[projects] load - start")
 
 	var executions []*model.TransactionExecution
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[projects] load - retrieve executions")
 
 	emulator, executions, err := p.cache.get(projectID, executions)
 	if emulator == nil || err != nil {
@@ -297,8 +277,6 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 			return nil, err
 		}
 	}
-
-	telemetry.DebugLog("[projects] load - resolve cache")
 
 	for _, execution := range executions {
 		result, _, err := emulator.executeTransaction(
@@ -328,8 +306,6 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 			))
 		}
 	}
-
-	telemetry.DebugLog("[projects] load - executions completed")
 
 	p.cache.add(projectID, emulator)
 
