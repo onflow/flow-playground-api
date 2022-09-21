@@ -98,11 +98,8 @@ type mutationResolver struct {
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[resolver] authorize - start")
 
 	proj, err := r.projects.Get(ID)
-	telemetry.DebugLog("[resolver] authorize update - got project from ID")
-
 	if err != nil {
 		return errors.Wrap(err, "failed to get project")
 	}
@@ -110,7 +107,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return err
 	}
-	telemetry.DebugLog("[resolver] authorize update - Checked project access")
 
 	return nil
 }
@@ -138,6 +134,8 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] update project")
+
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
 		return nil, err
@@ -170,6 +168,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create transaction template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -179,6 +181,10 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 }
 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] update transaction template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -223,6 +229,10 @@ func (r *mutationResolver) CreateTransactionExecution(
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create script template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -267,6 +277,10 @@ func (r *mutationResolver) CreateScriptExecution(
 	ctx context.Context,
 	input model.NewScriptExecution,
 ) (*model.ScriptExecution, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create script execution")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err

@@ -53,10 +53,12 @@ func (c *cache) get(
 	ID uuid.UUID,
 	executions []*model.TransactionExecution,
 ) (blockchain, []*model.TransactionExecution, error) {
-	telemetry.DebugLog("[cache] get - start get executions from ID")
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
 
 	val, ok := c.cache.Get(ID)
 	if !ok {
+		telemetry.DebugLog("[cache] cache miss")
 		return nil, executions, nil
 	}
 
@@ -73,15 +75,12 @@ func (c *cache) get(
 		return nil, nil, err
 	}
 
-	telemetry.DebugLog("[cache] get - got latest block from emulator")
-
+	telemetry.DebugLog("[cache] cache hit")
 	// this will return only executions that are missing from the emulator
 	return emulator, executions[latest.Header.Height:], nil
 }
 
 // add new entry in the cache.
 func (c *cache) add(ID uuid.UUID, emulator blockchain) {
-	telemetry.DebugLog("[cache] add - start add emulator to cache")
 	c.cache.Add(ID, emulator)
-	telemetry.DebugLog("[cache] add - added emulator to cache")
 }
