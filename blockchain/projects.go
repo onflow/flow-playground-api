@@ -155,7 +155,7 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, err
 }
 
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
 	telemetry.DebugLog("[projects] create initial accounts - start")

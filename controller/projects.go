@@ -47,8 +47,8 @@ func NewProjects(
 	}
 }
 
-func (p *Projects) Create(user *model.User, input model.NewProject) (*model.InternalProject, error) {
-	proj := &model.InternalProject{
+func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
+	proj := &model.Project{
 		ID:          uuid.New(),
 		Secret:      uuid.New(),
 		PublicID:    uuid.New(),
@@ -59,39 +59,28 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		Readme:      input.Readme,
 		Persist:     false,
 		Version:     p.version,
+		UserID:      user.ID,
 	}
 
 	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
-
 	for i, tpl := range input.TransactionTemplates {
-		ttpl := &model.TransactionTemplate{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Title:  tpl.Title,
-			Script: tpl.Script,
+		ttpls[i] = &model.TransactionTemplate{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Title:     tpl.Title,
+			Script:    tpl.Script,
 		}
-
-		ttpls[i] = ttpl
 	}
 
 	stpls := make([]*model.ScriptTemplate, len(input.ScriptTemplates))
-
 	for i, tpl := range input.ScriptTemplates {
-		stpl := &model.ScriptTemplate{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Title:  tpl.Title,
-			Script: tpl.Script,
+		stpls[i] = &model.ScriptTemplate{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Title:     tpl.Title,
+			Script:    tpl.Script,
 		}
-
-		stpls[i] = stpl
 	}
-
-	proj.UserID = user.ID
 
 	err := p.store.CreateProject(proj, ttpls, stpls)
 	if err != nil {
@@ -107,19 +96,19 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Inte
 		if i < len(input.Accounts) {
 			account.DraftCode = input.Accounts[i]
 		}
+	}
 
-		err := p.store.InsertAccount(account)
-		if err != nil {
-			sentry.CaptureException(err)
-			return nil, err
-		}
+	err = p.store.InsertAccounts(accounts)
+	if err != nil {
+		sentry.CaptureException(err)
+		return nil, err
 	}
 
 	return proj, nil
 }
 
-func (p *Projects) Get(id uuid.UUID) (*model.InternalProject, error) {
-	var proj model.InternalProject
+func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
+	var proj model.Project
 	err := p.store.GetProject(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
@@ -128,8 +117,8 @@ func (p *Projects) Get(id uuid.UUID) (*model.InternalProject, error) {
 	return &proj, nil
 }
 
-func (p *Projects) Update(input model.UpdateProject) (*model.InternalProject, error) {
-	var proj model.InternalProject
+func (p *Projects) Update(input model.UpdateProject) (*model.Project, error) {
+	var proj model.Project
 	err := p.store.UpdateProject(input, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update project")
@@ -147,6 +136,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	return nil
 }
 
-func (p *Projects) Reset(proj *model.InternalProject) ([]*model.InternalAccount, error) {
+func (p *Projects) Reset(proj *model.Project) ([]*model.Account, error) {
 	return p.blockchain.Reset(proj)
 }
