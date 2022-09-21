@@ -31,21 +31,21 @@ type Store interface {
 	GetUser(id uuid.UUID, user *model.User) error
 
 	CreateProject(
-		proj *model.InternalProject,
+		proj *model.Project,
 		ttpl []*model.TransactionTemplate,
 		stpl []*model.ScriptTemplate,
 	) error
-	UpdateProject(input model.UpdateProject, proj *model.InternalProject) error
+	UpdateProject(input model.UpdateProject, proj *model.Project) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
-	ResetProjectState(proj *model.InternalProject) error
-	GetProject(id uuid.UUID, proj *model.InternalProject) error
+	ResetProjectState(proj *model.Project) error
+	GetProject(id uuid.UUID, proj *model.Project) error
 
-	InsertAccount(acc *model.InternalAccount) error
-	GetAccount(id model.ProjectChildID, acc *model.InternalAccount) error
-	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.InternalAccount) error
+	InsertAccount(acc *model.Account) error
+	GetAccount(id model.ProjectChildID, acc *model.Account) error
+	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
 	DeleteAccount(id model.ProjectChildID) error
-	UpdateAccount(input model.UpdateAccount, acc *model.InternalAccount) error
+	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
