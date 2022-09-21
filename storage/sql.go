@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"time"
 )
 
@@ -16,10 +15,11 @@ var _ Store = &SQL{}
 const PostgreSQL = "postgresql"
 
 func NewInMemory() *SQL {
-	cxn := ":memory:"
-	database, err := gorm.Open(sqlite.Open(cxn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	// conf := &gorm.Config{
+	//		Logger: logger.Default.LogMode(logger.Info),
+	//	}
+
+	database, err := gorm.Open(sqlite.Open(":memory:"))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
 	}
@@ -228,7 +228,23 @@ func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
-	return s.db.Create(exe).Error
+	var proj model.Project
+	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
+		return err
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		proj.TransactionExecutionCount += 1
+		if err := tx.Model(proj).Updates(proj).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(exe).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
