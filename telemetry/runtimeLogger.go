@@ -23,6 +23,9 @@ var runtimeStack []debugFrame
 // StartRuntimeCalculation adds a debug frame containing the start time of execution for the calling function
 // EndRuntimeCalculation should be deferred on the next line
 func StartRuntimeCalculation() {
+	defer func() {
+		recover()
+	}()
 	if !runtimeDebugActive {
 		return
 	}
@@ -39,6 +42,9 @@ func StartRuntimeCalculation() {
 // EndRuntimeCalculation calculates the elapsed time from the debug stack frame
 // Should be called as a deferred function immediately after StartRuntimeCalculation
 func EndRuntimeCalculation() {
+	defer func() {
+		recover()
+	}()
 	if !runtimeDebugActive {
 		return
 	}
@@ -53,11 +59,17 @@ func EndRuntimeCalculation() {
 
 // runtimeDebugLog logs message if runtimeDebugActive is true
 func runtimeDebugLog(message string) {
+	defer func() {
+		recover()
+	}()
 	if !runtimeDebugActive {
 		return
 	}
 	if logger == nil {
 		logger = logrus.StandardLogger()
 	}
-	logger.Info(message)
+	logger.
+		WithField("timestamp", time.Now().UnixMilli()).
+		WithField("subroutine ID", getGID()).
+		Info(message)
 }

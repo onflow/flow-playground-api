@@ -156,6 +156,9 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 }
 
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.InternalAccount, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[projects] create initial accounts - start")
 	accounts := make([]*model.InternalAccount, p.accountsNumber)
 	for i := 0; i < p.accountsNumber; i++ {
 		account, err := p.CreateAccount(projectID)
@@ -169,12 +172,16 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Internal
 			Index:          i,
 		}
 	}
-
+	telemetry.DebugLog("[projects] create initial accounts - end")
 	return accounts, nil
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[projects] create account")
+
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	emulator, err := p.load(projectID)
@@ -188,11 +195,12 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+	telemetry.DebugLog("[projects] create account - insert executions in store")
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
 	}
-
+	telemetry.DebugLog("[projects] create account - end")
 	return model.AccountFromFlow(account, projectID), nil
 }
 
