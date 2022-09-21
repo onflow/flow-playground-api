@@ -43,9 +43,9 @@ func NewAccounts(
 }
 
 func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	var acc model.InternalAccount
+	var acc model.Account
 
-	err := a.store.GetAccount(model.NewProjectChildID(ID, projectID), &acc)
+	err := a.store.GetAccount(ID, projectID, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
 	}
@@ -55,13 +55,12 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, err
 	}
 
-	account.ID = acc.ID
-	account.DraftCode = acc.DraftCode
-	return account, nil
+	account.MergeFromStore(&acc)
+	return account.Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {
-	var accounts []*model.InternalAccount
+	var accounts []*model.Account
 
 	err := a.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
@@ -75,9 +74,8 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 			return nil, err
 		}
 
-		acc.ID = account.ID
-		acc.DraftCode = account.DraftCode
-		exported[i] = acc
+		acc.MergeFromStore(account)
+		exported[i] = acc.Export()
 	}
 
 	return exported, nil
@@ -86,8 +84,8 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	var acc model.InternalAccount
-	telemetry.DebugLog("[accounts.controller] update - start")
+
+	var acc model.Account
 
 	// if we provided draft code then just do a storage update of an account
 	if input.DeployedCode == nil {
@@ -99,35 +97,24 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return acc.Export(), nil
 	}
 
-	err := a.store.GetAccount(model.NewProjectChildID(input.ID, input.ProjectID), &acc)
+	err := a.store.GetAccount(input.ID, input.ProjectID, &acc)
 	if err != nil {
 		return nil, err
 	}
-
-	telemetry.DebugLog("[accounts.controller] update - got account from store")
 
 	account, err := a.blockchain.GetAccount(input.ProjectID, acc.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[accounts.controller] update - got account from blockchain")
-
 	if account.DeployedCode != "" {
-		telemetry.DebugLog("[accounts.controller] update - redeploying")
-
-		var proj model.InternalProject
+		var proj model.Project
 		err := a.store.GetProject(input.ProjectID, &proj)
 		if err != nil {
 			return nil, err
 		}
 
-		telemetry.DebugLog("[accounts.controller] update - redeploying, got project from store")
-
 		_, err = a.blockchain.Reset(&proj)
-
-		telemetry.DebugLog("[accounts.controller] update - redeploying, reset blockchain")
-
 		if err != nil {
 			return nil, err
 		}
@@ -138,9 +125,6 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	telemetry.DebugLog("[accounts.controller] update - deployed contract on emulator")
-
-	account.DraftCode = acc.DraftCode
-	account.ID = acc.ID
-	return account, nil
+	account.MergeFromStore(&acc)
+	return account.Export(), nil
 }

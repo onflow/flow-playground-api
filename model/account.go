@@ -43,6 +43,11 @@ type Account struct {
 	State             string
 }
 
+func (a *Account) MergeFromStore(acc *Account) {
+	a.ID = acc.ID
+	a.DraftCode = acc.DraftCode
+}
+
 type UpdateAccount struct {
 	ID                uuid.UUID `json:"id"`
 	ProjectID         uuid.UUID `json:"projectId"`
