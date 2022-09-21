@@ -1,9 +1,8 @@
-package sql
+package storage
 
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
@@ -11,7 +10,7 @@ import (
 	"time"
 )
 
-var _ storage.Store = &SQL{}
+var _ Store = &SQL{}
 
 const PostgreSQL = "postgresql"
 

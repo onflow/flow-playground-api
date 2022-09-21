@@ -20,7 +20,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"log"
 	"net/http"
@@ -120,9 +119,9 @@ func main() {
 			log.Fatal(err)
 		}
 
-		store = sql.NewPostgreSQL()
+		store = storage.NewPostgreSQL()
 	} else {
-		store = sql.NewInMemory()
+		store = storage.NewInMemory()
 	}
 
 	const initAccountsNumber = 5

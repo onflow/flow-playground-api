@@ -20,7 +20,6 @@ package migrate_test
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"testing"
 	"time"
 
@@ -111,7 +110,7 @@ type migrateTestCase struct {
 
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
-		store := sql.NewInMemory()
+		store := storage.NewInMemory()
 		chain := blockchain.NewProjects(store, 5)
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
@@ -152,7 +151,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 }
 
 func Test_MigrationV0_12_0(t *testing.T) {
-	store := sql.NewInMemory()
+	store := storage.NewInMemory()
 
 	chain := blockchain.NewProjects(store, 5)
 	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)

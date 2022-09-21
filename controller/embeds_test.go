@@ -21,7 +21,7 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -90,7 +90,7 @@ func assertHaveTheme(t *testing.T, body string, theme string) {
 // Unit tests start here
 func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 
-	store := sql.NewInMemory()
+	store := storage.NewInMemory()
 	playgroundBaseURL := "http://localhost:3000"
 	embedsHandler := NewEmbedsHandler(store, playgroundBaseURL)
 

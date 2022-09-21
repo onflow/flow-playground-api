@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1067,7 +1066,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
-		store := sql.NewInMemory()
+		store := storage.NewInMemory()
 
 		projects := blockchain.NewProjects(store, initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
@@ -2541,10 +2540,10 @@ var version, _ = semver.NewVersion("0.1.0")
 func newClient() *Client {
 	var store storage.Store
 
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), sql.PostgreSQL) {
-		store = sql.NewPostgreSQL()
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
+		store = storage.NewPostgreSQL()
 	} else {
-		store = sql.NewInMemory()
+		store = storage.NewInMemory()
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)

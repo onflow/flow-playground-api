@@ -19,7 +19,6 @@
 package controller
 
 import (
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
@@ -35,10 +34,10 @@ import (
 func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	var store storage.Store
 
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), sql.PostgreSQL) {
-		store = sql.NewPostgreSQL()
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
+		store = storage.NewPostgreSQL()
 	} else {
-		store = sql.NewInMemory()
+		store = storage.NewInMemory()
 	}
 
 	user := &model.User{

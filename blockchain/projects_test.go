@@ -21,7 +21,6 @@ package blockchain
 import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"strings"
 	"sync"
 	"testing"
@@ -37,7 +36,7 @@ import (
 const accountsNumber = 5
 
 func newProjects() (*Projects, storage.Store) {
-	store := sql.NewInMemory()
+	store := storage.NewInMemory()
 	chain := NewProjects(store, accountsNumber)
 
 	return chain, store
