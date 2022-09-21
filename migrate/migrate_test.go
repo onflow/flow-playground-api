@@ -19,12 +19,10 @@
 package migrate_test
 
 import (
-	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"testing"
 	"time"
-
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -36,7 +34,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 const numAccounts = 4
@@ -114,7 +111,7 @@ type migrateTestCase struct {
 
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
-		store := memory.NewStore()
+		store := sql.NewInMemory()
 		chain := blockchain.NewProjects(store, 5)
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
@@ -139,7 +136,7 @@ func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTes
 	}
 }
 
-func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *model.InternalProject) {
+func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *model.Project) {
 	for i := 1; i <= numAccounts; i++ {
 		script := fmt.Sprintf(`pub fun main() { getAccount(0x%x) }`, i)
 
@@ -155,17 +152,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 }
 
 func Test_MigrationV0_12_0(t *testing.T) {
-	testID := fmt.Sprintf("migration-test-%s", uuid.New())
-	store, err := datastore.NewDatastore(
-		context.Background(),
-		&datastore.Config{
-			DatastoreProjectID: testID, // connect to empty database everytime
-			DatastoreTimeout:   time.Second * 5,
-		},
-	)
-	if err != nil {
-		t.Skip("skipping migration test, requires datastore connection")
-	}
+	store := sql.NewInMemory()
 
 	chain := blockchain.NewProjects(store, 5)
 	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
@@ -176,11 +163,11 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		ID: uuid.New(),
 	}
 
-	err = store.InsertUser(&user)
+	err := store.InsertUser(&user)
 	require.NoError(t, err)
 
 	projID := uuid.New()
-	err = store.CreateProject(&model.InternalProject{
+	err = store.CreateProject(&model.Project{
 		ID:                        projID,
 		UserID:                    user.ID,
 		Secret:                    uuid.New(),
@@ -199,22 +186,18 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		UpdatedAt:                 time.Now(),
 		Version:                   semver.MustParse("v0.10.0"),
 	}, []*model.TransactionTemplate{{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: projID,
-		},
-		Title: "tx template",
+		ID:        uuid.New(),
+		ProjectID: projID,
+		Title:     "tx template",
 		Script: `
 			import A from 0x01
 			transaction {}
 		`,
 		Index: 0,
 	}}, []*model.ScriptTemplate{{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: projID,
-		},
-		Title: "script template",
+		ID:        uuid.New(),
+		ProjectID: projID,
+		Title:     "script template",
 		Script: `
 			import Foo from 0x01
 			transaction {}
@@ -227,11 +210,9 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		pub contract B {}`
 
 	for i := 0; i < 5; i++ {
-		err = store.InsertAccount(&model.InternalAccount{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: projID,
-			},
+		err = store.InsertAccount(&model.Account{
+			ID:        uuid.New(),
+			ProjectID: projID,
 			Address:   model.NewAddressFromString(fmt.Sprintf("0x0%d", i+1)),
 			DraftCode: fmt.Sprintf(accTmpl, i, i+1),
 			Index:     i,
@@ -240,11 +221,9 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	}
 
 	err = store.InsertTransactionExecution(&model.TransactionExecution{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: projID,
-		},
-		Index: 0,
+		ID:        uuid.New(),
+		ProjectID: projID,
+		Index:     0,
 		Script: `
 			import Bar from 0x01
 			transaction {}
@@ -262,7 +241,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, migrated)
 
-	var accs []*model.InternalAccount
+	var accs []*model.Account
 	err = store.GetAccountsForProject(projID, &accs)
 	require.NoError(t, err)
 	assert.Len(t, accs, 5)
@@ -285,7 +264,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, scriptExes, 0)
 
-	var project model.InternalProject
+	var project model.Project
 	err = store.GetProject(projID, &project)
 	require.NoError(t, err)
 

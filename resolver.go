@@ -44,7 +44,7 @@ type Resolver struct {
 	scripts            *controller.Scripts
 	transactions       *controller.Transactions
 	accounts           *controller.Accounts
-	lastCreatedProject *model.InternalProject
+	lastCreatedProject *model.Project
 }
 
 func NewResolver(
@@ -87,7 +87,7 @@ func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
 
-func (r *Resolver) LastCreatedProject() *model.InternalProject {
+func (r *Resolver) LastCreatedProject() *model.Project {
 	return r.lastCreatedProject
 }
 

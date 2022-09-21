@@ -31,9 +31,10 @@ func createExecutions(count int) []*model.TransactionExecution {
 	executions := make([]*model.TransactionExecution, count)
 	for i := 0; i < count; i++ {
 		executions[i] = &model.TransactionExecution{
-			ProjectChildID: model.NewProjectChildID(uuid.New(), uuid.New()),
-			Index:          i,
-			Script:         fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
+			ID:        uuid.New(),
+			ProjectID: uuid.New(),
+			Index:     i,
+			Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
 		}
 	}
 	return executions

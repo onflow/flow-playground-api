@@ -20,33 +20,31 @@ package blockchain
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	flowsdk "github.com/onflow/flow-go-sdk"
-	"github.com/stretchr/testify/require"
-
 	"github.com/Masterminds/semver"
-
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/google/uuid"
+	flowsdk "github.com/onflow/flow-go-sdk"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const accountsNumber = 5
 
-func newProjects() (*Projects, *memory.Store) {
-	store := memory.NewStore()
+func newProjects() (*Projects, storage.Store) {
+	store := sql.NewInMemory()
 	chain := NewProjects(store, accountsNumber)
 
 	return chain, store
 }
 
-func projectSeed() (*model.InternalProject, []*model.TransactionTemplate, []*model.ScriptTemplate) {
-	proj := &model.InternalProject{
+func projectSeed() (*model.Project, []*model.TransactionTemplate, []*model.ScriptTemplate) {
+	proj := &model.Project{
 		ID:          uuid.New(),
 		Secret:      uuid.New(),
 		PublicID:    uuid.New(),
@@ -61,30 +59,26 @@ func projectSeed() (*model.InternalProject, []*model.TransactionTemplate, []*mod
 
 	txTpls := make([]*model.TransactionTemplate, 0)
 	txTpls = append(txTpls, &model.TransactionTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-		},
-		Title:  "Transaction 1",
-		Index:  0,
-		Script: "transaction {}",
+		ID:        uuid.New(),
+		ProjectID: proj.ID,
+		Title:     "Transaction 1",
+		Index:     0,
+		Script:    "transaction {}",
 	})
 
 	scriptTpls := make([]*model.ScriptTemplate, 0)
 	scriptTpls = append(scriptTpls, &model.ScriptTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-		},
-		Title:  "Script 1",
-		Index:  0,
-		Script: "pub fun main(): Int { return 42; }",
+		ID:        uuid.New(),
+		ProjectID: proj.ID,
+		Title:     "Script 1",
+		Index:     0,
+		Script:    "pub fun main(): Int { return 42; }",
 	})
 
 	return proj, txTpls, scriptTpls
 }
 
-func newWithSeededProject() (*Projects, *memory.Store, *model.InternalProject, error) {
+func newWithSeededProject() (*Projects, storage.Store, *model.Project, error) {
 	projects, store := newProjects()
 	proj, txTpls, scriptTpls := projectSeed()
 	err := store.CreateProject(proj, txTpls, scriptTpls)
@@ -115,8 +109,8 @@ func Test_ConcurrentRequests(t *testing.T) {
 
 	testConcurrently := func(
 		numOfRequests int,
-		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject),
-		test func(ch chan any, proj *model.InternalProject),
+		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project),
+		test func(ch chan any, proj *model.Project),
 	) {
 		projects, _, proj, _ := newWithSeededProject()
 
@@ -137,7 +131,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 	t.Run("concurrent account creation", func(t *testing.T) {
 		const numOfRequests = 4
 
-		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
 			defer wg.Done()
 
 			acc, err := projects.CreateAccount(proj.ID)
@@ -146,7 +140,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 			ch <- acc
 		}
 
-		testAccount := func(ch chan any, proj *model.InternalProject) {
+		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
 			for a := range ch {
 				account := a.(*model.Account)
@@ -173,7 +167,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 		})
 
 		t.Run("without cache", func(t *testing.T) {
-			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.InternalProject) {
+			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
 				defer wg.Done()
 
 				acc, err := projects.CreateAccount(proj.ID)
@@ -213,7 +207,7 @@ func Test_LoadEmulator(t *testing.T) {
 	t.Run("multiple loads with low cache", func(t *testing.T) {
 		projects, store := newProjects()
 
-		testProjs := make([]*model.InternalProject, 150)
+		testProjs := make([]*model.Project, 150)
 
 		for i := 0; i < len(testProjs); i++ {
 			proj, txTpls, scriptTpls := projectSeed()
@@ -246,7 +240,8 @@ func Test_LoadEmulator(t *testing.T) {
 
 		// add another transaction directly to the database to simulate request coming from another replica
 		err = store.InsertTransactionExecution(&model.TransactionExecution{
-			ProjectChildID: model.NewProjectChildID(uuid.New(), proj.ID),
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
 			Script: `transaction {
 				execute {
 					log("hello")

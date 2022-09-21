@@ -13,6 +13,8 @@ import (
 
 var _ storage.Store = &SQL{}
 
+const PostgreSQL = "postgresql"
+
 func NewInMemory() *SQL {
 	cxn := ":memory:"
 	database, err := gorm.Open(sqlite.Open(cxn))

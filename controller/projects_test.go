@@ -19,19 +19,15 @@
 package controller
 
 import (
-	"context"
+	"github.com/dapperlabs/flow-playground-api/storage/sql"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -39,19 +35,10 @@ import (
 func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	var store storage.Store
 
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
-		var err error
-		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
-			DatastoreProjectID: "dl-flow",
-			DatastoreTimeout:   time.Second * 5,
-		})
-
-		if err != nil {
-			// If datastore is expected, panic when we can't init
-			panic(err)
-		}
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), sql.PostgreSQL) {
+		store = sql.NewPostgreSQL()
 	} else {
-		store = memory.NewStore()
+		store = sql.NewInMemory()
 	}
 
 	user := &model.User{
@@ -65,7 +52,7 @@ func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	return NewProjects(version, store, chain), store, user
 }
 
-func seedProject(projects *Projects, user *model.User) *model.InternalProject {
+func seedProject(projects *Projects, user *model.User) *model.Project {
 	project, _ := projects.Create(user, model.NewProject{
 		Title:                "test title",
 		Description:          "test description",
@@ -103,7 +90,7 @@ func Test_CreateProject(t *testing.T) {
 		assert.False(t, project.Persist)
 		assert.Equal(t, user.ID, project.UserID)
 
-		var dbProj model.InternalProject
+		var dbProj model.Project
 		err = store.GetProject(project.ID, &dbProj)
 		require.NoError(t, err)
 
@@ -136,7 +123,7 @@ func Test_CreateProject(t *testing.T) {
 		assert.Equal(t, readme, updated.Readme)
 		assert.Equal(t, persist, updated.Persist)
 
-		var dbProj model.InternalProject
+		var dbProj model.Project
 		err = store.GetProject(proj.ID, &dbProj)
 		require.NoError(t, err)
 		assert.Equal(t, dbProj.ID, updated.ID)
@@ -149,19 +136,17 @@ func Test_CreateProject(t *testing.T) {
 		proj := seedProject(projects, user)
 
 		err := store.InsertTransactionExecution(&model.TransactionExecution{
-			ProjectChildID: model.ProjectChildID{
-				ID:        uuid.New(),
-				ProjectID: proj.ID,
-			},
-			Index:  6,
-			Script: "test",
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Index:     6,
+			Script:    "test",
 		})
 		require.NoError(t, err)
 
 		accounts, err := projects.Reset(proj)
 		require.Len(t, accounts, 5)
 
-		var dbProj model.InternalProject
+		var dbProj model.Project
 		err = store.GetProject(proj.ID, &dbProj)
 		require.NoError(t, err)
 
