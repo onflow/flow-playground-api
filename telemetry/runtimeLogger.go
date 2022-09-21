@@ -8,7 +8,7 @@ import (
 )
 
 // runtimeDebugActive determines if runtime debugging is active
-const runtimeDebugActive = true
+const runtimeDebugActive = false
 
 var logger *logrus.Logger
 
