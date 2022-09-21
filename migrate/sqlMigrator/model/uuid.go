@@ -19,35 +19,32 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
-	"github.com/pkg/errors"
+	"fmt"
+	"io"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
-type User struct {
-	ID uuid.UUID
-}
-
-/* Function below are for migration */
-
-// Load is used for datastore to SQL migration
-func (u *User) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
+func UnmarshalUUID(v interface{}) (id uuid.UUID, err error) {
+	str, ok := v.(string)
+	if !ok {
+		return id, fmt.Errorf("ids must be strings")
 	}
 
-	if err := u.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+	err = id.UnmarshalText([]byte(str))
+	if err != nil {
+		return id, errors.Wrap(err, "failed to decode UUID")
 	}
 
-	return nil
+	return id, nil
 }
 
-func (u *User) NameKey() *datastore.Key {
-	return datastore.NameKey("User", u.ID.String(), nil)
+func MarshalUUID(id uuid.UUID) graphql.Marshaler {
+	return graphql.WriterFunc(func(w io.Writer) {
+		// NOTE: uuid.UUID.MarshalText always returns err == nil
+		text, _ := id.MarshalText()
+		_, _ = fmt.Fprintf(w, "\"%s\"", string(text))
+	})
 }

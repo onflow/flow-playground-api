@@ -19,35 +19,32 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
-	"github.com/pkg/errors"
+	"encoding/json"
+	"fmt"
+	"io"
 
-	"github.com/google/uuid"
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/Masterminds/semver"
+	"github.com/pkg/errors"
 )
 
-type User struct {
-	ID uuid.UUID
-}
-
-/* Function below are for migration */
-
-// Load is used for datastore to SQL migration
-func (u *User) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
+func UnmarshalVersion(v interface{}) (version semver.Version, err error) {
+	str, ok := v.(string)
+	if !ok {
+		return version, fmt.Errorf("versions must be strings")
 	}
 
-	if err := u.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
+	err = json.Unmarshal([]byte(str), &version)
+	if err != nil {
+		return version, errors.Wrap(err, "failed to unmarshal versino")
 	}
 
-	return nil
+	return version, nil
 }
 
-func (u *User) NameKey() *datastore.Key {
-	return datastore.NameKey("User", u.ID.String(), nil)
+func MarshalVersion(version semver.Version) graphql.Marshaler {
+	return graphql.WriterFunc(func(w io.Writer) {
+		enc := json.NewEncoder(w)
+		_ = enc.Encode(&version)
+	})
 }

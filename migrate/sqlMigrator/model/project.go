@@ -19,23 +19,24 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
-	"github.com/pkg/errors"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
+	"github.com/microcosm-cc/bluemonday"
+	"github.com/pkg/errors"
 )
 
-type Project struct {
+type InternalProject struct {
 	ID                        uuid.UUID
 	UserID                    uuid.UUID
 	Secret                    uuid.UUID
 	PublicID                  uuid.UUID
 	ParentID                  *uuid.UUID
-	Title                     string
-	Description               string
-	Readme                    string
+	Title                     string `datastore:",noindex"`
+	Description               string `datastore:",noindex"`
+	Readme                    string `datastore:",noindex"`
 	Seed                      int
 	TransactionCount          int
 	TransactionExecutionCount int
@@ -45,16 +46,15 @@ type Project struct {
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
 	Version                   *semver.Version
-	Mutable                   bool // todo don't persist this
 }
 
-func (p *Project) IsOwnedBy(userID uuid.UUID) bool {
+func (p *InternalProject) IsOwnedBy(userID uuid.UUID) bool {
 	return p.UserID == userID
 }
 
 // ExportPublicMutable converts the internal project to its public representation
 // and marks it as mutable.
-func (p *Project) ExportPublicMutable() *Project {
+func (p *InternalProject) ExportPublicMutable() *Project {
 	return &Project{
 		ID:          p.ID,
 		Title:       p.Title,
@@ -71,7 +71,7 @@ func (p *Project) ExportPublicMutable() *Project {
 
 // ExportPublicImmutable converts the internal project to its public representation
 // and marks it as immutable.
-func (p *Project) ExportPublicImmutable() *Project {
+func (p *InternalProject) ExportPublicImmutable() *Project {
 	return &Project{
 		ID:          p.ID,
 		Title:       p.Title,
@@ -86,8 +86,15 @@ func (p *Project) ExportPublicImmutable() *Project {
 	}
 }
 
-// Load is used for datastore to SQL migration
-func (p *Project) Load(ps []datastore.Property) error {
+func ProjectNameKey(id uuid.UUID) *datastore.Key {
+	return datastore.NameKey("Project", id.String(), nil)
+}
+
+func (p *InternalProject) NameKey() *datastore.Key {
+	return ProjectNameKey(p.ID)
+}
+
+func (p *InternalProject) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID                        string
 		UserID                    string
@@ -165,15 +172,121 @@ func (p *Project) Load(ps []datastore.Property) error {
 	return nil
 }
 
+func (p *InternalProject) Save() ([]datastore.Property, error) {
+	parentID := new(string)
+	if p.ParentID != nil {
+		*parentID = (*p.ParentID).String()
+	}
+
+	version := new(string)
+	if p.Version != nil {
+		*version = p.Version.String()
+	}
+
+	// blueMonday policy building: https://github.com/microcosm-cc/bluemonday#policy-building
+	bmUSC := bluemonday.UGCPolicy()
+	bmUSC.AllowImages()
+	bmUSC.AllowAttrs("src").OnElements("img")
+
+	bmStrict := bluemonday.StrictPolicy()
+
+	sanitizedTitle := bmStrict.Sanitize(p.Title)
+	sanitizedDescription := bmStrict.Sanitize(p.Description)
+	sanitizedReadme := bmUSC.Sanitize(p.Readme)
+
+	return []datastore.Property{
+		{
+			Name:  "ID",
+			Value: p.ID.String(),
+		},
+		{
+			Name:  "UserID",
+			Value: p.UserID.String(),
+		},
+		{
+			Name:  "Secret",
+			Value: p.Secret.String(),
+		},
+		{
+			Name:  "PublicID",
+			Value: p.PublicID.String(),
+		},
+		{
+			Name:  "ParentID",
+			Value: parentID,
+		},
+		{
+			Name:    "Title",
+			Value:   sanitizedTitle,
+			NoIndex: true,
+		},
+		{
+			Name:    "Description",
+			Value:   sanitizedDescription,
+			NoIndex: true,
+		},
+		{
+			Name:    "Readme",
+			Value:   sanitizedReadme,
+			NoIndex: true,
+		},
+		{
+			Name:  "Seed",
+			Value: p.Seed,
+		},
+		{
+			Name:  "TransactionCount",
+			Value: p.TransactionCount,
+		},
+		{
+			Name:  "TransactionExecutionCount",
+			Value: p.TransactionExecutionCount,
+		},
+		{
+			Name:  "TransactionTemplateCount",
+			Value: p.TransactionTemplateCount,
+		},
+		{
+			Name:  "ScriptTemplateCount",
+			Value: p.ScriptTemplateCount,
+		},
+		{
+			Name:  "Persist",
+			Value: p.Persist,
+		},
+		{
+			Name:  "CreatedAt",
+			Value: p.CreatedAt,
+		},
+		{
+			Name:  "UpdatedAt",
+			Value: p.UpdatedAt,
+		},
+		{
+			Name:  "Version",
+			Value: version,
+		},
+	}, nil
+}
+
+type Project struct {
+	ID          uuid.UUID
+	PublicID    uuid.UUID
+	ParentID    *uuid.UUID
+	Seed        int
+	Version     *semver.Version
+	Title       string `datastore:",noindex"`
+	Description string `datastore:",noindex"`
+	Readme      string `datastore:",noindex"`
+	Persist     bool
+	Mutable     bool
+}
+
 type ProjectChildID struct {
 	ID        uuid.UUID
 	ProjectID uuid.UUID
 }
 
-func ProjectNameKey(id uuid.UUID) *datastore.Key {
-	return datastore.NameKey("Project", id.String(), nil)
-}
-
-func (p *Project) NameKey() *datastore.Key {
-	return ProjectNameKey(p.ID)
+func NewProjectChildID(id uuid.UUID, projectID uuid.UUID) ProjectChildID {
+	return ProjectChildID{ID: id, ProjectID: projectID}
 }

@@ -20,18 +20,18 @@ package model
 
 import (
 	"cloud.google.com/go/datastore"
-	"github.com/pkg/errors"
-
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 type User struct {
 	ID uuid.UUID
 }
 
-/* Function below are for migration */
+func (u *User) NameKey() *datastore.Key {
+	return datastore.NameKey("User", u.ID.String(), nil)
+}
 
-// Load is used for datastore to SQL migration
 func (u *User) Load(ps []datastore.Property) error {
 	tmp := struct {
 		ID string
@@ -48,6 +48,11 @@ func (u *User) Load(ps []datastore.Property) error {
 	return nil
 }
 
-func (u *User) NameKey() *datastore.Key {
-	return datastore.NameKey("User", u.ID.String(), nil)
+func (u *User) Save() ([]datastore.Property, error) {
+	return []datastore.Property{
+		{
+			Name:  "ID",
+			Value: u.ID.String(),
+		},
+	}, nil
 }

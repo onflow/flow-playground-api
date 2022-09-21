@@ -19,35 +19,34 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
+	jsoncdc "github.com/onflow/cadence/encoding/json"
+	"github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
-
-	"github.com/google/uuid"
 )
 
-type User struct {
-	ID uuid.UUID
-}
+func EventsFromFlow(flowEvents []flow.Event) ([]Event, error) {
+	events := make([]Event, len(flowEvents))
 
-/* Function below are for migration */
-
-// Load is used for datastore to SQL migration
-func (u *User) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID string
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
+	for i, event := range flowEvents {
+		parsedEvent, err := parseEvent(event)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse event")
+		}
+		events[i] = parsedEvent
 	}
 
-	if err := u.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
-	}
-
-	return nil
+	return events, nil
 }
 
-func (u *User) NameKey() *datastore.Key {
-	return datastore.NameKey("User", u.ID.String(), nil)
+func parseEvent(event flow.Event) (Event, error) {
+	values := make([]string, len(event.Value.Fields))
+	for j, field := range event.Value.Fields {
+		encoded, _ := jsoncdc.Encode(field)
+		values[j] = string(encoded)
+	}
+
+	return Event{
+		Type:   event.Type,
+		Values: values,
+	}, nil
 }
