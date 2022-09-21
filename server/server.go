@@ -19,8 +19,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"log"
 	"net/http"
@@ -31,17 +31,14 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 
 	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
@@ -70,8 +67,7 @@ type Config struct {
 }
 
 type DatastoreConfig struct {
-	GCPProjectID string        `required:"true"`
-	Timeout      time.Duration `default:"5s"`
+	Timeout time.Duration `default:"5s"`
 }
 
 type SentryConfig struct {
@@ -118,26 +114,15 @@ func main() {
 
 	var store storage.Store
 
-	if strings.EqualFold(conf.StorageBackend, "datastore") {
+	if strings.EqualFold(conf.StorageBackend, "postgresql") {
 		var datastoreConf DatastoreConfig
-
 		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
 			log.Fatal(err)
 		}
 
-		var err error
-		store, err = datastore.NewDatastore(
-			context.Background(),
-			&datastore.Config{
-				DatastoreProjectID: datastoreConf.GCPProjectID,
-				DatastoreTimeout:   datastoreConf.Timeout,
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
+		store = sql.NewPostgreSQL()
 	} else {
-		store = memory.NewStore()
+		store = sql.NewInMemory()
 	}
 
 	const initAccountsNumber = 5

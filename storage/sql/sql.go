@@ -5,6 +5,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"time"
@@ -12,17 +13,36 @@ import (
 
 var _ storage.Store = &SQL{}
 
-func newSQL() *SQL {
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+func NewInMemory() *SQL {
+	cxn := ":memory:"
+	database, err := gorm.Open(sqlite.Open(cxn))
 	if err != nil {
-		panic("failed to connect database")
+		panic(errors.Wrap(err, "failed to connect database"))
 	}
 
-	// todo db.AutoMigrate()
+	migrate(database)
+
+	return &SQL{
+		db: database,
+	}
+}
+
+func NewPostgreSQL() *SQL {
+	// todo change to postgreSQL
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	if err != nil {
+		panic(errors.Wrap(err, "failed to connect database"))
+	}
+
+	migrate(db)
 
 	return &SQL{
 		db: db,
 	}
+}
+
+func migrate(db *gorm.DB) {
+	// todo implement
 }
 
 type SQL struct {
