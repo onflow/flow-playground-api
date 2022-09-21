@@ -1,13 +1,29 @@
 package telemetry
 
-import "github.com/sirupsen/logrus"
+import (
+	"bytes"
+	"github.com/sirupsen/logrus"
+	"runtime"
+	"strconv"
+	"time"
+)
 
-var logger *logrus.Logger
+func getGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
+}
 
-// todo temp telemtry
-func Logger() *logrus.Logger {
+func DebugLog(message string) {
 	if logger == nil {
 		logger = logrus.StandardLogger()
 	}
-	return logger
+
+	logger.
+		WithField("timestamp", time.Now().UnixMilli()).
+		WithField("subroutine ID", getGID()).
+		Info(message)
 }

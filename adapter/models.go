@@ -18,7 +18,9 @@
 
 package adapter
 
-import "github.com/dapperlabs/flow-playground-api/model"
+import (
+	"github.com/dapperlabs/flow-playground-api/model"
+)
 
 // models adapters compose different adapters in a single adapter.
 

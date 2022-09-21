@@ -22,7 +22,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	playground "github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -84,8 +84,10 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 }
 
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
 	var acc model.InternalAccount
-	playground.Logger().Info("[accounts.controller] update - start")
+	telemetry.DebugLog("[accounts.controller] update - start")
 
 	// if we provided draft code then just do a storage update of an account
 	if input.DeployedCode == nil {
@@ -102,17 +104,17 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, err
 	}
 
-	playground.Logger().Info("[accounts.controller] update - got account from store")
+	telemetry.DebugLog("[accounts.controller] update - got account from store")
 
 	account, err := a.blockchain.GetAccount(input.ProjectID, acc.Address)
 	if err != nil {
 		return nil, err
 	}
 
-	playground.Logger().Info("[accounts.controller] update - got account from blockchain")
+	telemetry.DebugLog("[accounts.controller] update - got account from blockchain")
 
 	if account.DeployedCode != "" {
-		playground.Logger().Info("[accounts.controller] update - redeploying")
+		telemetry.DebugLog("[accounts.controller] update - redeploying")
 
 		var proj model.InternalProject
 		err := a.store.GetProject(input.ProjectID, &proj)
@@ -120,11 +122,11 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 			return nil, err
 		}
 
-		playground.Logger().Info("[accounts.controller] update - redeploying, got project from store")
+		telemetry.DebugLog("[accounts.controller] update - redeploying, got project from store")
 
 		_, err = a.blockchain.Reset(&proj)
 
-		playground.Logger().Info("[accounts.controller] update - redeploying, reset blockchain")
+		telemetry.DebugLog("[accounts.controller] update - redeploying, reset blockchain")
 
 		if err != nil {
 			return nil, err
@@ -136,7 +138,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	playground.Logger().Info("[accounts.controller] update - deployed contract on emulator")
+	telemetry.DebugLog("[accounts.controller] update - deployed contract on emulator")
 
 	account.DraftCode = acc.DraftCode
 	account.ID = acc.ID
