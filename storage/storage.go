@@ -42,25 +42,25 @@ type Store interface {
 	GetProject(id uuid.UUID, proj *model.Project) error
 
 	InsertAccount(acc *model.Account) error
-	GetAccount(id model.ProjectChildID, acc *model.Account) error
+	GetAccount(id, pID uuid.UUID, acc *model.Account) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
-	DeleteAccount(id model.ProjectChildID) error
+	DeleteAccount(id, pID uuid.UUID) error
 	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 
 	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
 	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
-	GetTransactionTemplate(id model.ProjectChildID, tpl *model.TransactionTemplate) error
+	GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTemplate) error
 	GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error
-	DeleteTransactionTemplate(id model.ProjectChildID) error
+	DeleteTransactionTemplate(id, pID uuid.UUID) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
 
 	InsertScriptTemplate(tpl *model.ScriptTemplate) error
 	UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error
-	GetScriptTemplate(id model.ProjectChildID, tpl *model.ScriptTemplate) error
+	GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) error
 	GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error
-	DeleteScriptTemplate(id model.ProjectChildID) error
+	DeleteScriptTemplate(id, pID uuid.UUID) error
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
