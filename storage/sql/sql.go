@@ -123,6 +123,10 @@ func (s *SQL) InsertAccount(acc *model.Account) error {
 	return s.db.Save(acc).Error
 }
 
+func (s *SQL) InsertAccounts(accs []*model.Account) error {
+	return s.db.Create(accs).Error
+}
+
 func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
 	return s.db.First(acc, &model.Account{ID: id, ProjectID: pID}).Error
 }
@@ -151,7 +155,7 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 }
 
 func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
-	return s.db.Save(tpl).Error
+	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
@@ -184,7 +188,7 @@ func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
-	return s.db.Save(exe).Error
+	return s.db.Create(exe).Error
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
@@ -192,7 +196,7 @@ func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.T
 }
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
-	return s.db.Save(tpl).Error
+	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
@@ -225,7 +229,7 @@ func (s *SQL) DeleteScriptTemplate(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
-	return s.db.Save(exe).Error
+	return s.db.Create(exe).Error
 }
 
 func (s *SQL) GetScriptExecutionsForProject(pID uuid.UUID, exes *[]*model.ScriptExecution) error {

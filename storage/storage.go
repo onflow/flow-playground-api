@@ -42,6 +42,7 @@ type Store interface {
 	GetProject(id uuid.UUID, proj *model.Project) error
 
 	InsertAccount(acc *model.Account) error
+	InsertAccounts(accs []*model.Account) error
 	GetAccount(id, pID uuid.UUID, acc *model.Account) error
 	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
 	DeleteAccount(id, pID uuid.UUID) error
