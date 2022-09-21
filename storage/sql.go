@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"time"
 )
 
 var _ Store = &SQL{}
@@ -15,9 +14,9 @@ var _ Store = &SQL{}
 const PostgreSQL = "postgresql"
 
 func NewInMemory() *SQL {
-	// conf := &gorm.Config{
-	//		Logger: logger.Default.LogMode(logger.Info),
-	//	}
+	//conf := &gorm.Config{
+	//	Logger: logger.Default.LogMode(logger.Info),
+	//}
 
 	database, err := gorm.Open(sqlite.Open(":memory:"))
 	if err != nil {
@@ -96,7 +95,7 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
 	err := s.db.
-		Model(proj).
+		Model(&model.Project{ID: input.ID}).
 		Updates(model.Project{
 			Title:       *input.Title,
 			Description: *input.Description,
@@ -112,7 +111,7 @@ func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) erro
 
 func (s *SQL) UpdateProjectOwner(id, userID uuid.UUID) error {
 	return s.db.
-		Model(&model.Project{}).
+		Model(&model.Project{ID: id}).
 		Updates(&model.Project{
 			ID:     id,
 			UserID: userID,
@@ -121,7 +120,7 @@ func (s *SQL) UpdateProjectOwner(id, userID uuid.UUID) error {
 
 func (s *SQL) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error {
 	return s.db.
-		Model(&model.Project{}).
+		Model(&model.Project{ID: id}).
 		Updates(&model.Project{
 			ID:      id,
 			Version: version,
@@ -146,10 +145,11 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 			return err
 		}
 
-		err = tx.Model(proj).Updates(&model.Project{
-			TransactionExecutionCount: 0,
-			UpdatedAt:                 time.Now(),
-		}).Error
+		err = tx.
+			Model(&model.Project{ID: proj.ID}).
+			Updates(map[string]any{ // need to use map due to zero value, see https://gorm.io/docs/update.html
+				"TransactionExecutionCount": 0,
+			}).Error
 
 		return err
 	})
@@ -181,7 +181,10 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
 	err := s.db.
-		Model(acc).
+		Model(&model.Account{
+			ID:        input.ID,
+			ProjectID: input.ProjectID,
+		}).
 		Updates(&model.Account{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
@@ -200,7 +203,10 @@ func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
 
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
 	err := s.db.
-		Model(tpl).
+		Model(&model.TransactionTemplate{
+			ID:        input.ID,
+			ProjectID: input.ProjectID,
+		}).
 		Updates(&model.TransactionTemplate{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
@@ -235,7 +241,7 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		proj.TransactionExecutionCount += 1
-		if err := tx.Model(proj).Updates(proj).Error; err != nil {
+		if err := tx.Save(proj).Error; err != nil {
 			return err
 		}
 
