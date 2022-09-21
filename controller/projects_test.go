@@ -19,6 +19,7 @@
 package controller
 
 import (
+	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
@@ -35,7 +36,12 @@ func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	var store storage.Store
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
-		store = storage.NewPostgreSQL()
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+			panic(err)
+		}
+
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
 		store = storage.NewInMemory()
 	}

@@ -1,10 +1,12 @@
 package storage
 
 import (
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -30,9 +32,33 @@ func NewInMemory() *SQL {
 	}
 }
 
-func NewPostgreSQL() *SQL {
-	// todo change to postgreSQL
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+type DatabaseConfig struct {
+	User     string
+	Password string
+	Name     string
+	Port     int
+}
+
+func NewPostgreSQL(conf *DatabaseConfig) *SQL {
+	config := postgres.Config{
+		DSN: fmt.Sprintf(
+			"user=%s password=%s dbname=%s port=%d sslmode=disable",
+			conf.User,
+			conf.Password,
+			conf.Name,
+			conf.Port,
+		),
+	}
+
+	fmt.Println("#####", fmt.Sprintf(
+		"user=%s password=%s dbname=%s port=%d sslmode=disable",
+		conf.User,
+		conf.Password,
+		conf.Name,
+		conf.Port,
+	))
+
+	db, err := gorm.Open(postgres.New(config), &gorm.Config{})
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
 	}

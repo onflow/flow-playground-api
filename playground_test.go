@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/kelseyhightower/envconfig"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -2541,7 +2542,12 @@ func newClient() *Client {
 	var store storage.Store
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
-		store = storage.NewPostgreSQL()
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+			panic(err)
+		}
+
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
 		store = storage.NewInMemory()
 	}

@@ -64,10 +64,6 @@ type Config struct {
 	StorageBackend             string
 }
 
-type DatastoreConfig struct {
-	Timeout time.Duration `default:"5s"`
-}
-
 type SentryConfig struct {
 	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
 	Debug            bool   `default:"true"`
@@ -113,12 +109,12 @@ func main() {
 	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, "postgresql") {
-		var datastoreConf DatastoreConfig
-		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			log.Fatal(err)
 		}
 
-		store = storage.NewPostgreSQL()
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
 		store = storage.NewInMemory()
 	}
