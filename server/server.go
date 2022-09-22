@@ -108,7 +108,7 @@ func main() {
 
 	var store storage.Store
 
-	if strings.EqualFold(conf.StorageBackend, "postgresql") {
+	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
 		var datastoreConf storage.DatabaseConfig
 		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			log.Fatal(err)
