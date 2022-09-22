@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -92,6 +93,7 @@ type SQL struct {
 }
 
 func (s *SQL) InsertUser(user *model.User) error {
+	telemetry.DebugLog("[db] inserting user")
 	return s.db.Create(user).Error
 }
 
@@ -239,8 +241,8 @@ func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, t
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 			Title:     *input.Title,
-			Index:     *input.Index,
-			Script:    *input.Script,
+			//Index:     *input.Index, todo
+			Script: *input.Script,
 		}).Error
 	if err != nil {
 		return err
@@ -296,8 +298,8 @@ func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 			Title:     *input.Title,
-			Index:     *input.Index,
-			Script:    *input.Script,
+			//Index:     *input.Index, todo
+			Script: *input.Script,
 		}).Error
 	if err != nil {
 		return err

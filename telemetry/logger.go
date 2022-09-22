@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"strconv"
@@ -26,4 +27,6 @@ func DebugLog(message string) {
 		WithField("timestamp", time.Now().UnixMilli()).
 		WithField("subroutine ID", getGID()).
 		Info(message)
+
+	fmt.Println(message)
 }
