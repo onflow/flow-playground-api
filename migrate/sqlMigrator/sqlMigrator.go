@@ -13,7 +13,14 @@ import (
 )
 
 func main() {
-	dstore := connectToDatastore()
+	// TODO: Connect to test datastore on docker container
+	dstore, err := connectToDatastore()
+	if err != nil {
+		fmt.Println("Error: could not connect to datastore", err)
+		return
+	}
+
+	// TODO: Connect to test sql db
 	sqlDB := sql.NewPostgreSQL()
 
 	fmt.Println("Obtaining projects from datastore...")
@@ -23,7 +30,8 @@ func main() {
 		return
 	}
 
-	fmt.Println("Starting migration of", len(projects), "projects...")
+	fmt.Println("Starting migration for", len(projects), "projects...")
+	numErrors := 0
 	for _, proj := range projects {
 		sqlProj := migrateProject(proj)
 		if !sqlProj.Persist {
@@ -35,6 +43,7 @@ func main() {
 		if sqlTtpl == nil {
 			fmt.Println("Error: could not migrate transaction templates for project ID", proj.ID.String(),
 				"skipping project")
+			numErrors++
 			continue
 		}
 
@@ -43,6 +52,7 @@ func main() {
 		if sqlStpl == nil {
 			fmt.Println("Error: could not migrate script templates for project ID", proj.ID.String(),
 				"skipping project")
+			numErrors++
 			continue
 		}
 
@@ -51,30 +61,34 @@ func main() {
 		if err != nil {
 			fmt.Println("Error: could not store project ID", proj.ID.String(),
 				"in sql db. Skipping project.", err)
+			numErrors++
 			continue
 		}
 
 		// Migrate accounts for project
-		// TODO: Migrate accounts for the project like this? Why doesn't project have accounts in it?
 		sqlAccounts := migrateAccounts(dstore, proj.ID)
+		if sqlAccounts == nil {
+			fmt.Println("Could not retrieve any accounts for project ID", proj.ID)
+			continue
+		}
 		err = sqlDB.InsertAccounts(*sqlAccounts)
 		if err != nil {
 			fmt.Println("Error on migrate accounts for project ID", proj.ID.String(), err)
+			numErrors++
 		}
 	}
-	fmt.Println("Migration completed")
+	fmt.Println("Migration finished with", numErrors, "errors")
 }
 
-func connectToDatastore() *datastore.Datastore {
+func connectToDatastore() (*datastore.Datastore, error) {
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
-		DatastoreProjectID: "dl-flow",
+		DatastoreProjectID: "test-project", // "dl-flow",
 		DatastoreTimeout:   time.Second * 5,
 	})
 	if err != nil {
-		fmt.Println(err)
-		panic("Could not connect to datastore")
+		return nil, err
 	}
-	return store
+	return store, nil
 }
 
 // getAllProjects returns a list of all projects in the datastore
@@ -88,7 +102,7 @@ func getAllProjects(store *datastore.Datastore) *[]*model.InternalProject {
 	return &projects
 }
 
-// migrateAccounts converts datastore accounts to sql accounts
+// migrateAccounts converts models of datastore accounts to sql accounts
 func migrateAccounts(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.Account {
 	var accounts []*model.InternalAccount
 	err := dstore.GetAccountsForProject(projID, &accounts)
@@ -109,7 +123,7 @@ func migrateAccounts(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel
 	return &sqlAccounts
 }
 
-// migrateTransactionTemplates converts datastore transaction templates to sql transaction templates
+// migrateTransactionTemplates converts models of datastore transaction templates to sql transaction templates
 func migrateTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.TransactionTemplate {
 	var ttpl []*model.TransactionTemplate
 	err := dstore.GetTransactionTemplatesForProject(projID, &ttpl)
@@ -131,7 +145,7 @@ func migrateTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) 
 	return &sqlTtpl
 }
 
-// migrateScriptTemplates converts datastore script templates to sql script templates
+// migrateScriptTemplates converts models of datastore script templates to sql script templates
 func migrateScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.ScriptTemplate {
 	var stpl []*model.ScriptTemplate
 	err := dstore.GetScriptTemplatesForProject(projID, &stpl)
@@ -153,7 +167,7 @@ func migrateScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*s
 	return &sqlStpl
 }
 
-// migrateProject converts datastore project to sql project
+// migrateProject converts models of datastore project to sql project
 func migrateProject(proj *model.InternalProject) *sqlModel.Project {
 	sqlProj := &sqlModel.Project{}
 	sqlProj.ID = proj.ID
