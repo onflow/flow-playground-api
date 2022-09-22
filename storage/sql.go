@@ -16,10 +16,6 @@ var _ Store = &SQL{}
 const PostgreSQL = "postgresql"
 
 func NewInMemory() *SQL {
-	//conf := &gorm.Config{
-	//	Logger: logger.Default.LogMode(logger.Info),
-	//}
-
 	database, err := gorm.Open(sqlite.Open(":memory:"))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
@@ -36,13 +32,15 @@ type DatabaseConfig struct {
 	User     string
 	Password string
 	Name     string
+	Host     string
 	Port     int
 }
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 	config := postgres.Config{
 		DSN: fmt.Sprintf(
-			"user=%s password=%s dbname=%s port=%d sslmode=disable",
+			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
+			conf.Host,
 			conf.User,
 			conf.Password,
 			conf.Name,
