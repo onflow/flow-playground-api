@@ -13,14 +13,13 @@ import (
 )
 
 func main() {
-	// TODO: Connect to test datastore on docker container
 	dstore, err := connectToDatastore()
 	if err != nil {
 		fmt.Println("Error: could not connect to datastore", err)
 		return
 	}
 
-	// TODO: Connect to test sql db
+	// TODO: connect to the actual SQL db
 	sqlDB := sql.NewPostgreSQL()
 
 	fmt.Println("Obtaining projects from datastore...")
@@ -56,15 +55,22 @@ func main() {
 			continue
 		}
 
+		err := sqlDB.MigrateModel(sqlProj)
+		if err != nil {
+			fmt.Println("Error could not migrate model for projects")
+			continue
+		}
+
 		// Store migrated project in SQL db
-		err := sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
+		err = sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
 		if err != nil {
 			fmt.Println("Error: could not store project ID", proj.ID.String(),
 				"in sql db. Skipping project.", err)
 			numErrors++
 			continue
 		}
-
+		continue
+		// TODO: ignore accounts for now for testing
 		// Migrate accounts for project
 		sqlAccounts := migrateAccounts(dstore, proj.ID)
 		if sqlAccounts == nil {
@@ -81,6 +87,7 @@ func main() {
 }
 
 func connectToDatastore() (*datastore.Datastore, error) {
+	// TODO: connect to the actual datastore
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
 		DatastoreProjectID: "test-project", // "dl-flow",
 		DatastoreTimeout:   time.Second * 5,
@@ -187,6 +194,7 @@ func migrateProject(proj *model.InternalProject) *sqlModel.Project {
 	sqlProj.Persist = proj.Persist
 	sqlProj.CreatedAt = proj.CreatedAt
 	sqlProj.UpdatedAt = proj.UpdatedAt
-	sqlProj.Version = proj.Version
+	sqlProj.Version = "" //proj.Version.String()
+	sqlProj.Mutable = false
 	return sqlProj
 }

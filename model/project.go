@@ -21,7 +21,6 @@ package model
 import (
 	"time"
 
-	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 )
 
@@ -42,7 +41,7 @@ type Project struct {
 	Persist                   bool
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
-	Version                   *semver.Version
+	Version                   string
 	Mutable                   bool // todo don't persist this
 }
 

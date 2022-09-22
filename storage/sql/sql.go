@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -45,6 +46,19 @@ func NewPostgreSQL() *SQL {
 
 func migrate(db *gorm.DB) {
 	// todo implement
+}
+
+// MigrateModel creates a table for a model if it doesn't exist
+func (s *SQL) MigrateModel(model any) error {
+	if s.db.Migrator().HasTable(model) {
+		return nil
+	}
+	err := s.db.AutoMigrate(model)
+	if err != nil {
+		fmt.Println("Error on migrating model to table: ", err)
+		return err
+	}
+	return nil
 }
 
 type SQL struct {
@@ -105,7 +119,7 @@ func (s *SQL) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error 
 		Model(&model.Project{}).
 		Updates(&model.Project{
 			ID:      id,
-			Version: version,
+			Version: version.String(),
 		}).Error
 }
 
