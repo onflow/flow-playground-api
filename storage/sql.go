@@ -50,14 +50,6 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	fmt.Println("#####", fmt.Sprintf(
-		"user=%s password=%s dbname=%s port=%d sslmode=disable",
-		conf.User,
-		conf.Password,
-		conf.Name,
-		conf.Port,
-	))
-
 	db, err := gorm.Open(postgres.New(config), &gorm.Config{})
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
