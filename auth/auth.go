@@ -187,7 +187,7 @@ func (a *Authenticator) createNewUser() (*model.User, error) {
 
 	err := a.store.InsertUser(user)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not insert the user")
 	}
 
 	return user, nil

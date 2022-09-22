@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var _ Store = &SQL{}
@@ -18,7 +20,9 @@ const PostgreSQL = "postgresql"
 func NewInMemory() *SQL {
 	database, err := gorm.Open(sqlite.Open(":memory:"))
 	if err != nil {
-		panic(errors.Wrap(err, "failed to connect database"))
+		err := errors.Wrap(err, "failed to connect database")
+		sentry.CaptureException(err)
+		panic(err)
 	}
 
 	migrate(database)
@@ -37,6 +41,10 @@ type DatabaseConfig struct {
 }
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
+	gormConf := &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	}
+
 	config := postgres.Config{
 		DSN: fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
@@ -48,9 +56,11 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	db, err := gorm.Open(postgres.New(config), &gorm.Config{})
+	db, err := gorm.Open(postgres.New(config), gormConf)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to connect database"))
+		err := errors.Wrap(err, "failed to connect database")
+		sentry.CaptureException(err)
+		panic(err)
 	}
 
 	migrate(db)
@@ -71,6 +81,8 @@ func migrate(db *gorm.DB) {
 		&model.User{},
 	)
 	if err != nil {
+		err := errors.Wrap(err, "failed to migrate database")
+		sentry.CaptureException(err)
 		panic(err)
 	}
 }
