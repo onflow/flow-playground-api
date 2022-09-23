@@ -23,6 +23,9 @@ func main() {
 
 	fmt.Println("Starting migration for", len(projects), "projects...")
 	for _, proj := range projects {
+		if !proj.Persist {
+			continue
+		}
 		migrateProject(dstore, sqlDB, proj) // Includes transaction & script execution templates
 		migrateAccounts(dstore, sqlDB, proj.ID)
 		migrateUser(dstore, sqlDB, proj)
@@ -270,10 +273,6 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 
 // migrateProject Migrates a project and corresponding transaction & script execution templates
 func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model.InternalProject) {
-	if !proj.Persist {
-		return
-	}
-
 	sqlProj := convertProject(proj)
 
 	sqlTtpl := convertTransactionTemplates(dstore, proj.ID)
