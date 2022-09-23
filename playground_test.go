@@ -22,7 +22,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/getsentry/sentry-go"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -2564,7 +2567,10 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle("/", playground.GraphQLHandler(resolver))
+	localHub := sentry.CurrentHub().Clone()
+	logger := logrus.StandardLogger()
+	entry := logrus.NewEntry(logger)
+	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
 		client:   client.New(router),

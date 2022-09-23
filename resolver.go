@@ -20,11 +20,8 @@ package playground
 
 import (
 	"context"
-	"github.com/dapperlabs/flow-playground-api/adapter"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-	"log"
-
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -97,9 +94,6 @@ type mutationResolver struct {
 }
 
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	proj, err := r.projects.Get(ID)
 
 	if err != nil {
@@ -114,10 +108,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[resolver] create project")
-
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "1 failed to get or create user")
@@ -134,8 +124,6 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
 		return nil, err
@@ -150,10 +138,6 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[resolver] update account")
-
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -203,8 +187,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 	ctx context.Context,
 	input model.NewTransactionExecution,
 ) (*model.TransactionExecution, error) {
-	telemetry.DebugLog("[resolver] create transaction execution")
-
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -314,9 +296,6 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, _ *model.Project) 
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
-	telemetry.DebugLog("playground info")
-	log.Printf("playground info: " + r.version.String())
-
 	return &model.PlaygroundInfo{
 		APIVersion:     *r.version,
 		CadenceVersion: *semver.MustParse(cadence.Version),
@@ -324,8 +303,6 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
@@ -354,8 +331,6 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 }
 
 func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	acc, err := r.accounts.GetByID(id, projectID)
 	if err != nil {
 		return nil, err

@@ -20,8 +20,6 @@ package auth
 
 import (
 	"context"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -58,27 +56,20 @@ const userIDKey = "userID"
 // GetOrCreateUser gets an existing user from the current session or creates a
 // new user and session if a session does not already exist.
 func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error) {
-	telemetry.DebugLog("[auth] get or create")
 	session := sessions.Get(ctx, a.sessionName)
 
 	var user *model.User
 	var err error
-	telemetry.DebugLog("[auth] get or create after session")
 
 	if session.IsNew {
-		telemetry.DebugLog("[auth] is new")
 		user, err = a.createNewUser()
-		telemetry.DebugLog("[auth] create user: " + err.Error())
 		if err != nil {
 			return nil, errors.Wrap(err, "2 failed to create new user")
 		}
 
-		telemetry.DebugLog("[auth] create user success")
 		session.Values[userIDKey] = user.ID.String()
 	} else {
-		telemetry.DebugLog("[auth] not new")
 		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		telemetry.DebugLog("[auth] not new" + err.Error())
 		if err != nil {
 			return nil, errors.Wrap(err, "3 failed to load user from session")
 		}
@@ -98,9 +89,6 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	var user *model.User
 	var err error
 
@@ -142,10 +130,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	var user model.User
-
 	var userID uuid.UUID
 
 	err := userID.UnmarshalText([]byte(userIDStr))
@@ -188,14 +173,11 @@ func (a *Authenticator) migrateLegacyProjectAccess(user *model.User, proj *model
 }
 
 func (a *Authenticator) createNewUser() (*model.User, error) {
-	telemetry.DebugLog("[auth] create new user")
 	user := &model.User{
 		ID: uuid.New(),
 	}
 
-	telemetry.DebugLog("[auth] insert user")
 	err := a.store.InsertUser(user)
-	telemetry.DebugLog("[auth] insert user result: " + err.Error())
 	if err != nil {
 		return nil, errors.Wrap(err, "5 could not insert the user")
 	}

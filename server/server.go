@@ -140,8 +140,6 @@ func main() {
 	entry := logrus.NewEntry(logger)
 
 	router.Route("/query", func(r chi.Router) {
-		log.Printf("query setup")
-
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
@@ -217,7 +215,6 @@ func ping(w http.ResponseWriter, _ *http.Request) {
 
 func logStartMessage(version *semver.Version) {
 	if version != nil {
-		log.Printf("Hello Playground")
 		log.Printf("Starting Playground API (Version %s)", version)
 	} else {
 		log.Print("Starting Playground API")

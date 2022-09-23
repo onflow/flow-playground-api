@@ -22,7 +22,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -82,9 +81,6 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 }
 
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	var acc model.Account
 
 	// if we provided draft code then just do a storage update of an account

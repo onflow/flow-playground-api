@@ -20,7 +20,6 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/onflow/flow-go/model/flow"
 
 	"github.com/getsentry/sentry-go"
@@ -73,8 +72,6 @@ type emulator struct {
 }
 
 func newEmulator() (*emulator, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	blockchain, err := emu.NewBlockchain(
 		emu.WithStore(memstore.New()),
 		emu.WithTransactionValidationEnabled(false),
@@ -96,8 +93,6 @@ func (e *emulator) executeTransaction(
 	arguments []string,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
 
@@ -120,8 +115,6 @@ func (e *emulator) executeScript(script string, arguments []string) (*types.Scri
 }
 
 func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	payer := e.blockchain.ServiceKey().Address
 
 	key := flowsdk.NewAccountKey().
@@ -147,8 +140,6 @@ func (e *emulator) createAccount() (*flowsdk.Account, *flowsdk.Transaction, *typ
 }
 
 func (e *emulator) getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	storage, err := e.blockchain.GetAccountStorage(address)
 	if err != nil {
 		return nil, nil, err
@@ -166,9 +157,6 @@ func (e *emulator) deployContract(
 	address flowsdk.Address,
 	script string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	contractName, err := parseContractName(script)
 	if err != nil {
 		return nil, nil, err
@@ -186,8 +174,6 @@ func (e *emulator) sendTransaction(
 	tx *flowsdk.Transaction,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error getting service signer")
@@ -252,8 +238,6 @@ func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
 func parseArguments(args []string) ([][]byte, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	encodedArgs := make([][]byte, len(args))
 	for i, arg := range args {
 		// decode and then encode again to ensure the value is valid
@@ -270,8 +254,6 @@ func parseArguments(args []string) ([][]byte, error) {
 
 // parseContractName extracts contract name from its source
 func parseContractName(code string) (string, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	program, err := parser.ParseProgram(code, nil)
 	if err != nil {
 		return "", err

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -92,7 +91,6 @@ type SQL struct {
 }
 
 func (s *SQL) InsertUser(user *model.User) error {
-	telemetry.DebugLog("[db] inserting user")
 	return s.db.Create(user).Error
 }
 

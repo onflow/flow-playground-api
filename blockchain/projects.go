@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
@@ -57,9 +55,6 @@ type Projects struct {
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	p.cache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
@@ -77,9 +72,6 @@ func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
 func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
 	defer p.mutex.remove(projID).Unlock()
@@ -113,9 +105,6 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 
 // ExecuteScript executes the script.
 func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()
@@ -152,9 +141,6 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 }
 
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	accounts := make([]*model.Account, p.accountsNumber)
 	for i := 0; i < p.accountsNumber; i++ {
 		account, err := p.CreateAccount(projectID)
@@ -172,9 +158,6 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	emulator, err := p.load(projectID)
@@ -202,9 +185,6 @@ func (p *Projects) DeployContract(
 	address model.Address,
 	script string,
 ) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	emulator, err := p.load(projectID)
@@ -230,8 +210,6 @@ func (p *Projects) DeployContract(
 }
 
 func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	emulator, err := p.load(projectID)
 	if err != nil {
 		return nil, err
@@ -258,9 +236,6 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 //
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	var executions []*model.TransactionExecution
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
