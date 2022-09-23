@@ -80,6 +80,7 @@ func main() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
+		Release:          build.Version().String(),
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
