@@ -79,11 +79,11 @@ type TransactionExecution struct {
 	ProjectID uuid.UUID
 	Index     int
 	Script    string
-	Arguments []string
-	Signers   []Address
-	Errors    []ProgramError
-	Events    []Event
-	Logs      []string
+	Arguments []string       `gorm:"serializer:json"`
+	Signers   []Address      `gorm:"serializer:json"`
+	Errors    []ProgramError `gorm:"serializer:json"`
+	Events    []Event        `gorm:"serializer:json"`
+	Logs      []string       `gorm:"serializer:json"`
 }
 
 func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {

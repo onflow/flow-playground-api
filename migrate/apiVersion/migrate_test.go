@@ -20,10 +20,10 @@ package apiVersion_test
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/migrate/apiVersion"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
 	"testing"
 	"time"
+
+	"github.com/dapperlabs/flow-playground-api/migrate/apiVersion"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -111,7 +111,7 @@ type migrateTestCase struct {
 
 func migrateTest(startVersion *semver.Version, f func(t *testing.T, c migrateTestCase)) func(t *testing.T) {
 	return func(t *testing.T) {
-		store := sql.NewInMemory()
+		store := storage.NewInMemory()
 		chain := blockchain.NewProjects(store, 5)
 		scripts := controller.NewScripts(store, chain)
 		projects := controller.NewProjects(startVersion, store, chain)
@@ -152,7 +152,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 }
 
 func Test_MigrationV0_12_0(t *testing.T) {
-	store := sql.NewInMemory()
+	store := storage.NewInMemory()
 
 	chain := blockchain.NewProjects(store, 5)
 	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
@@ -177,10 +177,7 @@ func Test_MigrationV0_12_0(t *testing.T) {
 		Description:               "test description",
 		Readme:                    "",
 		Seed:                      1,
-		TransactionCount:          5,
 		TransactionExecutionCount: 5,
-		TransactionTemplateCount:  1,
-		ScriptTemplateCount:       1,
 		Persist:                   true,
 		CreatedAt:                 time.Now(),
 		UpdatedAt:                 time.Now(),
@@ -270,5 +267,4 @@ func Test_MigrationV0_12_0(t *testing.T) {
 
 	assert.Equal(t, newVer, project.Version)
 	assert.Equal(t, 5, project.TransactionExecutionCount)
-	assert.Equal(t, 5, project.TransactionCount)
 }

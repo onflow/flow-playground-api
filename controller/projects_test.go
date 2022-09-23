@@ -19,7 +19,7 @@
 package controller
 
 import (
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
+	"github.com/kelseyhightower/envconfig"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
@@ -35,10 +35,15 @@ import (
 func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 	var store storage.Store
 
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), sql.PostgreSQL) {
-		store = sql.NewPostgreSQL()
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+			panic(err)
+		}
+
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = sql.NewInMemory()
+		store = storage.NewInMemory()
 	}
 
 	user := &model.User{
@@ -95,10 +100,8 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, project.Title, dbProj.Title)
+		assert.Equal(t, project.Description, dbProj.Description)
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
-		assert.Equal(t, 5, dbProj.TransactionCount)
-		assert.Equal(t, 0, dbProj.ScriptTemplateCount)
-		assert.Equal(t, 0, dbProj.TransactionTemplateCount)
 	})
 
 	t.Run("successful update", func(t *testing.T) {
@@ -151,6 +154,5 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
-		assert.Equal(t, 5, dbProj.TransactionCount)
 	})
 }

@@ -20,8 +20,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage/sql"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"log"
 	"net/http"
 	"strings"
@@ -64,10 +62,6 @@ type Config struct {
 	LedgerCacheSize            int           `default:"128"`
 	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
 	StorageBackend             string
-}
-
-type DatastoreConfig struct {
-	Timeout time.Duration `default:"5s"`
 }
 
 type SentryConfig struct {
@@ -115,14 +109,14 @@ func main() {
 	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, "postgresql") {
-		var datastoreConf DatastoreConfig
-		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			log.Fatal(err)
 		}
 
-		store = sql.NewPostgreSQL()
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = sql.NewInMemory()
+		store = storage.NewInMemory()
 	}
 
 	const initAccountsNumber = 5
@@ -144,8 +138,6 @@ func main() {
 	logger := logrus.StandardLogger()
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
-
-	telemetry.DebugLog("server startup")
 
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
@@ -183,7 +175,6 @@ func main() {
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
 
-		telemetry.DebugLog("GraphQL request")
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(

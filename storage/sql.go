@@ -1,24 +1,26 @@
-package sql
+package storage
 
 import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"time"
 )
 
-var _ storage.Store = &SQL{}
+var _ Store = &SQL{}
 
 const PostgreSQL = "postgresql"
 
 func NewInMemory() *SQL {
-	cxn := ":memory:"
-	database, err := gorm.Open(sqlite.Open(cxn))
+	//conf := &gorm.Config{
+	//	Logger: logger.Default.LogMode(logger.Info),
+	//}
+
+	database, err := gorm.Open(sqlite.Open(":memory:"))
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
 	}
@@ -30,9 +32,33 @@ func NewInMemory() *SQL {
 	}
 }
 
-func NewPostgreSQL() *SQL {
-	// todo change to postgreSQL
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+type DatabaseConfig struct {
+	User     string
+	Password string
+	Name     string
+	Port     int
+}
+
+func NewPostgreSQL(conf *DatabaseConfig) *SQL {
+	config := postgres.Config{
+		DSN: fmt.Sprintf(
+			"user=%s password=%s dbname=%s port=%d sslmode=disable",
+			conf.User,
+			conf.Password,
+			conf.Name,
+			conf.Port,
+		),
+	}
+
+	fmt.Println("#####", fmt.Sprintf(
+		"user=%s password=%s dbname=%s port=%d sslmode=disable",
+		conf.User,
+		conf.Password,
+		conf.Name,
+		conf.Port,
+	))
+
+	db, err := gorm.Open(postgres.New(config), &gorm.Config{})
 	if err != nil {
 		panic(errors.Wrap(err, "failed to connect database"))
 	}
@@ -45,20 +71,18 @@ func NewPostgreSQL() *SQL {
 }
 
 func migrate(db *gorm.DB) {
-	// todo implement
-}
-
-// MigrateModel creates a table for a model if it doesn't exist
-func (s *SQL) MigrateModel(model any) error {
-	if s.db.Migrator().HasTable(model) {
-		return nil
-	}
-	err := s.db.AutoMigrate(model)
+	err := db.AutoMigrate(
+		&model.Project{},
+		&model.Account{},
+		&model.ScriptTemplate{},
+		&model.ScriptExecution{},
+		&model.TransactionTemplate{},
+		&model.TransactionExecution{},
+		&model.User{},
+	)
 	if err != nil {
-		fmt.Println("Error on migrating model to table: ", err)
-		return err
+		panic(err)
 	}
-	return nil
 }
 
 type SQL struct {
@@ -78,11 +102,17 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 		if err := tx.Create(proj).Error; err != nil {
 			return err
 		}
-		if err := tx.Create(ttpl).Error; err != nil {
-			return err
+
+		if len(ttpl) > 0 {
+			if err := tx.Create(ttpl).Error; err != nil {
+				return err
+			}
 		}
-		if err := tx.Create(stpl).Error; err != nil {
-			return err
+
+		if len(stpl) > 0 {
+			if err := tx.Create(stpl).Error; err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -91,7 +121,7 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
 	err := s.db.
-		Model(proj).
+		Model(&model.Project{ID: input.ID}).
 		Updates(model.Project{
 			Title:       *input.Title,
 			Description: *input.Description,
@@ -107,7 +137,7 @@ func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) erro
 
 func (s *SQL) UpdateProjectOwner(id, userID uuid.UUID) error {
 	return s.db.
-		Model(&model.Project{}).
+		Model(&model.Project{ID: id}).
 		Updates(&model.Project{
 			ID:     id,
 			UserID: userID,
@@ -116,10 +146,10 @@ func (s *SQL) UpdateProjectOwner(id, userID uuid.UUID) error {
 
 func (s *SQL) UpdateProjectVersion(id uuid.UUID, version *semver.Version) error {
 	return s.db.
-		Model(&model.Project{}).
+		Model(&model.Project{ID: id}).
 		Updates(&model.Project{
 			ID:      id,
-			Version: version.String(),
+			Version: version,
 		}).Error
 }
 
@@ -141,11 +171,11 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 			return err
 		}
 
-		err = tx.Model(proj).Updates(&model.Project{
-			TransactionCount:          0,
-			TransactionExecutionCount: 0,
-			UpdatedAt:                 time.Now(),
-		}).Error
+		err = tx.
+			Model(&model.Project{ID: proj.ID}).
+			Updates(map[string]any{ // need to use map due to zero value, see https://gorm.io/docs/update.html
+				"TransactionExecutionCount": 0,
+			}).Error
 
 		return err
 	})
@@ -177,7 +207,10 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
 	err := s.db.
-		Model(acc).
+		Model(&model.Account{
+			ID:        input.ID,
+			ProjectID: input.ProjectID,
+		}).
 		Updates(&model.Account{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
@@ -196,7 +229,10 @@ func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
 
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
 	err := s.db.
-		Model(tpl).
+		Model(&model.TransactionTemplate{
+			ID:        input.ID,
+			ProjectID: input.ProjectID,
+		}).
 		Updates(&model.TransactionTemplate{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
@@ -224,7 +260,23 @@ func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
-	return s.db.Create(exe).Error
+	var proj model.Project
+	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
+		return err
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		proj.TransactionExecutionCount += 1
+		if err := tx.Save(proj).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(exe).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {

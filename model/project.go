@@ -21,6 +21,7 @@ package model
 import (
 	"time"
 
+	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 )
 
@@ -34,15 +35,12 @@ type Project struct {
 	Description               string
 	Readme                    string
 	Seed                      int
-	TransactionCount          int
 	TransactionExecutionCount int
-	TransactionTemplateCount  int
-	ScriptTemplateCount       int
 	Persist                   bool
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
-	Version                   string
-	Mutable                   bool // todo don't persist this
+	Version                   *semver.Version `gorm:"serializer:json"`
+	Mutable                   bool            // todo don't persist this
 }
 
 func (p *Project) IsOwnedBy(userID uuid.UUID) bool {

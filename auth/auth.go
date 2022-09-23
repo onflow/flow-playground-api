@@ -93,7 +93,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
 	telemetry.StartRuntimeCalculation()
 	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[auth] Check Project Access")
+
 	var user *model.User
 	var err error
 
@@ -107,7 +107,6 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 	}
 
 	if a.hasProjectAccess(user, proj) {
-		telemetry.DebugLog("[auth] Check Project Access")
 		err = sessions.Save(ctx, session)
 		if err != nil {
 			return errors.New("access denied")
