@@ -21,7 +21,6 @@ package blockchain
 import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
 	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
@@ -53,12 +52,8 @@ func (c *cache) get(
 	ID uuid.UUID,
 	executions []*model.TransactionExecution,
 ) (blockchain, []*model.TransactionExecution, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	val, ok := c.cache.Get(ID)
 	if !ok {
-		telemetry.DebugLog("[cache] cache miss")
 		return nil, executions, nil
 	}
 
@@ -75,7 +70,6 @@ func (c *cache) get(
 		return nil, nil, err
 	}
 
-	telemetry.DebugLog("[cache] cache hit")
 	// this will return only executions that are missing from the emulator
 	return emulator, executions[latest.Header.Height:], nil
 }

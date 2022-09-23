@@ -19,9 +19,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"log"
 	"net/http"
 	"strings"
@@ -31,17 +29,14 @@ import (
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
+	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
+	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 
 	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
@@ -69,11 +64,6 @@ type Config struct {
 	StorageBackend             string
 }
 
-type DatastoreConfig struct {
-	GCPProjectID string        `required:"true"`
-	Timeout      time.Duration `default:"5s"`
-}
-
 type SentryConfig struct {
 	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
 	Debug            bool   `default:"true"`
@@ -90,6 +80,7 @@ func main() {
 	}
 
 	err := sentry.Init(sentry.ClientOptions{
+		Release:          build.Version().String(),
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
@@ -118,26 +109,15 @@ func main() {
 
 	var store storage.Store
 
-	if strings.EqualFold(conf.StorageBackend, "datastore") {
-		var datastoreConf DatastoreConfig
-
-		if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			log.Fatal(err)
 		}
 
-		var err error
-		store, err = datastore.NewDatastore(
-			context.Background(),
-			&datastore.Config{
-				DatastoreProjectID: datastoreConf.GCPProjectID,
-				DatastoreTimeout:   datastoreConf.Timeout,
-			},
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = memory.NewStore()
+		store = storage.NewInMemory()
 	}
 
 	const initAccountsNumber = 5
@@ -159,8 +139,6 @@ func main() {
 	logger := logrus.StandardLogger()
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
-
-	telemetry.DebugLog("server startup")
 
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
@@ -198,7 +176,6 @@ func main() {
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
 
-		telemetry.DebugLog("GraphQL request")
 		r.Handle(
 			"/",
 			playground.GraphQLHandler(

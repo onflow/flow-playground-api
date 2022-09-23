@@ -43,12 +43,10 @@ func NewTransactions(
 
 func (t *Transactions) CreateTemplate(projectID uuid.UUID, title string, script string) (*model.TransactionTemplate, error) {
 	tpl := model.TransactionTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: projectID,
-		},
-		Title:  title,
-		Script: script,
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Title:     title,
+		Script:    script,
 	}
 
 	err := t.store.InsertTransactionTemplate(&tpl)
@@ -71,7 +69,7 @@ func (t *Transactions) UpdateTemplate(input model.UpdateTransactionTemplate) (*m
 }
 
 func (t *Transactions) DeleteTemplate(transactionID, projectID uuid.UUID) error {
-	err := t.store.DeleteTransactionTemplate(model.NewProjectChildID(transactionID, projectID))
+	err := t.store.DeleteTransactionTemplate(transactionID, projectID)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete transaction template")
 	}
@@ -82,7 +80,7 @@ func (t *Transactions) DeleteTemplate(transactionID, projectID uuid.UUID) error 
 func (t *Transactions) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
 	var tpl model.TransactionTemplate
 
-	err := t.store.GetTransactionTemplate(model.NewProjectChildID(ID, projectID), &tpl)
+	err := t.store.GetTransactionTemplate(ID, projectID, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get transaction template")
 	}

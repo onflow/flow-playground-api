@@ -19,17 +19,18 @@
 package playground_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/getsentry/sentry-go"
+	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/dapperlabs/flow-playground-api/blockchain"
 
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"
@@ -44,8 +45,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/storage/datastore"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 type Project struct {
@@ -1071,7 +1070,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
-		store := memory.NewStore()
+		store := storage.NewInMemory()
 
 		projects := blockchain.NewProjects(store, initAccounts)
 		authenticator := auth.NewAuthenticator(store, sessionName)
@@ -1107,7 +1106,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		_, err = projects.Reset(&model.InternalProject{
+		_, err = projects.Reset(&model.Project{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -2545,19 +2544,15 @@ var version, _ = semver.NewVersion("0.1.0")
 func newClient() *Client {
 	var store storage.Store
 
-	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), "datastore") {
-		var err error
-		store, err = datastore.NewDatastore(context.Background(), &datastore.Config{
-			DatastoreProjectID: "dl-flow",
-			DatastoreTimeout:   time.Second * 5,
-		})
-
-		if err != nil {
-			// If datastore is expected, panic when we can't init
+	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			panic(err)
 		}
+
+		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = memory.NewStore()
+		store = storage.NewInMemory()
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
@@ -2572,7 +2567,10 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle("/", playground.GraphQLHandler(resolver))
+	localHub := sentry.CurrentHub().Clone()
+	logger := logrus.StandardLogger()
+	entry := logrus.NewEntry(logger)
+	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
 		client:   client.New(router),
@@ -2637,3 +2635,4 @@ func createScriptTemplate(t *testing.T, c *Client, project Project) string {
 
 // todo add tests for:
 // - failed transactions with successful transactions work (bootstrap works)??
+// - assert we don't leak any internal model data to API

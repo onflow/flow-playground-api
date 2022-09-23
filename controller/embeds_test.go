@@ -21,6 +21,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,7 +36,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage/memory"
 )
 
 // version to create project
@@ -90,7 +90,7 @@ func assertHaveTheme(t *testing.T, body string, theme string) {
 // Unit tests start here
 func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 
-	store := memory.NewStore()
+	store := storage.NewInMemory()
 	playgroundBaseURL := "http://localhost:3000"
 	embedsHandler := NewEmbedsHandler(store, playgroundBaseURL)
 
@@ -104,7 +104,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 		ID: uuid.New(),
 	}
 
-	internalProj := &model.InternalProject{
+	internalProj := &model.Project{
 		ID:       uuid.MustParse(projectID),
 		Secret:   uuid.New(),
 		PublicID: uuid.New(),
@@ -130,12 +130,10 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	`
 
 	scriptTemplate := model.ScriptTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.MustParse(scriptID),
-			ProjectID: uuid.MustParse(projectID),
-		},
-		Title:  "test contract",
-		Script: script,
+		ID:        uuid.MustParse(scriptID),
+		ProjectID: uuid.MustParse(projectID),
+		Title:     "test contract",
+		Script:    script,
 	}
 
 	// insert your mock data

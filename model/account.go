@@ -19,80 +19,11 @@
 package model
 
 import (
-	"cloud.google.com/go/datastore"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
-	"github.com/pkg/errors"
 )
 
-type InternalAccount struct {
-	ProjectChildID
-	Address   Address
-	DraftCode string
-	Index     int
-}
-
-func (a *InternalAccount) NameKey() *datastore.Key {
-	return datastore.NameKey("Account", a.ID.String(), ProjectNameKey(a.ProjectID))
-}
-
-func (a *InternalAccount) Load(ps []datastore.Property) error {
-	tmp := struct {
-		ID                string
-		ProjectID         string
-		Address           []byte
-		DraftCode         string
-		Index             int
-		DeployedCode      any // leave it for backward compatibility
-		State             any // leave it for backward compatibility
-		DeployedContracts any // leave it for backward compatibility
-	}{}
-
-	if err := datastore.LoadStruct(&tmp, ps); err != nil {
-		return err
-	}
-
-	if err := a.ID.UnmarshalText([]byte(tmp.ID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
-	}
-
-	if err := a.ProjectID.UnmarshalText([]byte(tmp.ProjectID)); err != nil {
-		return errors.Wrap(err, "failed to decode UUID")
-	}
-
-	copy(a.Address[:], tmp.Address[:])
-	a.Index = tmp.Index
-	a.DraftCode = tmp.DraftCode
-
-	return nil
-}
-
-func (a *InternalAccount) Save() ([]datastore.Property, error) {
-	return []datastore.Property{
-		{
-			Name:  "ID",
-			Value: a.ID.String(),
-		},
-		{
-			Name:  "ProjectID",
-			Value: a.ProjectID.String(),
-		},
-		{
-			Name:  "Address",
-			Value: a.Address[:],
-		},
-		{
-			Name:  "DraftCode",
-			Value: a.DraftCode,
-		},
-		{
-			Name:  "Index",
-			Value: a.Index,
-		},
-	}, nil
-}
-
-func (a *InternalAccount) Export() *Account {
+func (a *Account) Export() *Account {
 	return &Account{
 		ID:        a.ID,
 		ProjectID: a.ProjectID,
@@ -104,11 +35,17 @@ func (a *InternalAccount) Export() *Account {
 type Account struct {
 	ID                uuid.UUID
 	ProjectID         uuid.UUID
-	Address           Address
+	Index             int
+	Address           Address `gorm:"serializer:json"`
 	DraftCode         string
-	DeployedCode      string
-	DeployedContracts []string
+	DeployedCode      string   // todo drop this in db
+	DeployedContracts []string `gorm:"serializer:json"`
 	State             string
+}
+
+func (a *Account) MergeFromStore(acc *Account) {
+	a.ID = acc.ID
+	a.DraftCode = acc.DraftCode
 }
 
 type UpdateAccount struct {

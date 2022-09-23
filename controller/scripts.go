@@ -44,12 +44,10 @@ func NewScripts(
 
 func (s *Scripts) CreateTemplate(projectID uuid.UUID, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
 	tpl := model.ScriptTemplate{
-		ProjectChildID: model.ProjectChildID{
-			ID:        uuid.New(),
-			ProjectID: projectID,
-		},
-		Title:  input.Title,
-		Script: input.Script,
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Title:     input.Title,
+		Script:    input.Script,
 	}
 
 	err := s.store.InsertScriptTemplate(&tpl)
@@ -72,7 +70,7 @@ func (s *Scripts) UpdateTemplate(input model.UpdateScriptTemplate) (*model.Scrip
 }
 
 func (s *Scripts) DeleteTemplate(scriptID, projectID uuid.UUID) error {
-	err := s.store.DeleteScriptTemplate(model.NewProjectChildID(scriptID, projectID))
+	err := s.store.DeleteScriptTemplate(scriptID, projectID)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete script template")
 	}
@@ -92,7 +90,7 @@ func (s *Scripts) AllTemplatesForProjectID(ID uuid.UUID) ([]*model.ScriptTemplat
 
 func (s *Scripts) TemplateByID(ID uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
 	var tpl model.ScriptTemplate
-	err := s.store.GetScriptTemplate(model.NewProjectChildID(ID, projectID), &tpl)
+	err := s.store.GetScriptTemplate(ID, projectID, &tpl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get script template")
 	}
