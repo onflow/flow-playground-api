@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -123,9 +122,20 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 }
 
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
+	update := make(map[string]any)
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+	if input.Description != nil {
+		update["description"] = *input.Description
+	}
+	if input.Readme != nil {
+		update["readme"] = *input.Readme
+	}
+
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).
-		Updates(buildUpdate(input)).Error
+		Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -204,12 +214,16 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	err := s.db.
-		Model(&model.Account{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-		}).
-		Updates(buildUpdate(input)).Error
+	if input.DraftCode == nil { // nothing to update
+		return nil
+	}
+
+	err := s.db.Model(&model.Account{
+		ID:        input.ID,
+		ProjectID: input.ProjectID,
+	}).Updates(&model.Account{
+		DraftCode: *input.DraftCode,
+	}).Error
 	if err != nil {
 		return err
 	}
@@ -219,24 +233,35 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 
 func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
 	var count int64
-	err := s.db.
-		Where(&model.TransactionTemplate{ProjectID: tpl.ProjectID}).
+	err := s.db.Model(&model.TransactionTemplate{}).
+		Where("project_id", tpl.ProjectID).
 		Count(&count).Error
 	if err != nil {
 		return err
 	}
 
-	tpl.Index = int(count) + 1
+	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
+	update := make(map[string]any)
+	if input.Script != nil {
+		update["script"] = *input.Script
+	}
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+	if input.Index != nil {
+		update["index"] = *input.Index
+	}
+
 	err := s.db.
 		Model(&model.TransactionTemplate{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 		}).
-		Updates(buildUpdate(input)).Error
+		Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -282,21 +307,30 @@ func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.T
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	var count int64
-	err := s.db.
-		Where(&model.ScriptTemplate{ProjectID: tpl.ProjectID}).
+	err := s.db.Model(&model.ScriptTemplate{}).
+		Where("project_id", tpl.ProjectID).
 		Count(&count).Error
 	if err != nil {
 		return err
 	}
 
-	tpl.Index = int(count) + 1
+	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
-	err := s.db.
-		Model(tpl).
-		Updates(buildUpdate(input)).Error
+	update := make(map[string]any)
+	if input.Script != nil {
+		update["script"] = *input.Script
+	}
+	if input.Index != nil {
+		update["index"] = *input.Index
+	}
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+
+	err := s.db.Model(tpl).Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -322,11 +356,4 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 
 func (s *SQL) GetScriptExecutionsForProject(pID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{ProjectID: pID}).Find(exes).Error
-}
-
-func buildUpdate(update any) map[string]any {
-	var build map[string]interface{}
-	data, _ := json.Marshal(update)
-	json.Unmarshal(data, &build)
-	return build
 }
