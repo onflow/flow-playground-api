@@ -110,7 +110,7 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "1 failed to get or create user")
+		return nil, errors.Wrap(err, "failed to get or create user")
 	}
 
 	proj, err := r.projects.Create(user, input)
@@ -152,6 +152,10 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create transaction template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -161,6 +165,10 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 }
 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] update transaction template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -203,6 +211,10 @@ func (r *mutationResolver) CreateTransactionExecution(
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create script template")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -247,6 +259,10 @@ func (r *mutationResolver) CreateScriptExecution(
 	ctx context.Context,
 	input model.NewScriptExecution,
 ) (*model.ScriptExecution, error) {
+	telemetry.StartRuntimeCalculation()
+	defer telemetry.EndRuntimeCalculation()
+	telemetry.DebugLog("[resolver] create script execution")
+
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
