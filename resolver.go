@@ -119,7 +119,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get or create user")
+		return nil, errors.Wrap(err, "1 failed to get or create user")
 	}
 
 	proj, err := r.projects.Create(user, input)
@@ -313,6 +313,8 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, _ *model.Project) 
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
+	telemetry.DebugLog("playground info")
+
 	return &model.PlaygroundInfo{
 		APIVersion:     *r.version,
 		CadenceVersion: *semver.MustParse(cadence.Version),

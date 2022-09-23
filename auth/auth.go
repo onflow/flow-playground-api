@@ -70,7 +70,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 		user, err = a.createNewUser()
 		telemetry.DebugLog("[auth] create user: " + err.Error())
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create new user")
+			return nil, errors.Wrap(err, "2 failed to create new user")
 		}
 
 		telemetry.DebugLog("[auth] create user success")
@@ -80,13 +80,13 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
 		telemetry.DebugLog("[auth] not new" + err.Error())
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to load user from session")
+			return nil, errors.Wrap(err, "3 failed to load user from session")
 		}
 	}
 
 	err = sessions.Save(ctx, session)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update session")
+		return nil, errors.Wrap(err, "4 failed to update session")
 	}
 
 	return user, nil
@@ -197,7 +197,7 @@ func (a *Authenticator) createNewUser() (*model.User, error) {
 	err := a.store.InsertUser(user)
 	telemetry.DebugLog("[auth] insert user result: " + err.Error())
 	if err != nil {
-		return nil, errors.Wrap(err, "could not insert the user")
+		return nil, errors.Wrap(err, "5 could not insert the user")
 	}
 
 	return user, nil
