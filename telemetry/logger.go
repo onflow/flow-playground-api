@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"log"
 	"runtime"
 	"strconv"
 	"time"
@@ -29,4 +30,5 @@ func DebugLog(message string) {
 		Info(message)
 
 	fmt.Println(message)
+	log.Printf(message)
 }

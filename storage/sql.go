@@ -11,7 +11,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 var _ Store = &SQL{}
@@ -43,7 +42,7 @@ type DatabaseConfig struct {
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 	gormConf := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		//Logger: logger.Default.LogMode(logger.Info),
 	}
 
 	config := postgres.Config{

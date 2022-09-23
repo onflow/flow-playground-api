@@ -22,6 +22,7 @@ import (
 	"context"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"log"
 
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -314,6 +315,7 @@ type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
 	telemetry.DebugLog("playground info")
+	log.Printf("playground info: " + r.version.String())
 
 	return &model.PlaygroundInfo{
 		APIVersion:     *r.version,
