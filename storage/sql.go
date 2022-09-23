@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -10,6 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var _ Store = &SQL{}
@@ -41,7 +43,7 @@ type DatabaseConfig struct {
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 	gormConf := &gorm.Config{
-		//Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Error),
 	}
 
 	config := postgres.Config{
@@ -123,12 +125,7 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).
-		Updates(model.Project{
-			Title:       *input.Title,
-			Description: *input.Description,
-			Readme:      *input.Readme,
-			Persist:     *input.Persist,
-		}).Error
+		Updates(buildUpdate(input)).Error
 	if err != nil {
 		return err
 	}
@@ -212,11 +209,7 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 		}).
-		Updates(&model.Account{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			DraftCode: *input.DraftCode,
-		}).Error
+		Updates(buildUpdate(input)).Error
 	if err != nil {
 		return err
 	}
@@ -225,6 +218,15 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 }
 
 func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
+	var count int64
+	err := s.db.
+		Where(&model.TransactionTemplate{ProjectID: tpl.ProjectID}).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	tpl.Index = int(count) + 1
 	return s.db.Create(tpl).Error
 }
 
@@ -234,13 +236,7 @@ func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, t
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 		}).
-		Updates(&model.TransactionTemplate{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			Title:     *input.Title,
-			//Index:     *input.Index, todo
-			Script: *input.Script,
-		}).Error
+		Updates(buildUpdate(input)).Error
 	if err != nil {
 		return err
 	}
@@ -285,19 +281,22 @@ func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.T
 }
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
+	var count int64
+	err := s.db.
+		Where(&model.ScriptTemplate{ProjectID: tpl.ProjectID}).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	tpl.Index = int(count) + 1
 	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
 	err := s.db.
 		Model(tpl).
-		Updates(&model.ScriptTemplate{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			Title:     *input.Title,
-			//Index:     *input.Index, todo
-			Script: *input.Script,
-		}).Error
+		Updates(buildUpdate(input)).Error
 	if err != nil {
 		return err
 	}
@@ -323,4 +322,11 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 
 func (s *SQL) GetScriptExecutionsForProject(pID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{ProjectID: pID}).Find(exes).Error
+}
+
+func buildUpdate(update any) map[string]any {
+	var build map[string]interface{}
+	data, _ := json.Marshal(update)
+	json.Unmarshal(data, &build)
+	return build
 }
