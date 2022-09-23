@@ -2,7 +2,7 @@
 
 ## Generating code from GQL
 
-This project uses [gqlgen](https://github.com/99designs/gqlgen) to generate wGraphQL server code from a GQL schema file.
+This project uses [gqlgen](https://github.com/99designs/gqlgen) to generate GraphQL server code from a GQL schema file.
 
 ```shell script
 make generate
