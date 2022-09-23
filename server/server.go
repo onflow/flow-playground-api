@@ -139,12 +139,14 @@ func main() {
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
 	entry := logrus.NewEntry(logger)
 
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   conf.AllowedOrigins,
-		AllowCredentials: true,
-	}).Handler)
-
 	router.Route("/query", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   conf.AllowedOrigins,
+			AllowCredentials: true,
+		}).Handler)
+
 		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
 		cookieStore.MaxAge(int(conf.SessionMaxAge.Seconds()))
 
@@ -188,6 +190,12 @@ func main() {
 
 	utilsHandler := controller.NewUtilsHandler()
 	router.Route("/utils", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins: conf.AllowedOrigins,
+		}).Handler)
+
 		r.Use(render.SetContentType(render.ContentTypeJSON))
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
