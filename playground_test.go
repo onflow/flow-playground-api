@@ -21,22 +21,21 @@ package playground_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/getsentry/sentry-go"
+	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/Masterminds/semver"
-	"github.com/go-chi/chi"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -2536,8 +2535,13 @@ const sessionName = "flow-playground-test"
 
 var version, _ = semver.NewVersion("0.1.0")
 
-func newClient() *Client {
-	var store storage.Store
+// keep same instance of store due to connection pool exhaustion
+var store storage.Store
+
+func newStore() storage.Store {
+	if store != nil {
+		return store
+	}
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
 		var datastoreConf storage.DatabaseConfig
@@ -2550,6 +2554,11 @@ func newClient() *Client {
 		store = storage.NewSqlite()
 	}
 
+	return store
+}
+
+func newClient() *Client {
+	store := newStore()
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
