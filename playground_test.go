@@ -2031,7 +2031,7 @@ func TestAccountStorage(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, account.ID, accResp.Account.ID)
-	assert.Equal(t, `"{}"`, accResp.Account.State)
+	assert.Equal(t, `{}`, accResp.Account.State)
 
 	var resp CreateTransactionExecutionResponse
 

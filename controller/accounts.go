@@ -54,8 +54,9 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, err
 	}
 
-	account.MergeFromStore(&acc)
-	return account.Export(), nil
+	return account.
+		MergeFromStore(&acc).
+		Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {

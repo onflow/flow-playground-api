@@ -33,6 +33,7 @@ func (a *Account) Export() *Account {
 		DraftCode:         a.DraftCode,
 		DeployedCode:      a.DeployedCode,
 		DeployedContracts: a.DeployedContracts,
+		State:             a.State,
 	}
 }
 
