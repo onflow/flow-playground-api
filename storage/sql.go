@@ -17,19 +17,13 @@ var _ Store = &SQL{}
 
 const PostgreSQL = "postgresql"
 
+// NewInMemory database, warning not concurrency safe, do not use for e2e tests
 func NewInMemory() *SQL {
-	database, err := gorm.Open(sqlite.Open(":memory:"))
-	if err != nil {
-		err := errors.Wrap(err, "failed to connect database")
-		sentry.CaptureException(err)
-		panic(err)
-	}
+	return newSQL(sqlite.Open(":memory:"), logger.Warn)
+}
 
-	migrate(database)
-
-	return &SQL{
-		db: database,
-	}
+func NewSqlite() *SQL {
+	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
 }
 
 type DatabaseConfig struct {
@@ -41,10 +35,6 @@ type DatabaseConfig struct {
 }
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
-	gormConf := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
-	}
-
 	config := postgres.Config{
 		DSN: fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
@@ -56,7 +46,15 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	db, err := gorm.Open(postgres.New(config), gormConf)
+	return newSQL(postgres.New(config), logger.Error)
+}
+
+func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
+	gormConf := &gorm.Config{
+		Logger: logger.Default.LogMode(level),
+	}
+
+	db, err := gorm.Open(dial, gormConf)
 	if err != nil {
 		err := errors.Wrap(err, "failed to connect database")
 		sentry.CaptureException(err)
