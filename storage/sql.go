@@ -215,16 +215,15 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	if input.DraftCode == nil { // nothing to update
-		return nil
+	update := make(map[string]any)
+	if input.DraftCode != nil {
+		update["draft_code"] = *input.DraftCode
 	}
 
 	err := s.db.Model(&model.Account{
 		ID:        input.ID,
 		ProjectID: input.ProjectID,
-	}).Updates(&model.Account{
-		DraftCode: *input.DraftCode,
-	}).Error
+	}).Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -331,7 +330,9 @@ func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.
 		update["title"] = *input.Title
 	}
 
-	err := s.db.Model(tpl).Updates(update).Error
+	err := s.db.Model(&model.ScriptTemplate{
+		ID: input.ID, ProjectID: input.ProjectID,
+	}).Updates(update).Error
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -85,6 +86,9 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 
 	// if we provided draft code then just do a storage update of an account
 	if input.DeployedCode == nil {
+		if input.DraftCode == nil {
+			return nil, fmt.Errorf("nothing to update")
+		}
 		err := a.store.UpdateAccount(input, &acc)
 		if err != nil {
 			return nil, err
