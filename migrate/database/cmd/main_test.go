@@ -1,10 +1,10 @@
-package sqlMigrator
+package cmd
 
 import (
 	"encoding/binary"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/build"
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/model"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
 	"github.com/google/uuid"
 	"math/rand"
 	"strconv"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const runPopulate = true
+const runPopulate = false
 const numProjectsGen = 2
 
 // Run $(gcloud beta emulators datastore env-init) to set env variables for datastore

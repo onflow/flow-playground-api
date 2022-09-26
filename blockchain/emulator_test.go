@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test_NewEmulator tests creating a large number of new accounts and validates corresponding storage addresses
+// Test_NewEmulator tests creating a large number of new accounts and validates corresponding database addresses
 func Test_NewEmulator(t *testing.T) {
 	emu, err := newEmulator()
 	assert.NoError(t, err)

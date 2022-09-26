@@ -22,14 +22,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/storage"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/storage"
 
 	"cloud.google.com/go/datastore"
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/model"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
 )
 
 type DatastoreEntity interface {

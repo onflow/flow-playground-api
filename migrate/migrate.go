@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package apiVersion
+package migrate
 
 import (
 	"fmt"
@@ -93,7 +93,7 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	}
 
 	// TODO:
-	//  Update storage interface to allow atomic transactions.
+	//  Update database interface to allow atomic transactions.
 	//  Ideally the project state should be wiped and the version incremented in the
 	//  same transaction.
 

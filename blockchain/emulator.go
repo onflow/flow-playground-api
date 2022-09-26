@@ -56,7 +56,7 @@ type blockchain interface {
 	// createAccount creates a new account and returns it along with transaction and result.
 	createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error)
 
-	// getAccount gets an account by the address and also returns its storage.
+	// getAccount gets an account by the address and also returns its database.
 	getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.

@@ -1,14 +1,15 @@
-// Package sqlMigrator is used to migrate from Google datastore to the new SQL implementation
-package sqlMigrator
+// Package database is used to migrate from Google datastore to the new SQL implementation
+package cmd
 
 import (
 	"context"
-	"fmt"
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/model"
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/storage/datastore"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/storage/datastore"
 	sqlModel "github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
+	"strconv"
 	"time"
 )
 
@@ -17,11 +18,15 @@ var numErrors = 0
 
 func main() {
 	dstore := connectToDatastore()
+	telemetry.DebugLog("Connected to datastore")
+
 	sqlDB := connectToSQL()
+	telemetry.DebugLog("Connected to SQL database")
 
-	projects := *getAllProjects(dstore)
+	telemetry.DebugLog("Obtaining projects from datastore...")
+	projects := *getAllProjects(dstore) // TODO: This is bad for MANY projects
 
-	fmt.Println("Starting migration for", len(projects), "projects...")
+	telemetry.DebugLog("Starting migration for " + strconv.Itoa(len(projects)) + " projects...")
 	for _, proj := range projects {
 		if !proj.Persist {
 			continue
@@ -32,7 +37,7 @@ func main() {
 		migrateScriptExecutions(dstore, sqlDB, proj.ID)
 		migrateTransactionExecutions(dstore, sqlDB, proj.ID)
 	}
-	fmt.Println("Migration finished with", numErrors, "errors")
+	telemetry.DebugLog("Migration finished with " + strconv.Itoa(numErrors) + " errors")
 }
 
 func connectToDatastore() *datastore.Datastore {
@@ -44,7 +49,6 @@ func connectToDatastore() *datastore.Datastore {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Connected to datastore")
 	return store
 }
 
@@ -56,17 +60,15 @@ func connectToSQL() *storage.SQL {
 		Name:     "postgres",
 		Port:     5432,
 	})
-	fmt.Println("Connected to SQL database")
 	return sqlDB
 }
 
 // getAllProjects returns a list of all projects in the datastore
 func getAllProjects(store *datastore.Datastore) *[]*model.InternalProject {
-	fmt.Println("Obtaining projects from datastore...")
 	var projects []*model.InternalProject
 	err := store.GetAllProjects(&projects)
 	if err != nil {
-		fmt.Println(err)
+		telemetry.DebugLog("Error: Could not retrieve projects from datastore. " + err.Error())
 		panic(err)
 	}
 	return &projects
@@ -83,18 +85,21 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 
 	var sqlAccounts []*sqlModel.Account
 	for _, acc := range accounts {
-		tmp := sqlModel.Account{}
-		tmp.ID = acc.ProjectChildID.ID
-		tmp.ProjectID = acc.ProjectChildID.ProjectID
-		tmp.Address = sqlModel.Address(acc.Address)
-		tmp.Index = acc.Index
-		tmp.DraftCode = acc.DraftCode
-		sqlAccounts = append(sqlAccounts, &tmp)
+		sqlAccounts = append(sqlAccounts, &sqlModel.Account{
+			ID:                acc.ProjectChildID.ID,
+			ProjectID:         acc.ProjectChildID.ProjectID,
+			Index:             acc.Index,
+			Address:           sqlModel.Address(acc.Address),
+			DraftCode:         acc.DraftCode,
+			DeployedCode:      "", // TODO: Are these added??
+			DeployedContracts: nil,
+			State:             "",
+		})
 	}
 
 	err = sqlDB.InsertAccounts(sqlAccounts)
 	if err != nil {
-		fmt.Println("Error on migrate accounts for project ID", projID.String(), err)
+		telemetry.DebugLog("Error on migrate accounts for project ID " + projID.String() + " " + err.Error())
 		numErrors++
 	}
 }
@@ -105,22 +110,22 @@ func convertTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) 
 	var ttpl []*model.TransactionTemplate
 	err := dstore.GetTransactionTemplatesForProject(projID, &ttpl)
 	if err != nil {
-		fmt.Println(err)
-		fmt.Println("Error: could retrieve transaction templates for project ID", projID,
-			"skipping project")
+		telemetry.DebugLog(err.Error())
+		telemetry.DebugLog("Error: could retrieve transaction templates for project ID " +
+			projID.String() + " skipping project")
 		numErrors++
 		return nil
 	}
 
 	var sqlTtpl []*sqlModel.TransactionTemplate
 	for _, ttp := range ttpl {
-		tmp := sqlModel.TransactionTemplate{}
-		tmp.ID = ttp.ID
-		tmp.ProjectID = ttp.ID
-		tmp.Title = ttp.Title
-		tmp.Index = ttp.Index
-		tmp.Script = ttp.Script
-		sqlTtpl = append(sqlTtpl, &tmp)
+		sqlTtpl = append(sqlTtpl, &sqlModel.TransactionTemplate{
+			ID:        ttp.ID,
+			ProjectID: ttp.ProjectID,
+			Title:     ttp.Title,
+			Index:     ttp.Index,
+			Script:    ttp.Script,
+		})
 	}
 	return &sqlTtpl
 }
@@ -130,49 +135,49 @@ func convertScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*s
 	var stpl []*model.ScriptTemplate
 	err := dstore.GetScriptTemplatesForProject(projID, &stpl)
 	if err != nil {
-		fmt.Println(err)
+		telemetry.DebugLog(err.Error())
 		return nil
 	}
 
 	var sqlStpl []*sqlModel.ScriptTemplate
 	for _, ttp := range stpl {
-		tmp := sqlModel.ScriptTemplate{}
-		tmp.ID = ttp.ID
-		tmp.ProjectID = ttp.ID
-		tmp.Title = ttp.Title
-		tmp.Index = ttp.Index
-		tmp.Script = ttp.Script
-		sqlStpl = append(sqlStpl, &tmp)
+		sqlStpl = append(sqlStpl, &sqlModel.ScriptTemplate{
+			ID:        ttp.ID,
+			ProjectID: ttp.ProjectID,
+			Title:     ttp.Title,
+			Index:     ttp.Index,
+			Script:    ttp.Script,
+		})
 	}
 	return &sqlStpl
 }
 
 func convertProject(proj *model.InternalProject) *sqlModel.Project {
-	sqlProj := &sqlModel.Project{}
-	sqlProj.ID = proj.ID
-	sqlProj.UserID = proj.UserID
-	sqlProj.Secret = proj.Secret
-	sqlProj.PublicID = proj.PublicID
-	sqlProj.ParentID = proj.ParentID
-	sqlProj.Title = proj.Title
-	sqlProj.Description = proj.Description
-	sqlProj.Readme = proj.Readme
-	sqlProj.Seed = proj.Seed
-	sqlProj.TransactionExecutionCount = proj.TransactionExecutionCount
-	sqlProj.TransactionExecutionCount = proj.TransactionExecutionCount
-	sqlProj.Persist = proj.Persist
-	sqlProj.CreatedAt = proj.CreatedAt
-	sqlProj.UpdatedAt = proj.UpdatedAt
-	sqlProj.Version = proj.Version
-	sqlProj.Mutable = false
-	return sqlProj
+	return &sqlModel.Project{
+		ID:                        proj.ID,
+		UserID:                    proj.UserID,
+		Secret:                    proj.Secret,
+		PublicID:                  proj.PublicID,
+		ParentID:                  proj.ParentID,
+		Title:                     proj.Title,
+		Description:               proj.Description,
+		Readme:                    proj.Readme,
+		Seed:                      proj.Seed,
+		TransactionExecutionCount: proj.TransactionExecutionCount,
+		Persist:                   proj.Persist,
+		CreatedAt:                 proj.CreatedAt,
+		UpdatedAt:                 proj.UpdatedAt,
+		Version:                   proj.Version,
+		Mutable:                   false,
+	}
 }
 
 func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uuid.UUID) {
 	var exes []*model.ScriptExecution
 	err := dstore.GetScriptExecutionsForProject(projID, &exes)
 	if err != nil {
-		fmt.Println("Error: could not get script executions for project ID: ", projID, err)
+		telemetry.DebugLog("Error: could not get script executions for project ID: " +
+			projID.String() + " " + err.Error())
 		return
 	}
 
@@ -195,7 +200,7 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 			})
 		}
 
-		tmp := sqlModel.ScriptExecution{
+		err := sqlDB.InsertScriptExecution(&sqlModel.ScriptExecution{
 			ID:        exe.ID,
 			ProjectID: exe.ProjectID,
 			Index:     exe.Index,
@@ -204,11 +209,11 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 			Value:     exe.Value,
 			Errors:    sqlErrors,
 			Logs:      exe.Logs,
-		}
+		})
 
-		err := sqlDB.InsertScriptExecution(&tmp)
 		if err != nil {
-			fmt.Println("Error: could not insert script execution", tmp.ID, "into project ID", projID, err)
+			telemetry.DebugLog("Error: could not insert script execution " + exe.ID.String() +
+				"into project ID" + projID.String() + err.Error())
 		}
 	}
 }
@@ -217,7 +222,8 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 	var exes []*model.TransactionExecution
 	err := dstore.GetTransactionExecutionsForProject(projID, &exes)
 	if err != nil {
-		fmt.Println("Error: could not get transaction executions for project ID: ", projID, err)
+		telemetry.DebugLog("Error: could not get transaction executions for project ID: " +
+			projID.String() + " " + err.Error())
 		return
 	}
 
@@ -252,7 +258,7 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 			sqlEvents = append(sqlEvents, sqlModel.Event(event))
 		}
 
-		tmp := sqlModel.TransactionExecution{
+		err := sqlDB.InsertTransactionExecution(&sqlModel.TransactionExecution{
 			ID:        exe.ID,
 			ProjectID: exe.ProjectID,
 			Index:     exe.Index,
@@ -262,11 +268,11 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 			Errors:    sqlErrors,
 			Events:    sqlEvents,
 			Logs:      exe.Logs,
-		}
+		})
 
-		err := sqlDB.InsertTransactionExecution(&tmp)
 		if err != nil {
-			fmt.Println("Error: could not insert transaction execution", tmp.ID, "into project ID", projID, err)
+			telemetry.DebugLog("Error: could not insert transaction execution" + exe.ID.String() +
+				"into project ID " + projID.String() + " " + err.Error())
 		}
 	}
 }
@@ -277,8 +283,8 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 
 	sqlTtpl := convertTransactionTemplates(dstore, proj.ID)
 	if sqlTtpl == nil {
-		fmt.Println("Error: could not migrate transaction templates for project ID", proj.ID.String(),
-			"skipping project")
+		telemetry.DebugLog("Error: could not migrate transaction templates for project ID " +
+			proj.ID.String() + " skipping project")
 		numErrors++
 		return
 	}
@@ -286,8 +292,8 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	// Convert script templates for project
 	sqlStpl := convertScriptTemplates(dstore, proj.ID)
 	if sqlStpl == nil {
-		fmt.Println("Error: could not migrate script templates for project ID", proj.ID.String(),
-			"skipping project")
+		telemetry.DebugLog("Error: could not migrate script templates for project ID " +
+			proj.ID.String() + " skipping project")
 		numErrors++
 		return
 	}
@@ -295,8 +301,8 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	// Store migrated project in SQL db
 	err := sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
 	if err != nil {
-		fmt.Println("Error: could not store project ID", proj.ID.String(),
-			"in sql db. Skipping project.", err)
+		telemetry.DebugLog("Error: could not store project ID " + proj.ID.String() +
+			" in sql db. Skipping project. " + err.Error())
 		numErrors++
 	}
 }
@@ -305,14 +311,16 @@ func migrateUser(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model.In
 	user := model.User{}
 	err := dstore.GetUser(proj.UserID, &user)
 	if err != nil {
-		fmt.Println("Error: could not get user for project ID", proj.ID, err)
+		telemetry.DebugLog("Error: could not get user for project ID " +
+			proj.ID.String() + " " + err.Error())
 		numErrors++
 		return
 	}
 
 	err = sqlDB.InsertUser(&sqlModel.User{ID: user.ID})
 	if err != nil {
-		fmt.Println("Error on insert user for project ID", proj.ID.String(), err)
+		telemetry.DebugLog("Error on insert user for project ID " +
+			proj.ID.String() + " " + err.Error())
 		numErrors++
 	}
 }

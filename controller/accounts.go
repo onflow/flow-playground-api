@@ -87,7 +87,7 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 
 	var acc model.Account
 
-	// if we provided draft code then just do a storage update of an account
+	// if we provided draft code then just do a database update of an account
 	if input.DeployedCode == nil {
 		err := a.store.UpdateAccount(input, &acc)
 		if err != nil {

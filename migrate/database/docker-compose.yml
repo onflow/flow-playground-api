@@ -9,7 +9,7 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - datastore-emulator-storage:/opt/data
+      - datastore-emulator-database:/opt/data
     # command: start-datastore --no-store-on-disk --consistency=1.0
 
   datastore_viewer:

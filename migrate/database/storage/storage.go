@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/migrate/sqlMigrator/model"
+	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
 	"github.com/google/uuid"
 )
 
