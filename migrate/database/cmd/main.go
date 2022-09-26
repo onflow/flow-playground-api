@@ -1,5 +1,6 @@
-// Package database is used to migrate from Google datastore to the new SQL implementation
 package cmd
+
+// Database migrator is used to migrate from Google datastore to the new SQL postgres database
 
 import (
 	"context"

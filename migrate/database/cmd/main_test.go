@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"encoding/binary"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
 	"github.com/google/uuid"
-	"math/rand"
 	"strconv"
 	"testing"
 	"time"
@@ -35,7 +33,7 @@ func populateDatastore() {
 
 		}
 
-		// Populate projects with random number of accounts
+		// Populate projects with accounts
 		accounts := generateAccounts(proj.ID)
 
 		for _, account := range *accounts {
@@ -71,13 +69,13 @@ func generateProject(projectGenCount int) (*model.InternalProject, *[]*model.Tra
 		PublicID:                  uuid.New(),
 		ParentID:                  nil,
 		Title:                     "Project number " + strconv.Itoa(projectGenCount),
-		Description:               "",
-		Readme:                    "",
+		Description:               "Project description",
+		Readme:                    "Project readme",
 		Seed:                      0,
 		TransactionCount:          0,
-		TransactionExecutionCount: rand.Intn(5),
-		TransactionTemplateCount:  rand.Intn(5),
-		ScriptTemplateCount:       rand.Intn(5),
+		TransactionExecutionCount: 4,
+		TransactionTemplateCount:  5,
+		ScriptTemplateCount:       6,
 		Persist:                   true,
 		CreatedAt:                 time.Time{},
 		UpdatedAt:                 time.Time{},
@@ -87,7 +85,7 @@ func generateProject(projectGenCount int) (*model.InternalProject, *[]*model.Tra
 	// Populate project with transaction templates
 	var ttpls []*model.TransactionTemplate
 	for i := 0; i < proj.TransactionTemplateCount; i++ {
-		ttpl := model.TransactionTemplate{
+		ttpls = append(ttpls, &model.TransactionTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -95,15 +93,13 @@ func generateProject(projectGenCount int) (*model.InternalProject, *[]*model.Tra
 			Title:  "Transaction Template " + strconv.Itoa(i),
 			Index:  i,
 			Script: "Test script",
-		}
-
-		ttpls = append(ttpls, &ttpl)
+		})
 	}
 
 	// Populate project with script templates
 	var stpls []*model.ScriptTemplate
 	for i := 0; i < proj.ScriptTemplateCount; i++ {
-		stpl := model.ScriptTemplate{
+		stpls = append(stpls, &model.ScriptTemplate{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -111,34 +107,25 @@ func generateProject(projectGenCount int) (*model.InternalProject, *[]*model.Tra
 			Title:  "Script Template " + strconv.Itoa(i),
 			Index:  i,
 			Script: "Test script",
-		}
-
-		stpls = append(stpls, &stpl)
+		})
 	}
 
 	return proj, &ttpls, &stpls
 }
 
-// generateAccounts generates a random number of accounts up to 10
+// generateAccounts generates accounts for a project
 func generateAccounts(projID uuid.UUID) *[]*model.InternalAccount {
 	var accounts []*model.InternalAccount
 
-	for i := 0; i < rand.Intn(10); i++ {
-		// Generate address
-		bn := make([]byte, 8)
-		binary.BigEndian.PutUint32(bn, uint32(i))
-		addr := model.NewAddressFromBytes(bn)
-
-		account := model.InternalAccount{
+	for i := 0; i < 10; i++ {
+		accounts = append(accounts, &model.InternalAccount{
 			ProjectChildID: model.ProjectChildID{
 				ID:        uuid.New(),
 				ProjectID: projID,
 			},
-			Address:   addr,
+			Address:   [8]byte{0x01},
 			DraftCode: "test code " + strconv.Itoa(i),
-		}
-
-		accounts = append(accounts, &account)
+		})
 	}
 	return &accounts
 }
@@ -153,10 +140,37 @@ func generateScriptExecutions(proj *model.InternalProject) *[]model.ScriptExecut
 			},
 			Index:     i,
 			Script:    "Test script execution",
-			Arguments: nil,
-			Value:     "",
-			Errors:    nil,
-			Logs:      nil,
+			Arguments: []string{"arg1", "arg2", "arg3"},
+			Value:     "test value",
+			Errors: []model.ProgramError{
+				{
+					Message: "Program error 1",
+					StartPosition: &model.ProgramPosition{
+						Offset: 10,
+						Line:   11,
+						Column: 12,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 13,
+						Line:   14,
+						Column: 15,
+					},
+				},
+				{
+					Message: "Program error 2",
+					StartPosition: &model.ProgramPosition{
+						Offset: 16,
+						Line:   17,
+						Column: 18,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 19,
+						Line:   20,
+						Column: 21,
+					},
+				},
+			},
+			Logs: []string{"log1", "log2", "log3"},
 		})
 	}
 	return &scriptExecs
@@ -172,11 +186,51 @@ func generateTransactionExecutions(proj *model.InternalProject) *[]model.Transac
 			},
 			Index:     i,
 			Script:    "Test transaction execution",
-			Arguments: nil,
-			Signers:   nil,
-			Errors:    nil,
-			Events:    nil,
-			Logs:      nil,
+			Arguments: []string{"test"},
+			Signers: []model.Address{
+				[8]byte{0x01},
+				[8]byte{0x02},
+				[8]byte{0x03},
+			},
+			Errors: []model.ProgramError{
+				{
+					Message: "Test error 1",
+					StartPosition: &model.ProgramPosition{
+						Offset: 10,
+						Line:   11,
+						Column: 12,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 13,
+						Line:   14,
+						Column: 15,
+					},
+				},
+				{
+					Message: "Test error 2",
+					StartPosition: &model.ProgramPosition{
+						Offset: 15,
+						Line:   16,
+						Column: 17,
+					},
+					EndPosition: &model.ProgramPosition{
+						Offset: 18,
+						Line:   19,
+						Column: 20,
+					},
+				},
+			},
+			Events: []model.Event{
+				{
+					Type:   "Test event 1",
+					Values: []string{"val1", "val2", "val3"},
+				},
+				{
+					Type:   "Test event 2",
+					Values: []string{"val4", "val5", "val6"},
+				},
+			},
+			Logs: []string{"Log 1", "Log 2", "Log 3"},
 		})
 	}
 	return &txExecs
