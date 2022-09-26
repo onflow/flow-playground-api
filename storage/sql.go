@@ -130,6 +130,9 @@ func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) erro
 	if input.Readme != nil {
 		update["readme"] = *input.Readme
 	}
+	if input.Persist != nil {
+		update["persist"] = *input.Persist
+	}
 
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).
