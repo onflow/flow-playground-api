@@ -288,6 +288,7 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 	}
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		exe.Index = proj.TransactionExecutionCount
 		proj.TransactionExecutionCount += 1
 		if err := tx.Save(proj).Error; err != nil {
 			return err
