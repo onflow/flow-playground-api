@@ -1070,14 +1070,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
-		store := storage.NewInMemory()
-
-		projects := blockchain.NewProjects(store, initAccounts)
-		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, authenticator, projects)
-
-		c := newClientWithResolver(resolver)
-
+		c := newClient()
 		project := createProject(t, c)
 
 		var respA CreateTransactionExecutionResponse
@@ -1106,7 +1099,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		_, err = projects.Reset(&model.Project{
+		_, err = c.projects.Reset(&model.Project{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -2506,6 +2499,8 @@ type Client struct {
 	client        *client.Client
 	resolver      *playground.Resolver
 	sessionCookie *http.Cookie
+	projects      *blockchain.Projects
+	store         storage.Store
 }
 
 func (c *Client) Post(query string, response interface{}, options ...client.Option) error {
@@ -2552,14 +2547,17 @@ func newClient() *Client {
 
 		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = storage.NewInMemory()
+		store = storage.NewSqlite()
 	}
 
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
-	return newClientWithResolver(resolver)
+	c := newClientWithResolver(resolver)
+	c.store = store
+	c.projects = chain
+	return c
 }
 
 func newClientWithResolver(resolver *playground.Resolver) *Client {
