@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
+	"github.com/pkg/errors"
 )
 
 type TransactionTemplate struct {
@@ -101,4 +102,11 @@ func convertSigners(signers []Address) []flowsdk.Address {
 	}
 
 	return sigs
+}
+
+func (u *UpdateTransactionTemplate) Validate() error {
+	if u.Title == nil && u.Index == nil && u.Script == nil {
+		return errors.Wrap(missingValuesError, "title, index, script")
+	}
+	return nil
 }

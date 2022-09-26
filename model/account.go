@@ -19,8 +19,10 @@
 package model
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
+	"github.com/pkg/errors"
 )
 
 func (a *Account) Export() *Account {
@@ -64,7 +66,14 @@ type UpdateAccount struct {
 }
 
 func (u *UpdateAccount) Validate() error {
+	if u.DeployedCode == nil && u.DraftCode == nil {
+		return errors.Wrap(missingValuesError, "deployed code, draft code")
+	}
+	if u.DeployedCode != nil && u.DraftCode != nil {
+		return fmt.Errorf("can only provide deployed code or draft code")
+	}
 
+	return nil
 }
 
 func (u *UpdateAccount) UpdateCode() bool {
