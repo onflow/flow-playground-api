@@ -15,6 +15,8 @@ func newMutex() *mutex {
 	}
 }
 
+// todo mutex has been simplified to not remove mutexes from project ID map, this may grow with time but for now it removes complexity
+
 // mutex contains locking logic for projects.
 //
 // this custom implementation of mutex creates per project ID mutex lock, this is needed because
@@ -30,6 +32,9 @@ type mutex struct {
 
 // load retrieves the mutex lock by the project ID and increase the usage counter.
 func (m *mutex) load(uuid uuid.UUID) *sync.RWMutex {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
 	if _, ok := m.pMutex[uuid]; !ok {
 		m.pMutex[uuid] = &sync.RWMutex{}
 	}
