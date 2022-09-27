@@ -30,22 +30,17 @@ type mutex struct {
 
 // load retrieves the mutex lock by the project ID and increase the usage counter.
 func (m *mutex) load(uuid uuid.UUID) *sync.RWMutex {
-	return m.mx
-	m.mx.Lock()
-	defer m.mx.Unlock()
-
 	if _, ok := m.pMutex[uuid]; !ok {
 		m.pMutex[uuid] = &sync.RWMutex{}
 	}
 
-	m.counter[uuid] += 1
+	// m.counter[uuid] += 1
 
 	return m.pMutex[uuid]
 }
 
 // remove returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
 func (m *mutex) remove(uuid uuid.UUID) *sync.RWMutex {
-	return m.mx
 	m.mx.Lock()
 	defer m.mx.Unlock()
 
@@ -54,12 +49,13 @@ func (m *mutex) remove(uuid uuid.UUID) *sync.RWMutex {
 		sentry.CaptureMessage(fmt.Sprintf("trying to remove a mutex it doesn't exists, project ID: %s", uuid))
 	}
 
-	if m.counter[uuid] == 1 {
-		delete(m.counter, uuid)
-		delete(m.pMutex, uuid)
-	} else {
-		m.counter[uuid] -= 1
-	}
+	/*
+		if m.counter[uuid] == 1 {
+			delete(m.counter, uuid)
+			delete(m.pMutex, uuid)
+		} else {
+			m.counter[uuid] -= 1
+		}*/
 
 	return mut
 }
