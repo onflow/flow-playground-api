@@ -75,7 +75,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
 	defer p.mutex.remove(projID).Unlock()
-	emulator, err := p.load(projID)
+	em, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		signers[i] = sig.ToFlowAddress()
 	}
 
-	result, tx, err := emulator.executeTransaction(
+	result, tx, err := em.executeTransaction(
 		execution.Script,
 		execution.Arguments,
 		execution.SignersToFlow(),
@@ -108,12 +108,12 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()
-	emulator, err := p.load(projID)
+	em, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := emulator.executeScript(execution.Script, execution.Arguments)
+	result, err := em.executeScript(execution.Script, execution.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -160,12 +160,12 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	emulator, err := p.load(projectID)
+	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	account, tx, result, err := emulator.createAccount()
+	account, tx, result, err := em.createAccount()
 	if err != nil {
 		return nil, err
 	}
@@ -187,12 +187,12 @@ func (p *Projects) DeployContract(
 ) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	emulator, err := p.load(projectID)
+	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, tx, err := emulator.deployContract(address.ToFlowAddress(), script)
+	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
 		return nil, err
 	}
@@ -210,12 +210,12 @@ func (p *Projects) DeployContract(
 }
 
 func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := p.load(projectID)
+	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
+	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -242,16 +242,16 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	emulator, executions, err := p.cache.get(projectID, executions)
-	if emulator == nil || err != nil {
-		emulator, err = newEmulator()
+	em, executions, err := p.cache.get(projectID, executions)
+	if em == nil || err != nil {
+		em, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(
+		result, _, err := em.executeTransaction(
 			execution.Script,
 			execution.Arguments,
 			execution.SignersToFlow(),
@@ -279,7 +279,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	p.cache.add(projectID, emulator)
+	p.cache.add(projectID, em)
 
-	return emulator, nil
+	return em, nil
 }
