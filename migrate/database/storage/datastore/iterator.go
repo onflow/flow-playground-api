@@ -1,5 +1,7 @@
 package datastore
 
+// Iterator for obtaining projects in Google datastore
+
 import (
 	"cloud.google.com/go/datastore"
 	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
