@@ -35,8 +35,17 @@ import (
 
 const accountsNumber = 5
 
+var store storage.Store
+
+func newStore() storage.Store {
+	if store == nil {
+		store = storage.NewSqlite()
+	}
+	return store
+}
+
 func newProjects() (*Projects, storage.Store) {
-	store := storage.NewInMemory()
+	store := newStore()
 	chain := NewProjects(store, accountsNumber)
 
 	return chain, store
@@ -105,7 +114,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 }
 
 func Test_ConcurrentRequests(t *testing.T) {
-	t.Skip("") // todo remove
+	//t.Skip("") // todo remove
 
 	testConcurrently := func(
 		numOfRequests int,
