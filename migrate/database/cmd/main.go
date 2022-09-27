@@ -11,6 +11,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,10 +26,11 @@ func main() {
 	telemetry.DebugLog("Connected to SQL database")
 
 	telemetry.DebugLog("Starting migration...")
+	numProjects := 0
 	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); p.GetNext() {
-		index := p.GetIndex()
-		telemetry.DebugLog("Migrating projects " + strconv.Itoa(index) +
-			" - " + strconv.Itoa(index+len(p.Projects)))
+		numProjects += len(p.Projects)
+		telemetry.DebugLog("Migrating projects " + strconv.Itoa(p.GetIndex()) +
+			" - " + strconv.Itoa(numProjects))
 		for _, proj := range p.Projects {
 			if !proj.Persist {
 				continue
@@ -40,7 +42,8 @@ func main() {
 			migrateTransactionExecutions(dstore, sqlDB, proj.ID)
 		}
 	}
-	telemetry.DebugLog("Migration finished with " + strconv.Itoa(numErrors) + " errors")
+	telemetry.DebugLog("Migration of " + strconv.Itoa(numProjects) +
+		" projects finished with " + strconv.Itoa(numErrors) + " errors")
 }
 
 func connectToDatastore() *datastore.Datastore {
@@ -57,6 +60,13 @@ func connectToDatastore() *datastore.Datastore {
 
 func connectToSQL() *storage.SQL {
 	// TODO: connect to the real postgres database
+	/*
+		var datastoreConf storage.DatabaseConfig
+		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+			log.Fatal(err)
+		}
+	*/
+
 	sqlDB := storage.NewPostgreSQL(&storage.DatabaseConfig{
 		User:     "newuser", // test db with newuser / password
 		Password: "password",
@@ -75,6 +85,10 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 		return
 	}
 
+	if len(accounts) == 0 {
+		return
+	}
+
 	var sqlAccounts []*sqlModel.Account
 	for _, acc := range accounts {
 		sqlAccounts = append(sqlAccounts, &sqlModel.Account{
@@ -90,7 +104,7 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 	}
 
 	err = sqlDB.InsertAccounts(sqlAccounts)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 		telemetry.DebugLog("Error on migrate accounts for project ID " + projID.String() + " " + err.Error())
 		numErrors++
 	}
@@ -173,6 +187,10 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 		return
 	}
 
+	if len(exes) == 0 {
+		return
+	}
+
 	for _, exe := range exes {
 		// Convert Errors
 		var sqlErrors []sqlModel.ProgramError
@@ -203,7 +221,7 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 			Logs:      exe.Logs,
 		})
 
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			telemetry.DebugLog("Error: could not insert script execution " + exe.ID.String() +
 				"into project ID" + projID.String() + err.Error())
 		}
@@ -262,7 +280,7 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 			Logs:      exe.Logs,
 		})
 
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			telemetry.DebugLog("Error: could not insert transaction execution" + exe.ID.String() +
 				"into project ID " + projID.String() + " " + err.Error())
 		}
@@ -293,9 +311,12 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	// Store migrated project in SQL db
 	err := sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
 	if err != nil {
-		telemetry.DebugLog("Error: could not store project ID " + proj.ID.String() +
-			" in sql db. Skipping project. " + err.Error())
-		numErrors++
+		if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			telemetry.DebugLog("Error: could not store project ID " + proj.ID.String() +
+				" in sql db. Skipping project. " + err.Error())
+			numErrors++
+		}
+		return
 	}
 }
 
@@ -303,14 +324,15 @@ func migrateUser(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model.In
 	user := model.User{}
 	err := dstore.GetUser(proj.UserID, &user)
 	if err != nil {
-		telemetry.DebugLog("Error: could not get user for project ID " +
-			proj.ID.String() + " " + err.Error())
-		numErrors++
+		if !strings.Contains(err.Error(), "no such entity") {
+			telemetry.DebugLog("Error: could not get user for project ID " +
+				proj.ID.String() + " " + err.Error())
+		}
 		return
 	}
 
 	err = sqlDB.InsertUser(&sqlModel.User{ID: user.ID})
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 		telemetry.DebugLog("Error on insert user for project ID " +
 			proj.ID.String() + " " + err.Error())
 		numErrors++

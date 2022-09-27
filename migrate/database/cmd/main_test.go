@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"strconv"
 	"testing"
@@ -30,7 +31,7 @@ func populateDatastore() {
 		proj, ttpl, stpl := generateProject(i)
 		err := dstore.CreateProject(proj, *ttpl, *stpl)
 		if err != nil {
-
+			telemetry.DebugLog("Error: could not populate project " + err.Error())
 		}
 
 		// Populate projects with accounts
@@ -39,7 +40,7 @@ func populateDatastore() {
 		for _, account := range *accounts {
 			err := dstore.InsertAccount(account)
 			if err != nil {
-				fmt.Println("Error: could not insert account into project", err)
+				telemetry.DebugLog("Error: could not populate accounts " + err.Error())
 			}
 		}
 
@@ -47,7 +48,7 @@ func populateDatastore() {
 		for _, exec := range *generateTransactionExecutions(proj) {
 			err = dstore.InsertTransactionExecution(&exec)
 			if err != nil {
-
+				telemetry.DebugLog("Error: could not populate transaction executions " + err.Error())
 			}
 		}
 
@@ -55,10 +56,20 @@ func populateDatastore() {
 		for _, exec := range *generateScriptExecutions(proj) {
 			err = dstore.InsertScriptExecution(&exec)
 			if err != nil {
-
+				telemetry.DebugLog("Error: could not populate script executions " + err.Error())
 			}
 		}
+
+		// Add a project user
+		err = dstore.InsertUser(generateUser())
+		if err != nil {
+			telemetry.DebugLog("Error: could not populate user " + err.Error())
+		}
 	}
+}
+
+func generateUser() *model.User {
+	return &model.User{ID: uuid.New()}
 }
 
 func generateProject(projectGenCount int) (*model.InternalProject, *[]*model.TransactionTemplate, *[]*model.ScriptTemplate) {

@@ -6,8 +6,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 )
 
-// SELECT id FROM projects ORDER BY id LIMIT 10 OFFSET n
-
+// DatastoreIterator iterates over all projects in the datastore
 type DatastoreIterator struct {
 	index        int
 	limit        int
@@ -16,6 +15,7 @@ type DatastoreIterator struct {
 	nextProjects []*model.InternalProject
 }
 
+// CreateIterator returns an iterator containing the first group of Projects
 func CreateIterator(dstore *Datastore, limit int) *DatastoreIterator {
 	dIter := DatastoreIterator{
 		index:        0,
@@ -24,12 +24,14 @@ func CreateIterator(dstore *Datastore, limit int) *DatastoreIterator {
 		Projects:     nil,
 		nextProjects: []*model.InternalProject{},
 	}
+	// Initialize first entries
+	dIter.GetNext()
 	dIter.GetNext()
 	return &dIter
 }
 
 func (d *DatastoreIterator) HasNext() bool {
-	if len(d.nextProjects) > 0 {
+	if len(d.Projects) > 0 {
 		return true
 	}
 	return false
@@ -38,6 +40,8 @@ func (d *DatastoreIterator) HasNext() bool {
 func (d *DatastoreIterator) GetNext() {
 	d.Projects = d.nextProjects
 	d.nextProjects = []*model.InternalProject{}
+	// TODO: Limit() is trying to grab STRICTLY that many... Needs to just be the max amount.
+	// TODO: They messed up their implementation?!?
 	query := datastore.NewQuery("Project").Offset(d.index).Limit(d.limit)
 	err := d.dstore.getAll(query, &d.nextProjects)
 	if err != nil {
@@ -48,5 +52,5 @@ func (d *DatastoreIterator) GetNext() {
 }
 
 func (d *DatastoreIterator) GetIndex() int {
-	return d.index
+	return d.index - 2*d.limit
 }
