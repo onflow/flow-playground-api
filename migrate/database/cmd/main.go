@@ -24,19 +24,21 @@ func main() {
 	sqlDB := connectToSQL()
 	telemetry.DebugLog("Connected to SQL database")
 
-	telemetry.DebugLog("Obtaining projects from datastore...")
-	projects := *getAllProjects(dstore) // TODO: This is bad for MANY projects
-
-	telemetry.DebugLog("Starting migration for " + strconv.Itoa(len(projects)) + " projects...")
-	for _, proj := range projects {
-		if !proj.Persist {
-			continue
+	telemetry.DebugLog("Starting migration...")
+	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); p.GetNext() {
+		index := p.GetIndex()
+		telemetry.DebugLog("Migrating projects " + strconv.Itoa(index) +
+			" - " + strconv.Itoa(index+len(p.Projects)))
+		for _, proj := range p.Projects {
+			if !proj.Persist {
+				continue
+			}
+			migrateProject(dstore, sqlDB, proj) // Includes transaction & script execution templates
+			migrateAccounts(dstore, sqlDB, proj.ID)
+			migrateUser(dstore, sqlDB, proj)
+			migrateScriptExecutions(dstore, sqlDB, proj.ID)
+			migrateTransactionExecutions(dstore, sqlDB, proj.ID)
 		}
-		migrateProject(dstore, sqlDB, proj) // Includes transaction & script execution templates
-		migrateAccounts(dstore, sqlDB, proj.ID)
-		migrateUser(dstore, sqlDB, proj)
-		migrateScriptExecutions(dstore, sqlDB, proj.ID)
-		migrateTransactionExecutions(dstore, sqlDB, proj.ID)
 	}
 	telemetry.DebugLog("Migration finished with " + strconv.Itoa(numErrors) + " errors")
 }
@@ -62,17 +64,6 @@ func connectToSQL() *storage.SQL {
 		Port:     5432,
 	})
 	return sqlDB
-}
-
-// getAllProjects returns a list of all projects in the datastore
-func getAllProjects(store *datastore.Datastore) *[]*model.InternalProject {
-	var projects []*model.InternalProject
-	err := store.GetAllProjects(&projects)
-	if err != nil {
-		telemetry.DebugLog("Error: Could not retrieve projects from datastore. " + err.Error())
-		panic(err)
-	}
-	return &projects
 }
 
 // migrateAccounts migrates models of datastore accounts to sql accounts
