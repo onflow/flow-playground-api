@@ -19,6 +19,7 @@
 package model
 
 import (
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/Masterminds/semver"
@@ -79,4 +80,11 @@ func (p *Project) ExportPublicImmutable() *Project {
 		Version:     p.Version,
 		Mutable:     false,
 	}
+}
+
+func (u *UpdateProject) Validate() error {
+	if u.Title == nil && u.Readme == nil && u.Persist == nil && u.Description == nil {
+		return errors.Wrap(missingValuesError, "title, readme, persist, description")
+	}
+	return nil
 }

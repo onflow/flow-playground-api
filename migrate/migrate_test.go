@@ -62,7 +62,7 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 		proj, err := c.projects.Create(c.user, model.NewProject{})
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0, proj.Version)
+		assert.Equal(t, migrate.V0.String(), proj.Version.String())
 
 		assertAllAccountsExist(t, c.scripts, proj)
 
@@ -73,7 +73,7 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0_1_0, proj.Version)
+		assert.Equal(t, migrate.V0_1_0.String(), proj.Version.String())
 
 		assertAllAccountsExist(t, c.scripts, proj)
 	})(t)
@@ -86,7 +86,7 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 		proj, err := c.projects.Create(c.user, model.NewProject{})
 		require.NoError(t, err)
 
-		assert.Equal(t, migrate.V0_1_0, proj.Version)
+		assert.Equal(t, migrate.V0_1_0.String(), proj.Version.String())
 
 		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, v0_2_0)
 		require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
 		proj, err = c.projects.Get(proj.ID)
 		require.NoError(t, err)
 
-		assert.Equal(t, v0_2_0, proj.Version)
+		assert.Equal(t, v0_2_0.String(), proj.Version.String())
 	})(t)
 }
 

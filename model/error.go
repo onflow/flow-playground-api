@@ -19,6 +19,7 @@
 package model
 
 import (
+	"fmt"
 	"github.com/onflow/cadence/runtime"
 	"github.com/onflow/cadence/runtime/ast"
 	runtimeErrors "github.com/onflow/cadence/runtime/errors"
@@ -76,3 +77,5 @@ func convertPosition(astPosition ast.Position) *ProgramPosition {
 	programPosition := ProgramPosition(astPosition)
 	return &programPosition
 }
+
+var missingValuesError = fmt.Errorf("must provide at least one of the values")

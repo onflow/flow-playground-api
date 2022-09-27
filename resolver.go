@@ -89,6 +89,14 @@ func (r *Resolver) LastCreatedProject() *model.Project {
 	return r.lastCreatedProject
 }
 
+type updateValidator interface {
+	Validate() error
+}
+
+func validateUpdate(u updateValidator) error {
+	return u.Validate()
+}
+
 type mutationResolver struct {
 	*Resolver
 }
@@ -129,6 +137,10 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 		return nil, err
 	}
 
+	if err := validateUpdate(&input); err != nil {
+		return nil, err
+	}
+
 	proj, err := r.projects.Update(input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update project")
@@ -140,6 +152,10 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := validateUpdate(&input); err != nil {
 		return nil, err
 	}
 
@@ -163,6 +179,10 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := validateUpdate(&input); err != nil {
 		return nil, err
 	}
 
@@ -219,6 +239,10 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := validateUpdate(&input); err != nil {
 		return nil, err
 	}
 

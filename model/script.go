@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-emulator/types"
+	"github.com/pkg/errors"
 )
 
 type ScriptTemplate struct {
@@ -60,4 +61,11 @@ type ScriptExecution struct {
 	Value     string
 	Errors    []ProgramError `gorm:"serializer:json"`
 	Logs      []string       `gorm:"serializer:json"`
+}
+
+func (u *UpdateScriptTemplate) Validate() error {
+	if u.Title == nil && u.Script == nil && u.Index == nil {
+		return errors.Wrap(missingValuesError, "title, script, index")
+	}
+	return nil
 }

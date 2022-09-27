@@ -294,6 +294,7 @@ func Test_TransactionExecution(t *testing.T) {
 		assert.Equal(t, script, exe.Script)
 		assert.Equal(t, []string{}, exe.Arguments)
 		assert.Equal(t, signers, exe.Signers)
+		assert.Equal(t, 0, exe.Index)
 
 		var dbExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &dbExe)
@@ -302,6 +303,51 @@ func Test_TransactionExecution(t *testing.T) {
 		require.Len(t, dbExe, 1)
 		assert.Equal(t, exe.ID, dbExe[0].ID)
 		assert.Equal(t, script, dbExe[0].Script)
+	})
+
+	t.Run("multiple transaction execution", func(t *testing.T) {
+		projects, store, proj, _ := newWithSeededProject()
+
+		script := `
+			transaction {
+				prepare (signer: AuthAccount) {} 
+				execute {
+					log("hello")
+				}
+			}`
+
+		signers := []model.Address{
+			model.NewAddressFromString("0x01"),
+		}
+
+		tx := model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    script,
+			Signers:   signers,
+			Arguments: nil,
+		}
+
+		for i := 0; i < 5; i++ {
+			exe, err := projects.ExecuteTransaction(tx)
+			require.NoError(t, err)
+			require.Len(t, exe.Errors, 0)
+
+			assert.Equal(t, proj.ID, exe.ProjectID)
+			require.Len(t, exe.Logs, 1)
+			assert.Equal(t, `"hello"`, exe.Logs[0])
+			assert.Equal(t, script, exe.Script)
+			assert.Equal(t, []string{}, exe.Arguments)
+			assert.Equal(t, signers, exe.Signers)
+			assert.Equal(t, i, exe.Index)
+
+			var dbExe []*model.TransactionExecution
+			err = store.GetTransactionExecutionsForProject(proj.ID, &dbExe)
+			require.NoError(t, err)
+
+			require.Len(t, dbExe, i+1)
+			assert.Equal(t, exe.ID, dbExe[i].ID)
+			assert.Equal(t, script, dbExe[i].Script)
+		}
 	})
 
 	t.Run("multiple transaction executions, reset cache", func(t *testing.T) {
