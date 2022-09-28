@@ -207,7 +207,11 @@ func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
 }
 
 func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
-	return s.db.Where(&model.Account{ProjectID: pID}).Find(accs).Error
+	return s.db.
+		Where(&model.Account{ProjectID: pID}).
+		Find(accs).
+		Order("index asc").
+		Error
 }
 
 func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
@@ -303,7 +307,10 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).Find(exes).Error
+	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
+		Find(exes).
+		Order("index asc").
+		Error
 }
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
