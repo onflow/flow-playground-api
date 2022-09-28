@@ -302,7 +302,12 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	p.emulatorCache.add(projectID, em)
+	if em == nil {
+		_, e := json.Marshal(executions)
+		fmt.Println("emulator is nil, executions: ", len(executions), " values: ", e)
+	}
+
+	//p.emulatorCache.add(projectID, em)
 
 	return em, nil
 }
@@ -312,7 +317,11 @@ func (p *Projects) runMissingExecutions(
 	em *emulator,
 	executions []*model.TransactionExecution) (*emulator, error) {
 
+	if em == nil {
+		fmt.Println("emulator nil")
+	}
 	for _, execution := range executions {
+		fmt.Println("executing transactions ", execution.ID)
 		result, _, err := em.executeTransaction(
 			execution.Script,
 			execution.Arguments,
@@ -339,6 +348,10 @@ func (p *Projects) runMissingExecutions(
 				execution.ID.String(),
 			))
 		}
+	}
+
+	if em == nil {
+		fmt.Println("emulator is nil after executions")
 	}
 
 	return em, nil
