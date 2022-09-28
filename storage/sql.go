@@ -1,3 +1,21 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package storage
 
 import (
@@ -207,7 +225,11 @@ func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
 }
 
 func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
-	return s.db.Where(&model.Account{ProjectID: pID}).Find(accs).Error
+	return s.db.
+		Where(&model.Account{ProjectID: pID}).
+		Find(accs).
+		Order("index asc").
+		Error
 }
 
 func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
@@ -303,7 +325,10 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).Find(exes).Error
+	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
+		Find(exes).
+		Order("index asc").
+		Error
 }
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {

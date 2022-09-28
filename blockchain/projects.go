@@ -36,7 +36,7 @@ import (
 func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 	return &Projects{
 		store:          store,
-		cache:          newCache(128),
+		emulatorCache:  newEmulatorCache(128),
 		mutex:          newMutex(),
 		accountsNumber: initAccountsNumber,
 	}
@@ -48,14 +48,14 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
 	store          storage.Store
-	cache          *cache
+	emulatorCache  *emulatorCache
 	mutex          *mutex
 	accountsNumber int
 }
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
-	p.cache.reset(project.ID)
+	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
 	if err != nil {
@@ -75,7 +75,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
 	defer p.mutex.remove(projID).Unlock()
-	emulator, err := p.load(projID)
+	em, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		signers[i] = sig.ToFlowAddress()
 	}
 
-	result, tx, err := emulator.executeTransaction(
+	result, tx, err := em.executeTransaction(
 		execution.Script,
 		execution.Arguments,
 		execution.SignersToFlow(),
@@ -108,12 +108,12 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()
-	emulator, err := p.load(projID)
+	em, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := emulator.executeScript(execution.Script, execution.Arguments)
+	result, err := em.executeScript(execution.Script, execution.Arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -134,20 +134,59 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 
 // GetAccount by the address along with its storage information.
 func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	p.mutex.load(projectID).RLock()
-	account, err := p.getAccount(projectID, address)
-	p.mutex.remove(projectID).RUnlock()
-	return account, err
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.getAccount(em, projectID, address)
 }
 
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
-	accounts := make([]*model.Account, p.accountsNumber)
-	for i := 0; i < p.accountsNumber; i++ {
-		account, err := p.CreateAccount(projectID)
+func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*model.Account, len(addresses))
+	for i, address := range addresses {
+		account, err := p.getAccount(em, projectID, address)
 		if err != nil {
 			return nil, err
 		}
 
+		accounts[i] = account
+	}
+
+	return accounts, nil
+}
+
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*model.Account, p.accountsNumber)
+	for i := 0; i < p.accountsNumber; i++ {
+		flowAccount, tx, result, err := em.createAccount()
+		if err != nil {
+			return nil, err
+		}
+
+		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+		err = p.store.InsertTransactionExecution(exe)
+		if err != nil {
+			return nil, err
+		}
+
+		account := model.AccountFromFlow(flowAccount, projectID)
 		account.Index = i
 		account.ID = uuid.New()
 		accounts[i] = account
@@ -160,12 +199,12 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	emulator, err := p.load(projectID)
+	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	account, tx, result, err := emulator.createAccount()
+	account, tx, result, err := em.createAccount()
 	if err != nil {
 		return nil, err
 	}
@@ -187,12 +226,12 @@ func (p *Projects) DeployContract(
 ) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	emulator, err := p.load(projectID)
+	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, tx, err := emulator.deployContract(address.ToFlowAddress(), script)
+	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
 		return nil, err
 	}
@@ -206,16 +245,11 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	return p.getAccount(projectID, address)
+	return p.getAccount(em, projectID, address)
 }
 
-func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	emulator, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	flowAccount, store, err := emulator.getAccount(address.ToFlowAddress())
+func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -242,16 +276,34 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	emulator, executions, err := p.cache.get(projectID, executions)
-	if emulator == nil || err != nil {
-		emulator, err = newEmulator()
+	em := p.emulatorCache.get(projectID)
+	if em == nil {
+		em, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	executions, err = p.filterMissingExecutions(em, executions)
+	if err != nil {
+		return nil, err
+	}
+
+	em, err = p.runMissingExecutions(projectID, em, executions)
+	if err != nil {
+		return nil, err
+	}
+
+	return em, nil
+}
+
+func (p *Projects) runMissingExecutions(
+	projectID uuid.UUID,
+	em *emulator,
+	executions []*model.TransactionExecution) (*emulator, error) {
+
 	for _, execution := range executions {
-		result, _, err := emulator.executeTransaction(
+		result, _, err := em.executeTransaction(
 			execution.Script,
 			execution.Arguments,
 			execution.SignersToFlow(),
@@ -264,22 +316,49 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			sentry.CaptureMessage(fmt.Sprintf(
+			err := fmt.Errorf(
 				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
-			))
-			return nil, errors.Wrap(err, fmt.Sprintf(
-				"result error: not able to recreate the project state %s with execution ID %s",
-				projectID,
-				execution.ID.String(),
-			))
+			)
+			event := sentry.NewEvent()
+			event.Level = sentry.LevelError
+			event.Message = "State recreation failure"
+			event.Contexts = map[string]interface{}{
+				"Logs":       result.Logs,
+				"Events":     result.Events,
+				"Debug":      result.Debug,
+				"Error":      result.Error,
+				"ExeScript":  execution.Script,
+				"ExeArgs":    execution.Arguments,
+				"ExeLogs":    execution.Logs,
+				"ExeSigners": execution.Signers,
+			}
+			sentry.CaptureEvent(event)
+			return nil, err
 		}
 	}
 
-	p.cache.add(projectID, emulator)
+	return em, nil
+}
 
-	return emulator, nil
+func (p *Projects) filterMissingExecutions(
+	em *emulator,
+	executions []*model.TransactionExecution,
+) ([]*model.TransactionExecution, error) {
+	latest, err := em.getLatestBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "emulator is not functional")
+	}
+	// this should never happen, sanity check
+	if int(latest.Header.Height) > len(executions) {
+		sentry.CaptureException(fmt.Errorf("cache failure, block height is higher than executions count"))
+	} else {
+		// this will only set executions that are missing from the emulator
+		executions = executions[latest.Header.Height:]
+	}
+
+	return executions, nil
 }

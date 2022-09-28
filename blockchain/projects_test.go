@@ -35,8 +35,17 @@ import (
 
 const accountsNumber = 5
 
+var store storage.Store
+
+func newStore() storage.Store {
+	if store == nil {
+		store = storage.NewSqlite()
+	}
+	return store
+}
+
 func newProjects() (*Projects, storage.Store) {
-	store := storage.NewInMemory()
+	store := newStore()
 	chain := NewProjects(store, accountsNumber)
 
 	return chain, store
@@ -92,7 +101,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
-			projects.cache.reset(proj.ID) // clear cache
+			projects.emulatorCache.reset(proj.ID) // clear cache
 		}
 	})
 
@@ -105,7 +114,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 }
 
 func Test_ConcurrentRequests(t *testing.T) {
-	t.Skip("") // todo remove
+	//t.Skip("") // todo remove
 
 	testConcurrently := func(
 		numOfRequests int,
@@ -131,15 +140,6 @@ func Test_ConcurrentRequests(t *testing.T) {
 	t.Run("concurrent account creation", func(t *testing.T) {
 		const numOfRequests = 4
 
-		createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
-			defer wg.Done()
-
-			acc, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-
-			ch <- acc
-		}
-
 		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
 			for a := range ch {
@@ -163,17 +163,28 @@ func Test_ConcurrentRequests(t *testing.T) {
 		}
 
 		t.Run("with cache", func(t *testing.T) {
+			// create accounts
+			createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
+				defer wg.Done()
+
+				acc, err := projects.CreateAccount(proj.ID)
+				require.NoError(t, err)
+
+				ch <- acc
+			}
+
 			testConcurrently(numOfRequests, createAccount, testAccount)
 		})
 
 		t.Run("without cache", func(t *testing.T) {
+			// create accounts but reset cache in between
 			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
 				defer wg.Done()
 
 				acc, err := projects.CreateAccount(proj.ID)
 				require.NoError(t, err)
 
-				projects.cache.reset(proj.ID)
+				projects.emulatorCache.reset(proj.ID)
 
 				ch <- acc
 			}
@@ -232,10 +243,6 @@ func Test_LoadEmulator(t *testing.T) {
 			Signers:   nil,
 			Arguments: nil,
 		})
-		require.NoError(t, err)
-
-		// force to cache again
-		_, err = projects.load(proj.ID)
 		require.NoError(t, err)
 
 		// add another transaction directly to the database to simulate request coming from another replica
@@ -372,6 +379,10 @@ func Test_TransactionExecution(t *testing.T) {
 			Arguments: nil,
 		}
 
+		em, _ := projects.load(proj.ID)
+		b, _ := em.getLatestBlock()
+		assert.Equal(t, uint64(0), b.Header.Height)
+
 		executeAndAssert := func(exeLen int) {
 			exe, err := projects.ExecuteTransaction(tx)
 			require.NoError(t, err)
@@ -385,9 +396,9 @@ func Test_TransactionExecution(t *testing.T) {
 
 			em, _ := projects.load(proj.ID)
 			b, _ := em.getLatestBlock()
-			require.Equal(t, b.Header.Height, uint64(exeLen))
+			require.Equal(t, uint64(exeLen), b.Header.Height)
 
-			projects.cache.reset(proj.ID)
+			projects.emulatorCache.reset(proj.ID)
 		}
 
 		for i := 0; i < 5; i++ {
@@ -410,7 +421,7 @@ func Test_TransactionExecution(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, accA.DeployedCode, scriptA)
 
-		projects.cache.reset(proj.ID)
+		projects.emulatorCache.reset(proj.ID)
 
 		script := `
 			import HelloWorldA from 0x05
@@ -470,7 +481,7 @@ func Test_AccountCreation(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, fmt.Sprintf("000000000000000%d", createNumber+4), account.Address.ToFlowAddress().String())
 
-			projects.cache.reset(proj.ID)
+			projects.emulatorCache.reset(proj.ID)
 
 			var executions []*model.TransactionExecution
 			err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
@@ -560,7 +571,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 7)
 
-		projects.cache.reset(proj.ID)
+		projects.emulatorCache.reset(proj.ID)
 
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
 		require.NoError(t, err)
