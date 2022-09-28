@@ -296,18 +296,12 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	fmt.Println("running executions ", len(executions), cap(executions))
+	fmt.Println("load - before missing executions ", len(executions), cap(executions), " emulator: ", em != nil)
 	em, err = p.runMissingExecutions(projectID, em, executions)
+	fmt.Println("load - after missing execution, emulator: ", em != nil, " error: ", err, " executions ", len(executions), cap(executions))
 	if err != nil {
 		return nil, err
 	}
-
-	if em == nil {
-		_, e := json.Marshal(executions)
-		fmt.Println("emulator is nil, executions: ", len(executions), " values: ", e)
-	}
-
-	//p.emulatorCache.add(projectID, em)
 
 	return em, nil
 }
@@ -317,9 +311,8 @@ func (p *Projects) runMissingExecutions(
 	em *emulator,
 	executions []*model.TransactionExecution) (*emulator, error) {
 
-	if em == nil {
-		fmt.Println("emulator nil")
-	}
+	fmt.Println("runMissingExecutions - before loop, emulator: ", em != nil)
+
 	for _, execution := range executions {
 		fmt.Println("executing transactions ", execution.ID)
 		result, _, err := em.executeTransaction(
@@ -327,8 +320,10 @@ func (p *Projects) runMissingExecutions(
 			execution.Arguments,
 			execution.SignersToFlow(),
 		)
+		fmt.Println("runMissingExecutions - after execute, emulator: ", em != nil)
+
 		if err != nil {
-			fmt.Println("ERROR 1", err)
+			fmt.Println("runMissingExecutions - ERROR 1", err)
 			return nil, errors.Wrap(err, fmt.Sprintf(
 				"execution error: not able to recreate the project state %s with execution ID %s",
 				projectID,
@@ -336,7 +331,7 @@ func (p *Projects) runMissingExecutions(
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			fmt.Println("ERROR 2", err)
+			fmt.Println("runMissingExecutions - ERROR 2", result.Error, execution.ID, result.Logs)
 			/*
 				sentry.CaptureMessage(fmt.Sprintf(
 					"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
@@ -353,9 +348,7 @@ func (p *Projects) runMissingExecutions(
 		}
 	}
 
-	if em == nil {
-		fmt.Println("emulator is nil after executions")
-	}
+	fmt.Println("runMissingExecutions - after loop, emulator: ", em != nil)
 
 	return em, nil
 }
