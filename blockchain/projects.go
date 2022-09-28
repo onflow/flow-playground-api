@@ -55,8 +55,6 @@ type Projects struct {
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
-	fmt.Println("Resetting project")
-
 	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
@@ -143,14 +141,27 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 }
 
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
-	// todo refactor - put creating accounts in batch here with loaded emulator
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
 	accounts := make([]*model.Account, p.accountsNumber)
 	for i := 0; i < p.accountsNumber; i++ {
-		account, err := p.CreateAccount(projectID)
+		flowAccount, tx, result, err := em.createAccount()
 		if err != nil {
 			return nil, err
 		}
 
+		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+		err = p.store.InsertTransactionExecution(exe)
+		if err != nil {
+			return nil, err
+		}
+
+		account := model.AccountFromFlow(flowAccount, projectID)
 		account.Index = i
 		account.ID = uuid.New()
 		accounts[i] = account
