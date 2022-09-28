@@ -140,6 +140,23 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, err
 }
 
+func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
+	p.mutex.load(projectID).RLock()
+	defer p.mutex.remove(projectID).RUnlock()
+
+	accounts := make([]*model.Account, len(addresses))
+	for i, address := range addresses {
+		account, err := p.getAccount(projectID, address)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts[i] = account
+	}
+
+	return accounts, nil
+}
+
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
