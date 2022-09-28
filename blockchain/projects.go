@@ -340,11 +340,7 @@ func (p *Projects) runMissingExecutions(
 					result.Error.Error(),
 					result.Debug,
 				))*/
-			return nil, errors.Wrap(err, fmt.Sprintf(
-				"result error: not able to recreate the project state %s with execution ID %s",
-				projectID,
-				execution.ID.String(),
-			))
+			return nil, fmt.Errorf("result error: not able to recreate the project state %s with execution ID %s", projectID, execution.ID.String())
 		}
 	}
 
