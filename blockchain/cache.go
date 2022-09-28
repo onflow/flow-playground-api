@@ -50,17 +50,16 @@ func (c *emulatorCache) reset(ID uuid.UUID) {
 // based on the executions the function receives it compares that to the emulator block height, since
 // one execution is always one block it can compare the heights to the length. If it finds some executions
 // that are not part of emulator it returns that subset, so they can be applied on top.
-func (c *emulatorCache) get(ID uuid.UUID) (*emulator, bool) {
+func (c *emulatorCache) get(ID uuid.UUID) *emulator {
 	val, ok := c.cache.Get(ID)
-	if !ok || val == nil {
-		return nil, false
+	if !ok {
+		return nil
 	}
 
-	em := val.(emulator)
-	return &em, true
+	return val.(*emulator)
 }
 
 // add new entry in the cache.
 func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
-	c.cache.Add(ID, *emulator)
+	c.cache.Add(ID, emulator)
 }

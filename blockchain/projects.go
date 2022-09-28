@@ -276,29 +276,20 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	/*
-		em, found := p.emulatorCache.get(projectID)
-		if !found {
-			em, err = newEmulator()
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		executions, err = p.filterMissingExecutions(em, executions)
+	em := p.emulatorCache.get(projectID)
+	if em == nil {
+		em, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
-	*/
+	}
 
-	em, err := newEmulator()
+	executions, err = p.filterMissingExecutions(em, executions)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("load - before missing executions ", len(executions), cap(executions), " emulator: ", em != nil)
 	em, err = p.runMissingExecutions(projectID, em, executions)
-	fmt.Println("load - after missing execution, emulator: ", em != nil, " error: ", err, " executions ", len(executions), cap(executions))
 	if err != nil {
 		return nil, err
 	}
@@ -311,19 +302,13 @@ func (p *Projects) runMissingExecutions(
 	em *emulator,
 	executions []*model.TransactionExecution) (*emulator, error) {
 
-	fmt.Println("runMissingExecutions - before loop, emulator: ", em != nil)
-
 	for _, execution := range executions {
-		fmt.Println("executing transactions ", execution.ID)
 		result, _, err := em.executeTransaction(
 			execution.Script,
 			execution.Arguments,
 			execution.SignersToFlow(),
 		)
-		fmt.Println("runMissingExecutions - after execute, emulator: ", em != nil)
-
 		if err != nil {
-			fmt.Println("runMissingExecutions - ERROR 1", err)
 			return nil, errors.Wrap(err, fmt.Sprintf(
 				"execution error: not able to recreate the project state %s with execution ID %s",
 				projectID,
@@ -331,20 +316,16 @@ func (p *Projects) runMissingExecutions(
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			fmt.Println("runMissingExecutions - ERROR 2", result.Error, execution.ID, result.Logs)
-			/*
-				sentry.CaptureMessage(fmt.Sprintf(
-					"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
-					projectID.String(),
-					execution.ID.String(),
-					result.Error.Error(),
-					result.Debug,
-				))*/
+			sentry.CaptureMessage(fmt.Sprintf(
+				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+				projectID.String(),
+				execution.ID.String(),
+				result.Error.Error(),
+				result.Debug,
+			))
 			return nil, fmt.Errorf("result error: not able to recreate the project state %s with execution ID %s", projectID, execution.ID.String())
 		}
 	}
-
-	fmt.Println("runMissingExecutions - after loop, emulator: ", em != nil)
 
 	return em, nil
 }
