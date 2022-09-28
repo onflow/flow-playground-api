@@ -313,6 +313,20 @@ func (p *Projects) runMissingExecutions(
 		if err != nil {
 			// TODO: Failing here when just trying to deploy the first hello world contract?!
 			args := strings.Join(execution.Arguments[:], ",")
+			event := sentry.NewEvent()
+			event.Level = sentry.LevelError
+			event.Message = "State recreation failure - error on state recreation executeTransaction"
+			event.Contexts = map[string]interface{}{
+				"Logs":       result.Logs,
+				"Events":     result.Events,
+				"Debug":      result.Debug,
+				"Error":      result.Error,
+				"ExeScript":  execution.Script,
+				"ExeArgs":    execution.Arguments,
+				"ExeLogs":    execution.Logs,
+				"ExeSigners": execution.Signers,
+			}
+			sentry.CaptureEvent(event)
 			return nil, errors.Wrap(err, fmt.Sprintf(
 				"execution error: not able to recreate the project state %s with execution ID %s "+
 					"trying to rebuild %s executions. execution script: "+execution.Script+
@@ -323,16 +337,20 @@ func (p *Projects) runMissingExecutions(
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
+			args := strings.Join(execution.Arguments[:], ",")
 			err := fmt.Errorf(
-				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v"+
+					" trying to rebuild %s executions. execution script: "+execution.Script+
+					"arguments: "+args,
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
+				strconv.Itoa(len(executions)),
 			)
 			event := sentry.NewEvent()
 			event.Level = sentry.LevelError
-			event.Message = "State recreation failure"
+			event.Message = "State recreation failure - error in executeTransaction result"
 			event.Contexts = map[string]interface{}{
 				"Logs":       result.Logs,
 				"Events":     result.Events,
