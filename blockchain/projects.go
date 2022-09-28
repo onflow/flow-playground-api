@@ -36,7 +36,7 @@ import (
 func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 	return &Projects{
 		store:          store,
-		cache:          newCache(128),
+		emulatorCache:  newEmulatorCache(128),
 		mutex:          newMutex(),
 		accountsNumber: initAccountsNumber,
 	}
@@ -48,14 +48,14 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
 	store          storage.Store
-	cache          *emulatorCache
+	emulatorCache  *emulatorCache
 	mutex          *mutex
 	accountsNumber int
 }
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
-	p.cache.reset(project.ID)
+	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
 	if err != nil {
@@ -242,7 +242,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em := p.cache.get(projectID)
+	em := p.emulatorCache.get(projectID)
 	if em == nil {
 		em, err = newEmulator()
 		if err != nil {
@@ -260,7 +260,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	p.cache.add(projectID, em)
+	p.emulatorCache.add(projectID, em)
 
 	return em, nil
 }

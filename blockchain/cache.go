@@ -23,8 +23,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// newCache returns a new instance of cache with provided capacity.
-func newCache(capacity int) *emulatorCache {
+// newEmulatorCache returns a new instance of cache with provided capacity.
+func newEmulatorCache(capacity int) *emulatorCache {
 	return &emulatorCache{
 		cache: lru.New(capacity),
 	}
