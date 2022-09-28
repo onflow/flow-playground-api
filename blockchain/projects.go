@@ -55,6 +55,8 @@ type Projects struct {
 
 // Reset the blockchain state.
 func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
+	fmt.Println("Resetting project")
+
 	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
