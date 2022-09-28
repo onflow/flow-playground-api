@@ -48,7 +48,7 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
 	store          storage.Store
-	cache          *cache
+	cache          *emulatorCache
 	mutex          *mutex
 	accountsNumber int
 }
@@ -242,13 +242,33 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em, executions, err := p.cache.get(projectID, executions)
-	if em == nil || err != nil {
+	em := p.cache.get(projectID)
+	if em == nil {
 		em, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	executions, err = p.filterMissingExecutions(em, executions)
+	if err != nil {
+		return nil, err
+	}
+
+	em, err = p.runMissingExecutions(projectID, em, executions)
+	if err != nil {
+		return nil, err
+	}
+
+	p.cache.add(projectID, em)
+
+	return em, nil
+}
+
+func (p *Projects) runMissingExecutions(
+	projectID uuid.UUID,
+	em blockchain,
+	executions []*model.TransactionExecution) (blockchain, error) {
 
 	for _, execution := range executions {
 		result, _, err := em.executeTransaction(
@@ -279,7 +299,26 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		}
 	}
 
-	p.cache.add(projectID, em)
-
 	return em, nil
+}
+
+func (p *Projects) filterMissingExecutions(
+	em blockchain,
+	executions []*model.TransactionExecution,
+) ([]*model.TransactionExecution, error) {
+	latest, err := em.getLatestBlock()
+	if err != nil {
+		return nil, errors.Wrap(err, "emulator is not functional")
+	}
+	if int(latest.Header.Height) > len(executions) {
+		sentry.CaptureException(fmt.Errorf("cache failure, block height is higher than executions count"))
+	}
+
+	// this should never happen, sanity check
+	if int(latest.Header.Height) < len(executions) {
+		// this will only set executions that are missing from the emulator
+		executions = executions[latest.Header.Height:]
+	}
+
+	return executions, nil
 }
