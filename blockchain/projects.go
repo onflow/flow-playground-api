@@ -316,14 +316,28 @@ func (p *Projects) runMissingExecutions(
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			sentry.CaptureMessage(fmt.Sprintf(
+			err := fmt.Errorf(
 				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
 				result.Debug,
-			))
-			return nil, fmt.Errorf("result error: not able to recreate the project state %s with execution ID %s", projectID, execution.ID.String())
+			)
+			event := sentry.NewEvent()
+			event.Level = sentry.LevelError
+			event.Message = "State recreation failure"
+			event.Contexts = map[string]interface{}{
+				"Logs":       result.Logs,
+				"Events":     result.Events,
+				"Debug":      result.Debug,
+				"Error":      result.Error,
+				"ExeScript":  execution.Script,
+				"ExeArgs":    execution.Arguments,
+				"ExeLogs":    execution.Logs,
+				"ExeSigners": execution.Signers,
+			}
+			sentry.CaptureEvent(event)
+			return nil, err
 		}
 	}
 
