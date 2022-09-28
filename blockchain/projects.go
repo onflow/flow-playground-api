@@ -256,15 +256,22 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em, found := p.emulatorCache.get(projectID)
-	if !found {
-		em, err = newEmulator()
+	/*
+		em, found := p.emulatorCache.get(projectID)
+		if !found {
+			em, err = newEmulator()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		executions, err = p.filterMissingExecutions(em, executions)
 		if err != nil {
 			return nil, err
 		}
-	}
+	*/
 
-	executions, err = p.filterMissingExecutions(em, executions)
+	em, err := newEmulator()
 	if err != nil {
 		return nil, err
 	}
