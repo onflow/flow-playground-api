@@ -52,7 +52,7 @@ func (c *emulatorCache) reset(ID uuid.UUID) {
 // that are not part of emulator it returns that subset, so they can be applied on top.
 func (c *emulatorCache) get(ID uuid.UUID) (blockchain, bool) {
 	val, ok := c.cache.Get(ID)
-	if !ok {
+	if !ok || val == nil {
 		return nil, false
 	}
 	return val.(blockchain), true

@@ -44,16 +44,15 @@ func Test_Cache(t *testing.T) {
 
 	t.Run("returns cached emulator", func(t *testing.T) {
 		testID := uuid.New()
-		c := newCache(2)
+		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
 
 		c.add(testID, em)
 
-		cacheEm, exe, err := c.get(testID, nil)
-		require.NoError(t, err)
-		assert.Len(t, exe, 0)
+		cacheEm, found := c.get(testID)
+		require.True(t, found)
 
 		cacheBlock, err := cacheEm.getLatestBlock()
 		require.NoError(t, err)
@@ -64,9 +63,10 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, block.ID(), cacheBlock.ID())
 	})
 
+	/* todo move to project test
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
 		testID := uuid.New()
-		c := newCache(2)
+		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
@@ -79,8 +79,9 @@ func Test_Cache(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		cachedEm, cacheExe, err := c.get(testID, executions)
-		require.NoError(t, err)
+		cachedEm, found := c.get(testID)
+		require.True(t, found)
+
 		// cached emulator contains all the executions
 		assert.Len(t, cacheExe, 0)
 		// make sure emulators are same
@@ -91,7 +92,7 @@ func Test_Cache(t *testing.T) {
 
 	t.Run("returns cached emulator with missing executions", func(t *testing.T) {
 		testID := uuid.New()
-		c := newCache(2)
+		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
@@ -116,4 +117,6 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, 3, cacheExe[0].Index)
 		assert.Equal(t, 4, cacheExe[1].Index)
 	})
+
+	*/
 }

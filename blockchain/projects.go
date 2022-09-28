@@ -143,6 +143,7 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 }
 
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
+	// todo refactor - put creating accounts in batch here with loaded emulator
 	accounts := make([]*model.Account, p.accountsNumber)
 	for i := 0; i < p.accountsNumber; i++ {
 		account, err := p.CreateAccount(projectID)
@@ -244,8 +245,8 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em, _ := p.emulatorCache.get(projectID)
-	if em == nil {
+	em, found := p.emulatorCache.get(projectID)
+	if !found {
 		em, err = newEmulator()
 		if err != nil {
 			return nil, err

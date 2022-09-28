@@ -245,10 +245,6 @@ func Test_LoadEmulator(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// force to cache again
-		_, err = projects.load(proj.ID)
-		require.NoError(t, err)
-
 		// add another transaction directly to the database to simulate request coming from another replica
 		err = store.InsertTransactionExecution(&model.TransactionExecution{
 			ID:        uuid.New(),
@@ -384,6 +380,7 @@ func Test_TransactionExecution(t *testing.T) {
 		}
 
 		executeAndAssert := func(exeLen int) {
+			fmt.Println("executing tx ", exeLen)
 			exe, err := projects.ExecuteTransaction(tx)
 			require.NoError(t, err)
 			require.Len(t, exe.Errors, 0)
@@ -392,16 +389,18 @@ func Test_TransactionExecution(t *testing.T) {
 			err = store.GetTransactionExecutionsForProject(proj.ID, &dbExe)
 			require.NoError(t, err)
 
+			fmt.Println("txs len ", exeLen)
 			require.Len(t, dbExe, exeLen)
 
 			em, _ := projects.load(proj.ID)
 			b, _ := em.getLatestBlock()
-			require.Equal(t, b.Header.Height, uint64(exeLen))
+			require.Equal(t, uint64(exeLen), b.Header.Height)
 
 			projects.emulatorCache.reset(proj.ID)
 		}
 
 		for i := 0; i < 5; i++ {
+			fmt.Println("run ", i)
 			executeAndAssert(i + 1)
 		}
 	})
