@@ -134,19 +134,27 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 
 // GetAccount by the address along with its storage information.
 func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	p.mutex.load(projectID).RLock()
-	account, err := p.getAccount(projectID, address)
-	p.mutex.remove(projectID).RUnlock()
-	return account, err
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.getAccount(em, projectID, address)
 }
 
 func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
-	p.mutex.load(projectID).RLock()
-	defer p.mutex.remove(projectID).RUnlock()
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
 
 	accounts := make([]*model.Account, len(addresses))
 	for i, address := range addresses {
-		account, err := p.getAccount(projectID, address)
+		account, err := p.getAccount(em, projectID, address)
 		if err != nil {
 			return nil, err
 		}
@@ -237,15 +245,10 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	return p.getAccount(projectID, address)
+	return p.getAccount(em, projectID, address)
 }
 
-func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
+func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
