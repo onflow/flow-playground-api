@@ -281,8 +281,8 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 
 func (p *Projects) runMissingExecutions(
 	projectID uuid.UUID,
-	em blockchain,
-	executions []*model.TransactionExecution) (blockchain, error) {
+	em *emulator,
+	executions []*model.TransactionExecution) (*emulator, error) {
 
 	for _, execution := range executions {
 		result, _, err := em.executeTransaction(
@@ -317,19 +317,17 @@ func (p *Projects) runMissingExecutions(
 }
 
 func (p *Projects) filterMissingExecutions(
-	em blockchain,
+	em *emulator,
 	executions []*model.TransactionExecution,
 ) ([]*model.TransactionExecution, error) {
 	latest, err := em.getLatestBlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "emulator is not functional")
 	}
+	// this should never happen, sanity check
 	if int(latest.Header.Height) > len(executions) {
 		sentry.CaptureException(fmt.Errorf("cache failure, block height is higher than executions count"))
-	}
-
-	// this should never happen, sanity check
-	if int(latest.Header.Height) < len(executions) {
+	} else {
 		// this will only set executions that are missing from the emulator
 		executions = executions[latest.Header.Height:]
 	}
