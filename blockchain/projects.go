@@ -328,6 +328,7 @@ func (p *Projects) runMissingExecutions(
 			execution.SignersToFlow(),
 		)
 		if err != nil {
+			fmt.Println("ERROR 1", err)
 			return nil, errors.Wrap(err, fmt.Sprintf(
 				"execution error: not able to recreate the project state %s with execution ID %s",
 				projectID,
@@ -335,13 +336,15 @@ func (p *Projects) runMissingExecutions(
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
-			sentry.CaptureMessage(fmt.Sprintf(
-				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
-				projectID.String(),
-				execution.ID.String(),
-				result.Error.Error(),
-				result.Debug,
-			))
+			fmt.Println("ERROR 2", err)
+			/*
+				sentry.CaptureMessage(fmt.Sprintf(
+					"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+					projectID.String(),
+					execution.ID.String(),
+					result.Error.Error(),
+					result.Debug,
+				))*/
 			return nil, errors.Wrap(err, fmt.Sprintf(
 				"result error: not able to recreate the project state %s with execution ID %s",
 				projectID,
