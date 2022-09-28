@@ -296,6 +296,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
+	fmt.Println("running executions ", len(executions), cap(executions))
 	em, err = p.runMissingExecutions(projectID, em, executions)
 	if err != nil {
 		return nil, err
