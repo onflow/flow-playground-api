@@ -67,15 +67,20 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
+	addresses := make([]model.Address, len(accounts))
+	for i, account := range accounts {
+		addresses[i] = account.Address
+	}
+
+	accs, err := a.blockchain.GetAccounts(projectID, addresses)
+	if err != nil {
+		return nil, err
+	}
+
 	exported := make([]*model.Account, len(accounts))
 	for i, account := range accounts {
-		acc, err := a.blockchain.GetAccount(projectID, account.Address)
-		if err != nil {
-			return nil, err
-		}
-
-		acc.MergeFromStore(account)
-		exported[i] = acc.Export()
+		accs[i].MergeFromStore(account)
+		exported[i] = accs[i].Export()
 	}
 
 	return exported, nil
