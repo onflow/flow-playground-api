@@ -51,8 +51,8 @@ func Test_Cache(t *testing.T) {
 
 		c.add(testID, em)
 
-		cacheEm, found := c.get(testID)
-		require.True(t, found)
+		cacheEm := c.get(testID)
+		require.NotNil(t, cacheEm)
 
 		cacheBlock, err := cacheEm.getLatestBlock()
 		require.NoError(t, err)
@@ -63,60 +63,4 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, block.ID(), cacheBlock.ID())
 	})
 
-	/* todo move to project test
-	t.Run("returns cached emulator with executions", func(t *testing.T) {
-		testID := uuid.New()
-		c := newEmulatorCache(2)
-
-		em, err := newEmulator()
-		require.NoError(t, err)
-
-		c.add(testID, em)
-
-		executions := createExecutions(5)
-		for _, exe := range executions {
-			_, _, err := em.executeTransaction(exe.Script, exe.Arguments, nil)
-			require.NoError(t, err)
-		}
-
-		cachedEm, found := c.get(testID)
-		require.True(t, found)
-
-		// cached emulator contains all the executions
-		assert.Len(t, cacheExe, 0)
-		// make sure emulators are same
-		cacheBlock, _ := cachedEm.getLatestBlock()
-		block, _ := em.getLatestBlock()
-		assert.Equal(t, cacheBlock.ID(), block.ID())
-	})
-
-	t.Run("returns cached emulator with missing executions", func(t *testing.T) {
-		testID := uuid.New()
-		c := newEmulatorCache(2)
-
-		em, err := newEmulator()
-		require.NoError(t, err)
-
-		c.add(testID, em)
-
-		executions := createExecutions(5)
-
-		for i, exe := range executions {
-			if i == 3 {
-				break // miss last two executions
-			}
-			_, _, err := em.executeTransaction(exe.Script, exe.Arguments, nil)
-			require.NoError(t, err)
-		}
-
-		_, cacheExe, err := c.get(testID, executions)
-		require.NoError(t, err)
-
-		// cached emulator missed two executions
-		assert.Len(t, cacheExe, 2)
-		assert.Equal(t, 3, cacheExe[0].Index)
-		assert.Equal(t, 4, cacheExe[1].Index)
-	})
-
-	*/
 }
