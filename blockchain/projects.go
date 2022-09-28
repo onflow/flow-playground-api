@@ -242,7 +242,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em := p.emulatorCache.get(projectID)
+	em, _ := p.emulatorCache.get(projectID)
 	if em == nil {
 		em, err = newEmulator()
 		if err != nil {
