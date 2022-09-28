@@ -20,15 +20,19 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // newEmulatorCache returns a new instance of cache with provided capacity.
 func newEmulatorCache(capacity int) *emulatorCache {
-	c := lru.New(capacity)
-	c.OnEvicted = func(key lru.Key, value interface{}) {
+	OnEvicted := func(key interface{}, value interface{}) {
 		fmt.Printf("Cache evicted emulator for project: %s - (%v)\n", key.(uuid.UUID).String(), key)
+	}
+
+	c, err := lru.NewWithEvict(capacity, OnEvicted)
+	if err != nil {
+		panic(err)
 	}
 
 	return &emulatorCache{
