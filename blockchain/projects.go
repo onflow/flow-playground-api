@@ -27,6 +27,8 @@ import (
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
+	"strconv"
+	"strings"
 )
 
 // improvement: create instance pool as a possible optimization. We can pre-instantiate empty
@@ -309,10 +311,15 @@ func (p *Projects) runMissingExecutions(
 			execution.SignersToFlow(),
 		)
 		if err != nil {
+			// TODO: Failing here when just trying to deploy the first hello world contract?!
+			args := strings.Join(execution.Arguments[:], ",")
 			return nil, errors.Wrap(err, fmt.Sprintf(
-				"execution error: not able to recreate the project state %s with execution ID %s",
+				"execution error: not able to recreate the project state %s with execution ID %s "+
+					"trying to rebuild %s executions. execution script: "+execution.Script+
+					"arguments: "+args,
 				projectID,
 				execution.ID.String(),
+				strconv.Itoa(len(executions)),
 			))
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
