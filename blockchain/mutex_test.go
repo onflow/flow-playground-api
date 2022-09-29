@@ -28,45 +28,8 @@ import (
 )
 
 func Test_Mutex(t *testing.T) {
-	t.Skip() // not relevant for simiplified mutex
+	t.Skip()
 
-	mut := newMutex()
-
-	testUuid := uuid.New()
-
-	m := mut.load(testUuid)
-	m.Lock()
-
-	assert.Equal(t, 1, mut.counter[testUuid])
-
-	_, exists := mut.pMutex[testUuid]
-	assert.True(t, exists)
-
-	m1 := mut.load(testUuid)
-
-	assert.Equal(t, m, m1) // should get access to the same mutex
-
-	locked := m1.TryLock()
-	// should fail since we already have one lock
-	assert.False(t, locked)
-
-	assert.Equal(t, 2, mut.counter[testUuid])
-
-	mut.remove(testUuid).Unlock()
-
-	assert.Equal(t, 1, mut.counter[testUuid])
-
-	locked = m1.TryLock()
-	assert.True(t, locked) // should succeed now
-
-	mut.remove(testUuid).Unlock()
-
-	// after all locks are released there shouldn't be any counter left
-	_, found := mut.counter[testUuid]
-	assert.False(t, found)
-
-	_, found = mut.pMutex[testUuid]
-	assert.False(t, found)
 }
 
 func Test_ConcurrentAccess(t *testing.T) {
