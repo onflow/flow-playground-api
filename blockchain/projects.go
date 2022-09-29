@@ -39,6 +39,7 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 		emulatorCache:  newEmulatorCache(128),
 		mutex:          newMutex(),
 		accountsNumber: initAccountsNumber,
+		emulatorPool:   newEmulatorPool(10),
 	}
 }
 
@@ -49,6 +50,7 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 type Projects struct {
 	store          storage.Store
 	emulatorCache  *emulatorCache
+	emulatorPool   *emulatorPool
 	mutex          *mutex
 	accountsNumber int
 }
@@ -278,7 +280,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 
 	em := p.emulatorCache.get(projectID)
 	if em == nil { // if cache miss create new emulator
-		em, err = newEmulator()
+		em, err = p.emulatorPool.new()
 		if err != nil {
 			return nil, err
 		}

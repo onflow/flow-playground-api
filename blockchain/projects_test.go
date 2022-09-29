@@ -20,17 +20,16 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"strings"
-	"sync"
-	"testing"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"sync"
+	"testing"
 )
 
 const accountsNumber = 5
@@ -97,7 +96,7 @@ func newWithSeededProject() (*Projects, storage.Store, *model.Project, error) {
 func Benchmark_LoadEmulator(b *testing.B) {
 	projects, _, proj, _ := newWithSeededProject()
 
-	// current run ~110 000 000 ns/op ~ 0.110s/op
+	// current run ~20 ms/op ~ 0.110s/op
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
@@ -109,6 +108,22 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	b.Run("with cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
+		}
+	})
+}
+
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
+
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
 		}
 	})
 }
@@ -136,7 +151,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 	}
 
 	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 4
+		const numOfRequests = 10
 
 		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
@@ -287,6 +302,26 @@ func Test_LoadEmulator(t *testing.T) {
 		latest, err := emulator.getLatestBlockHeight()
 		require.NoError(t, err)
 		assert.Equal(t, 0, latest) // no exe since reset
+	})
+
+	t.Run("get multiple accounts", func(t *testing.T) {
+		projects, _, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		accs, err := projects.CreateInitialAccounts(proj.ID)
+		require.NoError(t, err)
+
+		addresses := make([]model.Address, len(accs))
+		for i, a := range accs {
+			addresses[i] = a.Address
+		}
+
+		getAccs, err := projects.GetAccounts(proj.ID, addresses)
+		require.NoError(t, err)
+
+		for i, getAcc := range getAccs {
+			assert.Equal(t, accs[i].Address, getAcc.Address)
+		}
 	})
 }
 
