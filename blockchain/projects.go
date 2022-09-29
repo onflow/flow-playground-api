@@ -277,14 +277,29 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	}
 
 	em := p.emulatorCache.get(projectID)
-	if em == nil {
+	if em == nil { // if cache miss create new emulator
 		em, err = newEmulator()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	executions, err = p.filterMissingExecutions(em, executions)
+	height, err := em.getLatestBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+
+	// this can happen if project was cleared but on another replica, this replica gets the request after
+	// and will get cleared 0 executions from database but has a stale emulator in its own cache
+	if height > len(executions) {
+		p.emulatorCache.reset(projectID)
+		em, err = newEmulator()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	executions, err = p.filterMissingExecutions(executions, height)
 	if err != nil {
 		return nil, err
 	}
@@ -311,11 +326,14 @@ func (p *Projects) runMissingExecutions(
 			execution.SignersToFlow(),
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf(
+			err := errors.Wrap(err, fmt.Sprintf(
 				"execution error: not able to recreate the project state %s with execution ID %s",
 				projectID,
 				execution.ID.String(),
 			))
+
+			sentry.CaptureException(err)
+			return nil, err
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			err := fmt.Errorf(
@@ -325,16 +343,6 @@ func (p *Projects) runMissingExecutions(
 				result.Error.Error(),
 				result.Debug,
 			)
-			fmt.Println(map[string]interface{}{
-				"Logs":       result.Logs,
-				"Events":     result.Events,
-				"Debug":      result.Debug,
-				"Error":      result.Error,
-				"ExeScript":  execution.Script,
-				"ExeArgs":    execution.Arguments,
-				"ExeLogs":    execution.Logs,
-				"ExeSigners": execution.Signers,
-			})
 
 			sentry.CaptureException(err)
 			return nil, err
@@ -345,20 +353,11 @@ func (p *Projects) runMissingExecutions(
 }
 
 func (p *Projects) filterMissingExecutions(
-	em *emulator,
 	executions []*model.TransactionExecution,
+	height int,
 ) ([]*model.TransactionExecution, error) {
-	latest, err := em.getLatestBlock()
-	if err != nil {
-		return nil, errors.Wrap(err, "emulator is not functional")
-	}
-	// this should never happen, sanity check
-	if int(latest.Header.Height) > len(executions) {
-		sentry.CaptureException(fmt.Errorf("cache failure, block height is higher than executions count"))
-	} else {
-		// this will only set executions that are missing from the emulator
-		executions = executions[latest.Header.Height:]
-	}
+	// this will only set executions that are missing from the emulator
+	executions = executions[height:]
 
 	return executions, nil
 }
