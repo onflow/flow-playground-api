@@ -81,6 +81,12 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 
 	migrate(db)
 
+	d, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	d.SetMaxIdleConns(5) // we increase idle connection count due to nature of Playground API usage
+
 	return &SQL{
 		db: db,
 	}
