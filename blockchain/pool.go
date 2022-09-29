@@ -27,9 +27,15 @@ import (
 
 // newEmulatorPool creates new instance of instance pool with provided size.
 func newEmulatorPool(size int) *emulatorPool {
-	return &emulatorPool{
+	pool := &emulatorPool{
 		instances: make(chan *emulator, size),
 	}
+
+	for i := 0; i < size; i++ {
+		pool.create()
+	}
+
+	return pool
 }
 
 // emulatorPool is an instance pool that optimize slow init time of emulators and hence prepare them upfront.

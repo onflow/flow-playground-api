@@ -28,9 +28,7 @@ import (
 func Test_InstancePool(t *testing.T) {
 
 	t.Run("get single instance", func(t *testing.T) {
-		pool, err := newEmulatorPool(2)
-		require.NoError(t, err)
-
+		pool := newEmulatorPool(2)
 		em, err := pool.new()
 		require.NoError(t, err)
 		h, err := em.getLatestBlockHeight()
@@ -39,8 +37,7 @@ func Test_InstancePool(t *testing.T) {
 	})
 
 	t.Run("drain out the pool", func(t *testing.T) {
-		pool, err := newEmulatorPool(3)
-		require.NoError(t, err)
+		pool := newEmulatorPool(3)
 
 		for i := 0; i < 5; i++ {
 			em, err := pool.new()
@@ -52,8 +49,7 @@ func Test_InstancePool(t *testing.T) {
 	})
 
 	t.Run("concurrently access pool", func(t *testing.T) {
-		pool, err := newEmulatorPool(5)
-		require.NoError(t, err)
+		pool := newEmulatorPool(5)
 
 		var wg sync.WaitGroup
 		for i := 0; i < 5; i++ {

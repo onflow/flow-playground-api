@@ -96,7 +96,7 @@ func newWithSeededProject() (*Projects, storage.Store, *model.Project, error) {
 func Benchmark_LoadEmulator(b *testing.B) {
 	projects, _, proj, _ := newWithSeededProject()
 
-	// current run ~110 000 000 ns/op ~ 0.110s/op
+	// current run ~20 ms/op ~ 0.110s/op
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
@@ -151,7 +151,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 	}
 
 	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 4
+		const numOfRequests = 10
 
 		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
