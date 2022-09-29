@@ -129,8 +129,6 @@ func Benchmark_GetAccounts(b *testing.B) {
 }
 
 func Test_ConcurrentRequests(t *testing.T) {
-	//t.Skip("") // todo remove
-
 	testConcurrently := func(
 		numOfRequests int,
 		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project),
@@ -224,10 +222,10 @@ func Test_LoadEmulator(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		block, err := emulator.getLatestBlock()
+		height, err := emulator.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		require.Equal(t, uint64(0), block.Header.Height)
+		require.Equal(t, 0, height)
 	})
 
 	t.Run("multiple loads with low cache", func(t *testing.T) {
@@ -275,10 +273,35 @@ func Test_LoadEmulator(t *testing.T) {
 		emulator, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlock()
+		latest, err := emulator.getLatestBlockHeight()
 		require.NoError(t, err)
 		// there should be two blocks created, one from first execution and second from direct db execution from above
-		assert.Equal(t, uint64(2), latest.Header.Height)
+		assert.Equal(t, 2, latest)
+	})
+
+	// this tests that if another replica receives project reset, then this replica won't clear the cache,
+	// so it needs to force-reset if it gets 0 executions from db even if emulator is on higher height
+	t.Run("reset project on another replica", func(t *testing.T) {
+		projects, store, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		_, err = projects.ExecuteTransaction(model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    `transaction {}`,
+			Signers:   nil,
+			Arguments: nil,
+		})
+		require.NoError(t, err)
+
+		err = store.ResetProjectState(proj)
+		require.NoError(t, err)
+
+		emulator, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
+		latest, err := emulator.getLatestBlockHeight()
+		require.NoError(t, err)
+		assert.Equal(t, 0, latest) // no exe since reset
 	})
 
 	t.Run("get multiple accounts", func(t *testing.T) {
@@ -415,8 +438,8 @@ func Test_TransactionExecution(t *testing.T) {
 		}
 
 		em, _ := projects.load(proj.ID)
-		b, _ := em.getLatestBlock()
-		assert.Equal(t, uint64(0), b.Header.Height)
+		b, _ := em.getLatestBlockHeight()
+		assert.Equal(t, 0, b)
 
 		executeAndAssert := func(exeLen int) {
 			exe, err := projects.ExecuteTransaction(tx)
@@ -430,8 +453,8 @@ func Test_TransactionExecution(t *testing.T) {
 			require.Len(t, dbExe, exeLen)
 
 			em, _ := projects.load(proj.ID)
-			b, _ := em.getLatestBlock()
-			require.Equal(t, uint64(exeLen), b.Header.Height)
+			b, _ := em.getLatestBlockHeight()
+			require.Equal(t, exeLen, b)
 
 			projects.emulatorCache.reset(proj.ID)
 		}

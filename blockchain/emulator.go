@@ -20,8 +20,6 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/onflow/flow-go/model/flow"
-
 	"github.com/getsentry/sentry-go"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -61,8 +59,8 @@ type blockchain interface {
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
-	// getLatestBlock from the network.
-	getLatestBlock() (*flow.Block, error)
+	// getLatestBlock height from the network.
+	getLatestBlockHeight() (int, error)
 }
 
 var _ blockchain = &emulator{}
@@ -221,8 +219,12 @@ func (e *emulator) sendTransaction(
 	return res[0], tx, nil
 }
 
-func (e *emulator) getLatestBlock() (*flow.Block, error) {
-	return e.blockchain.GetLatestBlock()
+func (e *emulator) getLatestBlockHeight() (int, error) {
+	block, err := e.blockchain.GetLatestBlock()
+	if err != nil {
+		return 0, err
+	}
+	return int(block.Header.Height), nil
 }
 
 // parseEventAddress gets an address out of the account creation events payloads
