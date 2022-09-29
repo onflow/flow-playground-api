@@ -276,13 +276,13 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
-	em := p.emulatorCache.get(projectID)
-	if em == nil {
-		em, err = newEmulator()
-		if err != nil {
-			return nil, err
-		}
+	//em := p.emulatorCache.get(projectID)
+	//if em == nil {
+	em, err := newEmulator()
+	if err != nil {
+		return nil, err
 	}
+	//}
 
 	executions, err = p.filterMissingExecutions(em, executions)
 	if err != nil {
@@ -293,6 +293,8 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//p.emulatorCache.add(projectID, em)
 
 	return em, nil
 }
@@ -323,10 +325,7 @@ func (p *Projects) runMissingExecutions(
 				result.Error.Error(),
 				result.Debug,
 			)
-			event := sentry.NewEvent()
-			event.Level = sentry.LevelError
-			event.Message = "State recreation failure"
-			event.Contexts = map[string]interface{}{
+			fmt.Println(map[string]interface{}{
 				"Logs":       result.Logs,
 				"Events":     result.Events,
 				"Debug":      result.Debug,
@@ -335,8 +334,9 @@ func (p *Projects) runMissingExecutions(
 				"ExeArgs":    execution.Arguments,
 				"ExeLogs":    execution.Logs,
 				"ExeSigners": execution.Signers,
-			}
-			sentry.CaptureEvent(event)
+			})
+
+			sentry.CaptureException(err)
 			return nil, err
 		}
 	}
