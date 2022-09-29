@@ -353,6 +353,11 @@ func (p *Projects) runMissingExecutions(
 	return em, nil
 }
 
+// filterMissingExecutions gets all missed executions in current replica cache
+//
+// based on the executions the function receives it compares that to the emulator block height, since
+// one execution is always one block it can compare the heights to the length. If it finds some executions
+// that are not part of emulator it returns that subset, so they can be applied on top.
 func (p *Projects) filterMissingExecutions(
 	executions []*model.TransactionExecution,
 	height int,
