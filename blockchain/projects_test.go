@@ -114,8 +114,6 @@ func Benchmark_LoadEmulator(b *testing.B) {
 }
 
 func Test_ConcurrentRequests(t *testing.T) {
-	//t.Skip("") // todo remove
-
 	testConcurrently := func(
 		numOfRequests int,
 		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project),

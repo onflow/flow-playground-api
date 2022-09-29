@@ -37,11 +37,11 @@ const PostgreSQL = "postgresql"
 
 // NewInMemory database, warning not concurrency safe, do not use for e2e tests
 func NewInMemory() *SQL {
-	return newSQL(sqlite.Open(":memory:"), logger.Info)
+	return newSQL(sqlite.Open(":memory:"), logger.Warn)
 }
 
 func NewSqlite() *SQL {
-	return newSQL(sqlite.Open("./e2e-db"), logger.Info)
+	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
 }
 
 type DatabaseConfig struct {

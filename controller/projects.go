@@ -36,7 +36,7 @@ type Projects struct {
 }
 
 func NewProjects(
-	version *semver.Version,
+	version *semver.Version, // todo remove this
 	store storage.Store,
 	blockchain *blockchain.Projects,
 ) *Projects {
