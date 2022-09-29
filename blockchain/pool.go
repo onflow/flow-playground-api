@@ -32,7 +32,7 @@ func newEmulatorPool(size int) *emulatorPool {
 	}
 
 	for i := 0; i < size; i++ {
-		pool.create()
+		go pool.create()
 	}
 
 	return pool
@@ -73,6 +73,7 @@ func (e *emulatorPool) create() {
 	em, err := newEmulator()
 	if err != nil {
 		sentry.CaptureException(errors.Wrap(err, "instance pool emulator creation failure"))
+		return
 	}
 	e.add(em)
 }
