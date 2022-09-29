@@ -254,7 +254,7 @@ func parseArguments(args []string) ([][]byte, error) {
 
 // parseContractName extracts contract name from its source
 func parseContractName(code string) (string, error) {
-	program, err := parser.ParseProgram(code, nil)
+	program, err := parser.ParseProgram([]byte(code), nil)
 	if err != nil {
 		return "", err
 	}
