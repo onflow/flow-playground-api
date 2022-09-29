@@ -20,17 +20,16 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"strings"
-	"sync"
-	"testing"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"sync"
+	"testing"
 )
 
 const accountsNumber = 5
@@ -109,6 +108,22 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	b.Run("with cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
+		}
+	})
+}
+
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
+
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
 		}
 	})
 }
@@ -264,6 +279,26 @@ func Test_LoadEmulator(t *testing.T) {
 		require.NoError(t, err)
 		// there should be two blocks created, one from first execution and second from direct db execution from above
 		assert.Equal(t, uint64(2), latest.Header.Height)
+	})
+
+	t.Run("get multiple accounts", func(t *testing.T) {
+		projects, _, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		accs, err := projects.CreateInitialAccounts(proj.ID)
+		require.NoError(t, err)
+
+		addresses := make([]model.Address, len(accs))
+		for i, a := range accs {
+			addresses[i] = a.Address
+		}
+
+		getAccs, err := projects.GetAccounts(proj.ID, addresses)
+		require.NoError(t, err)
+
+		for i, getAcc := range getAccs {
+			assert.Equal(t, accs[i].Address, getAcc.Address)
+		}
 	})
 }
 
