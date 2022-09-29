@@ -26,10 +26,10 @@ import (
 // todo possible improvement is to also create default accounts as part of bootstrap
 
 // newEmulatorPool creates new instance of instance pool with provided size.
-func newEmulatorPool(size int) (*emulatorPool, error) {
+func newEmulatorPool(size int) *emulatorPool {
 	return &emulatorPool{
 		instances: make(chan *emulator, size),
-	}, nil
+	}
 }
 
 // emulatorPool is an instance pool that optimize slow init time of emulators and hence prepare them upfront.
