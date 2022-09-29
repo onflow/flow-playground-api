@@ -79,8 +79,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	semVer := ""
+	if build.Version() != nil {
+		semVer = build.Version().String()
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
-		Release:          build.Version().String(),
+		Release:          semVer,
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
