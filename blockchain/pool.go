@@ -54,9 +54,6 @@ func (e *emulatorPool) new() (*emulator, error) {
 		return em, nil
 	default: // in case pool gets emptied
 		sentry.CaptureMessage("instance pool empty")
-		for i := 0; i < cap(e.instances); i++ {
-			go e.create()
-		}
 		return newEmulator()
 	}
 }
