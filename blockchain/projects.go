@@ -294,6 +294,8 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		return nil, err
 	}
 
+	p.emulatorCache.add(projectID, em)
+
 	return em, nil
 }
 
