@@ -63,7 +63,7 @@ func createUser(store storage.Store) *model.User {
 	return user
 }
 
-func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
+func createProjects() (*Projects, storage.Store, *model.User) {
 	store := createStore()
 	user := createUser(store)
 	chain := blockchain.NewProjects(store, 5)
@@ -96,7 +96,7 @@ func seedProject(projects *Projects, user *model.User) *model.Project {
 }
 
 func Test_CreateProject(t *testing.T) {
-	projects, store, user := createProjects(t)
+	projects, store, user := createProjects()
 
 	t.Run("successful creation", func(t *testing.T) {
 		title := "test title"
@@ -130,7 +130,7 @@ func Test_CreateProject(t *testing.T) {
 	})
 
 	t.Run("successful update", func(t *testing.T) {
-		projects, store, user := createProjects(t)
+		projects, store, user := createProjects()
 		proj := seedProject(projects, user)
 
 		title := "update title"
@@ -160,7 +160,7 @@ func Test_CreateProject(t *testing.T) {
 	})
 
 	t.Run("reset state", func(t *testing.T) {
-		projects, store, user := createProjects(t)
+		projects, store, user := createProjects()
 		proj := seedProject(projects, user)
 
 		err := store.InsertTransactionExecution(&model.TransactionExecution{
@@ -172,6 +172,7 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		accounts, err := projects.Reset(proj)
+		assert.NoError(t, err)
 		require.Len(t, accounts, 5)
 
 		var dbProj model.Project
@@ -252,6 +253,7 @@ func Test_StateRecreation(t *testing.T) {
 		ProjectID:    newProj.ID,
 		DeployedCode: &contract1,
 	})
+	require.NoError(t, err)
 
 	// check what deployed on accounts
 	allAccs, err := accounts.AllForProjectID(newProj.ID)
@@ -286,6 +288,7 @@ func Test_StateRecreation(t *testing.T) {
 	}
 
 	exes, err := transactions.AllExecutionsForProjectID(newProj.ID)
+	require.NoError(t, err)
 	for i, exe := range exes {
 		assert.Equal(t, exe.Index, i)
 	}

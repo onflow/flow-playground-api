@@ -19,14 +19,13 @@
 package blockchain
 
 import (
-	"fmt"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
+/*
 func createExecutions(count int) []*model.TransactionExecution {
 	executions := make([]*model.TransactionExecution, count)
 	for i := 0; i < count; i++ {
@@ -39,6 +38,7 @@ func createExecutions(count int) []*model.TransactionExecution {
 	}
 	return executions
 }
+*/
 
 func Test_Cache(t *testing.T) {
 
