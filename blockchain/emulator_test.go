@@ -58,7 +58,7 @@ func Test_DeployContracts(t *testing.T) {
 		emu, err := newEmulator()
 		assert.NoError(t, err)
 		account, _, _, err := emu.createAccount()
-		assert.Error(t, err)
+		assert.NoError(t, err)
 		_, _, err = emu.deployContract(account.Address, "")
 		assert.Error(t, err)
 	})
