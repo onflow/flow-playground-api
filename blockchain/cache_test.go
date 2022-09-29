@@ -54,13 +54,13 @@ func Test_Cache(t *testing.T) {
 		cacheEm := c.get(testID)
 		require.NotNil(t, cacheEm)
 
-		cacheBlock, err := cacheEm.getLatestBlock()
+		cacheHeight, err := cacheEm.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		block, err := em.getLatestBlock()
+		height, err := em.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		assert.Equal(t, block.ID(), cacheBlock.ID())
+		assert.Equal(t, height, cacheHeight)
 	})
 
 }
