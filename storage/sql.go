@@ -37,11 +37,11 @@ const PostgreSQL = "postgresql"
 
 // NewInMemory database, warning not concurrency safe, do not use for e2e tests
 func NewInMemory() *SQL {
-	return newSQL(sqlite.Open(":memory:"), logger.Warn)
+	return newSQL(sqlite.Open(":memory:"), logger.Info)
 }
 
 func NewSqlite() *SQL {
-	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
+	return newSQL(sqlite.Open("./e2e-db"), logger.Info)
 }
 
 type DatabaseConfig struct {
@@ -227,8 +227,8 @@ func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
 func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
 	return s.db.
 		Where(&model.Account{ProjectID: pID}).
+		Order("\"index\" asc").
 		Find(accs).
-		Order("index asc").
 		Error
 }
 
@@ -326,8 +326,8 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
+		Order("\"index\" asc").
 		Find(exes).
-		Order("index asc").
 		Error
 }
 
