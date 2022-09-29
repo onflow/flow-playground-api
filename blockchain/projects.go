@@ -297,6 +297,7 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		if err != nil {
 			return nil, err
 		}
+		height = 0
 	}
 
 	executions, err = p.filterMissingExecutions(executions, height)
