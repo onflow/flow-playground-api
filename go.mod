@@ -21,7 +21,6 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onflow/cadence v0.27.0
 	github.com/onflow/flow-emulator v0.37.0
-	github.com/onflow/flow-go v0.26.14-test-synchronization.0.20220924005019-be5302fb1342
 	github.com/onflow/flow-go-sdk v0.28.0
 	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.8.0
@@ -97,6 +96,7 @@ require (
 	github.com/onflow/flow-core-contracts/lib/go/contracts v0.11.2-0.20220720151516-797b149ceaaa // indirect
 	github.com/onflow/flow-core-contracts/lib/go/templates v0.11.2-0.20220720151516-797b149ceaaa // indirect
 	github.com/onflow/flow-ft/lib/go/contracts v0.5.0 // indirect
+	github.com/onflow/flow-go v0.26.14-test-synchronization.0.20220924005019-be5302fb1342 // indirect
 	github.com/onflow/flow-go/crypto v0.24.4 // indirect
 	github.com/onflow/flow/protobuf/go/flow v0.3.1 // indirect
 	github.com/onflow/sdks v0.4.4 // indirect
