@@ -22,7 +22,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -55,8 +54,9 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, err
 	}
 
-	account.MergeFromStore(&acc)
-	return account.Export(), nil
+	return account.
+		MergeFromStore(&acc).
+		Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {
@@ -67,47 +67,59 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
+	addresses := make([]model.Address, len(accounts))
+	for i, account := range accounts {
+		addresses[i] = account.Address
+	}
+
+	accs, err := a.blockchain.GetAccounts(projectID, addresses)
+	if err != nil {
+		return nil, err
+	}
+
 	exported := make([]*model.Account, len(accounts))
 	for i, account := range accounts {
-		acc, err := a.blockchain.GetAccount(projectID, account.Address)
-		if err != nil {
-			return nil, err
-		}
-
-		acc.MergeFromStore(account)
-		exported[i] = acc.Export()
+		accs[i].MergeFromStore(account)
+		exported[i] = accs[i].Export()
 	}
 
 	return exported, nil
 }
 
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
+	if input.UpdateCode() {
+		return a.updateCode(input)
+	}
 
+	return a.deployCode(input)
+}
+
+// updateCode only updates the database code of an account.
+func (a *Accounts) updateCode(input model.UpdateAccount) (*model.Account, error) {
 	var acc model.Account
-
-	// if we provided draft code then just do a database update of an account
-	if input.DeployedCode == nil {
-		err := a.store.UpdateAccount(input, &acc)
-		if err != nil {
-			return nil, err
-		}
-
-		return acc.Export(), nil
-	}
-
-	err := a.store.GetAccount(input.ID, input.ProjectID, &acc)
+	err := a.store.UpdateAccount(input, &acc)
 	if err != nil {
 		return nil, err
 	}
 
-	account, err := a.blockchain.GetAccount(input.ProjectID, acc.Address)
+	return acc.Export(), nil
+}
+
+// deployCode deploys code on the flow network.
+func (a *Accounts) deployCode(input model.UpdateAccount) (*model.Account, error) {
+	var dbAccount model.Account
+	err := a.store.GetAccount(input.ID, input.ProjectID, &dbAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	if account.DeployedCode != "" {
+	flowAccount, err := a.blockchain.GetAccount(input.ProjectID, dbAccount.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	// reset the state first if already contains deployed code
+	if flowAccount.HasDeployedCode() {
 		var proj model.Project
 		err := a.store.GetProject(input.ProjectID, &proj)
 		if err != nil {
@@ -120,11 +132,12 @@ func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
 		}
 	}
 
-	account, err = a.blockchain.DeployContract(input.ProjectID, acc.Address, *input.DeployedCode)
+	flowAccount, err = a.blockchain.DeployContract(input.ProjectID, dbAccount.Address, *input.DeployedCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	account.MergeFromStore(&acc)
-	return account.Export(), nil
+	return flowAccount.
+		MergeFromStore(&dbAccount).
+		Export(), nil
 }

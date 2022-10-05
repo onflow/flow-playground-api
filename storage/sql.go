@@ -1,48 +1,62 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package storage
 
 import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var _ Store = &SQL{}
 
 const PostgreSQL = "postgresql"
 
+// NewInMemory database, warning not concurrency safe, do not use for e2e tests
 func NewInMemory() *SQL {
-	//conf := &gorm.Config{
-	//	Logger: logger.Default.LogMode(logger.Info),
-	//}
+	return newSQL(sqlite.Open(":memory:"), logger.Warn)
+}
 
-	database, err := gorm.Open(sqlite.Open(":memory:"))
-	if err != nil {
-		panic(errors.Wrap(err, "failed to connect database"))
-	}
-
-	migrate(database)
-
-	return &SQL{
-		db: database,
-	}
+func NewSqlite() *SQL {
+	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
 }
 
 type DatabaseConfig struct {
 	User     string
 	Password string
 	Name     string
+	Host     string
 	Port     int
 }
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 	config := postgres.Config{
 		DSN: fmt.Sprintf(
-			"user=%s password=%s dbname=%s port=%d sslmode=disable",
+			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
+			conf.Host,
 			conf.User,
 			conf.Password,
 			conf.Name,
@@ -50,20 +64,28 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	fmt.Println("#####", fmt.Sprintf(
-		"user=%s password=%s dbname=%s port=%d sslmode=disable",
-		conf.User,
-		conf.Password,
-		conf.Name,
-		conf.Port,
-	))
+	return newSQL(postgres.New(config), logger.Error)
+}
 
-	db, err := gorm.Open(postgres.New(config), &gorm.Config{})
+func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
+	gormConf := &gorm.Config{
+		Logger: logger.Default.LogMode(level),
+	}
+
+	db, err := gorm.Open(dial, gormConf)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to connect database"))
+		err := errors.Wrap(err, "failed to connect database")
+		sentry.CaptureException(err)
+		panic(err)
 	}
 
 	migrate(db)
+
+	d, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	d.SetMaxIdleConns(5) // we increase idle connection count due to nature of Playground API usage
 
 	return &SQL{
 		db: db,
@@ -81,6 +103,8 @@ func migrate(db *gorm.DB) {
 		&model.User{},
 	)
 	if err != nil {
+		err := errors.Wrap(err, "failed to migrate database")
+		sentry.CaptureException(err)
 		panic(err)
 	}
 }
@@ -120,14 +144,23 @@ func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTempla
 }
 
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
+	update := make(map[string]any)
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+	if input.Description != nil {
+		update["description"] = *input.Description
+	}
+	if input.Readme != nil {
+		update["readme"] = *input.Readme
+	}
+	if input.Persist != nil {
+		update["persist"] = *input.Persist
+	}
+
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).
-		Updates(model.Project{
-			Title:       *input.Title,
-			Description: *input.Description,
-			Readme:      *input.Readme,
-			Persist:     *input.Persist,
-		}).Error
+		Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -198,7 +231,11 @@ func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
 }
 
 func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
-	return s.db.Where(&model.Account{ProjectID: pID}).Find(accs).Error
+	return s.db.
+		Where(&model.Account{ProjectID: pID}).
+		Order("\"index\" asc").
+		Find(accs).
+		Error
 }
 
 func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
@@ -206,16 +243,15 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	err := s.db.
-		Model(&model.Account{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-		}).
-		Updates(&model.Account{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			DraftCode: *input.DraftCode,
-		}).Error
+	update := make(map[string]any)
+	if input.DraftCode != nil {
+		update["draft_code"] = *input.DraftCode
+	}
+
+	err := s.db.Model(&model.Account{
+		ID:        input.ID,
+		ProjectID: input.ProjectID,
+	}).Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -224,22 +260,36 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 }
 
 func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
+	var count int64
+	err := s.db.Model(&model.TransactionTemplate{}).
+		Where("project_id", tpl.ProjectID).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
+	update := make(map[string]any)
+	if input.Script != nil {
+		update["script"] = *input.Script
+	}
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+	if input.Index != nil {
+		update["index"] = *input.Index
+	}
+
 	err := s.db.
 		Model(&model.TransactionTemplate{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 		}).
-		Updates(&model.TransactionTemplate{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			Title:     *input.Title,
-			Index:     *input.Index,
-			Script:    *input.Script,
-		}).Error
+		Updates(update).Error
 	if err != nil {
 		return err
 	}
@@ -266,6 +316,7 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 	}
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		exe.Index = proj.TransactionExecutionCount
 		proj.TransactionExecutionCount += 1
 		if err := tx.Save(proj).Error; err != nil {
 			return err
@@ -280,23 +331,40 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 }
 
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).Find(exes).Error
+	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
+		Order("\"index\" asc").
+		Find(exes).
+		Error
 }
 
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
+	var count int64
+	err := s.db.Model(&model.ScriptTemplate{}).
+		Where("project_id", tpl.ProjectID).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
 
 func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
-	err := s.db.
-		Model(tpl).
-		Updates(&model.ScriptTemplate{
-			ID:        input.ID,
-			ProjectID: input.ProjectID,
-			Title:     *input.Title,
-			Index:     *input.Index,
-			Script:    *input.Script,
-		}).Error
+	update := make(map[string]any)
+	if input.Script != nil {
+		update["script"] = *input.Script
+	}
+	if input.Index != nil {
+		update["index"] = *input.Index
+	}
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+
+	err := s.db.Model(&model.ScriptTemplate{
+		ID: input.ID, ProjectID: input.ProjectID,
+	}).Updates(update).Error
 	if err != nil {
 		return err
 	}

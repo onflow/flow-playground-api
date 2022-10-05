@@ -102,3 +102,10 @@ func convertSigners(signers []Address) []flowsdk.Address {
 
 	return sigs
 }
+
+func (u *UpdateTransactionTemplate) Validate() error {
+	if u.Title == nil && u.Index == nil && u.Script == nil {
+		return errors.Wrap(missingValuesError, "title, index, script")
+	}
+	return nil
+}

@@ -79,7 +79,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	semVer := ""
+	if build.Version() != nil {
+		semVer = build.Version().String()
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
+		Release:          semVer,
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
@@ -108,7 +114,7 @@ func main() {
 
 	var store storage.Store
 
-	if strings.EqualFold(conf.StorageBackend, "postgresql") {
+	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
 		var datastoreConf storage.DatabaseConfig
 		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			log.Fatal(err)

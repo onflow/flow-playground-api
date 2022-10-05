@@ -15,12 +15,12 @@ test:
 	GO111MODULE=on go test -v ./...
 
 .PHONY: test-datastore
-test-datastore:
+test-pg:
 	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test -v ./...
 
 .PHONY: test-migration
 test-migration:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./migrate/... -run Test_MigrationV0_12_0
+	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./migrate/...
 
 
 .PHONY: run
@@ -32,20 +32,18 @@ run:
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
-.PHONY: run-datastore
-run-datastore:
-	DATASTORE_EMULATOR_HOST=localhost:8081 \
-	FLOW_STORAGEBACKEND=datastore \
-	FLOW_DATASTORE_GCPPROJECTID=flow-developer-playground \
+.PHONY: run-pg
+run-pg:
+	FLOW_DB_USER=postgres \
+	FLOW_DB_PORT=5432 \
+	FLOW_DB_NAME=dapper \
+	FLOW_DB_HOST=localhost \
+	FLOW_STORAGEBACKEND=postgresql \
 	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false \
 	GO111MODULE=on \
 	go run \
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
-
-.PHONY: start-datastore-emulator
-start-datastore-emulator:
-	gcloud beta emulators datastore start --no-store-on-disk
 
 .PHONY: ci
 ci: check-tidy test check-headers

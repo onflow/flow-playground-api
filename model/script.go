@@ -61,3 +61,10 @@ type ScriptExecution struct {
 	Errors    []ProgramError `gorm:"serializer:json"`
 	Logs      []string       `gorm:"serializer:json"`
 }
+
+func (u *UpdateScriptTemplate) Validate() error {
+	if u.Title == nil && u.Script == nil && u.Index == nil {
+		return errors.Wrap(missingValuesError, "title, script, index")
+	}
+	return nil
+}

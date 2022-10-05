@@ -19,16 +19,20 @@
 package model
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 )
 
 func (a *Account) Export() *Account {
 	return &Account{
-		ID:        a.ID,
-		ProjectID: a.ProjectID,
-		Address:   a.Address,
-		DraftCode: a.DraftCode,
+		ID:                a.ID,
+		ProjectID:         a.ProjectID,
+		Address:           a.Address,
+		DraftCode:         a.DraftCode,
+		DeployedCode:      a.DeployedCode,
+		DeployedContracts: a.DeployedContracts,
+		State:             a.State,
 	}
 }
 
@@ -43,9 +47,14 @@ type Account struct {
 	State             string
 }
 
-func (a *Account) MergeFromStore(acc *Account) {
+func (a *Account) MergeFromStore(acc *Account) *Account {
 	a.ID = acc.ID
 	a.DraftCode = acc.DraftCode
+	return a
+}
+
+func (a *Account) HasDeployedCode() bool {
+	return a.DeployedCode != ""
 }
 
 type UpdateAccount struct {
@@ -54,6 +63,21 @@ type UpdateAccount struct {
 	DraftCode         *string   `json:"draftCode"`
 	DeployedCode      *string   `json:"deployedCode"`
 	DeployedContracts *[]string
+}
+
+func (u *UpdateAccount) Validate() error {
+	if u.DeployedCode == nil && u.DraftCode == nil {
+		return errors.Wrap(missingValuesError, "deployed code, draft code")
+	}
+	if u.DeployedCode != nil && u.DraftCode != nil {
+		return fmt.Errorf("can only provide deployed code or draft code")
+	}
+
+	return nil
+}
+
+func (u *UpdateAccount) UpdateCode() bool {
+	return u.DeployedCode == nil && u.DraftCode != nil
 }
 
 func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {

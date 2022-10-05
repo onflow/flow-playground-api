@@ -19,10 +19,13 @@
 package controller
 
 import (
+	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api/build"
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/onflow/cadence"
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/onflow/cadence"
 )
 
 type UtilsHandler struct{}
@@ -32,9 +35,9 @@ func NewUtilsHandler() *UtilsHandler {
 }
 
 func (u *UtilsHandler) VersionHandler(w http.ResponseWriter, r *http.Request) {
-	render.JSON(w, r, struct {
-		Version string `json:"version"`
-	}{
-		cadence.Version,
-	})
+	version := model.PlaygroundInfo{
+		APIVersion:     *build.Version(),
+		CadenceVersion: *semver.MustParse(cadence.Version),
+	}
+	render.JSON(w, r, version)
 }

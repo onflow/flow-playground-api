@@ -21,19 +21,21 @@ package playground_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/getsentry/sentry-go"
+	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/Masterminds/semver"
-	"github.com/go-chi/chi"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -1067,14 +1069,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
 		// manually construct resolver
-		store := storage.NewInMemory()
-
-		projects := blockchain.NewProjects(store, initAccounts)
-		authenticator := auth.NewAuthenticator(store, sessionName)
-		resolver := playground.NewResolver(version, store, authenticator, projects)
-
-		c := newClientWithResolver(resolver)
-
+		c := newClient()
 		project := createProject(t, c)
 
 		var respA CreateTransactionExecutionResponse
@@ -1103,7 +1098,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		_, err = projects.Reset(&model.Project{
+		_, err = c.projects.Reset(&model.Project{
 			ID: uuid.MustParse(project.ID),
 		})
 		require.NoError(t, err)
@@ -2035,7 +2030,7 @@ func TestAccountStorage(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, account.ID, accResp.Account.ID)
-	assert.Equal(t, `"{}"`, accResp.Account.State)
+	assert.Equal(t, `{}`, accResp.Account.State)
 
 	var resp CreateTransactionExecutionResponse
 
@@ -2503,6 +2498,8 @@ type Client struct {
 	client        *client.Client
 	resolver      *playground.Resolver
 	sessionCookie *http.Cookie
+	projects      *blockchain.Projects
+	store         storage.Store
 }
 
 func (c *Client) Post(query string, response interface{}, options ...client.Option) error {
@@ -2538,8 +2535,13 @@ const sessionName = "flow-playground-test"
 
 var version, _ = semver.NewVersion("0.1.0")
 
-func newClient() *Client {
-	var store storage.Store
+// keep same instance of store due to connection pool exhaustion
+var store storage.Store
+
+func newStore() storage.Store {
+	if store != nil {
+		return store
+	}
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
 		var datastoreConf storage.DatabaseConfig
@@ -2549,14 +2551,22 @@ func newClient() *Client {
 
 		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = storage.NewInMemory()
+		store = storage.NewSqlite()
 	}
 
+	return store
+}
+
+func newClient() *Client {
+	store := newStore()
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccounts)
 	resolver := playground.NewResolver(version, store, authenticator, chain)
 
-	return newClientWithResolver(resolver)
+	c := newClientWithResolver(resolver)
+	c.store = store
+	c.projects = chain
+	return c
 }
 
 func newClientWithResolver(resolver *playground.Resolver) *Client {
@@ -2564,7 +2574,10 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
 
-	router.Handle("/", playground.GraphQLHandler(resolver))
+	localHub := sentry.CurrentHub().Clone()
+	logger := logrus.StandardLogger()
+	entry := logrus.NewEntry(logger)
+	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
 		client:   client.New(router),

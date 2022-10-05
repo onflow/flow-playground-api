@@ -20,8 +20,6 @@ package auth
 
 import (
 	"context"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -91,9 +89,6 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	var user *model.User
 	var err error
 
@@ -135,10 +130,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	var user model.User
-
 	var userID uuid.UUID
 
 	err := userID.UnmarshalText([]byte(userIDStr))
@@ -187,7 +179,7 @@ func (a *Authenticator) createNewUser() (*model.User, error) {
 
 	err := a.store.InsertUser(user)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not insert the user")
 	}
 
 	return user, nil
