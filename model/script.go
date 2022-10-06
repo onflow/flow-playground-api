@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/flow-emulator/types"
+	"github.com/pkg/errors"
 )
 
 type ScriptTemplate struct {

@@ -1,6 +1,7 @@
 package telemetry
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"runtime"
 	"strings"
@@ -54,11 +55,13 @@ func EndRuntimeCalculation() {
 	elapsedTime := time.Since(frame.StartTime)
 	// pop stack
 	runtimeStack = runtimeStack[:stackSize]
-	runtimeDebugLog(frame.FuncName + " was executed in " + elapsedTime.String())
+	DebugLog(frame.FuncName + " was executed in " + elapsedTime.String())
 }
 
-// runtimeDebugLog logs message if runtimeDebugActive is true
-func runtimeDebugLog(message string) {
+// DebugLog logs message if runtimeDebugActive is true
+func DebugLog(message string) {
+	fmt.Println(message)
+	return
 	defer func() {
 		recover()
 	}()
@@ -70,6 +73,5 @@ func runtimeDebugLog(message string) {
 	}
 	logger.
 		WithField("timestamp", time.Now().UnixMilli()).
-		WithField("subroutine ID", getGID()).
 		Info(message)
 }

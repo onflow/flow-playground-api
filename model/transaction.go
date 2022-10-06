@@ -22,6 +22,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
+	"github.com/pkg/errors"
 )
 
 type TransactionTemplate struct {

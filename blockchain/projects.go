@@ -107,9 +107,6 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 
 // ExecuteScript executes the script.
 func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.ScriptExecution, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()

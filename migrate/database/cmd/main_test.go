@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/dapperlabs/flow-playground-api/migrate/database/model"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
@@ -11,7 +10,7 @@ import (
 	"time"
 )
 
-const runPopulate = false
+const runPopulate = true
 const numProjectsGen = 2
 
 // Run $(gcloud beta emulators datastore env-init) to set env variables for datastore
@@ -23,7 +22,7 @@ func Test_RunSQLMigration(t *testing.T) {
 }
 
 func populateDatastore() {
-	fmt.Println("Populating datastore...")
+	telemetry.DebugLog("Populating datastore...")
 	dstore := connectToDatastore()
 
 	// Generate projects

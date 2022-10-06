@@ -67,6 +67,7 @@ func connectToSQL() *storage.SQL {
 		User:     "newuser", // test db with newuser / password
 		Password: "password",
 		Name:     "postgres",
+		Host:     "localhost",
 		Port:     5432,
 	})
 	return sqlDB

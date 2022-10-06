@@ -42,8 +42,6 @@ func (d *DatastoreIterator) HasNext() bool {
 func (d *DatastoreIterator) GetNext() {
 	d.Projects = d.nextProjects
 	d.nextProjects = []*model.InternalProject{}
-	// TODO: Limit() is trying to grab STRICTLY that many... Needs to just be the max amount.
-	// TODO: They messed up their implementation?!?
 	query := datastore.NewQuery("Project").Offset(d.index).Limit(d.limit)
 	err := d.dstore.getAll(query, &d.nextProjects)
 	if err != nil {
