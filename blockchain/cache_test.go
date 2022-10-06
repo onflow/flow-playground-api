@@ -63,4 +63,25 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, block.ID(), cacheBlock.ID())
 	})
 
+	t.Run("returns cached emulator with executions", func(t *testing.T) {
+		testID := uuid.New()
+		c := newEmulatorCache(2)
+
+		em, err := newEmulator()
+		require.NoError(t, err)
+
+		/* TODO: Add cache tests
+		exes := createExecutions(5)
+		for _, ex := range exes {
+			_, _, err := em.executeTransaction(ex.Script, nil)
+			require.NoError(t, err)
+		}
+
+		c.add(testID, em)
+
+		cacheEm := c.get(testID)
+		require.NotNil(t, cacheEm)
+		*/
+	})
+
 }

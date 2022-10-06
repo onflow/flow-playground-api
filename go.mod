@@ -12,11 +12,11 @@ require (
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/httplog v0.2.5
 	github.com/go-chi/render v1.0.1
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.5.0
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onflow/cadence v0.26.0
@@ -64,7 +64,6 @@ require (
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/ipfs/go-cid v0.2.0 // indirect
