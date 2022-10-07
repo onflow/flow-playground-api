@@ -458,6 +458,89 @@ type DeleteScriptTemplateResponse struct {
 
 const initAccounts = 5
 
+func TestReplicas(t *testing.T) {
+	const numReplicas = 5
+
+	// Create replicas
+	var replicas []*Client
+	for i := 0; i < numReplicas; i++ {
+		replicas = append(replicas, newClient())
+	}
+
+	replicaIdx := 0 // Current replica
+	// loadBalancer cycles through replicas
+	var loadBalancer = func() *Client {
+		replicaIdx = (replicaIdx + 1) % len(replicas)
+		return replicas[replicaIdx]
+	}
+
+	// Create project
+	c := loadBalancer()
+	project := createProject(t, c)
+	fmt.Println("Created project using replica", replicaIdx)
+
+	t.Run("Execute transactions on multiple replicas", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			// Use next replica
+			c = loadBalancer()
+			fmt.Println("Executing transaction on replica", replicaIdx)
+
+			var resp CreateTransactionExecutionResponse
+			const script = "transaction { execute { log(\"Hello, World!\") } }"
+			err := c.Post(
+				MutationCreateTransactionExecution,
+				&resp,
+				client.Var("projectId", project.ID),
+				client.Var("script", script),
+				client.AddCookie(c.SessionCookie()),
+			)
+			require.NoError(t, err)
+			assert.Empty(t, resp.CreateTransactionExecution.Errors)
+			assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+			assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+		}
+	})
+
+	t.Run("Deploy contracts distributed on multiple replicas", func(t *testing.T) {
+
+	})
+
+	t.Run("Redeploy a contract on a separate replica", func(t *testing.T) {
+		/*
+			account := project.Accounts[0]
+
+			// Get account
+			var respA GetAccountResponse
+			err := loadBalancer().Post(
+				QueryGetAccount,
+				&respA,
+				client.Var("projectId", project.ID),
+				client.Var("accountId", account.ID),
+			)
+			require.NoError(t, err)
+			assert.Equal(t, "", respA.Account.DeployedCode)
+
+			// Re-Deploy contract to account on multiple replicas
+			for i := 0; i < 10; i++ {
+				const contractA = "pub contract Foo {}"
+				var respB UpdateAccountResponse
+				err = loadBalancer().Post(
+					MutationUpdateAccountDeployedCode,
+					&respB,
+					client.Var("projectId", project.ID),
+					client.Var("accountId", account.ID),
+					client.Var("code", contractA),
+					client.AddCookie(replicaSessionCookie()),
+				)
+				require.NoError(t, err)
+				assert.Equal(t, contractA, respB.UpdateAccount.DeployedCode)
+				assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
+			}
+
+		*/
+	})
+}
+
 func TestProjects(t *testing.T) {
 	t.Run("Create empty project", func(t *testing.T) {
 		c := newClient()
