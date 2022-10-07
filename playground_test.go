@@ -34,6 +34,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -459,6 +460,7 @@ type DeleteScriptTemplateResponse struct {
 const initAccounts = 5
 
 func TestReplicas(t *testing.T) {
+	// Each replica is a different client calling the API, but also an instance of the resolver
 	const numReplicas = 5
 
 	// Create replicas
@@ -467,7 +469,7 @@ func TestReplicas(t *testing.T) {
 		replicas = append(replicas, newClient())
 	}
 
-	replicaIdx := 0 // Current replica
+	replicaIdx := 0 // current replica
 	// loadBalancer cycles through replicas
 	var loadBalancer = func() *Client {
 		replicaIdx = (replicaIdx + 1) % len(replicas)
@@ -477,22 +479,19 @@ func TestReplicas(t *testing.T) {
 	// Create project
 	c := loadBalancer()
 	project := createProject(t, c)
-	fmt.Println("Created project using replica", replicaIdx)
+	cookie := c.SessionCookie() // Use one session cookie for everything currently
 
 	t.Run("Execute transactions on multiple replicas", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			// Use next replica
-			c = loadBalancer()
-			fmt.Println("Executing transaction on replica", replicaIdx)
-
-			var resp CreateTransactionExecutionResponse
 			const script = "transaction { execute { log(\"Hello, World!\") } }"
-			err := c.Post(
+			var resp CreateTransactionExecutionResponse
+			err := loadBalancer().Post(
 				MutationCreateTransactionExecution,
 				&resp,
 				client.Var("projectId", project.ID),
 				client.Var("script", script),
-				client.AddCookie(c.SessionCookie()),
+				client.AddCookie(cookie),
 			)
 			require.NoError(t, err)
 			assert.Empty(t, resp.CreateTransactionExecution.Errors)
@@ -501,43 +500,63 @@ func TestReplicas(t *testing.T) {
 		}
 	})
 
-	t.Run("Deploy contracts distributed on multiple replicas", func(t *testing.T) {
+	t.Run("Re-Deploy contracts on different replicas", func(t *testing.T) {
 
 	})
 
-	t.Run("Redeploy a contract on a separate replica", func(t *testing.T) {
-		/*
-			account := project.Accounts[0]
+	t.Run("Deploy and Re-Deploy contracts distributed on multiple replicas", func(t *testing.T) {
+		var accountsDeployedCode []string
+		for i := 0; i < len(project.Accounts); i++ {
+			accountsDeployedCode = append(accountsDeployedCode, "")
+		}
 
-			// Get account
+		// TODO: When it loops back to to a re-deploy, the previous replica is using the
+		// TODO: cached deployed contracts instead of grabbing the newest
+		// TODO: When rebuilding the missing executions on the cached emulator, the deployed code
+		// TODO: is not updated.
+		// TODO: What's the difference between execute and send transactions??
+
+		for i := 0; i < 10; i++ {
+			c := loadBalancer()
+			fmt.Println("Using replica", replicaIdx)
+			// Get next account in cycle
+			accountIdx := 0 //i % len(project.Accounts)
+			account := project.Accounts[accountIdx]
+
+			prevDeployedCode := accountsDeployedCode[accountIdx]
+			fmt.Println("Prev deployed for account 0: " + prevDeployedCode)
+
 			var respA GetAccountResponse
-			err := loadBalancer().Post(
+			err := c.Post(
 				QueryGetAccount,
 				&respA,
 				client.Var("projectId", project.ID),
 				client.Var("accountId", account.ID),
 			)
 			require.NoError(t, err)
-			assert.Equal(t, "", respA.Account.DeployedCode)
+			assert.Equal(t, prevDeployedCode, respA.Account.DeployedCode)
 
-			// Re-Deploy contract to account on multiple replicas
-			for i := 0; i < 10; i++ {
-				const contractA = "pub contract Foo {}"
-				var respB UpdateAccountResponse
-				err = loadBalancer().Post(
-					MutationUpdateAccountDeployedCode,
-					&respB,
-					client.Var("projectId", project.ID),
-					client.Var("accountId", account.ID),
-					client.Var("code", contractA),
-					client.AddCookie(replicaSessionCookie()),
-				)
-				require.NoError(t, err)
-				assert.Equal(t, contractA, respB.UpdateAccount.DeployedCode)
-				assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo")
-			}
+			contractNumber := strconv.Itoa(i)
+			var contract = "pub contract Foo" + contractNumber + " {}"
 
-		*/
+			var respB UpdateAccountResponse
+			err = c.Post(
+				MutationUpdateAccountDeployedCode,
+				&respB,
+				client.Var("projectId", project.ID),
+				client.Var("accountId", account.ID),
+				client.Var("code", contract),
+				client.AddCookie(cookie),
+			)
+			require.NoError(t, err)
+
+			// Update deployed code for current account
+			accountsDeployedCode[accountIdx] = contract
+			fmt.Println("New deployed code for account 0: " + accountsDeployedCode[accountIdx])
+
+			assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+			assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo"+contractNumber)
+		}
 	})
 }
 
