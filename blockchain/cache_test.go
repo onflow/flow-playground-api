@@ -95,11 +95,11 @@ func Test_Cache(t *testing.T) {
 		assert.Equal(t, latestCacheBlock.Header.Height, uint64(numExecutions))
 
 		// Verify all cached emulator executions
-		for i := uint64(0); i <= uint64(numExecutions); i++ {
-			block, err := em.blockchain.GetBlockByHeight(i)
+		for i := 0; i <= numExecutions; i++ {
+			block, err := em.blockchain.GetBlockByHeight(uint64(i))
 			require.NoError(t, err)
 
-			cacheBlock, err := em.blockchain.GetBlockByHeight(i)
+			cacheBlock, err := em.blockchain.GetBlockByHeight(uint64(i))
 			require.NoError(t, err)
 
 			assert.Equal(t, block.ID(), cacheBlock.ID())
