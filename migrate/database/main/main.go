@@ -1,4 +1,4 @@
-package main
+package cmd
 
 // Database migrator is used to migrate from Google datastore to the new SQL postgres database
 
@@ -8,8 +8,8 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/kelseyhightower/envconfig"
+	"log"
 	"strconv"
-	"time"
 )
 
 // numErrors counts the errors that occur during migration
@@ -44,28 +44,13 @@ func main() {
 }
 
 func connectToDatastore() *datastore.Datastore {
-	type DatastoreConfig struct {
-		GCPProjectID string        `required:"true"`
-		Timeout      time.Duration `default:"5s"`
-	}
+	var datastoreConf datastore.Config
 
-	// Connect to datastore using environment vars
-	var datastoreConf DatastoreConfig
 	if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
-	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
-		DatastoreProjectID: datastoreConf.GCPProjectID,
-		DatastoreTimeout:   datastoreConf.Timeout,
-	})
-	/*
-		// Local testing datastore
-		store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
-			DatastoreProjectID: "test-project", // "dl-flow",
-			DatastoreTimeout:   time.Second * 5,
-		})
-	*/
+	store, err := datastore.NewDatastore(context.Background(), &datastoreConf)
 	if err != nil {
 		panic(err)
 	}
@@ -73,23 +58,10 @@ func connectToDatastore() *datastore.Datastore {
 }
 
 func connectToSQL() *storage.SQL {
-	// Connect SQL database using environment vars
-
 	var datastoreConf storage.DatabaseConfig
 	if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	sqlDB := storage.NewPostgreSQL(&datastoreConf)
 
-	/*
-		// Local testing database
-		sqlDB := storage.NewPostgreSQL(&storage.DatabaseConfig{
-			User:     "newuser", // test db with newuser / password
-			Password: "password",
-			Name:     "postgres",
-			Host:     "localhost",
-			Port:     5432,
-		})
-	*/
-	return sqlDB
+	return storage.NewPostgreSQL(&datastoreConf)
 }
