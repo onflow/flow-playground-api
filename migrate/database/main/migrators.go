@@ -33,7 +33,7 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 			Index:             acc.Index,
 			Address:           sqlModel.Address(acc.Address),
 			DraftCode:         acc.DraftCode,
-			DeployedCode:      "", // TODO: Are these added??
+			DeployedCode:      "",
 			DeployedContracts: nil,
 			State:             "",
 		})
@@ -48,7 +48,7 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 
 // convertTransactionTemplates Retrieves and converts models of datastore transaction templates
 // to sql transaction templates
-func convertTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.TransactionTemplate {
+func convertTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) (*[]*sqlModel.TransactionTemplate, error) {
 	var ttpl []*model.TransactionTemplate
 	err := dstore.GetTransactionTemplatesForProject(projID, &ttpl)
 	if err != nil {
@@ -56,7 +56,7 @@ func convertTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) 
 		telemetry.DebugLog("Error: could retrieve transaction templates for project ID " +
 			projID.String() + " skipping project")
 		numErrors++
-		return nil
+		return nil, err
 	}
 
 	var sqlTtpl []*sqlModel.TransactionTemplate
@@ -69,16 +69,16 @@ func convertTransactionTemplates(dstore *datastore.Datastore, projID uuid.UUID) 
 			Script:    ttp.Script,
 		})
 	}
-	return &sqlTtpl
+	return &sqlTtpl, nil
 }
 
 // migrateScriptTemplates converts models of datastore script templates to sql script templates
-func convertScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*sqlModel.ScriptTemplate {
+func convertScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) (*[]*sqlModel.ScriptTemplate, error) {
 	var stpl []*model.ScriptTemplate
 	err := dstore.GetScriptTemplatesForProject(projID, &stpl)
 	if err != nil {
 		telemetry.DebugLog(err.Error())
-		return nil
+		return nil, err
 	}
 
 	var sqlStpl []*sqlModel.ScriptTemplate
@@ -91,7 +91,7 @@ func convertScriptTemplates(dstore *datastore.Datastore, projID uuid.UUID) *[]*s
 			Script:    ttp.Script,
 		})
 	}
-	return &sqlStpl
+	return &sqlStpl, nil
 }
 
 func convertProject(proj *model.InternalProject) *sqlModel.Project {
@@ -120,10 +120,6 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 	if err != nil {
 		telemetry.DebugLog("Error: could not get script executions for project ID: " +
 			projID.String() + " " + err.Error())
-		return
-	}
-
-	if len(exes) == 0 {
 		return
 	}
 
@@ -227,8 +223,8 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model.InternalProject) {
 	sqlProj := convertProject(proj)
 
-	sqlTtpl := convertTransactionTemplates(dstore, proj.ID)
-	if sqlTtpl == nil {
+	sqlTtpl, err := convertTransactionTemplates(dstore, proj.ID)
+	if err != nil {
 		telemetry.DebugLog("Error: could not migrate transaction templates for project ID " +
 			proj.ID.String() + " skipping project")
 		numErrors++
@@ -236,8 +232,8 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	}
 
 	// Convert script templates for project
-	sqlStpl := convertScriptTemplates(dstore, proj.ID)
-	if sqlStpl == nil {
+	sqlStpl, err := convertScriptTemplates(dstore, proj.ID)
+	if err != nil {
 		telemetry.DebugLog("Error: could not migrate script templates for project ID " +
 			proj.ID.String() + " skipping project")
 		numErrors++
@@ -245,8 +241,9 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	}
 
 	// Store migrated project in SQL db
-	err := sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
+	err = sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
 	if err != nil {
+		// TODO: Other cases?
 		if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 			telemetry.DebugLog("Error: could not store project ID " + proj.ID.String() +
 				" in sql db. Skipping project. " + err.Error())
