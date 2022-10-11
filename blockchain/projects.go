@@ -247,6 +247,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
+	fmt.Println("UPDATED CONTRACT WITH SCRIPT:", script)
 	return p.getAccount(em, projectID, address)
 }
 
@@ -264,6 +265,8 @@ func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.
 	account := model.AccountFromFlow(flowAccount, projectID)
 	account.ProjectID = projectID
 	account.State = string(jsonStorage)
+
+	fmt.Println("DEPLOYED CODE in account", account.DeployedCode)
 
 	return account, nil
 }

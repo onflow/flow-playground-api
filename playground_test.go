@@ -461,7 +461,7 @@ const initAccounts = 5
 
 func TestReplicas(t *testing.T) {
 	// Each replica is a different client calling the API, but also an instance of the resolver
-	const numReplicas = 5
+	const numReplicas = 2
 
 	// Create replicas
 	var replicas []*Client
@@ -500,10 +500,6 @@ func TestReplicas(t *testing.T) {
 		}
 	})
 
-	t.Run("Re-Deploy contracts on different replicas", func(t *testing.T) {
-
-	})
-
 	t.Run("Deploy and Re-Deploy contracts distributed on multiple replicas", func(t *testing.T) {
 		var accountsDeployedCode []string
 		for i := 0; i < len(project.Accounts); i++ {
@@ -514,7 +510,7 @@ func TestReplicas(t *testing.T) {
 		// TODO: cached deployed contracts instead of grabbing the newest
 		// TODO: When rebuilding the missing executions on the cached emulator, the deployed code
 		// TODO: is not updated.
-		// TODO: What's the difference between execute and send transactions??
+		// TODO: What's the difference between executeTransaction and sendTransaction??
 
 		for i := 0; i < 10; i++ {
 			c := loadBalancer()
@@ -534,7 +530,7 @@ func TestReplicas(t *testing.T) {
 				client.Var("accountId", account.ID),
 			)
 			require.NoError(t, err)
-			assert.Equal(t, prevDeployedCode, respA.Account.DeployedCode)
+			require.Equal(t, prevDeployedCode, respA.Account.DeployedCode)
 
 			contractNumber := strconv.Itoa(i)
 			var contract = "pub contract Foo" + contractNumber + " {}"
