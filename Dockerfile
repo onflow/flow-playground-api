@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     GO111MODULE=on GOOS=linux GOARCH=amd64 \
     go build \
     -ldflags "-extldflags -static -X github.com/dapperlabs/flow-playground-api/build.version=${VERSION}" \
-    -o ./app ./migrate/database/cmd
+    -o ./app ./migrate/database/main
 
 RUN chmod a+x /app/app
 
