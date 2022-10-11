@@ -44,13 +44,10 @@ func main() {
 }
 
 func connectToDatastore() *datastore.Datastore {
-	var datastoreConf datastore.Config
-
-	if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
-		log.Fatal(err)
-	}
-
-	store, err := datastore.NewDatastore(context.Background(), &datastoreConf)
+	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
+		DatastoreProjectID: "flow-developer-playground",
+		DatastoreTimeout:   0,
+	})
 	if err != nil {
 		panic(err)
 	}
