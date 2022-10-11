@@ -1,4 +1,4 @@
-package cmd
+package main
 
 // Database migrator is used to migrate from Google datastore to the new SQL postgres database
 

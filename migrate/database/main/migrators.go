@@ -1,4 +1,4 @@
-package cmd
+package main
 
 // Migrator functions to move data from datastore to sql database
 
