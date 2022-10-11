@@ -64,24 +64,46 @@ func Test_Cache(t *testing.T) {
 	})
 
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
+		numExecutions := 5
+
 		testID := uuid.New()
 		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
 
-		/* TODO: Add cache tests
-		exes := createExecutions(5)
+		// Add executions to emulator
+		exes := createExecutions(numExecutions)
 		for _, ex := range exes {
-			_, _, err := em.executeTransaction(ex.Script, nil)
+			_, _, err := em.executeTransaction(ex.Script, nil, nil)
 			require.NoError(t, err)
 		}
+
+		latestBlock, err := em.getLatestBlock()
+		require.NoError(t, err)
+
+		assert.Equal(t, latestBlock.Header.Height, uint64(numExecutions))
 
 		c.add(testID, em)
 
 		cacheEm := c.get(testID)
-		require.NotNil(t, cacheEm)
-		*/
-	})
 
+		latestCacheBlock, err := cacheEm.getLatestBlock()
+		require.NoError(t, err)
+
+		// Verify cached emulator block height
+		assert.Equal(t, latestCacheBlock.Header.Height, uint64(numExecutions))
+
+		// Verify all cached emulator executions
+		for i := uint64(0); i <= uint64(numExecutions); i++ {
+			block, err := em.blockchain.GetBlockByHeight(i)
+			require.NoError(t, err)
+
+			cacheBlock, err := em.blockchain.GetBlockByHeight(i)
+			require.NoError(t, err)
+
+			assert.Equal(t, block.ID(), cacheBlock.ID())
+			assert.Equal(t, block.Checksum(), cacheBlock.Checksum())
+		}
+	})
 }
