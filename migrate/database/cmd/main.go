@@ -7,6 +7,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/migrate/database/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/kelseyhightower/envconfig"
 	"strconv"
 	"time"
 )
@@ -43,11 +44,28 @@ func main() {
 }
 
 func connectToDatastore() *datastore.Datastore {
-	// TODO: connect to actual datastore
+	type DatastoreConfig struct {
+		GCPProjectID string        `required:"true"`
+		Timeout      time.Duration `default:"5s"`
+	}
+
+	// Connect to datastore using environment vars
+	var datastoreConf DatastoreConfig
+	if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+		panic(err)
+	}
+
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
-		DatastoreProjectID: "test-project", // "dl-flow",
-		DatastoreTimeout:   time.Second * 5,
+		DatastoreProjectID: datastoreConf.GCPProjectID,
+		DatastoreTimeout:   datastoreConf.Timeout,
 	})
+	/*
+		// Local testing datastore
+		store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
+			DatastoreProjectID: "test-project", // "dl-flow",
+			DatastoreTimeout:   time.Second * 5,
+		})
+	*/
 	if err != nil {
 		panic(err)
 	}
@@ -55,20 +73,23 @@ func connectToDatastore() *datastore.Datastore {
 }
 
 func connectToSQL() *storage.SQL {
-	// TODO: connect to the real postgres database
-	/*
-		var datastoreConf storage.DatabaseConfig
-		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
-			log.Fatal(err)
-		}
-	*/
+	// Connect SQL database using environment vars
 
-	sqlDB := storage.NewPostgreSQL(&storage.DatabaseConfig{
-		User:     "newuser", // test db with newuser / password
-		Password: "password",
-		Name:     "postgres",
-		Host:     "localhost",
-		Port:     5432,
-	})
+	var datastoreConf storage.DatabaseConfig
+	if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+		panic(err)
+	}
+	sqlDB := storage.NewPostgreSQL(&datastoreConf)
+
+	/*
+		// Local testing database
+		sqlDB := storage.NewPostgreSQL(&storage.DatabaseConfig{
+			User:     "newuser", // test db with newuser / password
+			Password: "password",
+			Name:     "postgres",
+			Host:     "localhost",
+			Port:     5432,
+		})
+	*/
 	return sqlDB
 }
