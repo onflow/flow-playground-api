@@ -38,6 +38,7 @@ import (
 const numAccounts = 4
 
 func TestMigrateNilToV0(t *testing.T) {
+	t.Parallel()
 	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
 		projID := uuid.New()
 
@@ -48,6 +49,7 @@ func TestMigrateNilToV0(t *testing.T) {
 }
 
 func TestMigrateV0ToV0(t *testing.T) {
+	t.Parallel()
 	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
 		projID := uuid.New()
 
@@ -58,6 +60,7 @@ func TestMigrateV0ToV0(t *testing.T) {
 }
 
 func TestMigrateV0ToV0_1_0(t *testing.T) {
+	t.Parallel()
 	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
 		proj, err := c.projects.Create(c.user, model.NewProject{})
 		require.NoError(t, err)
@@ -80,6 +83,7 @@ func TestMigrateV0ToV0_1_0(t *testing.T) {
 }
 
 func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
+	t.Parallel()
 	migrateTest(migrate.V0_1_0, func(t *testing.T, c migrateTestCase) {
 		v0_2_0 := semver.MustParse("v0.2.0")
 
@@ -151,6 +155,7 @@ func assertAllAccountsExist(t *testing.T, scripts *controller.Scripts, proj *mod
 }
 
 func Test_MigrationV0_12_0(t *testing.T) {
+	t.Parallel()
 	store := storage.NewInMemory()
 
 	chain := blockchain.NewProjects(store, 5)
