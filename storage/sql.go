@@ -391,3 +391,13 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 func (s *SQL) GetScriptExecutionsForProject(pID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{ProjectID: pID}).Find(exes).Error
 }
+
+func (s *SQL) DeleteAllData() {
+	s.db.Exec("DELETE FROM projects")
+	s.db.Exec("DELETE FROM users")
+	s.db.Exec("DELETE FROM accounts")
+	s.db.Exec("DELETE FROM script_executions")
+	s.db.Exec("DELETE FROM script_templates")
+	s.db.Exec("DELETE FROM transaction_templates")
+	s.db.Exec("DELETE FROM transaction_executions")
+}

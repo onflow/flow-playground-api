@@ -22,6 +22,9 @@ func main() {
 	sqlDB := connectToSQL()
 	telemetry.DebugLog("Connected to SQL database")
 
+	telemetry.DebugLog("Clearing SQL database...")
+	sqlDB.DeleteAllData()
+
 	telemetry.DebugLog("Starting migration...")
 	numProjects := 0
 	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); p.GetNext() {
