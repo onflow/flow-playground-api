@@ -7,8 +7,9 @@ import (
 	"github.com/dapperlabs/flow-playground-api/migrate/database/storage/datastore"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/kelseyhightower/envconfig"
+	"log"
 	"strconv"
-	"time"
 )
 
 // numErrors counts the errors that occur during migration
@@ -43,11 +44,13 @@ func main() {
 }
 
 func connectToDatastore() *datastore.Datastore {
-	// TODO: connect to actual datastore
-	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
-		DatastoreProjectID: "test-project", // "dl-flow",
-		DatastoreTimeout:   time.Second * 5,
-	})
+	var datastoreConf datastore.Config
+
+	if err := envconfig.Process("FLOW_DATASTORE", &datastoreConf); err != nil {
+		log.Fatal(err)
+	}
+
+	store, err := datastore.NewDatastore(context.Background(), &datastoreConf)
 	if err != nil {
 		panic(err)
 	}
@@ -55,20 +58,10 @@ func connectToDatastore() *datastore.Datastore {
 }
 
 func connectToSQL() *storage.SQL {
-	// TODO: connect to the real postgres database
-	/*
-		var datastoreConf storage.DatabaseConfig
-		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
-			log.Fatal(err)
-		}
-	*/
+	var datastoreConf storage.DatabaseConfig
+	if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
+		log.Fatal(err)
+	}
 
-	sqlDB := storage.NewPostgreSQL(&storage.DatabaseConfig{
-		User:     "newuser", // test db with newuser / password
-		Password: "password",
-		Name:     "postgres",
-		Host:     "localhost",
-		Port:     5432,
-	})
-	return sqlDB
+	return storage.NewPostgreSQL(&datastoreConf)
 }
