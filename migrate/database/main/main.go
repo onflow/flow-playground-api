@@ -10,6 +10,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"log"
 	"strconv"
+	"time"
 )
 
 // numErrors counts the errors that occur during migration
@@ -27,7 +28,15 @@ func main() {
 
 	telemetry.DebugLog("Starting migration...")
 	numProjects := 0
-	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); p.GetNext() {
+	var err error = nil
+	exitWithError := false
+	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); err = p.GetNext() {
+		if err != nil {
+			telemetry.DebugLog("Error getting data from datastore iterator: " + err.Error())
+			exitWithError = true
+			break
+		}
+
 		numProjects += len(p.Projects)
 		telemetry.DebugLog("Migrating projects " + strconv.Itoa(p.GetIndex()) +
 			" - " + strconv.Itoa(numProjects))
@@ -42,14 +51,22 @@ func main() {
 			migrateTransactionExecutions(dstore, sqlDB, proj.ID)
 		}
 	}
-	telemetry.DebugLog("Migration of " + strconv.Itoa(numProjects) +
-		" projects finished with " + strconv.Itoa(numErrors) + " errors")
+	if !exitWithError {
+		telemetry.DebugLog("Migration of " + strconv.Itoa(numProjects) +
+			" projects finished with " + strconv.Itoa(numErrors) + " potential errors")
+	} else {
+		telemetry.DebugLog("Migration failed after " + strconv.Itoa(numProjects) +
+			"projects with the following error: " + err.Error())
+	}
+
+	for {
+	} // Busy wait to prevent migration from running again
 }
 
 func connectToDatastore() *datastore.Datastore {
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
 		DatastoreProjectID: "flow-developer-playground",
-		DatastoreTimeout:   0,
+		DatastoreTimeout:   time.Second * 1000, // TODO: Large timeout to avoid context deadline exceeded?
 	})
 	if err != nil {
 		panic(err)

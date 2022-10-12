@@ -27,8 +27,8 @@ func CreateIterator(dstore *Datastore, limit int) *DatastoreIterator {
 		nextProjects: []*model.InternalProject{},
 	}
 	// Initialize first entries
-	dIter.GetNext()
-	dIter.GetNext()
+	_ = dIter.GetNext()
+	_ = dIter.GetNext()
 	return &dIter
 }
 
@@ -39,16 +39,18 @@ func (d *DatastoreIterator) HasNext() bool {
 	return false
 }
 
-func (d *DatastoreIterator) GetNext() {
+func (d *DatastoreIterator) GetNext() error {
 	d.Projects = d.nextProjects
 	d.nextProjects = []*model.InternalProject{}
 	query := datastore.NewQuery("Project").Offset(d.index).Limit(d.limit)
 	err := d.dstore.getAll(query, &d.nextProjects)
 	if err != nil {
 		telemetry.DebugLog("Error: failed to get projects. " + err.Error())
-		panic(err)
+		return err
+		//panic(err)
 	}
 	d.index += d.limit
+	return nil
 }
 
 func (d *DatastoreIterator) GetIndex() int {
