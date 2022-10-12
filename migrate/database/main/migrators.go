@@ -40,7 +40,7 @@ func migrateAccounts(dstore *datastore.Datastore, sqlDB *storage.SQL, projID uui
 	}
 
 	err = sqlDB.InsertAccounts(sqlAccounts)
-	if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+	if err != nil && !strings.Contains(err.Error(), "duplicate key") {
 		telemetry.DebugLog("Error on migrate accounts for project ID " + projID.String() + " " + err.Error())
 		numErrors++
 	}
@@ -153,7 +153,7 @@ func migrateScriptExecutions(dstore *datastore.Datastore, sqlDB *storage.SQL, pr
 			Logs:      exe.Logs,
 		})
 
-		if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		if err != nil && !strings.Contains(err.Error(), "duplicate key") {
 			telemetry.DebugLog("Error: could not insert script execution " + exe.ID.String() +
 				"into project ID" + projID.String() + err.Error())
 		}
@@ -212,7 +212,7 @@ func migrateTransactionExecutions(dstore *datastore.Datastore, sqlDB *storage.SQ
 			Logs:      exe.Logs,
 		})
 
-		if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		if err != nil && !strings.Contains(err.Error(), "duplicate key") {
 			telemetry.DebugLog("Error: could not insert transaction execution" + exe.ID.String() +
 				"into project ID " + projID.String() + " " + err.Error())
 		}
@@ -244,7 +244,7 @@ func migrateProject(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model
 	err = sqlDB.CreateProject(sqlProj, *sqlTtpl, *sqlStpl)
 	if err != nil {
 		// TODO: Other cases?
-		if !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+		if !strings.Contains(err.Error(), "duplicate key") {
 			telemetry.DebugLog("Error: could not store project ID " + proj.ID.String() +
 				" in sql db. Skipping project. " + err.Error())
 			numErrors++
@@ -265,7 +265,7 @@ func migrateUser(dstore *datastore.Datastore, sqlDB *storage.SQL, proj *model.In
 	}
 
 	err = sqlDB.InsertUser(&sqlModel.User{ID: user.ID})
-	if err != nil && !strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+	if err != nil && !strings.Contains(err.Error(), "duplicate key") {
 		telemetry.DebugLog("Error on insert user for project ID " +
 			proj.ID.String() + " " + err.Error())
 		numErrors++

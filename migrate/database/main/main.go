@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// maxLookupLimit maximum number of keys allowed for a Lookup operation in the Datastore API
+const maxLookupLimit = 1000
+
 // numErrors counts the errors that occur during migration
 var numErrors = 0
 
@@ -30,7 +33,8 @@ func main() {
 	numProjects := 0
 	var err error = nil
 	exitWithError := false
-	for p := datastore.CreateIterator(dstore, 100); p.HasNext(); err = p.GetNext() {
+
+	for p := datastore.CreateIterator(dstore, maxLookupLimit); p.HasNext(); err = p.GetNext() {
 		if err != nil {
 			telemetry.DebugLog("Error getting data from datastore iterator: " + err.Error())
 			exitWithError = true
@@ -41,9 +45,6 @@ func main() {
 		telemetry.DebugLog("Migrating projects " + strconv.Itoa(p.GetIndex()) +
 			" - " + strconv.Itoa(numProjects))
 		for _, proj := range p.Projects {
-			if !proj.Persist {
-				continue
-			}
 			migrateProject(dstore, sqlDB, proj) // Includes transaction & script execution templates
 			migrateAccounts(dstore, sqlDB, proj.ID)
 			migrateUser(dstore, sqlDB, proj)
@@ -66,7 +67,7 @@ func main() {
 func connectToDatastore() *datastore.Datastore {
 	store, err := datastore.NewDatastore(context.Background(), &datastore.Config{
 		DatastoreProjectID: "flow-developer-playground",
-		DatastoreTimeout:   time.Second * 1000, // TODO: Large timeout to avoid context deadline exceeded?
+		DatastoreTimeout:   time.Second * 1000, // Large timeout to avoid context deadline exceeded?
 	})
 	if err != nil {
 		panic(err)
