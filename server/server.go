@@ -149,7 +149,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
+			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
 		}).Handler)
 
@@ -199,7 +199,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins: []string{"*"},
+			AllowedOrigins: conf.AllowedOrigins,
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))
