@@ -198,6 +198,7 @@ func main() {
 	router.Route("/utils", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
+		// test
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins: []string{"https://flow-playground-git-gen3-onflow.vercel.app/"},
 		}).Handler)
