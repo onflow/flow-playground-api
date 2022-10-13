@@ -25,14 +25,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TransactionTemplate struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Title     string
-	Index     int
-	Script    string
-}
-
 func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *types.TransactionResult,
@@ -55,12 +47,16 @@ func TransactionExecutionFromFlow(
 	}
 
 	exe := &TransactionExecution{
-		ID:        uuid.New(),
-		ProjectID: projectID,
-		Script:    script,
-		Arguments: args,
-		Signers:   signers,
-		Logs:      result.Logs,
+		File: File{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+			Script:    script,
+		},
+		Arguments: nil,
+		Signers:   nil,
+		Errors:    nil,
+		Events:    nil,
+		Logs:      nil,
 	}
 
 	if result.Events != nil {
@@ -76,10 +72,7 @@ func TransactionExecutionFromFlow(
 }
 
 type TransactionExecution struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Index     int
-	Script    string
+	File
 	Arguments []string       `gorm:"serializer:json"`
 	Signers   []Address      `gorm:"serializer:json"`
 	Errors    []ProgramError `gorm:"serializer:json"`

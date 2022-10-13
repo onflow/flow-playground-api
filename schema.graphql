@@ -19,19 +19,31 @@ type Project {
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
-  transactionTemplates: [TransactionTemplate!]
+  contractFiles: [File!]
+  contractDeployments: [ContractDeployment!]
+  transactionFiles: [File!]
   transactionExecutions: [TransactionExecution!]
-  scriptTemplates: [ScriptTemplate!]
+  scriptFiles: [File!]
   scriptExecutions: [ScriptExecution!]
 }
 
 type Account {
   id: UUID!
   address: Address!
-  draftCode: String!
-  deployedCode: String!
   deployedContracts: [String!]!
   state: String!
+}
+
+type File {
+  id: UUID!
+  index: Int!
+  title: String!
+  script: String!
+}
+
+type FileExecution {
+  id: UUID!
+  script: String!
 }
 
 type ProgramError {
@@ -46,16 +58,8 @@ type ProgramPosition {
   column: Int!
 }
 
-type TransactionTemplate {
-  id: UUID!
-  index: Int!
-  title: String!
-  script: String!
-}
-
 type TransactionExecution {
-  id: UUID!
-  script: String!
+  file: FileExecution!
   arguments: [String!]
   signers: [Account!]!
   errors: [ProgramError!]
@@ -68,20 +72,17 @@ type Event {
   values: [String!]!
 }
 
-type ScriptTemplate {
-  id: UUID!
-  index: Int!
-  title: String!
-  script: String!
-}
-
 type ScriptExecution {
-  id: UUID!
-  script: String!
+  file: FileExecution!
   arguments: [String!]
   errors: [ProgramError!]
   value: String!
   logs: [String!]!
+}
+
+type ContractDeployment {
+  file: FileExecution!
+  # TODO: Anything else needed here?
 }
 
 type Query {
@@ -89,8 +90,8 @@ type Query {
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!
-  transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
-  scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
+
+  file(id: UUID!, projectId: UUID!): File!
 }
 
 input NewProject {
@@ -100,16 +101,12 @@ input NewProject {
   readme: String!
   seed: Int!
   accounts: [String!]
-  transactionTemplates: [NewProjectTransactionTemplate!]
-  scriptTemplates: [NewProjectScriptTemplate!]
+  contractTemplates: [NewProjectFile!]
+  transactionTemplates: [NewProjectFile!]
+  scriptTemplates: [NewProjectFile!]
 }
 
-input NewProjectTransactionTemplate {
-  title: String!
-  script: String!
-}
-
-input NewProjectScriptTemplate {
+input NewProjectFile {
   title: String!
   script: String!
 }
@@ -125,17 +122,15 @@ input UpdateProject {
 input UpdateAccount {
   id: UUID!
   projectId: UUID!
-  draftCode: String
-  deployedCode: String
 }
 
-input NewTransactionTemplate {
+input NewFile {
   projectId: UUID!
   title: String!
   script: String!
 }
 
-input UpdateTransactionTemplate {
+input UpdateFile {
   id: UUID!
   title: String
   projectId: UUID!
@@ -144,51 +139,33 @@ input UpdateTransactionTemplate {
 }
 
 input NewTransactionExecution {
-  projectId: UUID!
-  script: String!
+  file: NewFile!
   signers: [Address!]
   arguments: [String!]
 }
 
-input NewScriptTemplate {
-  projectId: UUID!
-  title: String!
-  script: String!
-}
-
-input UpdateScriptTemplate {
-  id: UUID!
-  title: String
-  projectId: UUID!
-  index: Int
-  script: String
-}
-
 input NewScriptExecution {
-  projectId: UUID!
-  script: String!
+  file: NewFile!
   arguments: [String!]
 }
+
+input NewContractDeployment {
+  file: NewFile!
+  address: Address!
+}
+
 
 type Mutation {
   createProject(input: NewProject!): Project!
   updateProject(input: UpdateProject!): Project!
 
-  updateAccount(input: UpdateAccount!): Account!
+  updateAccount(input: UpdateAccount!): Account! # TODO: Is this even needed anymore?
 
-  createFile()
-  updateFileName()
-  deleteFile()
+  createFile(input: NewFile!): File! #TODO: Return project?
+  updateFile(input: UpdateFile): File!
+  deleteFile(id: UUID!, projectId: UUID!): UUID!
 
-
-  #createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
-  #updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
-  #deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
-  #createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
-
-  #createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
-  #updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
-  #deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
-  #createScriptExecution(input: NewScriptExecution!): ScriptExecution!
+  createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
+  createScriptExecution(input: NewScriptExecution!): ScriptExecution!
+  createContractDeployment(input: NewContractDeployment!): ContractDeployment!
 }
-
