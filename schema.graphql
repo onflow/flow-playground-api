@@ -176,14 +176,19 @@ type Mutation {
 
   updateAccount(input: UpdateAccount!): Account!
 
-  createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
-  updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
-  deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
-  createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
+  createFile()
+  updateFileName()
+  deleteFile()
 
-  createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
-  updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
-  deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
-  createScriptExecution(input: NewScriptExecution!): ScriptExecution!
+
+  #createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
+  #updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
+  #deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
+  #createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
+
+  #createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
+  #updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  #deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
+  #createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
 

@@ -36,6 +36,7 @@ type Project struct {
 	Description               string
 	Readme                    string
 	Seed                      int
+	NumberOfAccounts          int
 	TransactionExecutionCount int
 	Persist                   bool
 	CreatedAt                 time.Time
