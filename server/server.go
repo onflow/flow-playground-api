@@ -149,7 +149,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   conf.AllowedOrigins,
+			AllowedOrigins:   []string{"*"},
 			AllowCredentials: true,
 		}).Handler)
 
@@ -199,7 +199,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins: conf.AllowedOrigins,
+			AllowedOrigins: []string{"*"},
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))
@@ -211,7 +211,6 @@ func main() {
 	logStartMessage(build.Version())
 
 	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", conf.Port)
-	log.Printf("Allowed origins", conf.AllowedOrigins)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
 
