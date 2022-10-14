@@ -19,7 +19,6 @@
 package blockchain
 
 import (
-	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
@@ -37,12 +36,7 @@ func newEmulatorCache(capacity int) *emulatorCache {
 
 // setCache sets emulatorCache to a new lru cache and returns true if successful
 func (c *emulatorCache) initializeCache() bool {
-	var onEvicted = func(key interface{}, value interface{}) {
-		fmt.Printf("Cache evicted emulator for project: %s - (%v)\n",
-			key.(uuid.UUID).String(), key)
-	}
-
-	cache, err := lru.NewWithEvict(c.capacity, onEvicted)
+	cache, err := lru.New(c.capacity)
 	if err != nil {
 		c.cache = nil
 		sentry.CaptureException(err)
