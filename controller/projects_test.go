@@ -19,11 +19,14 @@
 package controller
 
 import (
-	"github.com/kelseyhightower/envconfig"
-	"github.com/stretchr/testify/assert"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/kelseyhightower/envconfig"
+	"github.com/onflow/flow-go-sdk"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -32,7 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
+func createStore() storage.Store {
 	var store storage.Store
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
@@ -46,15 +49,38 @@ func createProjects(t *testing.T) (*Projects, storage.Store, *model.User) {
 		store = storage.NewInMemory()
 	}
 
+	return store
+}
+
+func createUser(store storage.Store) *model.User {
 	user := &model.User{
 		ID: uuid.New(),
 	}
 
 	err := store.InsertUser(user)
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
+	return user
+}
 
+func createProjects() (*Projects, storage.Store, *model.User) {
+	store := createStore()
+	user := createUser(store)
 	chain := blockchain.NewProjects(store, 5)
 	return NewProjects(version, store, chain), store, user
+}
+
+func createControllers() (storage.Store, *model.User, *blockchain.Projects, *Projects, *Transactions, *Scripts, *Accounts) {
+	store := createStore()
+	user := createUser(store)
+	chain := blockchain.NewProjects(store, 5)
+	projects := NewProjects(version, store, chain)
+	txs := NewTransactions(store, chain)
+	scripts := NewScripts(store, chain)
+	accs := NewAccounts(store, chain)
+
+	return store, user, chain, projects, txs, scripts, accs
 }
 
 func seedProject(projects *Projects, user *model.User) *model.Project {
@@ -71,7 +97,8 @@ func seedProject(projects *Projects, user *model.User) *model.Project {
 }
 
 func Test_CreateProject(t *testing.T) {
-	projects, store, user := createProjects(t)
+	t.Parallel()
+	projects, store, user := createProjects()
 
 	t.Run("successful creation", func(t *testing.T) {
 		title := "test title"
@@ -105,7 +132,7 @@ func Test_CreateProject(t *testing.T) {
 	})
 
 	t.Run("successful update", func(t *testing.T) {
-		projects, store, user := createProjects(t)
+		projects, store, user := createProjects()
 		proj := seedProject(projects, user)
 
 		title := "update title"
@@ -135,7 +162,7 @@ func Test_CreateProject(t *testing.T) {
 	})
 
 	t.Run("reset state", func(t *testing.T) {
-		projects, store, user := createProjects(t)
+		projects, store, user := createProjects()
 		proj := seedProject(projects, user)
 
 		err := store.InsertTransactionExecution(&model.TransactionExecution{
@@ -148,7 +175,6 @@ func Test_CreateProject(t *testing.T) {
 
 		accounts, err := projects.Reset(proj)
 		assert.NoError(t, err)
-
 		require.Len(t, accounts, 5)
 
 		var dbProj model.Project
@@ -157,4 +183,117 @@ func Test_CreateProject(t *testing.T) {
 
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
 	})
+}
+
+func Test_StateRecreation(t *testing.T) {
+	t.Parallel()
+	_, user, _, projects, transactions, _, accounts := createControllers()
+
+	contract1 := `pub contract HelloWorld { 
+		init() {
+			log("hello")
+		} 
+	}`
+
+	tx1 := `transaction {
+		prepare(auth: AuthAccount) {}
+		execute {
+			log("hello tx")		
+		}
+	}`
+
+	script1 := `pub fun main(): Int {
+		return 42;
+	}`
+
+	txTpls := []*model.NewProjectTransactionTemplate{{
+		Title:  "tx template 1",
+		Script: tx1,
+	}}
+
+	scTpls := []*model.NewProjectScriptTemplate{{
+		Title:  "script template 1",
+		Script: script1,
+	}}
+
+	newProject := model.NewProject{
+		ParentID:             nil,
+		Title:                "Test Title",
+		Description:          "Test Desc",
+		Readme:               "Test Readme",
+		Seed:                 1,
+		Accounts:             []string{contract1, contract1, contract1},
+		TransactionTemplates: txTpls,
+		ScriptTemplates:      scTpls,
+	}
+
+	p, err := projects.Create(user, newProject)
+	require.NoError(t, err)
+
+	newProj, err := projects.Get(p.ID)
+	require.NoError(t, err)
+
+	newAccs, err := accounts.AllForProjectID(newProj.ID)
+	require.NoError(t, err)
+
+	for _, a := range newAccs {
+		assert.Equal(t, "", a.DeployedCode)
+	}
+
+	for i := 0; i < 2; i++ {
+		deployAcc, err := accounts.Update(model.UpdateAccount{
+			ID:           newAccs[i].ID,
+			ProjectID:    newProj.ID,
+			DeployedCode: &contract1,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, contract1, deployAcc.DeployedCode)
+	}
+
+	redeployAcc, err := accounts.Update(model.UpdateAccount{
+		ID:           newAccs[0].ID,
+		ProjectID:    newProj.ID,
+		DeployedCode: &contract1,
+	})
+	require.NoError(t, err)
+
+	// check what deployed on accounts
+	allAccs, err := accounts.AllForProjectID(newProj.ID)
+	require.NoError(t, err)
+	for i, rAcc := range allAccs {
+		assert.Equal(t, // asserting that account addresses are ordered
+			flow.HexToAddress(fmt.Sprintf("0x0%d", i+5)).String(),
+			rAcc.Address.ToFlowAddress().String(),
+		)
+		if rAcc.ID == redeployAcc.ID {
+			// only one redeploy account has deployed code due to clear state
+			assert.Equal(t, contract1, rAcc.DeployedCode)
+		} else {
+			assert.Equal(t, "", rAcc.DeployedCode)
+		}
+	}
+
+	tx2 := `import HelloWorld from 0x05
+		transaction {
+			prepare(auth: AuthAccount) {}
+			execute {}
+		}`
+
+	for i := 0; i < 5; i++ {
+		txExe, err := transactions.CreateTransactionExecution(model.NewTransactionExecution{
+			ProjectID: newProj.ID,
+			Script:    tx2,
+			Signers:   []model.Address{redeployAcc.Address},
+		})
+		require.NoError(t, err)
+		assert.Len(t, txExe.Errors, 0)
+	}
+
+	exes, err := transactions.AllExecutionsForProjectID(newProj.ID)
+	require.NoError(t, err)
+	for i, exe := range exes {
+		assert.Equal(t, exe.Index, i)
+	}
+
 }

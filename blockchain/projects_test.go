@@ -20,17 +20,16 @@ package blockchain
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"strings"
-	"sync"
-	"testing"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strings"
+	"sync"
+	"testing"
 )
 
 const accountsNumber = 5
@@ -97,7 +96,7 @@ func newWithSeededProject() (*Projects, storage.Store, *model.Project, error) {
 func Benchmark_LoadEmulator(b *testing.B) {
 	projects, _, proj, _ := newWithSeededProject()
 
-	// current run ~110 000 000 ns/op ~ 0.110s/op
+	// current run ~20 ms/op ~ 0.110s/op
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
@@ -113,9 +112,24 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	})
 }
 
-func Test_ConcurrentRequests(t *testing.T) {
-	//t.Skip("") // todo remove
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
 
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
+		}
+	})
+}
+
+func Test_ConcurrentRequests(t *testing.T) {
+	t.Parallel()
 	testConcurrently := func(
 		numOfRequests int,
 		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project),
@@ -138,7 +152,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 	}
 
 	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 4
+		const numOfRequests = 10
 
 		testAccount := func(ch chan any, proj *model.Project) {
 			accounts := make([]*model.Account, 0)
@@ -196,6 +210,7 @@ func Test_ConcurrentRequests(t *testing.T) {
 }
 
 func Test_LoadEmulator(t *testing.T) {
+	t.Parallel()
 
 	t.Run("successful load of emulator", func(t *testing.T) {
 		projects, _, proj, err := newWithSeededProject()
@@ -209,10 +224,10 @@ func Test_LoadEmulator(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		block, err := emulator.getLatestBlock()
+		height, err := emulator.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		require.Equal(t, uint64(0), block.Header.Height)
+		require.Equal(t, 0, height)
 	})
 
 	t.Run("multiple loads with low cache", func(t *testing.T) {
@@ -260,14 +275,60 @@ func Test_LoadEmulator(t *testing.T) {
 		emulator, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlock()
+		latest, err := emulator.getLatestBlockHeight()
 		require.NoError(t, err)
 		// there should be two blocks created, one from first execution and second from direct db execution from above
-		assert.Equal(t, uint64(2), latest.Header.Height)
+		assert.Equal(t, 2, latest)
+	})
+
+	// this tests that if another replica receives project reset, then this replica won't clear the cache,
+	// so it needs to force-reset if it gets 0 executions from db even if emulator is on higher height
+	t.Run("reset project on another replica", func(t *testing.T) {
+		projects, store, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		_, err = projects.ExecuteTransaction(model.NewTransactionExecution{
+			ProjectID: proj.ID,
+			Script:    `transaction {}`,
+			Signers:   nil,
+			Arguments: nil,
+		})
+		require.NoError(t, err)
+
+		err = store.ResetProjectState(proj)
+		require.NoError(t, err)
+
+		emulator, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
+		latest, err := emulator.getLatestBlockHeight()
+		require.NoError(t, err)
+		assert.Equal(t, 0, latest) // no exe since reset
+	})
+
+	t.Run("get multiple accounts", func(t *testing.T) {
+		projects, _, proj, err := newWithSeededProject()
+		require.NoError(t, err)
+
+		accs, err := projects.CreateInitialAccounts(proj.ID)
+		require.NoError(t, err)
+
+		addresses := make([]model.Address, len(accs))
+		for i, a := range accs {
+			addresses[i] = a.Address
+		}
+
+		getAccs, err := projects.GetAccounts(proj.ID, addresses)
+		require.NoError(t, err)
+
+		for i, getAcc := range getAccs {
+			assert.Equal(t, accs[i].Address, getAcc.Address)
+		}
 	})
 }
 
 func Test_TransactionExecution(t *testing.T) {
+	t.Parallel()
 
 	t.Run("successful transaction execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -380,8 +441,8 @@ func Test_TransactionExecution(t *testing.T) {
 		}
 
 		em, _ := projects.load(proj.ID)
-		b, _ := em.getLatestBlock()
-		assert.Equal(t, uint64(0), b.Header.Height)
+		b, _ := em.getLatestBlockHeight()
+		assert.Equal(t, 0, b)
 
 		executeAndAssert := func(exeLen int) {
 			exe, err := projects.ExecuteTransaction(tx)
@@ -395,8 +456,8 @@ func Test_TransactionExecution(t *testing.T) {
 			require.Len(t, dbExe, exeLen)
 
 			em, _ := projects.load(proj.ID)
-			b, _ := em.getLatestBlock()
-			require.Equal(t, uint64(exeLen), b.Header.Height)
+			b, _ := em.getLatestBlockHeight()
+			require.Equal(t, exeLen, b)
 
 			projects.emulatorCache.reset(proj.ID)
 		}
@@ -452,6 +513,7 @@ func Test_TransactionExecution(t *testing.T) {
 }
 
 func Test_AccountCreation(t *testing.T) {
+	t.Parallel()
 	t.Run("successful account creation", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 
@@ -497,6 +559,7 @@ func Test_AccountCreation(t *testing.T) {
 }
 
 func Test_DeployContract(t *testing.T) {
+	t.Parallel()
 
 	t.Run("deploy single contract", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -597,6 +660,7 @@ func Test_DeployContract(t *testing.T) {
 }
 
 func Test_ScriptExecution(t *testing.T) {
+	t.Parallel()
 
 	t.Run("single script execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()

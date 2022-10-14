@@ -27,6 +27,19 @@ import (
 	"testing"
 )
 
+func createExecutions(count int) []*model.TransactionExecution {
+	executions := make([]*model.TransactionExecution, count)
+	for i := 0; i < count; i++ {
+		executions[i] = &model.TransactionExecution{
+			ID:        uuid.New(),
+			ProjectID: uuid.New(),
+			Index:     i,
+			Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
+		}
+	}
+	return executions
+}
+
 func Test_Cache(t *testing.T) {
 
 	t.Run("returns cached emulator", func(t *testing.T) {
@@ -41,30 +54,17 @@ func Test_Cache(t *testing.T) {
 		cacheEm := c.get(testID)
 		require.NotNil(t, cacheEm)
 
-		cacheBlock, err := cacheEm.getLatestBlock()
+		cacheHeight, err := cacheEm.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		block, err := em.getLatestBlock()
+		height, err := em.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		assert.Equal(t, block.ID(), cacheBlock.ID())
+		assert.Equal(t, height, cacheHeight)
 	})
 
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
 		const numExecutions = 5
-
-		var createExecutions = func() []*model.TransactionExecution {
-			executions := make([]*model.TransactionExecution, numExecutions)
-			for i := 0; i < numExecutions; i++ {
-				executions[i] = &model.TransactionExecution{
-					ID:        uuid.New(),
-					ProjectID: uuid.New(),
-					Index:     i,
-					Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
-				}
-			}
-			return executions
-		}
 
 		testID := uuid.New()
 		c := newEmulatorCache(2)
@@ -73,13 +73,13 @@ func Test_Cache(t *testing.T) {
 		require.NoError(t, err)
 
 		// Add executions to emulator
-		exes := createExecutions()
+		exes := createExecutions(numExecutions)
 		for _, ex := range exes {
 			_, _, err := em.executeTransaction(ex.Script, nil, nil)
 			require.NoError(t, err)
 		}
 
-		latestBlock, err := em.getLatestBlock()
+		latestBlock, err := em.blockchain.GetLatestBlock()
 		require.NoError(t, err)
 
 		assert.Equal(t, latestBlock.Header.Height, uint64(numExecutions))
@@ -88,7 +88,7 @@ func Test_Cache(t *testing.T) {
 
 		cacheEm := c.get(testID)
 
-		latestCacheBlock, err := cacheEm.getLatestBlock()
+		latestCacheBlock, err := cacheEm.blockchain.GetLatestBlock()
 		require.NoError(t, err)
 
 		// Verify cached emulator block height

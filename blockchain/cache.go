@@ -40,6 +40,14 @@ func newEmulatorCache(capacity int) *emulatorCache {
 	}
 }
 
+// emulatorCache caches the emulator state.
+//
+// In the environment where multiple replicas maintain it's own cache copy it can get into multiple states:
+// - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
+//   then replica A needs to apply missed transaction execution 2 before continuing
+// - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
+//   doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
+//   executions that wasn't cleared
 type emulatorCache struct {
 	cache *lru.Cache
 }
@@ -50,10 +58,6 @@ func (c *emulatorCache) reset(ID uuid.UUID) {
 }
 
 // get returns a cached emulator if exists, but also checks if it's stale.
-//
-// based on the executions the function receives it compares that to the emulator block height, since
-// one execution is always one block it can compare the heights to the length. If it finds some executions
-// that are not part of emulator it returns that subset, so they can be applied on top.
 func (c *emulatorCache) get(ID uuid.UUID) *emulator {
 	val, ok := c.cache.Get(ID)
 	if !ok {

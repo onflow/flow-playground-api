@@ -458,8 +458,125 @@ type DeleteScriptTemplateResponse struct {
 
 const initAccounts = 5
 
+func TestReplicas(t *testing.T) {
+	// Each replica is a different client calling the API, but also an instance of the resolver
+	const numReplicas = 5
+
+	// Create replicas
+	var replicas []*Client
+	for i := 0; i < numReplicas; i++ {
+		replicas = append(replicas, newClient())
+	}
+
+	replicaIdx := 0 // current replica
+	// loadBalancer cycles through replicas
+	var loadBalancer = func() *Client {
+		replicaIdx = (replicaIdx + 1) % len(replicas)
+		return replicas[replicaIdx]
+	}
+
+	// Create project for all replica tests
+	c := loadBalancer()
+	project := createProject(t, c)
+	cookie := c.SessionCookie() // Use one session cookie for everything currently
+
+	t.Run("Execute transactions on multiple replicas", func(t *testing.T) {
+		for i := 0; i < 10; i++ {
+			const script = "transaction { execute { log(\"Hello, World!\") } }"
+			var resp CreateTransactionExecutionResponse
+			err := loadBalancer().Post(
+				MutationCreateTransactionExecution,
+				&resp,
+				client.Var("projectId", project.ID),
+				client.Var("script", script),
+				client.AddCookie(cookie),
+			)
+			require.NoError(t, err)
+			assert.Empty(t, resp.CreateTransactionExecution.Errors)
+			assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+			assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+		}
+	})
+
+	t.Run("Re-deploy contracts on multiple replicas to initial accounts", func(t *testing.T) {
+		var contract = "pub contract Foo {}"
+
+		for i := 0; i < 10; i++ {
+			accountIdx := i % len(project.Accounts)
+			account := project.Accounts[accountIdx]
+
+			var updateResp UpdateAccountResponse
+			err := loadBalancer().Post(
+				MutationUpdateAccountDeployedCode,
+				&updateResp,
+				client.Var("projectId", project.ID),
+				client.Var("accountId", account.ID),
+				client.Var("code", contract),
+				client.AddCookie(cookie),
+			)
+			require.NoError(t, err)
+			assert.Equal(t, contract, updateResp.UpdateAccount.DeployedCode)
+			assert.Equal(t, updateResp.UpdateAccount.DeployedCode, contract)
+		}
+	})
+
+	/* TODO: This test must pass with cache invalidation fix
+	t.Run("Deploy new contracts to the same account on multiple replicas", func(t *testing.T) {
+		var accountsDeployedCode []string
+		for i := 0; i < len(project.Accounts); i++ {
+			accountsDeployedCode = append(accountsDeployedCode, "")
+		}
+
+		for i := 0; i < 10; i++ {
+			c := loadBalancer()
+			fmt.Println("Using replica", replicaIdx)
+			// Get next account in cycle
+			accountIdx := i % len(project.Accounts)
+			account := project.Accounts[accountIdx]
+
+			prevDeployedCode := accountsDeployedCode[accountIdx]
+			fmt.Println("Prev deployed for account 0: " + prevDeployedCode)
+
+			var respA GetAccountResponse
+			err := c.Post(
+				QueryGetAccount,
+				&respA,
+				client.Var("projectId", project.ID),
+				client.Var("accountId", account.ID),
+			)
+			require.NoError(t, err)
+			require.Equal(t, prevDeployedCode, respA.Account.DeployedCode)
+
+			contractNumber := strconv.Itoa(i)
+			var contract = "pub contract Foo" + contractNumber + " {}"
+
+			var respB UpdateAccountResponse
+			err = c.Post(
+				MutationUpdateAccountDeployedCode,
+				&respB,
+				client.Var("projectId", project.ID),
+				client.Var("accountId", account.ID),
+				client.Var("code", contract),
+				client.AddCookie(cookie),
+			)
+			require.NoError(t, err)
+
+			// Update deployed code for current account
+			accountsDeployedCode[accountIdx] = contract
+			fmt.Println("New deployed code for account 0: " + accountsDeployedCode[accountIdx])
+
+			assert.Equal(t, contract, respB.UpdateAccount.DeployedCode)
+			assert.Contains(t, respB.UpdateAccount.DeployedContracts, "Foo"+contractNumber)
+		}
+	})
+	*/
+}
+
 func TestProjects(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Create empty project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -486,6 +603,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Create project with 2 accounts", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -519,6 +637,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Create project with 4 accounts", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -550,6 +669,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Create project with transaction templates", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -585,6 +705,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Get project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -602,6 +723,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Get non-existent project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -618,6 +740,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Persist project without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -638,6 +761,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Persist project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -665,7 +789,9 @@ func TestProjects(t *testing.T) {
 }
 
 func TestTransactionTemplates(t *testing.T) {
+	t.Parallel()
 	t.Run("Create transaction template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -685,6 +811,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Create transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -707,6 +834,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Get transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -738,6 +866,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Get non-existent transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -757,6 +886,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Update transaction template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -788,6 +918,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Update transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -846,6 +977,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Update non-existent transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -866,6 +998,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Get transaction templates for project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -894,6 +1027,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Get transaction templates for non-existent project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp GetProjectTransactionTemplatesResponse
@@ -910,6 +1044,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Delete transaction template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -930,6 +1065,7 @@ func TestTransactionTemplates(t *testing.T) {
 	})
 
 	t.Run("Delete transaction template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -952,7 +1088,10 @@ func TestTransactionTemplates(t *testing.T) {
 }
 
 func TestTransactionExecutions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Create execution for non-existent project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		badID := uuid.New().String()
@@ -970,6 +1109,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("Create execution without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -989,6 +1129,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("Create execution", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1012,6 +1153,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("Multiple executions", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1068,6 +1210,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("Multiple executions with reset", func(t *testing.T) {
+		t.Parallel()
 		// manually construct resolver
 		c := newClient()
 		project := createProject(t, c)
@@ -1128,6 +1271,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (parse error)", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1169,6 +1313,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (semantic error)", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1210,6 +1355,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (run-time error)", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1251,6 +1397,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("exceeding computation limit", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1285,6 +1432,7 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("argument", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1317,7 +1465,9 @@ func TestTransactionExecutions(t *testing.T) {
 }
 
 func TestScriptTemplates(t *testing.T) {
+	t.Parallel()
 	t.Run("Create script template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1337,6 +1487,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Create script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1359,6 +1510,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Get script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1390,6 +1542,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Get non-existent script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1409,6 +1562,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Update script template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1440,6 +1594,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Update script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1492,6 +1647,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Update non-existent script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1512,6 +1668,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Get script templates for project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1540,6 +1697,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Get script templates for non-existent project", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var resp GetProjectScriptTemplatesResponse
@@ -1557,6 +1715,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Delete script template without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1576,6 +1735,7 @@ func TestScriptTemplates(t *testing.T) {
 	})
 
 	t.Run("Delete script template", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1598,7 +1758,9 @@ func TestScriptTemplates(t *testing.T) {
 }
 
 func TestAccounts(t *testing.T) {
+	t.Parallel()
 	t.Run("Get account", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1618,6 +1780,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Get non-existent account", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1637,6 +1800,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account draft code without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1668,6 +1832,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account draft code", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1701,6 +1866,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account invalid deployed code", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1733,6 +1899,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account deployed code without permission", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1755,6 +1922,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account deployed code", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1792,6 +1960,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update account and redeploy code", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1860,6 +2029,7 @@ func TestAccounts(t *testing.T) {
 	})
 
 	t.Run("Update non-existent account", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -1927,6 +2097,7 @@ func generateAddTwoToCounterScript(counterAddress string) string {
 }
 
 func TestContractInteraction(t *testing.T) {
+	t.Parallel()
 	c := newClient()
 
 	project := createProject(t, c)
@@ -1966,6 +2137,7 @@ func TestContractInteraction(t *testing.T) {
 }
 
 func TestContractImport(t *testing.T) {
+	t.Parallel()
 	c := newClient()
 
 	project := createProject(t, c)
@@ -2014,6 +2186,7 @@ func TestContractImport(t *testing.T) {
 }
 
 func TestAccountStorage(t *testing.T) {
+	t.Parallel()
 	c := newClient()
 
 	project := createProject(t, c)
@@ -2084,7 +2257,9 @@ func TestAccountStorage(t *testing.T) {
 }
 
 func TestAuthentication(t *testing.T) {
+	t.Parallel()
 	t.Run("Migrate legacy auth", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -2141,6 +2316,7 @@ func TestAuthentication(t *testing.T) {
 	})
 
 	t.Run("Create project with malformed session cookie", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		var respA CreateProjectResponse
@@ -2195,6 +2371,7 @@ func TestAuthentication(t *testing.T) {
 	})
 
 	t.Run("Update project with malformed session cookie", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -2223,6 +2400,7 @@ func TestAuthentication(t *testing.T) {
 	})
 
 	t.Run("Update project with invalid session cookie", func(t *testing.T) {
+		t.Parallel()
 		c := newClient()
 
 		projectA := createProject(t, c)
@@ -2246,8 +2424,10 @@ func TestAuthentication(t *testing.T) {
 }
 
 func TestScriptExecutions(t *testing.T) {
+	t.Parallel()
 
 	t.Run("valid, no return value", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2270,6 +2450,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (parse error)", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2310,6 +2491,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (semantic error)", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2350,6 +2532,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (run-time error)", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2390,6 +2573,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("exceeding computation limit", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2437,6 +2621,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("return address", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 
@@ -2464,6 +2649,7 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("argument", func(t *testing.T) {
+		t.Parallel()
 
 		c := newClient()
 

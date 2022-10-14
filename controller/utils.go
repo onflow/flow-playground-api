@@ -21,7 +21,6 @@ package controller
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/build"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	"net/http"
 
@@ -35,9 +34,23 @@ func NewUtilsHandler() *UtilsHandler {
 }
 
 func (u *UtilsHandler) VersionHandler(w http.ResponseWriter, r *http.Request) {
-	version := model.PlaygroundInfo{
-		APIVersion:     *build.Version(),
-		CadenceVersion: *semver.MustParse(cadence.Version),
+	version := struct {
+		API     string
+		cadence string
+	}{
+		API:     "n/a",
+		cadence: "n/a",
 	}
+
+	apiVer := build.Version()
+	if apiVer != nil {
+		version.API = apiVer.String()
+	}
+
+	cadenceVer := semver.MustParse(cadence.Version)
+	if cadenceVer != nil {
+		version.cadence = cadenceVer.String()
+	}
+
 	render.JSON(w, r, version)
 }

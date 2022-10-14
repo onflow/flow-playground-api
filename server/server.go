@@ -79,8 +79,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	semVer := ""
+	if build.Version() != nil {
+		semVer = build.Version().String()
+	}
+
 	err := sentry.Init(sentry.ClientOptions{
-		Release:          build.Version().String(),
+		Release:          semVer,
 		Dsn:              sentryConf.Dsn,
 		Debug:            sentryConf.Debug,
 		AttachStacktrace: sentryConf.AttachStacktrace,
@@ -193,6 +198,7 @@ func main() {
 	router.Route("/utils", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
+		// test
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins: conf.AllowedOrigins,
 		}).Handler)

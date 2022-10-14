@@ -27,9 +27,8 @@ import (
 
 func newMutex() *mutex {
 	return &mutex{
-		mx:      &sync.RWMutex{},
-		counter: map[uuid.UUID]int{},
-		pMutex:  map[uuid.UUID]*sync.RWMutex{},
+		mx:     &sync.RWMutex{},
+		pMutex: map[uuid.UUID]*sync.RWMutex{},
 	}
 }
 
@@ -43,9 +42,8 @@ func newMutex() *mutex {
 // Mutex keeps a map of mutex locks per project ID, and it also keeps a track of obtained locks per that ID so it can, after all
 // the locks have been released remove that lock from the mutex map to not pollute memory.
 type mutex struct {
-	mx      *sync.RWMutex               // mutex for access to bellow maps
-	pMutex  map[uuid.UUID]*sync.RWMutex // per project mutexes
-	counter map[uuid.UUID]int           // per project counter
+	mx     *sync.RWMutex               // mutex for access to bellow maps
+	pMutex map[uuid.UUID]*sync.RWMutex // per project mutexes
 }
 
 // load retrieves the mutex lock by the project ID and increase the usage counter.
@@ -56,8 +54,6 @@ func (m *mutex) load(uuid uuid.UUID) *sync.RWMutex {
 	if _, ok := m.pMutex[uuid]; !ok {
 		m.pMutex[uuid] = &sync.RWMutex{}
 	}
-
-	// m.counter[uuid] += 1
 
 	return m.pMutex[uuid]
 }
@@ -71,14 +67,6 @@ func (m *mutex) remove(uuid uuid.UUID) *sync.RWMutex {
 	if !ok {
 		sentry.CaptureMessage(fmt.Sprintf("trying to remove a mutex it doesn't exists, project ID: %s", uuid))
 	}
-
-	/*
-		if m.counter[uuid] == 1 {
-			delete(m.counter, uuid)
-			delete(m.pMutex, uuid)
-		} else {
-			m.counter[uuid] -= 1
-		}*/
 
 	return mut
 }
