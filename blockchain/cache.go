@@ -19,26 +19,14 @@
 package blockchain
 
 import (
-	"fmt"
-	"github.com/golang/groupcache/lru"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 )
-
-// newEmulatorCache returns a new instance of cache with provided capacity.
-func newEmulatorCache(capacity int) *emulatorCache {
-	c := lru.New(capacity)
-	c.OnEvicted = func(key lru.Key, value interface{}) {
-		fmt.Printf("Cache evicted emulator for project: %s - (%v)\n", key.(uuid.UUID).String(), key)
-	}
-
-	return &emulatorCache{
-		cache: c,
-	}
-}
 
 // emulatorCache caches the emulator state.
 //
-// In the environment where multiple replicas maintain it's own cache copy it can get into multiple states:
+// In the environment where multiple replicas maintain its own cache copy it can get into multiple states:
 // - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
 //   then replica A needs to apply missed transaction execution 2 before continuing
 // - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
@@ -48,13 +36,32 @@ type emulatorCache struct {
 	cache *lru.Cache
 }
 
-// reset the cache for the ID.
+// newEmulatorCache returns a new instance of emulatorCache with provided capacity.
+func newEmulatorCache(capacity int) *emulatorCache {
+	cache, err := lru.New(capacity)
+	if err != nil {
+		sentry.CaptureMessage("Continuing without emulator caching: " + err.Error())
+	}
+
+	return &emulatorCache{
+		cache: cache,
+	}
+}
+
+// reset the cached emulator for the ID.
 func (c *emulatorCache) reset(ID uuid.UUID) {
+	if c.cache == nil {
+		return
+	}
 	c.cache.Remove(ID)
 }
 
-// get returns a cached emulator if exists, but also checks if it's stale.
+// get returns a cached emulator for specified ID if it exists
 func (c *emulatorCache) get(ID uuid.UUID) *emulator {
+	if c.cache == nil {
+		return nil
+	}
+
 	val, ok := c.cache.Get(ID)
 	if !ok {
 		return nil
@@ -63,7 +70,10 @@ func (c *emulatorCache) get(ID uuid.UUID) *emulator {
 	return val.(*emulator)
 }
 
-// add new entry in the cache.
+// add new emulator to the cache.
 func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
+	if c.cache == nil {
+		return
+	}
 	c.cache.Add(ID, emulator)
 }

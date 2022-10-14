@@ -20,12 +20,13 @@ package controller
 
 import (
 	"fmt"
-	"github.com/kelseyhightower/envconfig"
-	"github.com/onflow/flow-go-sdk"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/kelseyhightower/envconfig"
+	"github.com/onflow/flow-go-sdk"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
