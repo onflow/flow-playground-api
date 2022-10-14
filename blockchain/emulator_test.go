@@ -58,6 +58,7 @@ func Test_DeployContracts(t *testing.T) {
 		emu, err := newEmulator()
 		assert.NoError(t, err)
 		account, _, _, err := emu.createAccount()
+		assert.NoError(t, err)
 		_, _, err = emu.deployContract(account.Address, "")
 		assert.Error(t, err)
 	})
@@ -67,6 +68,7 @@ func Test_DeployContracts(t *testing.T) {
 		emu, err := newEmulator()
 		assert.NoError(t, err)
 		account, _, _, err := emu.createAccount()
+		assert.NoError(t, err)
 
 		const numContracts int = 10
 
@@ -84,6 +86,7 @@ func Test_DeployContracts(t *testing.T) {
 		}
 
 		account, _, err = emu.getAccount(account.Address)
+		assert.NoError(t, err)
 
 		keys := make([]string, 0, len(account.Contracts))
 		for k := range account.Contracts {

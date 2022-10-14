@@ -29,7 +29,7 @@ type accountState struct {
 // stateToAPI removes any state values that are blockchain system values and not relevant to user usage of the playground.
 func stateToAPI(state string) string {
 	if state == "" {
-		return state
+		return "{}"
 	}
 
 	var accState accountState
@@ -41,8 +41,7 @@ func stateToAPI(state string) string {
 
 	// return empty as empty object, no keys - v0 adapter
 	if len(accState.Public)+len(accState.Private)+len(accState.Storage) == 0 {
-		emptyState, _ := json.Marshal("{}")
-		return string(emptyState)
+		return "{}"
 	}
 
 	adaptedState, _ := json.Marshal(accState)

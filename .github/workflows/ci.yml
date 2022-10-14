@@ -4,9 +4,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master ]
+    branches: [ master, staging ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, staging ]
 
 jobs:
   test:
@@ -17,7 +17,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-go@v2
       with:
-        go-version: '1.18.1'
+        go-version: '1.18.4'
     - uses: actions/cache@v1
       with:
         path: ~/go/pkg/mod
@@ -29,10 +29,15 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.18.4'
+      - name: Checkout code
+        uses: actions/checkout@v2
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3.2.0
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.47
+          version: v1.49
           args: --timeout=10m

@@ -20,8 +20,6 @@ package auth
 
 import (
 	"context"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -90,10 +88,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 //
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
-func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.InternalProject) error {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-	telemetry.DebugLog("[auth] Check Project Access")
+func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
 	var user *model.User
 	var err error
 
@@ -107,7 +102,6 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 	}
 
 	if a.hasProjectAccess(user, proj) {
-		telemetry.DebugLog("[auth] Check Project Access")
 		err = sessions.Save(ctx, session)
 		if err != nil {
 			return errors.New("access denied")
@@ -136,10 +130,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Inte
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
 	var user model.User
-
 	var userID uuid.UUID
 
 	err := userID.UnmarshalText([]byte(userIDStr))
@@ -155,15 +146,15 @@ func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
 	return &user, nil
 }
 
-func (a *Authenticator) hasProjectAccess(user *model.User, proj *model.InternalProject) bool {
+func (a *Authenticator) hasProjectAccess(user *model.User, proj *model.Project) bool {
 	return user != nil && proj.IsOwnedBy(user.ID)
 }
 
-func (a *Authenticator) hasLegacyProjectAccess(ctx context.Context, proj *model.InternalProject) bool {
+func (a *Authenticator) hasLegacyProjectAccess(ctx context.Context, proj *model.Project) bool {
 	return legacyauth.ProjectInSession(ctx, proj)
 }
 
-func (a *Authenticator) migrateLegacyProjectAccess(user *model.User, proj *model.InternalProject) (*model.User, error) {
+func (a *Authenticator) migrateLegacyProjectAccess(user *model.User, proj *model.Project) (*model.User, error) {
 	var err error
 
 	if user == nil {
@@ -188,7 +179,7 @@ func (a *Authenticator) createNewUser() (*model.User, error) {
 
 	err := a.store.InsertUser(user)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not insert the user")
 	}
 
 	return user, nil

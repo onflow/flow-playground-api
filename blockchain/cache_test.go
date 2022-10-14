@@ -31,9 +31,10 @@ func createExecutions(count int) []*model.TransactionExecution {
 	executions := make([]*model.TransactionExecution, count)
 	for i := 0; i < count; i++ {
 		executions[i] = &model.TransactionExecution{
-			ProjectChildID: model.NewProjectChildID(uuid.New(), uuid.New()),
-			Index:          i,
-			Script:         fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
+			ID:        uuid.New(),
+			ProjectID: uuid.New(),
+			Index:     i,
+			Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
 		}
 	}
 	return executions
@@ -43,76 +44,82 @@ func Test_Cache(t *testing.T) {
 
 	t.Run("returns cached emulator", func(t *testing.T) {
 		testID := uuid.New()
-		c := newCache(2)
+		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
 
 		c.add(testID, em)
 
-		cacheEm, exe, err := c.get(testID, nil)
-		require.NoError(t, err)
-		assert.Len(t, exe, 0)
+		cacheEm := c.get(testID)
+		require.NotNil(t, cacheEm)
 
-		cacheBlock, err := cacheEm.getLatestBlock()
-		require.NoError(t, err)
-
-		block, err := em.getLatestBlock()
+		cacheHeight, err := cacheEm.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		assert.Equal(t, block.ID(), cacheBlock.ID())
+		height, err := em.getLatestBlockHeight()
+		require.NoError(t, err)
+
+		assert.Equal(t, height, cacheHeight)
 	})
 
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
+		const numExecutions = 5
+
 		testID := uuid.New()
-		c := newCache(2)
+		c := newEmulatorCache(2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
 
-		c.add(testID, em)
-
-		executions := createExecutions(5)
-		for _, exe := range executions {
-			_, _, err := em.executeTransaction(exe.Script, exe.Arguments, nil)
+		// Add executions to emulator
+		exes := createExecutions(numExecutions)
+		for _, ex := range exes {
+			_, _, err := em.executeTransaction(ex.Script, nil, nil)
 			require.NoError(t, err)
 		}
 
-		cachedEm, cacheExe, err := c.get(testID, executions)
+		latestBlock, err := em.blockchain.GetLatestBlock()
 		require.NoError(t, err)
-		// cached emulator contains all the executions
-		assert.Len(t, cacheExe, 0)
-		// make sure emulators are same
-		cacheBlock, _ := cachedEm.getLatestBlock()
-		block, _ := em.getLatestBlock()
-		assert.Equal(t, cacheBlock.ID(), block.ID())
+
+		assert.Equal(t, latestBlock.Header.Height, uint64(numExecutions))
+
+		c.add(testID, em)
+
+		cacheEm := c.get(testID)
+
+		latestCacheBlock, err := cacheEm.blockchain.GetLatestBlock()
+		require.NoError(t, err)
+
+		// Verify cached emulator block height
+		assert.Equal(t, latestCacheBlock.Header.Height, uint64(numExecutions))
+
+		// Verify all cached emulator executions
+		for i := 0; i <= numExecutions; i++ {
+			block, err := em.blockchain.GetBlockByHeight(uint64(i))
+			require.NoError(t, err)
+
+			cacheBlock, err := em.blockchain.GetBlockByHeight(uint64(i))
+			require.NoError(t, err)
+
+			assert.Equal(t, block.ID(), cacheBlock.ID())
+			assert.Equal(t, block.Checksum(), cacheBlock.Checksum())
+		}
 	})
 
-	t.Run("returns cached emulator with missing executions", func(t *testing.T) {
-		testID := uuid.New()
-		c := newCache(2)
+	t.Run("disabled emulator cache", func(t *testing.T) {
+		// Invalid capacity will disable caching
+		c := newEmulatorCache(-2)
 
 		em, err := newEmulator()
 		require.NoError(t, err)
 
+		testID := uuid.New()
 		c.add(testID, em)
 
-		executions := createExecutions(5)
+		cacheEm := c.get(testID)
+		assert.Nil(t, cacheEm)
 
-		for i, exe := range executions {
-			if i == 3 {
-				break // miss last two executions
-			}
-			_, _, err := em.executeTransaction(exe.Script, exe.Arguments, nil)
-			require.NoError(t, err)
-		}
-
-		_, cacheExe, err := c.get(testID, executions)
-		require.NoError(t, err)
-
-		// cached emulator missed two executions
-		assert.Len(t, cacheExe, 2)
-		assert.Equal(t, 3, cacheExe[0].Index)
-		assert.Equal(t, 4, cacheExe[1].Index)
+		c.reset(testID)
 	})
 }

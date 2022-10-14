@@ -88,7 +88,7 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 // - 1. Reset project state and recreate initial accounts
 // - 2. Update project version tag
 func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
-	proj := model.InternalProject{
+	proj := model.Project{
 		ID: id,
 	}
 
@@ -119,14 +119,14 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 // - 2. Get all accounts for project and update with shifted addresses and removed unused fields
 func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 	// 1. reset project state
-	createdAccounts, err := m.projects.Reset(&model.InternalProject{
+	createdAccounts, err := m.projects.Reset(&model.Project{
 		ID: projectID,
 	})
 	if err != nil {
 		return errors.Wrap(err, "migration failed to reset project state")
 	}
 
-	var accounts []*model.InternalAccount
+	var accounts []*model.Account
 	err = m.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
 		return errors.Wrap(err, "migration failed to get accounts")
@@ -141,7 +141,7 @@ func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 		acc.Address = createdAccounts[i].Address
 		acc.DraftCode = adapter.ContentAddressFromAPI(acc.DraftCode)
 
-		err = m.store.DeleteAccount(acc.ProjectChildID)
+		err = m.store.DeleteAccount(acc.ID, acc.ProjectID)
 		if err != nil {
 			return errors.Wrap(err, "migration failed to migrate accounts")
 		}

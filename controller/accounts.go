@@ -22,7 +22,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -43,9 +42,9 @@ func NewAccounts(
 }
 
 func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	var acc model.InternalAccount
+	var acc model.Account
 
-	err := a.store.GetAccount(model.NewProjectChildID(ID, projectID), &acc)
+	err := a.store.GetAccount(ID, projectID, &acc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get account")
 	}
@@ -55,92 +54,90 @@ func (a *Accounts) GetByID(ID uuid.UUID, projectID uuid.UUID) (*model.Account, e
 		return nil, err
 	}
 
-	account.ID = acc.ID
-	account.DraftCode = acc.DraftCode
-	return account, nil
+	return account.
+		MergeFromStore(&acc).
+		Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {
-	var accounts []*model.InternalAccount
+	var accounts []*model.Account
 
 	err := a.store.GetAccountsForProject(projectID, &accounts)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get accounts")
 	}
 
+	addresses := make([]model.Address, len(accounts))
+	for i, account := range accounts {
+		addresses[i] = account.Address
+	}
+
+	accs, err := a.blockchain.GetAccounts(projectID, addresses)
+	if err != nil {
+		return nil, err
+	}
+
 	exported := make([]*model.Account, len(accounts))
 	for i, account := range accounts {
-		acc, err := a.blockchain.GetAccount(projectID, account.Address)
-		if err != nil {
-			return nil, err
-		}
-
-		acc.ID = account.ID
-		acc.DraftCode = account.DraftCode
-		exported[i] = acc
+		accs[i].MergeFromStore(account)
+		exported[i] = accs[i].Export()
 	}
 
 	return exported, nil
 }
 
 func (a *Accounts) Update(input model.UpdateAccount) (*model.Account, error) {
-	telemetry.StartRuntimeCalculation()
-	defer telemetry.EndRuntimeCalculation()
-	var acc model.InternalAccount
-	telemetry.DebugLog("[accounts.controller] update - start")
-
-	// if we provided draft code then just do a storage update of an account
-	if input.DeployedCode == nil {
-		err := a.store.UpdateAccount(input, &acc)
-		if err != nil {
-			return nil, err
-		}
-
-		return acc.Export(), nil
+	if input.UpdateCode() {
+		return a.updateCode(input)
 	}
 
-	err := a.store.GetAccount(model.NewProjectChildID(input.ID, input.ProjectID), &acc)
+	return a.deployCode(input)
+}
+
+// updateCode only updates the database code of an account.
+func (a *Accounts) updateCode(input model.UpdateAccount) (*model.Account, error) {
+	var acc model.Account
+	err := a.store.UpdateAccount(input, &acc)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[accounts.controller] update - got account from store")
+	return acc.Export(), nil
+}
 
-	account, err := a.blockchain.GetAccount(input.ProjectID, acc.Address)
+// deployCode deploys code on the flow network.
+func (a *Accounts) deployCode(input model.UpdateAccount) (*model.Account, error) {
+	var dbAccount model.Account
+	err := a.store.GetAccount(input.ID, input.ProjectID, &dbAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	telemetry.DebugLog("[accounts.controller] update - got account from blockchain")
+	flowAccount, err := a.blockchain.GetAccount(input.ProjectID, dbAccount.Address)
+	if err != nil {
+		return nil, err
+	}
 
-	if account.DeployedCode != "" {
-		telemetry.DebugLog("[accounts.controller] update - redeploying")
-
-		var proj model.InternalProject
+	// reset the state first if already contains deployed code
+	if flowAccount.HasDeployedCode() {
+		var proj model.Project
 		err := a.store.GetProject(input.ProjectID, &proj)
 		if err != nil {
 			return nil, err
 		}
 
-		telemetry.DebugLog("[accounts.controller] update - redeploying, got project from store")
-
 		_, err = a.blockchain.Reset(&proj)
-
-		telemetry.DebugLog("[accounts.controller] update - redeploying, reset blockchain")
-
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	account, err = a.blockchain.DeployContract(input.ProjectID, acc.Address, *input.DeployedCode)
+	flowAccount, err = a.blockchain.DeployContract(input.ProjectID, dbAccount.Address, *input.DeployedCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy account code")
 	}
 
-	telemetry.DebugLog("[accounts.controller] update - deployed contract on emulator")
-
-	account.DraftCode = acc.DraftCode
-	account.ID = acc.ID
-	return account, nil
+	return flowAccount.
+		MergeFromStore(&dbAccount).
+		Export(), nil
 }

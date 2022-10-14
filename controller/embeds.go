@@ -78,14 +78,8 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create internal ProjectChildID struct, using aforementioned UUIDs
-	scriptProjectID := model.ProjectChildID{
-		ID:        scriptID,
-		ProjectID: projectID,
-	}
-
 	// Get script code
-	code, getErr := e.GetCode(scriptProjectID, scriptType)
+	code, getErr := e.GetCode(scriptID, projectID, scriptType)
 	if getErr != nil {
 		http.Error(w, "could not get script with specified parameters", http.StatusBadRequest)
 		return
@@ -123,25 +117,25 @@ func (e *EmbedsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (e *EmbedsHandler) GetCode(id model.ProjectChildID, scriptType string) (string, error) {
+func (e *EmbedsHandler) GetCode(id, pID uuid.UUID, scriptType string) (string, error) {
 
 	switch scriptType {
 	case "script":
-		return e.GetScriptTemplate(id)
+		return e.GetScriptTemplate(id, pID)
 	case "transaction":
-		return e.GetTransactionTemplate(id)
+		return e.GetTransactionTemplate(id, pID)
 	case "account":
-		return e.GetAccountTemplate(id)
+		return e.GetAccountTemplate(id, pID)
 	default:
 		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
 
 }
 
-func (e *EmbedsHandler) GetScriptTemplate(id model.ProjectChildID) (string, error) {
+func (e *EmbedsHandler) GetScriptTemplate(id, pID uuid.UUID) (string, error) {
 	var tmpl model.ScriptTemplate
 
-	err := e.store.GetScriptTemplate(id, &tmpl)
+	err := e.store.GetScriptTemplate(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}
@@ -149,10 +143,10 @@ func (e *EmbedsHandler) GetScriptTemplate(id model.ProjectChildID) (string, erro
 	return tmpl.Script, nil
 }
 
-func (e *EmbedsHandler) GetTransactionTemplate(id model.ProjectChildID) (string, error) {
+func (e *EmbedsHandler) GetTransactionTemplate(id, pID uuid.UUID) (string, error) {
 	var tmpl model.TransactionTemplate
 
-	err := e.store.GetTransactionTemplate(id, &tmpl)
+	err := e.store.GetTransactionTemplate(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}
@@ -160,10 +154,10 @@ func (e *EmbedsHandler) GetTransactionTemplate(id model.ProjectChildID) (string,
 	return tmpl.Script, nil
 }
 
-func (e *EmbedsHandler) GetAccountTemplate(id model.ProjectChildID) (string, error) {
-	var tmpl model.InternalAccount
+func (e *EmbedsHandler) GetAccountTemplate(id, pID uuid.UUID) (string, error) {
+	var tmpl model.Account
 
-	err := e.store.GetAccount(id, &tmpl)
+	err := e.store.GetAccount(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}

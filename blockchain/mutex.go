@@ -1,14 +1,38 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package blockchain
 
 import (
+	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"sync"
 )
 
 func newMutex() *mutex {
-	return &mutex{}
+	return &mutex{
+		mx:     &sync.RWMutex{},
+		pMutex: map[uuid.UUID]*sync.RWMutex{},
+	}
 }
+
+// todo mutex has been simplified to not remove mutexes from project ID map, this may grow with time but for now it removes complexity
 
 // mutex contains locking logic for projects.
 //
@@ -18,37 +42,31 @@ func newMutex() *mutex {
 // Mutex keeps a map of mutex locks per project ID, and it also keeps a track of obtained locks per that ID so it can, after all
 // the locks have been released remove that lock from the mutex map to not pollute memory.
 type mutex struct {
-	mu        sync.Map
-	muCounter sync.Map
+	mx     *sync.RWMutex               // mutex for access to bellow maps
+	pMutex map[uuid.UUID]*sync.RWMutex // per project mutexes
 }
 
 // load retrieves the mutex lock by the project ID and increase the usage counter.
 func (m *mutex) load(uuid uuid.UUID) *sync.RWMutex {
-	counter, _ := m.muCounter.LoadOrStore(uuid, 0)
-	m.muCounter.Store(uuid, counter.(int)+1)
+	m.mx.Lock()
+	defer m.mx.Unlock()
 
-	mu, _ := m.mu.LoadOrStore(uuid, &sync.RWMutex{})
-	return mu.(*sync.RWMutex)
+	if _, ok := m.pMutex[uuid]; !ok {
+		m.pMutex[uuid] = &sync.RWMutex{}
+	}
+
+	return m.pMutex[uuid]
 }
 
 // remove returns the mutex lock by the project ID and decreases usage counter, deleting the map entry if at 0.
 func (m *mutex) remove(uuid uuid.UUID) *sync.RWMutex {
-	mu, ok := m.mu.Load(uuid)
+	m.mx.Lock()
+	defer m.mx.Unlock()
+
+	mut, ok := m.pMutex[uuid]
 	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex")
+		sentry.CaptureMessage(fmt.Sprintf("trying to remove a mutex it doesn't exists, project ID: %s", uuid))
 	}
 
-	counter, ok := m.muCounter.Load(uuid)
-	if !ok {
-		sentry.CaptureMessage("trying to access non-existing mutex counter")
-	}
-
-	if counter == 1 { // if last one remove it after
-		m.mu.Delete(uuid)
-		m.muCounter.Delete(uuid)
-	} else {
-		m.muCounter.Store(uuid, counter.(int)-1)
-	}
-
-	return mu.(*sync.RWMutex)
+	return mut
 }

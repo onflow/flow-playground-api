@@ -36,7 +36,7 @@ const projectSecretKeyName = "project-secret"
 //
 // A project is authorized in a session if the session contains a reference to the
 // project's secret.
-func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
+func ProjectInSession(ctx context.Context, proj *model.Project) bool {
 	session := sessions.Get(ctx, getProjectSessionName(proj))
 
 	secret, ok := session.Values[projectSecretKeyName]
@@ -52,7 +52,7 @@ func ProjectInSession(ctx context.Context, proj *model.InternalProject) bool {
 	return secretStr == proj.Secret.String()
 }
 
-func getProjectSessionName(proj *model.InternalProject) string {
+func getProjectSessionName(proj *model.Project) string {
 	return getProjectSessionNameFromString(proj.ID.String())
 }
 

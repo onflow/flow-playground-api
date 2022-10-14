@@ -19,69 +19,61 @@
 package blockchain
 
 import (
-	"fmt"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
-	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+	lru "github.com/hashicorp/golang-lru"
 )
 
-// newCache returns a new instance of cache with provided capacity.
-func newCache(capacity int) *cache {
-	return &cache{
-		cache: lru.New(capacity),
-	}
-}
-
-type cache struct {
+// emulatorCache caches the emulator state.
+//
+// In the environment where multiple replicas maintain its own cache copy it can get into multiple states:
+// - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
+//   then replica A needs to apply missed transaction execution 2 before continuing
+// - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
+//   doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
+//   executions that wasn't cleared
+type emulatorCache struct {
 	cache *lru.Cache
 }
 
-// reset the cache for the ID.
-func (c *cache) reset(ID uuid.UUID) {
+// newEmulatorCache returns a new instance of emulatorCache with provided capacity.
+func newEmulatorCache(capacity int) *emulatorCache {
+	cache, err := lru.New(capacity)
+	if err != nil {
+		sentry.CaptureMessage("Continuing without emulator caching: " + err.Error())
+	}
+
+	return &emulatorCache{
+		cache: cache,
+	}
+}
+
+// reset the cached emulator for the ID.
+func (c *emulatorCache) reset(ID uuid.UUID) {
+	if c.cache == nil {
+		return
+	}
 	c.cache.Remove(ID)
 }
 
-// get returns a cached emulator if exists, but also checks if it's stale.
-//
-// based on the executions the function receives it compares that to the emulator block height, since
-// one execution is always one block it can compare the heights to the length. If it finds some executions
-// that are not part of emulator it returns that subset, so they can be applied on top.
-func (c *cache) get(
-	ID uuid.UUID,
-	executions []*model.TransactionExecution,
-) (blockchain, []*model.TransactionExecution, error) {
-	telemetry.DebugLog("[cache] get - start get executions from ID")
+// get returns a cached emulator for specified ID if it exists
+func (c *emulatorCache) get(ID uuid.UUID) *emulator {
+	if c.cache == nil {
+		return nil
+	}
 
 	val, ok := c.cache.Get(ID)
 	if !ok {
-		return nil, executions, nil
+		return nil
 	}
 
-	emulator := val.(blockchain)
-	latest, err := emulator.getLatestBlock()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "cache failure")
-	}
-
-	// this should never happen, sanity check
-	if int(latest.Header.Height) > len(executions) {
-		err := fmt.Errorf("cache failure, block height is higher than executions count")
-		sentry.CaptureException(err)
-		return nil, nil, err
-	}
-
-	telemetry.DebugLog("[cache] get - got latest block from emulator")
-
-	// this will return only executions that are missing from the emulator
-	return emulator, executions[latest.Header.Height:], nil
+	return val.(*emulator)
 }
 
-// add new entry in the cache.
-func (c *cache) add(ID uuid.UUID, emulator blockchain) {
-	telemetry.DebugLog("[cache] add - start add emulator to cache")
+// add new emulator to the cache.
+func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
+	if c.cache == nil {
+		return
+	}
 	c.cache.Add(ID, emulator)
-	telemetry.DebugLog("[cache] add - added emulator to cache")
 }
