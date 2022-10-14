@@ -106,4 +106,20 @@ func Test_Cache(t *testing.T) {
 			assert.Equal(t, block.Checksum(), cacheBlock.Checksum())
 		}
 	})
+
+	t.Run("disabled emulator cache", func(t *testing.T) {
+		// Invalid capacity will disable caching
+		c := newEmulatorCache(-2)
+
+		em, err := newEmulator()
+		require.NoError(t, err)
+
+		testID := uuid.New()
+		c.add(testID, em)
+
+		cacheEm := c.get(testID)
+		assert.Nil(t, cacheEm)
+
+		c.reset(testID)
+	})
 }
