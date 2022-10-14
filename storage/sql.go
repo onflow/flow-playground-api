@@ -302,7 +302,11 @@ func (s *SQL) GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTe
 }
 
 func (s *SQL) GetTransactionTemplatesForProject(pID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
-	return s.db.Where(&model.TransactionTemplate{ProjectID: pID}).Find(tpls).Error
+	return s.db.
+		Where(&model.TransactionTemplate{ProjectID: pID}).
+		Order("\"index\" asc").
+		Find(tpls).
+		Error
 }
 
 func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
@@ -377,7 +381,11 @@ func (s *SQL) GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) er
 }
 
 func (s *SQL) GetScriptTemplatesForProject(pID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
-	return s.db.Where(&model.ScriptTemplate{ProjectID: pID}).Find(tpls).Error
+	return s.db.
+		Where(&model.ScriptTemplate{ProjectID: pID}).
+		Order("\"index\" asc"). // index is a special sql keyword, so it needs to be escaped like that
+		Find(tpls).
+		Error
 }
 
 func (s *SQL) DeleteScriptTemplate(id, pID uuid.UUID) error {
