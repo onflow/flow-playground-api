@@ -24,16 +24,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-// newLruCache wraps creating a new lru cache in error handling
-func newLruCache(capacity int) *lru.Cache {
-	cache, err := lru.New(capacity)
-	if err != nil {
-		sentry.CaptureException(err)
-		return nil
-	}
-	return cache
-}
-
 // emulatorCache caches the emulator state.
 //
 // In the environment where multiple replicas maintain its own cache copy it can get into multiple states:
@@ -49,9 +39,14 @@ type emulatorCache struct {
 
 // newEmulatorCache returns a new instance of emulatorCache with provided capacity.
 func newEmulatorCache(capacity int) *emulatorCache {
+	cache, err := lru.New(capacity)
+	if err != nil {
+		sentry.CaptureException(err)
+		cache = nil
+	}
+
 	return &emulatorCache{
-		capacity: capacity,
-		cache:    newLruCache(capacity),
+		cache: cache,
 	}
 }
 
@@ -80,12 +75,7 @@ func (c *emulatorCache) get(ID uuid.UUID) *emulator {
 // add new emulator to the cache.
 func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
 	if c.cache == nil {
-		// Try to initialize new cache
-		c.cache = newLruCache(c.capacity)
-		if c.cache == nil {
-			return
-		}
+		return
 	}
-
 	c.cache.Add(ID, emulator)
 }
