@@ -24,32 +24,14 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-// newEmulatorCache returns a new instance of cache with provided capacity.
-func newEmulatorCache(capacity int) *emulatorCache {
-	emCache := &emulatorCache{
-		capacity: capacity,
-		cache:    nil,
-	}
-	_ = emCache.initializeCache()
-	return emCache
-}
-
-// setCache sets emulatorCache to a new lru cache and returns true if successful
-func (c *emulatorCache) initializeCache() bool {
-	cache, err := lru.New(c.capacity)
+// newLruCache wraps creating a new lru cache in error handling
+func newLruCache(capacity int) *lru.Cache {
+	cache, err := lru.New(capacity)
 	if err != nil {
-		c.cache = nil
 		sentry.CaptureException(err)
-		return false
+		return nil
 	}
-
-	c.cache = cache
-	return true
-}
-
-// checkCache return true if cache is accessible, or we can reset it successfully
-func (c *emulatorCache) checkCache() bool {
-	return c.cache != nil || c.initializeCache()
+	return cache
 }
 
 // emulatorCache caches the emulator state.
@@ -65,19 +47,28 @@ type emulatorCache struct {
 	cache    *lru.Cache
 }
 
-// reset the cache for the ID.
+// newEmulatorCache returns a new instance of emulatorCache with provided capacity.
+func newEmulatorCache(capacity int) *emulatorCache {
+	return &emulatorCache{
+		capacity: capacity,
+		cache:    newLruCache(capacity),
+	}
+}
+
+// reset the cached emulator for the ID.
 func (c *emulatorCache) reset(ID uuid.UUID) {
-	if !c.checkCache() {
+	if c.cache == nil {
 		return
 	}
 	c.cache.Remove(ID)
 }
 
-// get returns a cached emulator if exists, but also checks if it's stale.
+// get returns a cached emulator for specified ID if it exists
 func (c *emulatorCache) get(ID uuid.UUID) *emulator {
-	if !c.checkCache() {
+	if c.cache == nil {
 		return nil
 	}
+
 	val, ok := c.cache.Get(ID)
 	if !ok {
 		return nil
@@ -86,10 +77,15 @@ func (c *emulatorCache) get(ID uuid.UUID) *emulator {
 	return val.(*emulator)
 }
 
-// add new entry in the cache.
+// add new emulator to the cache.
 func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
-	if !c.checkCache() {
-		return
+	if c.cache == nil {
+		// Try to initialize new cache
+		c.cache = newLruCache(c.capacity)
+		if c.cache == nil {
+			return
+		}
 	}
+
 	c.cache.Add(ID, emulator)
 }
