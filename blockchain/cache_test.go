@@ -53,9 +53,9 @@ func Test_Cache(t *testing.T) {
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
 		const numExecutions = 5
 
-		var createExecutions = func(count int) []*model.TransactionExecution {
-			executions := make([]*model.TransactionExecution, count)
-			for i := 0; i < count; i++ {
+		var createExecutions = func() []*model.TransactionExecution {
+			executions := make([]*model.TransactionExecution, numExecutions)
+			for i := 0; i < numExecutions; i++ {
 				executions[i] = &model.TransactionExecution{
 					ID:        uuid.New(),
 					ProjectID: uuid.New(),
@@ -73,7 +73,7 @@ func Test_Cache(t *testing.T) {
 		require.NoError(t, err)
 
 		// Add executions to emulator
-		exes := createExecutions(numExecutions)
+		exes := createExecutions()
 		for _, ex := range exes {
 			_, _, err := em.executeTransaction(ex.Script, nil, nil)
 			require.NoError(t, err)
