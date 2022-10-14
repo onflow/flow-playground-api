@@ -33,15 +33,14 @@ import (
 //   doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
 //   executions that wasn't cleared
 type emulatorCache struct {
-	capacity int
-	cache    *lru.Cache
+	cache *lru.Cache
 }
 
 // newEmulatorCache returns a new instance of emulatorCache with provided capacity.
 func newEmulatorCache(capacity int) *emulatorCache {
 	cache, err := lru.New(capacity)
 	if err != nil {
-		sentry.CaptureException(err)
+		sentry.CaptureMessage("Continuing without emulator caching: " + err.Error())
 		cache = nil
 	}
 
