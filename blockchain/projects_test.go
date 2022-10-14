@@ -416,6 +416,7 @@ func Test_TransactionExecution(t *testing.T) {
 			}`
 
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
+		assert.NoError(t, err)
 
 		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
@@ -557,6 +558,7 @@ func Test_DeployContract(t *testing.T) {
 			}`
 
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
+		assert.NoError(t, err)
 
 		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
@@ -635,6 +637,7 @@ func Test_ScriptExecution(t *testing.T) {
 			}`
 
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
+		assert.NoError(t, err)
 
 		_, err = projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)

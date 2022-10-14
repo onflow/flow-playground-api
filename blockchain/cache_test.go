@@ -27,19 +27,6 @@ import (
 	"testing"
 )
 
-func createExecutions(count int) []*model.TransactionExecution {
-	executions := make([]*model.TransactionExecution, count)
-	for i := 0; i < count; i++ {
-		executions[i] = &model.TransactionExecution{
-			ID:        uuid.New(),
-			ProjectID: uuid.New(),
-			Index:     i,
-			Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
-		}
-	}
-	return executions
-}
-
 func Test_Cache(t *testing.T) {
 
 	t.Run("returns cached emulator", func(t *testing.T) {
@@ -64,7 +51,20 @@ func Test_Cache(t *testing.T) {
 	})
 
 	t.Run("returns cached emulator with executions", func(t *testing.T) {
-		numExecutions := 5
+		const numExecutions = 5
+
+		var createExecutions = func(count int) []*model.TransactionExecution {
+			executions := make([]*model.TransactionExecution, count)
+			for i := 0; i < count; i++ {
+				executions[i] = &model.TransactionExecution{
+					ID:        uuid.New(),
+					ProjectID: uuid.New(),
+					Index:     i,
+					Script:    fmt.Sprintf(`transaction { execute { log(%d) } }`, i),
+				}
+			}
+			return executions
+		}
 
 		testID := uuid.New()
 		c := newEmulatorCache(2)
