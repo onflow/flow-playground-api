@@ -41,7 +41,6 @@ func newEmulatorCache(capacity int) *emulatorCache {
 	cache, err := lru.New(capacity)
 	if err != nil {
 		sentry.CaptureMessage("Continuing without emulator caching: " + err.Error())
-		cache = nil
 	}
 
 	return &emulatorCache{
