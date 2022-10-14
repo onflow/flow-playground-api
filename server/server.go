@@ -149,7 +149,7 @@ func main() {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   []string{"https://flow-playground-git-gen3-onflow.vercel.app"},
+			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
 		}).Handler)
 
@@ -200,7 +200,7 @@ func main() {
 		// See https://github.com/rs/cors for full option listing
 		// test
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins: []string{"https://flow-playground-git-gen3-onflow.vercel.app"},
+			AllowedOrigins: conf.AllowedOrigins,
 		}).Handler)
 
 		r.Use(render.SetContentType(render.ContentTypeJSON))
