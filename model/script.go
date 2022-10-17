@@ -25,11 +25,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: Keep original script template for FE to use?
+
+type ScriptTemplate = File
+
 func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
 	exe := &ScriptExecution{
 		File: File{
 			ID:        uuid.New(),
 			ProjectID: projectID,
+			Type:      ScriptFile,
 			Script:    script,
 		},
 		Arguments: arguments,

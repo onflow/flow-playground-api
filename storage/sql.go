@@ -243,6 +243,7 @@ func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 }
 
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
+	// TODO: Remove accounts completely???
 	update := make(map[string]any)
 	if input.DraftCode != nil {
 		update["draft_code"] = *input.DraftCode
@@ -259,6 +260,57 @@ func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 	return s.db.First(acc, input.ID).Error
 }
 
+func (s *SQL) InsertCadenceFile(file *model.File) error {
+	var count int64
+	err := s.db.Model(&model.File{}).
+		Where("project_id", file.ProjectID).
+		Count(&count).Error
+	if err != nil {
+		return err
+	}
+
+	file.Index = int(count)
+	return s.db.Create(file).Error
+}
+
+func (s *SQL) UpdateCadenceFile(input model.UpdateFile, file *model.File) error {
+	update := make(map[string]any)
+	if input.Script != nil {
+		update["script"] = *input.Script
+	}
+	if input.Title != nil {
+		update["title"] = *input.Title
+	}
+	if input.Index != nil {
+		update["index"] = *input.Index
+	}
+
+	err := s.db.
+		Model(&model.File{
+			ID:        input.ID,
+			ProjectID: input.ProjectID,
+		}).
+		Updates(update).Error
+	if err != nil {
+		return err
+	}
+
+	return s.db.First(file, input.ID).Error
+}
+
+func (s *SQL) DeleteCadenceFile(id, pID uuid.UUID) error {
+	return s.db.Delete(&model.File{ID: id, ProjectID: pID}).Error
+}
+
+func (s *SQL) GetCadenceFile(id, pID uuid.UUID, file *model.File) error {
+	return s.db.First(file, &model.File{ID: id, ProjectID: pID}).Error
+}
+
+func (s *SQL) GetCadenceFilesForProject(pID uuid.UUID, files *[]*model.File) error {
+	return s.db.Where(&model.File{ProjectID: pID}).Find(files).Error
+}
+
+/*
 func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
 	var count int64
 	err := s.db.Model(&model.TransactionTemplate{}).
@@ -271,7 +323,9 @@ func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
 	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
+*/
 
+/*
 func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
 	update := make(map[string]any)
 	if input.Script != nil {
@@ -296,18 +350,25 @@ func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, t
 
 	return s.db.First(tpl, input.ID).Error
 }
+*/
 
+/*
 func (s *SQL) GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTemplate) error {
 	return s.db.First(tpl, &model.TransactionTemplate{ID: id, ProjectID: pID}).Error
 }
+*/
 
+/*
 func (s *SQL) GetTransactionTemplatesForProject(pID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
 	return s.db.Where(&model.TransactionTemplate{ProjectID: pID}).Find(tpls).Error
 }
+*/
 
+/*
 func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
 	return s.db.Delete(&model.TransactionTemplate{ID: id, ProjectID: pID}).Error
 }
+*/
 
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
 	var proj model.Project
@@ -330,13 +391,16 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 	})
 }
 
+/*
 func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
 		Order("\"index\" asc").
 		Find(exes).
 		Error
 }
+*/
 
+/*
 func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	var count int64
 	err := s.db.Model(&model.ScriptTemplate{}).
@@ -349,7 +413,9 @@ func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
 	tpl.Index = int(count)
 	return s.db.Create(tpl).Error
 }
+*/
 
+/*
 func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
 	update := make(map[string]any)
 	if input.Script != nil {
@@ -371,18 +437,23 @@ func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.
 
 	return s.db.First(tpl, input.ID).Error
 }
+*/
 
+/*
 func (s *SQL) GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) error {
 	return s.db.First(tpl, &model.ScriptTemplate{ID: id, ProjectID: pID}).Error
 }
+*/
 
 func (s *SQL) GetScriptTemplatesForProject(pID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
 	return s.db.Where(&model.ScriptTemplate{ProjectID: pID}).Find(tpls).Error
 }
 
+/*
 func (s *SQL) DeleteScriptTemplate(id, pID uuid.UUID) error {
 	return s.db.Delete(&model.ScriptTemplate{ID: id, ProjectID: pID}).Error
 }
+*/
 
 func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 	return s.db.Create(exe).Error

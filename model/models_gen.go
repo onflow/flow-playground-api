@@ -7,9 +7,43 @@ import (
 	"github.com/google/uuid"
 )
 
+type ContractDeployment struct {
+	ID      uuid.UUID       `json:"id"`
+	Script  string          `json:"script"`
+	Address Address         `json:"address"`
+	Errors  []*ProgramError `json:"errors"`
+	Logs    []string        `json:"logs"`
+	Events  []*Event        `json:"events"`
+}
+
+type ContractTemplate struct {
+	ID     uuid.UUID `json:"id"`
+	Index  int       `json:"index"`
+	Title  string    `json:"title"`
+	Script string    `json:"script"`
+}
+
 type Event struct {
 	Type   string   `json:"type"`
 	Values []string `json:"values"`
+}
+
+type NewContractDeployment struct {
+	ProjectID uuid.UUID `json:"projectId"`
+	Script    *string   `json:"script"`
+	Address   Address   `json:"address"`
+}
+
+type NewContractTemplate struct {
+	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
+	Script    string    `json:"script"`
+}
+
+type NewFile struct {
+	ProjectID uuid.UUID `json:"projectId"`
+	Title     string    `json:"title"`
+	Script    string    `json:"script"`
 }
 
 type NewProject struct {
@@ -21,6 +55,17 @@ type NewProject struct {
 	Accounts             []string                         `json:"accounts"`
 	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
 	ScriptTemplates      []*NewProjectScriptTemplate      `json:"scriptTemplates"`
+	ContractTemplates    []*NewProjectContractTemplate    `json:"contractTemplates"`
+}
+
+type NewProjectContractTemplate struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
+}
+
+type NewProjectFile struct {
+	Title  string `json:"title"`
+	Script string `json:"script"`
 }
 
 type NewProjectScriptTemplate struct {
@@ -73,6 +118,22 @@ type ProgramPosition struct {
 	Offset int `json:"offset"`
 	Line   int `json:"line"`
 	Column int `json:"column"`
+}
+
+type UpdateContractTemplate struct {
+	ID        uuid.UUID `json:"id"`
+	Title     *string   `json:"title"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Index     *int      `json:"index"`
+	Script    *string   `json:"script"`
+}
+
+type UpdateFile struct {
+	ID        uuid.UUID `json:"id"`
+	Title     *string   `json:"title"`
+	ProjectID uuid.UUID `json:"projectId"`
+	Index     *int      `json:"index"`
+	Script    *string   `json:"script"`
 }
 
 type UpdateProject struct {

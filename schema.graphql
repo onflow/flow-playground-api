@@ -19,31 +19,19 @@ type Project {
   persist: Boolean
   mutable: Boolean
   accounts: [Account!]
-  contractFiles: [File!]
-  contractDeployments: [ContractDeployment!]
-  transactionFiles: [File!]
+  transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
-  scriptFiles: [File!]
+  scriptTemplates: [ScriptTemplate!]
   scriptExecutions: [ScriptExecution!]
+  contractTemplates: [ContractTemplate!]
+  contractDeployments: [ContractDeployment!]
 }
 
 type Account {
   id: UUID!
   address: Address!
-  deployedContracts: [String!]!
+  contracts: [String!]!
   state: String!
-}
-
-type File {
-  id: UUID!
-  index: Int!
-  title: String!
-  script: String!
-}
-
-type FileExecution {
-  id: UUID!
-  script: String!
 }
 
 type ProgramError {
@@ -58,8 +46,16 @@ type ProgramPosition {
   column: Int!
 }
 
+type TransactionTemplate {
+  id: UUID!
+  index: Int!
+  title: String!
+  script: String!
+}
+
 type TransactionExecution {
-  file: FileExecution!
+  id: UUID!
+  script: String!
   arguments: [String!]
   signers: [Account!]!
   errors: [ProgramError!]
@@ -72,17 +68,36 @@ type Event {
   values: [String!]!
 }
 
+type ScriptTemplate {
+  id: UUID!
+  index: Int!
+  title: String!
+  script: String!
+}
+
 type ScriptExecution {
-  file: FileExecution!
+  id: UUID!
+  script: String!
   arguments: [String!]
   errors: [ProgramError!]
   value: String!
   logs: [String!]!
 }
 
+type ContractTemplate {
+  id: UUID!
+  index: Int!
+  title: String!
+  script: String!
+}
+
 type ContractDeployment {
-  file: FileExecution!
-  # TODO: Anything else needed here?
+  id: UUID!
+  script: String!
+  address: Address!
+  errors: [ProgramError!]
+  logs: [String!]!
+  events: [Event]!
 }
 
 type Query {
@@ -90,8 +105,8 @@ type Query {
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!
-
-  file(id: UUID!, projectId: UUID!): File!
+  transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
+  scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
 
 input NewProject {
@@ -101,12 +116,27 @@ input NewProject {
   readme: String!
   seed: Int!
   accounts: [String!]
-  contractTemplates: [NewProjectFile!]
-  transactionTemplates: [NewProjectFile!]
-  scriptTemplates: [NewProjectFile!]
+  transactionTemplates: [NewProjectTransactionTemplate!]
+  scriptTemplates: [NewProjectScriptTemplate!]
+  contractTemplates: [NewProjectContractTemplate!]
 }
 
 input NewProjectFile {
+  title: String!
+  script: String!
+}
+
+input NewProjectTransactionTemplate {
+  title: String!
+  script: String!
+}
+
+input NewProjectScriptTemplate {
+  title: String!
+  script: String!
+}
+
+input NewProjectContractTemplate {
   title: String!
   script: String!
 }
@@ -119,17 +149,6 @@ input UpdateProject {
   persist: Boolean
 }
 
-input UpdateAccount {
-  id: UUID!
-  projectId: UUID!
-}
-
-input NewFile {
-  projectId: UUID!
-  title: String!
-  script: String!
-}
-
 input UpdateFile {
   id: UUID!
   title: String
@@ -138,34 +157,89 @@ input UpdateFile {
   script: String
 }
 
+input NewFile {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input NewContractTemplate {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input UpdateContractTemplate {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  index: Int
+  script: String
+}
+
+input NewContractDeployment {
+  projectId: UUID!
+  script: String
+  address: Address!
+}
+
+input NewTransactionTemplate {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input UpdateTransactionTemplate {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  index: Int
+  script: String
+}
+
 input NewTransactionExecution {
-  file: NewFile!
+  projectId: UUID!
+  script: String!
   signers: [Address!]
   arguments: [String!]
 }
 
+input NewScriptTemplate {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input UpdateScriptTemplate {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  index: Int
+  script: String
+}
+
 input NewScriptExecution {
-  file: NewFile!
+  projectId: UUID!
+  script: String!
   arguments: [String!]
 }
-
-input NewContractDeployment {
-  file: NewFile!
-  address: Address!
-}
-
 
 type Mutation {
   createProject(input: NewProject!): Project!
   updateProject(input: UpdateProject!): Project!
 
-  updateAccount(input: UpdateAccount!): Account! # TODO: Is this even needed anymore?
+  createContractTemplate(input: NewContractTemplate!): ContractTemplate!
+  updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
+  deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
+  deployContract(input: NewContractDeployment!): ContractDeployment!
 
-  createFile(input: NewFile!): File! #TODO: Return project?
-  updateFile(input: UpdateFile): File!
-  deleteFile(id: UUID!, projectId: UUID!): UUID!
-
+  createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
+  updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
+  deleteTransactionTemplate(id: UUID!, projectId: UUID!): UUID!
   createTransactionExecution(input: NewTransactionExecution!): TransactionExecution!
+
+  createScriptTemplate(input: NewScriptTemplate!): ScriptTemplate!
+  updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
+  deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
-  createContractDeployment(input: NewContractDeployment!): ContractDeployment!
 }

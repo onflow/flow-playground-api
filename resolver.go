@@ -34,14 +34,15 @@ import (
 )
 
 type Resolver struct {
-	version            *semver.Version
-	store              storage.Store
-	auth               *auth.Authenticator
-	migrator           *migrate.Migrator
-	projects           *controller.Projects
-	scripts            *controller.Scripts
-	transactions       *controller.Transactions
-	accounts           *controller.Accounts
+	version  *semver.Version
+	store    storage.Store
+	auth     *auth.Authenticator
+	migrator *migrate.Migrator
+	projects *controller.Projects
+	files    *controller.Files
+	//scripts            *controller.Scripts
+	//transactions       *controller.Transactions
+	//accounts           *controller.Accounts // TODO: Remove accounts?
 	lastCreatedProject *model.Project
 }
 
@@ -172,8 +173,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 	if err != nil {
 		return nil, err
 	}
-
-	return r.transactions.CreateTemplate(input.ProjectID, input.Title, input.Script)
+	return r.files.CreateFile(input.ProjectID, model.NewFile(input), model.TransactionFile)
 }
 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -186,7 +186,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, err
 	}
 
-	return r.transactions.UpdateTemplate(input)
+	return r.files.UpdateFile(model.UpdateFile(input))
 }
 
 func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
@@ -195,7 +195,7 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.UUID{}, err
 	}
 
-	err = r.transactions.DeleteTemplate(id, projectID)
+	err = r.files.DeleteFile(id, projectID)
 	if err != nil {
 		return id, err
 	}
@@ -212,9 +212,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	exe, err := r.transactions.CreateTransactionExecution(
-		adapter.TransactionFromAPI(input),
-	)
+	exe, err := r.files.CreateTransactionExecution(adapter.TransactionFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
@@ -228,12 +226,13 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	tpl, err := r.scripts.CreateTemplate(input.ProjectID, input)
+	file, err := r.files.CreateFile(input.ProjectID, model.NewFile(input), model.ScriptFile)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create script template")
 	}
 
-	return tpl, nil
+	return file, nil
 }
 
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
@@ -246,7 +245,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	return r.scripts.UpdateTemplate(input)
+	return r.files.UpdateFile(model.UpdateFile(input))
 }
 
 func (r *mutationResolver) DeleteScriptTemplate(
@@ -259,7 +258,7 @@ func (r *mutationResolver) DeleteScriptTemplate(
 		return uuid.UUID{}, err
 	}
 
-	err = r.scripts.DeleteTemplate(id, projectID)
+	err = r.files.DeleteFile(id, projectID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -276,13 +275,75 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(adapter.ScriptFromAPI(input))
+	exe, err := r.files.CreateScriptExecution(adapter.ScriptFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
 
 	return adapter.ScriptToAPI(exe), nil
 }
+
+/*
+  createContractTemplate(input: NewContractTemplate!): ContractTemplate!
+  updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
+  deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
+  deployContract(input: NewContractDeployment!): ContractDeployment!
+ */
+
+func (r *mutationResolver) UpdateContractTemplate(
+	ctx context.Context, input model.UpdateContractTemplate,
+) (*model.ContractTemplate, error) {
+	err := r.authorize(ctx, input.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateUpdate(&input); err != nil {
+		return nil, err
+	}
+
+	// TODO: Why is this different for contracts?! wtf
+	return r.files.UpdateFile(model.UpdateFile(input)), nil
+}
+
+func (r *mutationResolver) DeleteContractTemplate(
+	ctx context.Context,
+	id uuid.UUID,
+	projectID uuid.UUID,
+) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID) // TODO: need this?
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.files.DeleteFile(id, projectID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
+}
+
+func (r *mutationResolver) DeployContract(
+	ctx context.Context,
+	input model.NewContractDeployment,
+) (*model.ContractDeployment, error) {
+	// TODO: Fix this crap
+	err := r.authorize(ctx, input.ProjectID) // TODO: Need this?
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO?!
+	exe, err := r.files.DeployContract(adapter.ContractFromAPI(input))
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ScriptToAPI(exe), nil
+}
+
+
 
 type projectResolver struct{ *Resolver }
 
@@ -296,6 +357,9 @@ func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*m
 }
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
+	// TODO: Get all transaction templates
+	tmpl := r.files.
+
 	return r.transactions.AllTemplatesForProjectID(proj.ID)
 }
 

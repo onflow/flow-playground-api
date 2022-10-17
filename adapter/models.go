@@ -87,6 +87,43 @@ func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
 	return script
 }
 
+func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
+	contract.Address = addressToAPI(contract.Address)
+	contract.Script = contentAddressToAPI(contract.Script)
+
+	for i, e := range contract.Errors {
+		contract.Errors[i].Message = contentAddressToAPI(e.Message)
+	}
+
+	for i, a := range contract.Events {
+		contract.Events[i].Type = contentAddressToAPI(a.Type)
+		for j, val := range contract.Events[i].Values {
+			contract.Events[i].Values[j] = contentAddressToAPI(val)
+		}
+	}
+
+	return contract
+}
+
+func ContractFromAPI(contract *model.ContractDeployment) *model.ContractDeployment {
+	contract.Address = AddressFromAPI(contract.Address)
+	contract.Script = ContentAddressFromAPI(contract.Script)
+
+	for i, e := range contract.Errors {
+		contract.Errors[i].Message = ContentAddressFromAPI(e.Message)
+	}
+
+	for i, a := range contract.Events {
+		contract.Events[i].Type = ContentAddressFromAPI(a.Type)
+		for j, val := range contract.Events[i].Values {
+			contract.Events[i].Values[j] = ContentAddressFromAPI(val)
+		}
+	}
+
+	return contract
+}
+
+// TODO: Remove accounts?
 func AccountToAPI(account *model.Account) *model.Account {
 	account.Address = addressToAPI(account.Address)
 	account.DeployedCode = contentAddressToAPI(account.DeployedCode)

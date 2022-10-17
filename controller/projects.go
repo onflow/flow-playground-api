@@ -48,6 +48,7 @@ func NewProjects(
 }
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
+	// TODO: Needs to take contract templates from input as well
 	proj := &model.Project{
 		ID:          uuid.New(),
 		Secret:      uuid.New(),
@@ -62,9 +63,12 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		UserID:      user.ID,
 	}
 
-	ttpls := make([]*model.TransactionTemplate, len(input.TransactionTemplates))
+	// TODO: Need to convert all to files
+	ctrcts := make([]*model.File, len(input.ContractTemplates))
+
+	ttpls := make([]*model.File, len(input.TransactionTemplates))
 	for i, tpl := range input.TransactionTemplates {
-		ttpls[i] = &model.TransactionTemplate{
+		ttpls[i] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
@@ -72,15 +76,17 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		}
 	}
 
-	stpls := make([]*model.ScriptTemplate, len(input.ScriptTemplates))
+	stpls := make([]*model.File, len(input.ScriptTemplates))
 	for i, tpl := range input.ScriptTemplates {
-		stpls[i] = &model.ScriptTemplate{
+		stpls[i] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 		}
 	}
+
+	files := make([]*model.File, len(stpls)+len(ttpls)+len())
 
 	err := p.store.CreateProject(proj, ttpls, stpls)
 	if err != nil {

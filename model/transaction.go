@@ -25,6 +25,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+type TransactionTemplate = File
+
 func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *types.TransactionResult,
@@ -50,6 +52,7 @@ func TransactionExecutionFromFlow(
 		File: File{
 			ID:        uuid.New(),
 			ProjectID: projectID,
+			Type:      TransactionFile,
 			Script:    script,
 		},
 		Arguments: nil,

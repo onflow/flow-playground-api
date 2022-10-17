@@ -41,11 +41,12 @@ func NewTransactions(
 	}
 }
 
-func (t *Transactions) CreateTemplate(projectID uuid.UUID, title string, script string) (*model.TransactionTemplate, error) {
-	tpl := model.TransactionTemplate{
+func (t *Transactions) CreateTemplate(projectID uuid.UUID, title string, script string) (*model.File, error) {
+	tpl := model.File{
 		ID:        uuid.New(),
 		ProjectID: projectID,
 		Title:     title,
+		Type:      model.TransactionTemplate,
 		Script:    script,
 	}
 
@@ -99,6 +100,7 @@ func (t *Transactions) AllTemplatesForProjectID(ID uuid.UUID) ([]*model.Transact
 }
 
 func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.TransactionExecution, error) {
+	// TODO
 	var exes []*model.TransactionExecution
 
 	err := t.store.GetTransactionExecutionsForProject(ID, &exes)
@@ -107,17 +109,4 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 	}
 
 	return exes, nil
-}
-
-func (t *Transactions) CreateTransactionExecution(input model.NewTransactionExecution) (*model.TransactionExecution, error) {
-	if input.Script == "" {
-		return nil, errors.New("cannot execute empty transaction script")
-	}
-
-	exe, err := t.blockchain.ExecuteTransaction(input)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute transaction")
-	}
-
-	return exe, nil
 }
