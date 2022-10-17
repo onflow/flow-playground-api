@@ -88,6 +88,9 @@ func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
 }
 
 func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
+	if contract == nil {
+		return nil // TODO: for now
+	}
 	contract.Address = addressToAPI(contract.Address)
 	contract.Script = contentAddressToAPI(contract.Script)
 
@@ -106,6 +109,7 @@ func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment
 }
 
 func ContractFromAPI(contract *model.ContractDeployment) *model.ContractDeployment {
+	_ = ContractToAPI(nil) // TODO: for now
 	contract.Address = AddressFromAPI(contract.Address)
 	contract.Script = ContentAddressFromAPI(contract.Script)
 
@@ -124,6 +128,7 @@ func ContractFromAPI(contract *model.ContractDeployment) *model.ContractDeployme
 }
 
 // TODO: Remove accounts?
+/*
 func AccountToAPI(account *model.Account) *model.Account {
 	account.Address = addressToAPI(account.Address)
 	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
@@ -147,3 +152,4 @@ func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
 	}
 	return account
 }
+*/

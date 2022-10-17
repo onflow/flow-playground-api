@@ -8,42 +8,51 @@ import (
 )
 
 // ContractTemplate TODO: Why is this being re-declared in models_gen but script and trans are not?
+
 type ContractTemplate = File
+
+type ContractDeployment struct {
+	File
+	Address Address        `json:"address"`
+	Errors  []ProgramError `gorm:"serializer:json"`
+	Events  []Event        `gorm:"serializer:json"`
+	Logs    []string       `gorm:"serializer:json"`
+}
 
 func ContractDeploymentFromFlow(
 	// TODO: Do we need this function and what does it need to do?
 	projectID uuid.UUID,
+	address Address,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
-) *TransactionExecution {
-	args := make([]string, 0)
-	signers := make([]Address, 0)
+) *ContractDeployment {
 	script := ""
 	// transaction could be nil in case where we get transaction result errors
 	if tx != nil {
-		for _, a := range tx.Arguments {
-			args = append(args, string(a))
-		}
+		/*
+			for _, a := range tx.Arguments {
+				args = append(args, string(a))
+			}
 
-		for _, a := range tx.Authorizers {
-			signers = append(signers, NewAddressFromBytes(a.Bytes()))
-		}
+			for _, a := range tx.Authorizers {
+				signers = append(signers, NewAddressFromBytes(a.Bytes()))
+			}
+		*/
 
 		script = string(tx.Script)
 	}
 
-	exe := &TransactionExecution{
+	exe := &ContractDeployment{
 		File: File{
 			ID:        uuid.New(),
 			ProjectID: projectID,
 			Type:      TransactionFile,
 			Script:    script,
 		},
-		Arguments: nil,
-		Signers:   nil,
-		Errors:    nil,
-		Events:    nil,
-		Logs:      nil,
+		Address: address,
+		Errors:  nil,
+		Events:  nil,
+		Logs:    nil,
 	}
 
 	if result.Events != nil {

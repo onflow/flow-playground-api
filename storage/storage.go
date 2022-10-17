@@ -41,38 +41,23 @@ type Store interface {
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 
-	InsertAccount(acc *model.Account) error
-	InsertAccounts(accs []*model.Account) error
-	GetAccount(id, pID uuid.UUID, acc *model.Account) error
-	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
-	DeleteAccount(id, pID uuid.UUID) error
-	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
+	//InsertAccount(acc *model.Account) error
+	//InsertAccounts(accs []*model.Account) error
+	//GetAccount(id, pID uuid.UUID, acc *model.Account) error
+	//GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
+	//DeleteAccount(id, pID uuid.UUID) error
+	//UpdateAccount(input model.UpdateAccount, acc *model.Account) error
 
 	//TODO: Implement these
 	InsertCadenceFile(file *model.File) error
 	UpdateCadenceFile(input model.UpdateFile, file *model.File) error
 	DeleteCadenceFile(id, pID uuid.UUID) error
 	GetFile(id, pID uuid.UUID, file *model.File) error
-	GetFilesForProject(projectID uuid.UUID, files *[]*model.File) error
-
-	/*
-		InsertTransactionTemplate(tpl *model.TransactionTemplate) error
-		UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
-		GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTemplate) error
-		GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.File) error
-		DeleteTransactionTemplate(id, pID uuid.UUID) error
-	*/
+	GetFilesForProject(projectID uuid.UUID, files *[]*model.File, fileType model.FileType) error
+	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
-
-	/*
-		InsertScriptTemplate(tpl *model.ScriptTemplate) error
-		UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error
-		GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) error
-		GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.File) error
-		DeleteScriptTemplate(id, pID uuid.UUID) error
-	*/
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error

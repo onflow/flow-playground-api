@@ -1067,8 +1067,8 @@ type ContractDeployment {
   script: String!
   address: Address!
   errors: [ProgramError!]
-  logs: [String!]!
   events: [Event]!
+  logs: [String!]!
 }
 
 type Query {
@@ -1929,9 +1929,9 @@ func (ec *executionContext) _ContractDeployment_errors(ctx context.Context, fiel
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ProgramError)
+	res := resTmp.([]model.ProgramError)
 	fc.Result = res
-	return ec.marshalOProgramError2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx, field.Selections, res)
+	return ec.marshalOProgramError2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ContractDeployment_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1950,6 +1950,56 @@ func (ec *executionContext) fieldContext_ContractDeployment_errors(ctx context.C
 				return ec.fieldContext_ProgramError_endPosition(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ProgramError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ContractDeployment_events(ctx context.Context, field graphql.CollectedField, obj *model.ContractDeployment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ContractDeployment_events(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Events, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.Event)
+	fc.Result = res
+	return ec.marshalNEvent2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ContractDeployment_events(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ContractDeployment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "type":
+				return ec.fieldContext_Event_type(ctx, field)
+			case "values":
+				return ec.fieldContext_Event_values(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
 	}
 	return fc, nil
@@ -1994,56 +2044,6 @@ func (ec *executionContext) fieldContext_ContractDeployment_logs(ctx context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ContractDeployment_events(ctx context.Context, field graphql.CollectedField, obj *model.ContractDeployment) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ContractDeployment_events(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Events, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Event)
-	fc.Result = res
-	return ec.marshalNEvent2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ContractDeployment_events(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ContractDeployment",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "type":
-				return ec.fieldContext_Event_type(ctx, field)
-			case "values":
-				return ec.fieldContext_Event_values(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Event", field.Name)
 		},
 	}
 	return fc, nil
@@ -2727,10 +2727,10 @@ func (ec *executionContext) fieldContext_Mutation_deployContract(ctx context.Con
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
 			case "errors":
 				return ec.fieldContext_ContractDeployment_errors(ctx, field)
-			case "logs":
-				return ec.fieldContext_ContractDeployment_logs(ctx, field)
 			case "events":
 				return ec.fieldContext_ContractDeployment_events(ctx, field)
+			case "logs":
+				return ec.fieldContext_ContractDeployment_logs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ContractDeployment", field.Name)
 		},
@@ -4403,10 +4403,10 @@ func (ec *executionContext) fieldContext_Project_contractDeployments(ctx context
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
 			case "errors":
 				return ec.fieldContext_ContractDeployment_errors(ctx, field)
-			case "logs":
-				return ec.fieldContext_ContractDeployment_logs(ctx, field)
 			case "events":
 				return ec.fieldContext_ContractDeployment_events(ctx, field)
+			case "logs":
+				return ec.fieldContext_ContractDeployment_logs(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ContractDeployment", field.Name)
 		},
@@ -8468,16 +8468,16 @@ func (ec *executionContext) _ContractDeployment(ctx context.Context, sel ast.Sel
 
 			out.Values[i] = ec._ContractDeployment_errors(ctx, field, obj)
 
-		case "logs":
+		case "events":
 
-			out.Values[i] = ec._ContractDeployment_logs(ctx, field, obj)
+			out.Values[i] = ec._ContractDeployment_events(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "events":
+		case "logs":
 
-			out.Values[i] = ec._ContractDeployment_events(ctx, field, obj)
+			out.Values[i] = ec._ContractDeployment_logs(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -9894,44 +9894,6 @@ func (ec *executionContext) marshalNEvent2ᚕgithubᚗcomᚋdapperlabsᚋflowᚑ
 	return ret
 }
 
-func (ec *executionContext) marshalNEvent2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v []*model.Event) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOEvent2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -10013,16 +9975,6 @@ func (ec *executionContext) marshalNPlaygroundInfo2ᚖgithubᚗcomᚋdapperlabs�
 
 func (ec *executionContext) marshalNProgramError2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx context.Context, sel ast.SelectionSet, v model.ProgramError) graphql.Marshaler {
 	return ec._ProgramError(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNProgramError2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx context.Context, sel ast.SelectionSet, v *model.ProgramError) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ProgramError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProject2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx context.Context, sel ast.SelectionSet, v model.Project) graphql.Marshaler {
@@ -10675,13 +10627,6 @@ func (ec *executionContext) marshalOEvent2githubᚗcomᚋdapperlabsᚋflowᚑpla
 	return ec._Event(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOEvent2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v *model.Event) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Event(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -10786,53 +10731,6 @@ func (ec *executionContext) marshalOProgramError2ᚕgithubᚗcomᚋdapperlabsᚋ
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNProgramError2githubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalOProgramError2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ProgramError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNProgramError2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProgramError(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

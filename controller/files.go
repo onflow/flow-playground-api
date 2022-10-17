@@ -78,3 +78,24 @@ func (f *Files) DeployContract(input model.NewContractDeployment) (*model.Contra
 	// TODO implement
 	return nil, nil
 }
+
+func (f *Files) GetFilesForProject(projID uuid.UUID, fileType model.FileType) ([]*model.File, error) {
+	var files []*model.File
+
+	err := f.store.GetFilesForProject(projID, &files, fileType)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get files")
+	}
+
+	return files, nil
+}
+
+func (f *Files) GetFile(id uuid.UUID, projID uuid.UUID) (*model.File, error) {
+	var file *model.File
+	err := f.store.GetFile(id, projID, file)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get file")
+	}
+
+	return file, nil
+}

@@ -12,8 +12,8 @@ type ContractDeployment struct {
 	Script  string          `json:"script"`
 	Address Address         `json:"address"`
 	Errors  []*ProgramError `json:"errors"`
-	Logs    []string        `json:"logs"`
 	Events  []*Event        `json:"events"`
+	Logs    []string        `json:"logs"`
 }
 
 type ContractTemplate struct {

@@ -96,8 +96,8 @@ type ContractDeployment {
   script: String!
   address: Address!
   errors: [ProgramError!]
-  logs: [String!]!
   events: [Event]!
+  logs: [String!]!
 }
 
 type Query {

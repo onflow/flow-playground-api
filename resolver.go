@@ -288,7 +288,7 @@ func (r *mutationResolver) CreateScriptExecution(
   updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
   deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
   deployContract(input: NewContractDeployment!): ContractDeployment!
- */
+*/
 
 func (r *mutationResolver) UpdateContractTemplate(
 	ctx context.Context, input model.UpdateContractTemplate,
@@ -343,8 +343,6 @@ func (r *mutationResolver) DeployContract(
 	return adapter.ScriptToAPI(exe), nil
 }
 
-
-
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
@@ -357,14 +355,17 @@ func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*m
 }
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
-	// TODO: Get all transaction templates
-	tmpl := r.files.
+	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
+	if err != nil {
+		return nil, err
+	}
 
-	return r.transactions.AllTemplatesForProjectID(proj.ID)
+	return files, nil
 }
 
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
-	exes, err := r.transactions.AllExecutionsForProjectID(proj.ID)
+
+	exes, err := r.files.AllExecutionsForProjectID(proj.ID)
 	if err != nil {
 		return nil, err
 	}
