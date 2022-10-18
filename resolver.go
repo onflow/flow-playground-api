@@ -34,15 +34,12 @@ import (
 )
 
 type Resolver struct {
-	version  *semver.Version
-	store    storage.Store
-	auth     *auth.Authenticator
-	migrator *migrate.Migrator
-	projects *controller.Projects
-	files    *controller.Files
-	//scripts            *controller.Scripts
-	//transactions       *controller.Transactions
-	//accounts           *controller.Accounts // TODO: Remove accounts?
+	version            *semver.Version
+	store              storage.Store
+	auth               *auth.Authenticator
+	migrator           *migrate.Migrator
+	projects           *controller.Projects
+	files              *controller.Files
 	lastCreatedProject *model.Project
 }
 
@@ -53,20 +50,16 @@ func NewResolver(
 	blockchain *blockchain.Projects,
 ) *Resolver {
 	projects := controller.NewProjects(version, store, blockchain)
-	scripts := controller.NewScripts(store, blockchain)
-	transactions := controller.NewTransactions(store, blockchain)
-	accounts := controller.NewAccounts(store, blockchain)
+	files := controller.NewFiles(store, blockchain)
 	migrator := migrate.NewMigrator(store, projects)
 
 	return &Resolver{
-		version:      version,
-		store:        store,
-		auth:         auth,
-		migrator:     migrator,
-		projects:     projects,
-		scripts:      scripts,
-		transactions: transactions,
-		accounts:     accounts,
+		version:  version,
+		store:    store,
+		auth:     auth,
+		migrator: migrator,
+		projects: projects,
+		files:    files,
 	}
 }
 
@@ -150,6 +143,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
+/*
 func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
@@ -167,6 +161,7 @@ func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.Update
 
 	return adapter.AccountToAPI(acc), nil
 }
+*/
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	err := r.authorize(ctx, input.ProjectID)
@@ -283,12 +278,10 @@ func (r *mutationResolver) CreateScriptExecution(
 	return adapter.ScriptToAPI(exe), nil
 }
 
-/*
-  createContractTemplate(input: NewContractTemplate!): ContractTemplate!
-  updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
-  deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
-  deployContract(input: NewContractDeployment!): ContractDeployment!
-*/
+func (r *mutationResolver) CreateContractTemplate(ctx context.Context, input model.NewContractTemplate) (*model.File, error) {
+	//TODO implement me
+	panic("implement me")
+}
 
 func (r *mutationResolver) UpdateContractTemplate(
 	ctx context.Context, input model.UpdateContractTemplate,
@@ -345,6 +338,7 @@ func (r *mutationResolver) DeployContract(
 
 type projectResolver struct{ *Resolver }
 
+/*
 func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
 	accounts, err := r.accounts.AllForProjectID(proj.ID)
 	if err != nil {
@@ -353,6 +347,7 @@ func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*m
 
 	return adapter.AccountsToAPI(accounts), nil
 }
+*/
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
 	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
@@ -419,6 +414,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	return proj.ExportPublicMutable(), nil
 }
 
+/*
 func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
 	acc, err := r.accounts.GetByID(id, projectID)
 	if err != nil {
@@ -427,6 +423,7 @@ func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.
 
 	return adapter.AccountToAPI(acc), nil
 }
+*/
 
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
 	return r.transactions.TemplateByID(id, projectID)

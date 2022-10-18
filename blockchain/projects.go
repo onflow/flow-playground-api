@@ -19,7 +19,6 @@
 package blockchain
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -55,8 +54,8 @@ type Projects struct {
 	accountsNumber int
 }
 
-// Reset the blockchain state.
-func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
+// Reset the blockchain state and return the new number of accounts
+func (p *Projects) Reset(project *model.Project) (*int, error) {
 	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
@@ -64,12 +63,12 @@ func (p *Projects) Reset(project *model.Project) ([]*model.Account, error) {
 		return nil, err
 	}
 
-	accounts, err := p.CreateInitialAccounts(project.ID)
+	numAccounts, err := p.CreateInitialAccounts(project.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return accounts, nil
+	return numAccounts, nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
@@ -134,6 +133,7 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	return exe, nil
 }
 
+/*
 // GetAccount by the address along with its storage information.
 func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
@@ -145,7 +145,9 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 
 	return p.getAccount(em, projectID, address)
 }
+*/
 
+/*
 func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
@@ -166,8 +168,9 @@ func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) (
 
 	return accounts, nil
 }
+*/
 
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (*int, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
@@ -175,9 +178,10 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 		return nil, err
 	}
 
-	accounts := make([]*model.Account, p.accountsNumber)
+	//accounts := make([]*model.Account, p.accountsNumber)
+
 	for i := 0; i < p.accountsNumber; i++ {
-		flowAccount, tx, result, err := em.createAccount()
+		_, tx, result, err := em.createAccount()
 		if err != nil {
 			return nil, err
 		}
@@ -188,36 +192,38 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 			return nil, err
 		}
 
+		/* TODO: remove this code
 		account := model.AccountFromFlow(flowAccount, projectID)
 		account.Index = i
 		account.ID = uuid.New()
 		accounts[i] = account
+		*/
 	}
 
-	return accounts, nil
+	return &p.accountsNumber, nil
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
-func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
+func (p *Projects) CreateAccount(projectID uuid.UUID) error {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	account, tx, result, err := em.createAccount()
+	_, tx, result, err := em.createAccount()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return model.AccountFromFlow(account, projectID), nil
+	return nil
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
@@ -225,31 +231,32 @@ func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,
-) (*model.Account, error) {
+) error {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if result.Error != nil {
-		return nil, result.Error
+		return result.Error
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return p.getAccount(em, projectID, address)
+	return nil
 }
 
+/*
 func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {
@@ -267,6 +274,7 @@ func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.
 
 	return account, nil
 }
+*/
 
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //

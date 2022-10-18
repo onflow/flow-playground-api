@@ -18,6 +18,7 @@
 
 package controller
 
+/*
 import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -141,3 +142,4 @@ func (a *Accounts) deployCode(input model.UpdateAccount) (*model.Account, error)
 		MergeFromStore(&dbAccount).
 		Export(), nil
 }
+*/

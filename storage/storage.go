@@ -32,8 +32,7 @@ type Store interface {
 
 	CreateProject(
 		proj *model.Project,
-		ttpl []*model.TransactionTemplate,
-		stpl []*model.ScriptTemplate,
+		files []*model.File,
 	) error
 	UpdateProject(input model.UpdateProject, proj *model.Project) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
@@ -41,14 +40,6 @@ type Store interface {
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 
-	//InsertAccount(acc *model.Account) error
-	//InsertAccounts(accs []*model.Account) error
-	//GetAccount(id, pID uuid.UUID, acc *model.Account) error
-	//GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
-	//DeleteAccount(id, pID uuid.UUID) error
-	//UpdateAccount(input model.UpdateAccount, acc *model.Account) error
-
-	//TODO: Implement these
 	InsertCadenceFile(file *model.File) error
 	UpdateCadenceFile(input model.UpdateFile, file *model.File) error
 	DeleteCadenceFile(id, pID uuid.UUID) error

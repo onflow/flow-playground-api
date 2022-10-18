@@ -18,6 +18,7 @@
 
 package model
 
+/*
 import (
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
@@ -53,15 +54,16 @@ type UpdateAccount struct {
 	DeployedContracts *[]string
 }
 
+
 func (u *UpdateAccount) Validate() error {
-	/*
+
 		if u.DeployedCode == nil && u.DraftCode == nil {
 			return errors.Wrap(missingValuesError, "deployed code, draft code")
 		}
 		if u.DeployedCode != nil && u.DraftCode != nil {
 			return fmt.Errorf("can only provide deployed code or draft code")
 		}
-	*/
+
 
 	return nil
 }
@@ -84,3 +86,4 @@ func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 		DeployedContracts: contractNames,
 	}
 }
+*/

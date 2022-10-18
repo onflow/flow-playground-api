@@ -21,7 +21,6 @@ package controller
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -48,7 +47,6 @@ func NewProjects(
 }
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
-	// TODO: Needs to take contract templates from input as well
 	proj := &model.Project{
 		ID:          uuid.New(),
 		Secret:      uuid.New(),
@@ -63,50 +61,50 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		UserID:      user.ID,
 	}
 
-	// TODO: Need to convert all to files
-	ctrcts := make([]*model.File, len(input.ContractTemplates))
+	files := make(
+		[]*model.File,
+		len(input.TransactionTemplates)+len(input.ScriptTemplates)+len(input.ContractTemplates),
+	)
 
-	ttpls := make([]*model.File, len(input.TransactionTemplates))
+	for i, tpl := range input.ContractTemplates {
+		files[i] = &model.File{
+			ID:        uuid.New(),
+			ProjectID: proj.ID,
+			Title:     tpl.Title,
+			Script:    tpl.Script,
+			Type:      model.ContractFile,
+		}
+	}
+
 	for i, tpl := range input.TransactionTemplates {
-		ttpls[i] = &model.File{
+		files[i] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
+			Type:      model.TransactionFile,
 		}
 	}
 
-	stpls := make([]*model.File, len(input.ScriptTemplates))
 	for i, tpl := range input.ScriptTemplates {
-		stpls[i] = &model.File{
+		files[i] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
+			Type:      model.ScriptFile,
 		}
 	}
 
-	files := make([]*model.File, len(stpls)+len(ttpls)+len())
-
-	err := p.store.CreateProject(proj, ttpls, stpls)
+	err := p.store.CreateProject(proj, files)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	accounts, err := p.blockchain.CreateInitialAccounts(proj.ID)
+	// todo: We're not actually supporting adding new accounts yet (keep at initial accounts)
+	// todo: will eventually need to update the project with reset number of accounts
+	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
 	if err != nil {
-		return nil, err
-	}
-
-	for i, account := range accounts {
-		if i < len(input.Accounts) {
-			account.DraftCode = input.Accounts[i]
-		}
-	}
-
-	err = p.store.InsertAccounts(accounts)
-	if err != nil {
-		sentry.CaptureException(err)
 		return nil, err
 	}
 
@@ -143,6 +141,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 // Reset is not used in the API but for migration
-func (p *Projects) Reset(proj *model.Project) ([]*model.Account, error) {
+func (p *Projects) Reset(proj *model.Project) (*int, error) {
 	return p.blockchain.Reset(proj)
 }

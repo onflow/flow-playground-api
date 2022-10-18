@@ -136,20 +136,14 @@ func (s *SQL) GetUser(id uuid.UUID, user *model.User) error {
 	return s.db.First(user, id).Error
 }
 
-func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTemplate, stpl []*model.ScriptTemplate) error {
+func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(proj).Error; err != nil {
 			return err
 		}
 
-		if len(ttpl) > 0 {
-			if err := tx.Create(ttpl).Error; err != nil {
-				return err
-			}
-		}
-
-		if len(stpl) > 0 {
-			if err := tx.Create(stpl).Error; err != nil {
+		if len(files) > 0 {
+			if err := tx.Create(files).Error; err != nil {
 				return err
 			}
 		}
@@ -237,6 +231,7 @@ func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 	return s.db.First(proj, id).Error
 }
 
+/*
 func (s *SQL) InsertAccount(acc *model.Account) error {
 	return s.db.Save(acc).Error
 }
@@ -260,6 +255,7 @@ func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error
 func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
 	return s.db.Delete(&model.Account{ID: id, ProjectID: pID}).Error
 }
+*/
 
 /*
 func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {

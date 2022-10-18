@@ -18,6 +18,7 @@
 
 package controller
 
+/* TODO Delete this file
 import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/google/uuid"
@@ -109,3 +110,5 @@ func (s *Scripts) CreateExecution(script model.NewScriptExecution) (*model.Scrip
 	}
 	return execution, nil
 }
+
+*/

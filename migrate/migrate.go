@@ -19,10 +19,7 @@
 package migrate
 
 import (
-	"fmt"
-
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -38,6 +35,7 @@ type Migrator struct {
 var V0 = semver.MustParse("v0.0.0")
 var V0_1_0 = semver.MustParse("v0.1.0")
 var V0_12_0 = semver.MustParse("v0.12.0")
+var V2_0_0 = semver.MustParse("v2.0.0")
 
 func NewMigrator(store storage.Store, projects *controller.Projects) *Migrator {
 	return &Migrator{
@@ -60,6 +58,9 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		return false, nil
 	}
 
+	if from.LessThan(V2_0_0) {
+		// TODO: Create migrator to v2?
+	}
 	if from.LessThan(V0_1_0) {
 		err := m.migrateToV0_1_0(id)
 		if err != nil {
@@ -67,10 +68,12 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		}
 	}
 	if from.LessThan(V0_12_0) {
+		/* TODO: Fix?
 		err := m.migrateToV0_12_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_12_0)
 		}
+		*/
 	}
 
 	// If no migration steps are left, set project version to latest.
@@ -112,6 +115,9 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	return nil
 }
 
+/*
+// TODO: Fix migrators since accounts changed
+// TODO: Create migrators for v2.0.0
 // migrateToV0_12_0 migrates a project to the version v0.12.0
 //
 // Steps:
@@ -159,6 +165,7 @@ func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 
 	return nil
 }
+*/
 
 func sanitizeVersion(version *semver.Version) *semver.Version {
 	if version == nil {

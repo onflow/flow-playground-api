@@ -13,6 +13,16 @@ type Files struct {
 	blockchain *blockchain.Projects
 }
 
+func NewFiles(
+	store storage.Store,
+	blockchain *blockchain.Projects,
+) *Files {
+	return &Files{
+		store:      store,
+		blockchain: blockchain,
+	}
+}
+
 func (f *Files) CreateFile(projectID uuid.UUID, input model.NewFile, fileType model.FileType) (*model.File, error) {
 	file := model.File{
 		ID:        uuid.New(),

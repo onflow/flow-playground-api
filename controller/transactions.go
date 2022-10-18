@@ -18,6 +18,8 @@
 
 package controller
 
+/* TODO: Delete this file
+
 import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -110,3 +112,4 @@ func (t *Transactions) AllExecutionsForProjectID(ID uuid.UUID) ([]*model.Transac
 
 	return exes, nil
 }
+*/
