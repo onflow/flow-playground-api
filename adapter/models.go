@@ -112,6 +112,13 @@ func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment
 	return contract
 }
 
+func ContractsToAPI(contracts []*model.ContractDeployment) []*model.ContractDeployment {
+	for i, a := range contracts {
+		contracts[i] = ContractToAPI(a)
+	}
+	return contracts
+}
+
 func ContractFromAPI(contract model.NewContractDeployment) model.NewContractDeployment {
 	contract.Address = AddressFromAPI(contract.Address)
 	contract.Script = ContentAddressFromAPI(contract.Script)

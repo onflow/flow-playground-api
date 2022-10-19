@@ -18,20 +18,13 @@ type Project {
   version: Version!
   persist: Boolean
   mutable: Boolean
-  accounts: [Account!]
+  numberOfAccounts: Int!
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
   scriptTemplates: [ScriptTemplate!]
   scriptExecutions: [ScriptExecution!]
   contractTemplates: [ContractTemplate!]
   contractDeployments: [ContractDeployment!]
-}
-
-type Account {
-  id: UUID!
-  address: Address!
-  contracts: [String!]!
-  state: String!
 }
 
 type ProgramError {
@@ -57,7 +50,7 @@ type TransactionExecution {
   id: UUID!
   script: String!
   arguments: [String!]
-  signers: [Account!]!
+  signers: [Address!]!
   errors: [ProgramError!]
   events: [Event]!
   logs: [String!]!
@@ -104,7 +97,6 @@ type Query {
   playgroundInfo: PlaygroundInfo!
   project(id: UUID!): Project!
 
-  account(id: UUID!, projectId: UUID!): Account!
   contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
@@ -232,7 +224,7 @@ type Mutation {
   createContractTemplate(input: NewContractTemplate!): ContractTemplate!
   updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
   deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
-  deployContract(input: NewContractDeployment!): ContractDeployment!
+  createContractDeployment(input: NewContractDeployment!): ContractDeployment!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!

@@ -75,9 +75,11 @@ func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
 
+/*
 func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
 	return &transactionExecutionResolver{r}
 }
+*/
 
 func (r *Resolver) LastCreatedProject() *model.Project {
 	return r.lastCreatedProject
@@ -378,6 +380,21 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Projec
 	return adapter.ScriptsToAPI(*exes), nil
 }
 
+// TODO: Move to query resolver?
+func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
+	return r.files.GetFilesForProject(proj.ID, model.ContractFile)
+}
+
+func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Project) ([]*model.ContractDeployment, error) {
+	var deploys *[]*model.ContractDeployment
+	err := r.store.GetContractDeploymentsForProject(proj.ID, deploys)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ContractsToAPI(*deploys), nil
+}
+
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
@@ -415,17 +432,6 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	return proj.ExportPublicMutable(), nil
 }
 
-/*
-func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	acc, err := r.accounts.GetByID(id, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.AccountToAPI(acc), nil
-}
-*/
-
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
 	return r.files.GetFile(id, projectID)
 }
@@ -434,9 +440,15 @@ func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectI
 	return r.files.GetFile(id, projectID)
 }
 
+func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ContractTemplate, error) {
+	return r.files.GetFile(id, projectID)
+}
+
+/*
 type transactionExecutionResolver struct{ *Resolver }
 
 func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) error {
 	// TODO: What's this for?!?
 	panic("not implemented")
 }
+*/

@@ -124,8 +124,8 @@ func (e *EmbedsHandler) GetCode(id, pID uuid.UUID, scriptType string) (string, e
 		return e.GetScriptTemplate(id, pID)
 	case "transaction":
 		return e.GetTransactionTemplate(id, pID)
-	case "account":
-		return e.GetAccountTemplate(id, pID)
+	case "contract":
+		return e.GetContractTemplate(id, pID)
 	default:
 		return "", fmt.Errorf("invalid script type: %s", scriptType)
 	}
@@ -135,7 +135,7 @@ func (e *EmbedsHandler) GetCode(id, pID uuid.UUID, scriptType string) (string, e
 func (e *EmbedsHandler) GetScriptTemplate(id, pID uuid.UUID) (string, error) {
 	var tmpl model.ScriptTemplate
 
-	err := e.store.GetScriptTemplate(id, pID, &tmpl)
+	err := e.store.GetFile(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}
@@ -146,7 +146,7 @@ func (e *EmbedsHandler) GetScriptTemplate(id, pID uuid.UUID) (string, error) {
 func (e *EmbedsHandler) GetTransactionTemplate(id, pID uuid.UUID) (string, error) {
 	var tmpl model.TransactionTemplate
 
-	err := e.store.GetTransactionTemplate(id, pID, &tmpl)
+	err := e.store.GetFile(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}
@@ -154,15 +154,15 @@ func (e *EmbedsHandler) GetTransactionTemplate(id, pID uuid.UUID) (string, error
 	return tmpl.Script, nil
 }
 
-func (e *EmbedsHandler) GetAccountTemplate(id, pID uuid.UUID) (string, error) {
-	var tmpl model.Account
+func (e *EmbedsHandler) GetContractTemplate(id, pID uuid.UUID) (string, error) {
+	var tmpl model.ContractTemplate
 
-	err := e.store.GetAccount(id, pID, &tmpl)
+	err := e.store.GetFile(id, pID, &tmpl)
 	if err != nil {
 		return "", err
 	}
 
-	return tmpl.DraftCode, nil
+	return tmpl.Script, nil
 }
 
 func getUUID(paramName string, r *http.Request) (id uuid.UUID, err error) {
