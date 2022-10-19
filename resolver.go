@@ -279,8 +279,18 @@ func (r *mutationResolver) CreateScriptExecution(
 }
 
 func (r *mutationResolver) CreateContractTemplate(ctx context.Context, input model.NewContractTemplate) (*model.File, error) {
-	//TODO implement me
-	panic("implement me")
+	err := r.authorize(ctx, input.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	file, err := r.files.CreateFile(input.ProjectID, model.NewFile(input), model.ContractFile)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create contract template")
+	}
+
+	return file, nil
 }
 
 func (r *mutationResolver) UpdateContractTemplate(
@@ -295,8 +305,7 @@ func (r *mutationResolver) UpdateContractTemplate(
 		return nil, err
 	}
 
-	// TODO: Why is this different for contracts?! wtf
-	return r.files.UpdateFile(model.UpdateFile(input)), nil
+	return r.files.UpdateFile(model.UpdateFile(input))
 }
 
 func (r *mutationResolver) DeleteContractTemplate(
@@ -317,37 +326,24 @@ func (r *mutationResolver) DeleteContractTemplate(
 	return id, nil
 }
 
-func (r *mutationResolver) DeployContract(
+func (r *mutationResolver) CreateContractDeployment(
 	ctx context.Context,
 	input model.NewContractDeployment,
 ) (*model.ContractDeployment, error) {
-	// TODO: Fix this crap
-	err := r.authorize(ctx, input.ProjectID) // TODO: Need this?
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO?!
-	exe, err := r.files.DeployContract(adapter.ContractFromAPI(input))
+	deployment, err := r.files.DeployContract(adapter.ContractFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.ScriptToAPI(exe), nil
+	return adapter.ContractToAPI(deployment), nil
 }
 
 type projectResolver struct{ *Resolver }
-
-/*
-func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
-	accounts, err := r.accounts.AllForProjectID(proj.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.AccountsToAPI(accounts), nil
-}
-*/
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
 	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
@@ -359,22 +355,27 @@ func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Pr
 }
 
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
-
-	exes, err := r.files.AllExecutionsForProjectID(proj.ID)
+	var exes *[]*model.TransactionExecution
+	err := r.store.GetTransactionExecutionsForProject(proj.ID, exes)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.TransactionsToAPI(exes), nil
+	return adapter.TransactionsToAPI(*exes), nil
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
-	return r.scripts.AllTemplatesForProjectID(proj.ID)
+	return r.files.GetFilesForProject(proj.ID, model.ScriptFile)
 }
 
-func (r *projectResolver) ScriptExecutions(_ context.Context, _ *model.Project) ([]*model.ScriptExecution, error) {
-	// todo implement
-	panic("not implemented")
+func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Project) ([]*model.ScriptExecution, error) {
+	var exes *[]*model.ScriptExecution
+	err := r.store.GetScriptExecutionsForProject(proj.ID, exes)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ScriptsToAPI(*exes), nil
 }
 
 type queryResolver struct{ *Resolver }
@@ -426,15 +427,16 @@ func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.
 */
 
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
-	return r.transactions.TemplateByID(id, projectID)
+	return r.files.GetFile(id, projectID)
 }
 
 func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
-	return r.scripts.TemplateByID(id, projectID)
+	return r.files.GetFile(id, projectID)
 }
 
 type transactionExecutionResolver struct{ *Resolver }
 
-func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) ([]*model.Account, error) {
+func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) error {
+	// TODO: What's this for?!?
 	panic("not implemented")
 }

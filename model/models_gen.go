@@ -7,22 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type ContractDeployment struct {
-	ID      uuid.UUID       `json:"id"`
-	Script  string          `json:"script"`
-	Address Address         `json:"address"`
-	Errors  []*ProgramError `json:"errors"`
-	Events  []*Event        `json:"events"`
-	Logs    []string        `json:"logs"`
-}
-
-type ContractTemplate struct {
-	ID     uuid.UUID `json:"id"`
-	Index  int       `json:"index"`
-	Title  string    `json:"title"`
-	Script string    `json:"script"`
-}
-
 type Event struct {
 	Type   string   `json:"type"`
 	Values []string `json:"values"`
@@ -30,7 +14,7 @@ type Event struct {
 
 type NewContractDeployment struct {
 	ProjectID uuid.UUID `json:"projectId"`
-	Script    *string   `json:"script"`
+	Script    string    `json:"script"`
 	Address   Address   `json:"address"`
 }
 

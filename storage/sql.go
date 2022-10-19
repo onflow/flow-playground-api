@@ -113,21 +113,6 @@ type SQL struct {
 	db *gorm.DB
 }
 
-func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (s *SQL) InsertUser(user *model.User) error {
 	return s.db.Create(user).Error
 }
@@ -231,52 +216,6 @@ func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 	return s.db.First(proj, id).Error
 }
 
-/*
-func (s *SQL) InsertAccount(acc *model.Account) error {
-	return s.db.Save(acc).Error
-}
-
-func (s *SQL) InsertAccounts(accs []*model.Account) error {
-	return s.db.Create(accs).Error
-}
-
-func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
-	return s.db.First(acc, &model.Account{ID: id, ProjectID: pID}).Error
-}
-
-func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
-	return s.db.
-		Where(&model.Account{ProjectID: pID}).
-		Order("\"index\" asc").
-		Find(accs).
-		Error
-}
-
-func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
-	return s.db.Delete(&model.Account{ID: id, ProjectID: pID}).Error
-}
-*/
-
-/*
-func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	// TODO: Remove accounts completely???
-	update := make(map[string]any)
-	if input.DraftCode != nil {
-		update["draft_code"] = *input.DraftCode
-	}
-
-	err := s.db.Model(&model.Account{
-		ID:        input.ID,
-		ProjectID: input.ProjectID,
-	}).Updates(update).Error
-	if err != nil {
-		return err
-	}
-
-	return s.db.First(acc, input.ID).Error
-}
-*/
-
 func (s *SQL) InsertCadenceFile(file *model.File) error {
 	var count int64
 	err := s.db.Model(&model.File{}).
@@ -331,6 +270,29 @@ func (s *SQL) GetAllFilesForProject(pID uuid.UUID, files *[]*model.File) error {
 	return s.db.Where(&model.File{ProjectID: pID}).Find(files).Error
 }
 
+func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
+	return s.db.Create(exe).Error
+}
+
+func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
+	return s.db.Where(&model.ScriptExecution{File: model.File{ProjectID: projectID}}).
+		Find(exes).
+		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Error
+}
+
+func (s *SQL) InsertContractDeployment(deployment *model.ContractDeployment) error {
+	// TODO: should this do the same thing as InsertTransactionExecution???
+	return s.db.Create(deployment).Error
+}
+
+func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {
+	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}}).
+		Find(deployments).
+		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Error
+}
+
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
 	var proj model.Project
 	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
@@ -352,11 +314,9 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 	})
 }
 
-/*
-func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
-		Order("\"index\" asc").
+func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
+	return s.db.Where(&model.TransactionExecution{File: model.File{ProjectID: projectID}}).
+		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
 		Find(exes).
 		Error
 }
-*/

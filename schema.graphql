@@ -96,8 +96,8 @@ type ContractDeployment {
   script: String!
   address: Address!
   errors: [ProgramError!]
-  events: [Event]!
-  logs: [String!]!
+  events: [Event!]
+  logs: [String!]
 }
 
 type Query {
@@ -105,6 +105,7 @@ type Query {
   project(id: UUID!): Project!
 
   account(id: UUID!, projectId: UUID!): Account!
+  contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
@@ -179,7 +180,7 @@ input UpdateContractTemplate {
 
 input NewContractDeployment {
   projectId: UUID!
-  script: String
+  script: String!
   address: Address!
 }
 

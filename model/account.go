@@ -77,7 +77,6 @@ func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 		break // we only allow one deployed contract on account so only get the first if present
 	}
 
-	// TODO: We don't care about contract code in accounts anymore?
 	_ = contractCode
 
 	return &Account{

@@ -1,9 +1,6 @@
 package model
 
 import (
-	"github.com/google/uuid"
-	"github.com/onflow/flow-emulator/types"
-	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
 
@@ -13,12 +10,13 @@ type ContractTemplate = File
 
 type ContractDeployment struct {
 	File
-	Address Address        `json:"address"`
+	Address Address        `gorm:"serializer:json"` //`json:"address"`
 	Errors  []ProgramError `gorm:"serializer:json"`
 	Events  []Event        `gorm:"serializer:json"`
 	Logs    []string       `gorm:"serializer:json"`
 }
 
+/*
 func ContractDeploymentFromFlow(
 	// TODO: Do we need this function and what does it need to do?
 	projectID uuid.UUID,
@@ -29,7 +27,7 @@ func ContractDeploymentFromFlow(
 	script := ""
 	// transaction could be nil in case where we get transaction result errors
 	if tx != nil {
-		/*
+
 			for _, a := range tx.Arguments {
 				args = append(args, string(a))
 			}
@@ -37,7 +35,7 @@ func ContractDeploymentFromFlow(
 			for _, a := range tx.Authorizers {
 				signers = append(signers, NewAddressFromBytes(a.Bytes()))
 			}
-		*/
+
 
 		script = string(tx.Script)
 	}
@@ -66,6 +64,7 @@ func ContractDeploymentFromFlow(
 
 	return exe
 }
+*/
 
 func (u *UpdateContractTemplate) Validate() error {
 	if u.Title == nil && u.Index == nil && u.Script == nil {

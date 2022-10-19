@@ -87,10 +87,14 @@ func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
 	return script
 }
 
-func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
-	if contract == nil {
-		return nil // TODO: for now
+func ScriptsToAPI(scripts []*model.ScriptExecution) []*model.ScriptExecution {
+	for i, a := range scripts {
+		scripts[i] = ScriptToAPI(a)
 	}
+	return scripts
+}
+
+func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
 	contract.Address = addressToAPI(contract.Address)
 	contract.Script = contentAddressToAPI(contract.Script)
 
@@ -108,22 +112,9 @@ func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment
 	return contract
 }
 
-func ContractFromAPI(contract *model.ContractDeployment) *model.ContractDeployment {
-	_ = ContractToAPI(nil) // TODO: for now
+func ContractFromAPI(contract model.NewContractDeployment) model.NewContractDeployment {
 	contract.Address = AddressFromAPI(contract.Address)
 	contract.Script = ContentAddressFromAPI(contract.Script)
-
-	for i, e := range contract.Errors {
-		contract.Errors[i].Message = ContentAddressFromAPI(e.Message)
-	}
-
-	for i, a := range contract.Events {
-		contract.Events[i].Type = ContentAddressFromAPI(a.Type)
-		for j, val := range contract.Events[i].Values {
-			contract.Events[i].Values[j] = ContentAddressFromAPI(val)
-		}
-	}
-
 	return contract
 }
 

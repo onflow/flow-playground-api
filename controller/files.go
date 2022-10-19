@@ -85,8 +85,32 @@ func (f *Files) CreateTransactionExecution(input model.NewTransactionExecution) 
 }
 
 func (f *Files) DeployContract(input model.NewContractDeployment) (*model.ContractDeployment, error) {
-	// TODO implement
-	return nil, nil
+	if len(input.Script) == 0 {
+		return nil, errors.New("cannot deploy empty contract")
+	}
+
+	// TODO: Make sure this works as expected
+	tx := model.NewTransactionExecution{
+		ProjectID: input.ProjectID,
+		Script:    input.Script,
+		Signers:   []model.Address{input.Address},
+		Arguments: nil,
+	}
+
+	exe, err := f.blockchain.ExecuteTransaction(tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to execute transaction")
+	}
+
+	deployment := model.ContractDeployment{
+		File:    exe.File,
+		Address: exe.Signers[0], // There should only be one signer!
+		Errors:  exe.Errors,
+		Events:  exe.Events,
+		Logs:    exe.Logs,
+	}
+
+	return &deployment, nil
 }
 
 func (f *Files) GetFilesForProject(projID uuid.UUID, fileType model.FileType) ([]*model.File, error) {
