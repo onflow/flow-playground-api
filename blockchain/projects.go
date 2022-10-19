@@ -248,7 +248,8 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	err = p.store.InsertTransactionExecution(exe)
+	deploy := model.ContractDeploymentFromFlow(projectID, result, tx)
+	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {
 		return err
 	}

@@ -47,7 +47,8 @@ type Store interface {
 	GetFilesForProject(projectID uuid.UUID, files *[]*model.File, fileType model.FileType) error
 	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
 
-	InsertContractDeployment(exe *model.ContractDeployment) error
+	InsertContractDeployment(deploy *model.ContractDeployment) error
+	InsertContractDeploymentWithExecution(deploy *model.ContractDeployment, exe *model.TransactionExecution) error
 	GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error

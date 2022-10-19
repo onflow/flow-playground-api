@@ -281,9 +281,37 @@ func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.
 		Error
 }
 
-func (s *SQL) InsertContractDeployment(deployment *model.ContractDeployment) error {
-	// TODO: should this do the same thing as InsertTransactionExecution???
-	return s.db.Create(deployment).Error
+func (s *SQL) InsertContractDeployment(deploy *model.ContractDeployment) error {
+	// Should avoid this!
+	return s.db.Create(deploy).Error
+}
+
+func (s *SQL) InsertContractDeploymentWithExecution(
+	deploy *model.ContractDeployment,
+	exe *model.TransactionExecution,
+) error {
+	var proj model.Project
+	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
+		return err
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		exe.Index = proj.TransactionExecutionCount
+		proj.TransactionExecutionCount += 1
+		if err := tx.Save(proj).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(exe).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(deploy).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {

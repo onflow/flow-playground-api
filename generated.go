@@ -1162,7 +1162,8 @@ type Mutation {
   updateScriptTemplate(input: UpdateScriptTemplate!): ScriptTemplate!
   deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
-}`, BuiltIn: false},
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
