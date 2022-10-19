@@ -75,12 +75,6 @@ func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
 
-/*
-func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
-	return &transactionExecutionResolver{r}
-}
-*/
-
 func (r *Resolver) LastCreatedProject() *model.Project {
 	return r.lastCreatedProject
 }
@@ -443,12 +437,3 @@ func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectI
 func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ContractTemplate, error) {
 	return r.files.GetFile(id, projectID)
 }
-
-/*
-type transactionExecutionResolver struct{ *Resolver }
-
-func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) error {
-	// TODO: What's this for?!?
-	panic("not implemented")
-}
-*/

@@ -23,7 +23,6 @@ type ContractTemplate struct {
 	Title  string    `json:"title"`
 	Script string    `json:"script"`
 }
-
 */
 
 type Event struct {

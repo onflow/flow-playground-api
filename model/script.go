@@ -25,9 +25,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: Keep original script template for FE to use?
-
 type ScriptTemplate = File
+
+type ScriptExecution struct {
+	File
+	Arguments []string `gorm:"serializer:json"`
+	Value     string
+	Errors    []ProgramError `gorm:"serializer:json"`
+	Logs      []string       `gorm:"serializer:json"`
+}
 
 func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
 	exe := &ScriptExecution{
@@ -51,14 +57,6 @@ func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, sc
 	}
 
 	return exe
-}
-
-type ScriptExecution struct {
-	File
-	Arguments []string `gorm:"serializer:json"`
-	Value     string
-	Errors    []ProgramError `gorm:"serializer:json"`
-	Logs      []string       `gorm:"serializer:json"`
 }
 
 func (u *UpdateScriptTemplate) Validate() error {

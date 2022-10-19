@@ -27,6 +27,15 @@ import (
 
 type TransactionTemplate = File
 
+type TransactionExecution struct {
+	File
+	Arguments []string       `gorm:"serializer:json"`
+	Signers   []Address      `gorm:"serializer:json"`
+	Errors    []ProgramError `gorm:"serializer:json"`
+	Events    []Event        `gorm:"serializer:json"`
+	Logs      []string       `gorm:"serializer:json"`
+}
+
 func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *types.TransactionResult,
@@ -72,15 +81,6 @@ func TransactionExecutionFromFlow(
 	}
 
 	return exe
-}
-
-type TransactionExecution struct {
-	File
-	Arguments []string       `gorm:"serializer:json"`
-	Signers   []Address      `gorm:"serializer:json"`
-	Errors    []ProgramError `gorm:"serializer:json"`
-	Events    []Event        `gorm:"serializer:json"`
-	Logs      []string       `gorm:"serializer:json"`
 }
 
 func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {

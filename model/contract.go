@@ -10,7 +10,7 @@ type ContractTemplate = File
 
 type ContractDeployment struct {
 	File
-	Address Address        `gorm:"serializer:json"` //`json:"address"`
+	Address Address        `gorm:"serializer:json"`
 	Errors  []ProgramError `gorm:"serializer:json"`
 	Events  []Event        `gorm:"serializer:json"`
 	Logs    []string       `gorm:"serializer:json"`
