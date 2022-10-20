@@ -7,8 +7,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ContractTemplate TODO: Why is this being re-declared in models_gen but script and trans are not?
-
 type ContractTemplate = File
 
 type ContractDeployment struct {
@@ -24,9 +22,14 @@ func ContractDeploymentFromFlow(
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
 ) *ContractDeployment {
+	signers := make([]Address, 0)
 	script := ""
 	// transaction could be nil in case where we get transaction result errors
 	if tx != nil {
+		for _, a := range tx.Authorizers {
+			signers = append(signers, NewAddressFromBytes(a.Bytes()))
+		}
+
 		script = string(tx.Script)
 	}
 
@@ -37,9 +40,10 @@ func ContractDeploymentFromFlow(
 			Type:      ContractFile,
 			Script:    script,
 		},
-		Errors: nil,
-		Events: nil,
-		Logs:   nil,
+		Address: signers[0],
+		Errors:  nil,
+		Events:  nil,
+		Logs:    nil,
 	}
 
 	if result.Events != nil {

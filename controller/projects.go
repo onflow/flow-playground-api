@@ -48,17 +48,18 @@ func NewProjects(
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
 	proj := &model.Project{
-		ID:          uuid.New(),
-		Secret:      uuid.New(),
-		PublicID:    uuid.New(),
-		ParentID:    input.ParentID,
-		Seed:        input.Seed,
-		Title:       input.Title,
-		Description: input.Description,
-		Readme:      input.Readme,
-		Persist:     false,
-		Version:     p.version,
-		UserID:      user.ID,
+		ID:               uuid.New(),
+		Secret:           uuid.New(),
+		PublicID:         uuid.New(),
+		ParentID:         input.ParentID,
+		Seed:             input.Seed,
+		Title:            input.Title,
+		Description:      input.Description,
+		Readme:           input.Readme,
+		Persist:          false,
+		NumberOfAccounts: input.NumberOfAccounts,
+		Version:          p.version,
+		UserID:           user.ID,
 	}
 
 	files := make(
@@ -66,34 +67,38 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		len(input.TransactionTemplates)+len(input.ScriptTemplates)+len(input.ContractTemplates),
 	)
 
-	for i, tpl := range input.ContractTemplates {
-		files[i] = &model.File{
+	fileCount := 0
+	for _, tpl := range input.ContractTemplates {
+		files[fileCount] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.ContractFile,
 		}
+		fileCount++
 	}
 
-	for i, tpl := range input.TransactionTemplates {
-		files[i] = &model.File{
+	for _, tpl := range input.TransactionTemplates {
+		files[fileCount] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.TransactionFile,
 		}
+		fileCount++
 	}
 
-	for i, tpl := range input.ScriptTemplates {
-		files[i] = &model.File{
+	for _, tpl := range input.ScriptTemplates {
+		files[fileCount] = &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.ScriptFile,
 		}
+		fileCount++
 	}
 
 	err := p.store.CreateProject(proj, files)
@@ -101,12 +106,11 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	// todo: We're not actually supporting adding new accounts yet (keep at initial accounts)
-	// todo: will eventually need to update the project with reset number of accounts
 	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
 	if err != nil {
 		return nil, err
 	}
+	//proj.NumberOfAccounts = *numAccounts
 
 	return proj, nil
 }

@@ -139,26 +139,6 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
-/*
-func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	err := r.authorize(ctx, input.ProjectID)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := validateUpdate(&input); err != nil {
-		return nil, err
-	}
-
-	acc, err := r.accounts.Update(adapter.AccountFromAPI(input))
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.AccountToAPI(acc), nil
-}
-*/
-
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {

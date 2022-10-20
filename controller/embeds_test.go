@@ -115,12 +115,11 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 		Version:  version,
 	}
 
-	ttpls := make([]*model.TransactionTemplate, 0)
-	stpls := make([]*model.ScriptTemplate, 0)
+	files := make([]*model.File, 0)
 
 	internalProj.UserID = user.ID
 
-	projErr := store.CreateProject(internalProj, ttpls, stpls)
+	projErr := store.CreateProject(internalProj, files)
 	require.NoError(t, projErr)
 
 	script := `
@@ -137,7 +136,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	}
 
 	// insert your mock data
-	err := store.InsertScriptTemplate(&scriptTemplate)
+	err := store.InsertCadenceFile(&scriptTemplate)
 	require.NoError(t, err)
 
 	r := chi.NewRouter()

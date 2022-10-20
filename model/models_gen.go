@@ -36,7 +36,7 @@ type NewProject struct {
 	Description          string                           `json:"description"`
 	Readme               string                           `json:"readme"`
 	Seed                 int                              `json:"seed"`
-	Accounts             []string                         `json:"accounts"`
+	NumberOfAccounts     int                              `json:"numberOfAccounts"`
 	TransactionTemplates []*NewProjectTransactionTemplate `json:"transactionTemplates"`
 	ScriptTemplates      []*NewProjectScriptTemplate      `json:"scriptTemplates"`
 	ContractTemplates    []*NewProjectContractTemplate    `json:"contractTemplates"`

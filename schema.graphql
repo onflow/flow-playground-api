@@ -108,7 +108,7 @@ input NewProject {
   description: String!
   readme: String!
   seed: Int!
-  accounts: [String!]
+  numberOfAccounts: Int!
   transactionTemplates: [NewProjectTransactionTemplate!]
   scriptTemplates: [NewProjectScriptTemplate!]
   contractTemplates: [NewProjectContractTemplate!]

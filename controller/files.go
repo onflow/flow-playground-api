@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -89,28 +90,14 @@ func (f *Files) DeployContract(input model.NewContractDeployment) (*model.Contra
 		return nil, errors.New("cannot deploy empty contract")
 	}
 
-	// TODO: Make sure this works as expected
-	tx := model.NewTransactionExecution{
-		ProjectID: input.ProjectID,
-		Script:    input.Script,
-		Signers:   []model.Address{input.Address},
-		Arguments: nil,
-	}
-
-	exe, err := f.blockchain.ExecuteTransaction(tx)
+	deploy, err := f.blockchain.DeployContract(input.ProjectID, input.Address, input.Script)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute transaction")
+		return nil, errors.Wrap(err, "failed to deploy contract")
 	}
 
-	deployment := model.ContractDeployment{
-		File:    exe.File,
-		Address: exe.Signers[0], // There should only be one signer!
-		Errors:  exe.Errors,
-		Events:  exe.Events,
-		Logs:    exe.Logs,
-	}
+	fmt.Println("Deployed Contract!!")
 
-	return &deployment, nil
+	return deploy, nil
 }
 
 func (f *Files) GetFilesForProject(projID uuid.UUID, fileType model.FileType) ([]*model.File, error) {

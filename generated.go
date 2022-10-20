@@ -1035,7 +1035,7 @@ input NewProject {
   description: String!
   readme: String!
   seed: Int!
-  accounts: [String!]
+  numberOfAccounts: Int!
   transactionTemplates: [NewProjectTransactionTemplate!]
   scriptTemplates: [NewProjectScriptTemplate!]
   contractTemplates: [NewProjectContractTemplate!]
@@ -7513,11 +7513,11 @@ func (ec *executionContext) unmarshalInputNewProject(ctx context.Context, obj in
 			if err != nil {
 				return it, err
 			}
-		case "accounts":
+		case "numberOfAccounts":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accounts"))
-			it.Accounts, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("numberOfAccounts"))
+			it.NumberOfAccounts, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}

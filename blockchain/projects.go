@@ -231,30 +231,39 @@ func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,
-) error {
+) (*model.ContractDeployment, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	// TODO: Check if there's already a deployed contract with this name?!
+	/*
+		flowAccount, _, err := em.getAccount(address.ToFlowAddress())
+		if err != nil {
+			return nil, err
+		}
+		flowAccount.Contracts[]
+	*/
 
 	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if result.Error != nil {
-		return result.Error
+		return nil, result.Error
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	deploy := model.ContractDeploymentFromFlow(projectID, result, tx)
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return deploy, nil
 }
 
 /*
