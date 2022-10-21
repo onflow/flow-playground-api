@@ -76,6 +76,7 @@ func (f *Files) CreateTransactionExecution(input model.NewTransactionExecution) 
 	if len(input.Script) == 0 {
 		return nil, errors.New("cannot execute empty transaction script")
 	}
+	fmt.Println("Files: CreateTransactionExecution")
 
 	exe, err := f.blockchain.ExecuteTransaction(input)
 	if err != nil {

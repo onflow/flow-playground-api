@@ -80,6 +80,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("blockchain projects: ExecuteTransaction - loaded emulator")
 
 	signers := make([]flowsdk.Address, len(execution.Signers))
 	for i, sig := range execution.Signers {
@@ -178,8 +179,6 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (*int, error) {
 		return nil, err
 	}
 
-	//accounts := make([]*model.Account, p.accountsNumber)
-
 	for i := 0; i < p.accountsNumber; i++ {
 		_, tx, result, err := em.createAccount()
 		if err != nil {
@@ -191,13 +190,6 @@ func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (*int, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		/* TODO: remove this code
-		account := model.AccountFromFlow(flowAccount, projectID)
-		account.Index = i
-		account.ID = uuid.New()
-		accounts[i] = account
-		*/
 	}
 
 	return &p.accountsNumber, nil
@@ -239,16 +231,38 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	// TODO: Check if there's already a deployed contract with this name?!
-	/*
-		flowAccount, _, err := em.getAccount(address.ToFlowAddress())
+	contractName, err := GetContractName(script)
+	if err != nil {
+		return nil, err
+	}
+
+	flowAccount, _, err := em.getAccount(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
+	if _, ok := flowAccount.Contracts[*contractName]; ok {
+		// A contract with this name has already been deployed to this account
+		var proj model.Project
+		err := p.store.GetProject(projectID, &proj)
 		if err != nil {
 			return nil, err
 		}
-		flowAccount.Contracts[]
-	*/
 
-	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
+		p.mutex.remove(projectID).Unlock() // TODO: This is not ideal!
+		_, err = p.Reset(&proj)            // Only place Reset is called?
+		if err != nil {
+			return nil, err
+		}
+		p.mutex.load(projectID).Lock()
+
+		// Reload emulator
+		em, err = p.load(projectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result, tx, err := em.deployContract(address.ToFlowAddress(), script, *contractName)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +271,11 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+	exe.File.Title = *contractName
+
 	deploy := model.ContractDeploymentFromFlow(projectID, result, tx)
+	deploy.File.Title = *contractName
+
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {
 		return nil, err
@@ -266,31 +284,13 @@ func (p *Projects) DeployContract(
 	return deploy, nil
 }
 
-/*
-func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
-	if err != nil {
-		return nil, err
-	}
-
-	jsonStorage, err := json.Marshal(store)
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling account storage")
-	}
-
-	account := model.AccountFromFlow(flowAccount, projectID)
-	account.ProjectID = projectID
-	account.State = string(jsonStorage)
-
-	return account, nil
-}
-*/
-
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	var executions []*model.TransactionExecution
+	fmt.Println("blockchain projects: load emulator")
+
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
@@ -320,11 +320,13 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		height = 0
 	}
 
+	fmt.Println("blockchain projects: load emulator - filter missing executions")
 	executions, err = p.filterMissingExecutions(executions, height)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("blockchain projects: load emulator - running missing executions")
 	em, err = p.runMissingExecutions(projectID, em, executions)
 	if err != nil {
 		return nil, err

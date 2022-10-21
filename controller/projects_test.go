@@ -258,17 +258,14 @@ func Test_StateRecreation(t *testing.T) {
 	}
 
 	contractDeployment, err := files.DeployContract(deploy)
-	// TODO: Contract name must be set somewhere?!
 	println("CONTRACT TITLE: ", contractDeployment.Title)
 	require.NoError(t, err)
 
-	_ = contractDeployment
-
-	//assert.Equal(t, "HelloWorld", contractDeployment.File.Title)
+	assert.Equal(t, "HelloWorld", contractDeployment.File.Title)
 
 	// Re-deploy contract
-	//contractDeployment, err = files.DeployContract(deploy)
-	//require.NoError(t, err)
+	contractDeployment, err = files.DeployContract(deploy)
+	require.NoError(t, err)
 
 	/*
 		// check what deployed on accounts

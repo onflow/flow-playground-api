@@ -57,7 +57,7 @@ type blockchain interface {
 	getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
-	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
+	deployContract(address flowsdk.Address, script string, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
@@ -91,6 +91,8 @@ func (e *emulator) executeTransaction(
 	arguments []string,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
+	fmt.Println("emulator: executeTransaction()")
+
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
 
@@ -154,12 +156,8 @@ func (e *emulator) getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.A
 func (e *emulator) deployContract(
 	address flowsdk.Address,
 	script string,
+	contractName string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	contractName, err := parseContractName(script)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
 		Source: script,
@@ -172,6 +170,8 @@ func (e *emulator) sendTransaction(
 	tx *flowsdk.Transaction,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
+	fmt.Println("emulator: sendTransaction()")
+
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error getting service signer")
@@ -198,6 +198,7 @@ func (e *emulator) sendTransaction(
 		return nil, nil, errors.Wrap(err, "error signing the envelope")
 	}
 
+	fmt.Println("emulator: sendTransaction() - AddTransaction to blockchain")
 	err = e.blockchain.AddTransaction(*tx)
 	if err != nil {
 		return &types.TransactionResult{
@@ -205,6 +206,7 @@ func (e *emulator) sendTransaction(
 		}, nil, nil
 	}
 
+	fmt.Println("emulator: sendTransaction() - ExecuteAndCommitBlock()")
 	_, res, err := e.blockchain.ExecuteAndCommitBlock()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error executing the block")
@@ -240,6 +242,7 @@ func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
 func parseArguments(args []string) ([][]byte, error) {
+	fmt.Println("emulator: parseArguments(). Num args: ", len(args))
 	encodedArgs := make([][]byte, len(args))
 	for i, arg := range args {
 		// decode and then encode again to ensure the value is valid
@@ -277,4 +280,12 @@ func parseContractName(code string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine contract name")
+}
+
+func GetContractName(script string) (*string, error) {
+	title, err := parseContractName(script)
+	if err != nil {
+		return nil, err
+	}
+	return &title, nil
 }

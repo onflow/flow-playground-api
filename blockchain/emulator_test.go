@@ -59,7 +59,8 @@ func Test_DeployContracts(t *testing.T) {
 		assert.NoError(t, err)
 		account, _, _, err := emu.createAccount()
 		assert.NoError(t, err)
-		_, _, err = emu.deployContract(account.Address, "")
+		// TODO: WHY IS THERE NO ERROR WHEN DEPLOYING AN EMPTY SCRIPT?!
+		_, _, err = emu.deployContract(account.Address, "", "")
 		assert.Error(t, err)
 	})
 
@@ -80,7 +81,7 @@ func Test_DeployContracts(t *testing.T) {
 			contract := "pub contract " + name + "{}"
 			deployedContracts = append(deployedContracts, name)
 
-			_, tx, err := emu.deployContract(account.Address, contract)
+			_, tx, err := emu.deployContract(account.Address, contract, name)
 			assert.NoError(t, err)
 			assert.Equal(t, tx.Authorizers[0], account.Address)
 		}
