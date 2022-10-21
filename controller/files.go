@@ -114,6 +114,7 @@ func (f *Files) GetFilesForProject(projID uuid.UUID, fileType model.FileType) ([
 
 func (f *Files) GetFile(id uuid.UUID, projID uuid.UUID) (*model.File, error) {
 	var file *model.File
+	fmt.Println("files: GetFile() - id, projID = ", id.String(), projID.String())
 	err := f.store.GetFile(id, projID, file)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get file")

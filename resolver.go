@@ -107,6 +107,16 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
+	fmt.Println("NewProject model: ",
+		input.ParentID,
+		input.Title,
+		input.Description,
+		input.Readme,
+		input.Seed,
+		input.NumberOfAccounts,
+		input.TransactionTemplates,
+		input.ScriptTemplates,
+		input.ContractTemplates)
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
@@ -357,7 +367,6 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Projec
 	return adapter.ScriptsToAPI(*exes), nil
 }
 
-// TODO: Move to query resolver?
 func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
 	return r.files.GetFilesForProject(proj.ID, model.ContractFile)
 }
@@ -410,6 +419,7 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 }
 
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
+	fmt.Println("TransactionTemplate()")
 	return r.files.GetFile(id, projectID)
 }
 
