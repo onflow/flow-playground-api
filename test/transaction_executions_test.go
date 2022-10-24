@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/dapperlabs/flow-playground-api/model"
 	client2 "github.com/dapperlabs/flow-playground-api/test/client"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -78,12 +79,13 @@ func TestTransactionExecutions(t *testing.T) {
 
 		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
 
+		addr := model.NewAddressFromString("0x01")
 		err := c.Post(
 			MutationCreateTransactionExecution,
 			&respA,
 			client2.Var("projectId", project.ID),
 			client2.Var("script", script),
-			client2.Var("signers", []string{"0x01"}), // What should the address be?
+			client2.Var("signers", []string{"0x01"}), // What should the address be??
 			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)

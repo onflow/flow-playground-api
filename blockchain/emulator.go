@@ -91,8 +91,6 @@ func (e *emulator) executeTransaction(
 	arguments []string,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	fmt.Println("emulator: executeTransaction(). Script: ", script)
-
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
 
@@ -170,8 +168,6 @@ func (e *emulator) sendTransaction(
 	tx *flowsdk.Transaction,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	fmt.Println("emulator: sendTransaction()")
-
 	signer, err := e.blockchain.ServiceKey().Signer()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error getting service signer")
@@ -198,7 +194,6 @@ func (e *emulator) sendTransaction(
 		return nil, nil, errors.Wrap(err, "error signing the envelope")
 	}
 
-	fmt.Println("emulator: sendTransaction() - AddTransaction to blockchain")
 	err = e.blockchain.AddTransaction(*tx)
 	if err != nil {
 		return &types.TransactionResult{
@@ -206,7 +201,6 @@ func (e *emulator) sendTransaction(
 		}, nil, nil
 	}
 
-	fmt.Println("emulator: sendTransaction() - ExecuteAndCommitBlock()")
 	_, res, err := e.blockchain.ExecuteAndCommitBlock()
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "error executing the block")
@@ -217,7 +211,6 @@ func (e *emulator) sendTransaction(
 		sentry.CaptureMessage(fmt.Sprintf("%d transactions were executed: %v", len(res), res))
 		return nil, nil, fmt.Errorf("failure during transaction execution, multiple transactions executed")
 	}
-	fmt.Println("LOGS: ", res[0].Logs)
 
 	return res[0], tx, nil
 }
@@ -243,7 +236,6 @@ func parseEventAddress(events []flowsdk.Event) flowsdk.Address {
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
 func parseArguments(args []string) ([][]byte, error) {
-	fmt.Println("emulator: parseArguments(). Num args: ", len(args))
 	encodedArgs := make([][]byte, len(args))
 	for i, arg := range args {
 		// decode and then encode again to ensure the value is valid
