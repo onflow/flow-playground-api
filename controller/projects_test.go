@@ -102,7 +102,6 @@ func seedProject(projects *Projects, user *model.User) (*model.Project, error) {
 }
 
 func Test_CreateProject(t *testing.T) {
-	t.Parallel()
 	projects, store, user := createProjects()
 
 	t.Run("successful creation", func(t *testing.T) {
@@ -184,7 +183,6 @@ func Test_CreateProject(t *testing.T) {
 }
 
 func Test_StateRecreation(t *testing.T) {
-	t.Parallel()
 	_, user, _, projects, files := createControllers()
 
 	contract1 := `pub contract HelloWorld { 

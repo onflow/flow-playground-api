@@ -18,6 +18,9 @@
 
 package migrate
 
+// TODO: Remove old migrators and create migrator from stable playground to playground v2
+
+/*
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -68,12 +71,10 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		}
 	}
 	if from.LessThan(V0_12_0) {
-		/* TODO: Fix?
 		err := m.migrateToV0_12_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_12_0)
 		}
-		*/
 	}
 
 	// If no migration steps are left, set project version to latest.
@@ -115,9 +116,7 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	return nil
 }
 
-/*
-// TODO: Fix migrators since accounts changed
-// TODO: Create migrators for v2.0.0
+
 // migrateToV0_12_0 migrates a project to the version v0.12.0
 //
 // Steps:
@@ -165,7 +164,7 @@ func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 
 	return nil
 }
-*/
+
 
 func sanitizeVersion(version *semver.Version) *semver.Version {
 	if version == nil {
@@ -174,3 +173,4 @@ func sanitizeVersion(version *semver.Version) *semver.Version {
 
 	return version
 }
+*/

@@ -112,7 +112,6 @@ func Benchmark_LoadEmulator(b *testing.B) {
 }
 
 func Test_LoadEmulator(t *testing.T) {
-	t.Parallel()
 
 	t.Run("successful load of emulator", func(t *testing.T) {
 		projects, _, proj, err := newWithSeededProject()
@@ -234,7 +233,6 @@ func Test_LoadEmulator(t *testing.T) {
 }
 
 func Test_TransactionExecution(t *testing.T) {
-	t.Parallel()
 
 	t.Run("successful transaction execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -424,7 +422,6 @@ func Test_TransactionExecution(t *testing.T) {
 
 /*
 func Test_AccountCreation(t *testing.T) {
-	t.Parallel()
 	t.Run("successful account creation", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 
@@ -471,7 +468,6 @@ func Test_AccountCreation(t *testing.T) {
 */
 
 func Test_DeployContract(t *testing.T) {
-	t.Parallel()
 
 	t.Run("deploy single contract", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -570,7 +566,6 @@ func Test_DeployContract(t *testing.T) {
 }
 
 func Test_ScriptExecution(t *testing.T) {
-	t.Parallel()
 
 	t.Run("single script execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
