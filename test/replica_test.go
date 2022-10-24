@@ -1,6 +1,13 @@
 package test
 
-/* TODO: FIX
+import (
+	client2 "github.com/dapperlabs/flow-playground-api/test/client"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"strconv"
+	"testing"
+)
+
 func TestReplicas(t *testing.T) {
 	// Each replica is a different client calling the API, but also an instance of the resolver
 	const numReplicas = 5
@@ -26,14 +33,16 @@ func TestReplicas(t *testing.T) {
 	t.Run("Execute transactions on multiple replicas", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			const script = "transaction { execute { log(\"Hello, World!\") } }"
+
 			var resp CreateTransactionExecutionResponse
 			err := loadBalancer().Post(
 				MutationCreateTransactionExecution,
 				&resp,
-				client.Var("projectId", project.ID),
-				client.Var("script", script),
-				client.AddCookie(cookie),
+				client2.Var("projectId", project.ID),
+				client2.Var("script", script),
+				client2.AddCookie(cookie),
 			)
+
 			require.NoError(t, err)
 			assert.Empty(t, resp.CreateTransactionExecution.Errors)
 			assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
@@ -51,28 +60,15 @@ func TestReplicas(t *testing.T) {
 			err := loadBalancer().Post(
 				MutationCreateContractDeployment,
 				&deployResp,
-				client.Var("projectId", project.ID),
-				client.Var("address", model.NewAddressFromString("0x0"+strconv.Itoa(accountIdx))),
-				client.Var("code", contract),
-				client.AddCookie(cookie),
+				client2.Var("projectId", project.ID),
+				client2.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
+				client2.Var("script", contract),
+				client2.AddCookie(cookie),
 			)
 			require.NoError(t, err)
 
-			/*
-				var updateResp UpdateAccountResponse
-				err := loadBalancer().Post(
-					MutationUpdateAccountDeployedCode,
-					&updateResp,
-					client.Var("projectId", project.ID),
-					client.Var("accountId", account.ID),
-					client.Var("code", contract),
-					client.AddCookie(cookie),
-				)
-				require.NoError(t, err)
-				assert.Equal(t, contract, updateResp.UpdateAccount.DeployedCode)
-				assert.Equal(t, updateResp.UpdateAccount.DeployedCode, contract)
-
+			// TODO: Add verification of deployed code
 		}
 	})
+
 }
-*/

@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -107,16 +106,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	fmt.Println("NewProject model: ",
-		input.ParentID,
-		input.Title,
-		input.Description,
-		input.Readme,
-		input.Seed,
-		input.NumberOfAccounts,
-		input.TransactionTemplates,
-		input.ScriptTemplates,
-		input.ContractTemplates)
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
@@ -189,7 +178,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 	ctx context.Context,
 	input model.NewTransactionExecution,
 ) (*model.TransactionExecution, error) {
-	fmt.Println("Resolver: Create transaction execution. Script:", input.Script)
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err

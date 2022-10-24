@@ -10,11 +10,8 @@ import (
 )
 
 func TestScriptExecutions(t *testing.T) {
-	t.Parallel()
 
 	t.Run("valid, no return value", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -36,8 +33,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (parse error)", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -77,8 +72,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (semantic error)", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -118,8 +111,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("invalid (run-time error)", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -159,8 +150,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("exceeding computation limit", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -207,8 +196,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("return address", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)
@@ -235,8 +222,6 @@ func TestScriptExecutions(t *testing.T) {
 	})
 
 	t.Run("argument", func(t *testing.T) {
-		t.Parallel()
-
 		c := newClient()
 
 		project := createProject(t, c)

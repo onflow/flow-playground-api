@@ -11,10 +11,8 @@ import (
 )
 
 func TestProjects(t *testing.T) {
-	t.Parallel()
 
 	t.Run("Create empty project", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -42,7 +40,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Create project with 2 contract templates", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -77,7 +74,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Create project with transaction templates", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -114,7 +110,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Get project", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -132,7 +127,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Get non-existent project", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		var resp CreateProjectResponse
@@ -149,7 +143,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Persist project without permission", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -170,7 +163,6 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Persist project", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)

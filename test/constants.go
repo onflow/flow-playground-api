@@ -351,7 +351,7 @@ type CreateContractDeploymentResponse struct {
 	CreateContractDeployment struct {
 		ID      string
 		Script  string
-		Address model.Address
+		Address string
 		Errors  []model.ProgramError
 		Events  []struct {
 			Type   string
