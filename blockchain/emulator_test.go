@@ -61,6 +61,7 @@ func Test_DeployContracts(t *testing.T) {
 		assert.NoError(t, err)
 
 		result, _, err := emu.deployContract(account.Address, "", "")
+		assert.NoError(t, err)
 		assert.Error(t, result.Error)
 	})
 

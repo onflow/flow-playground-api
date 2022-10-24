@@ -19,9 +19,10 @@
 package test
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
 )
+
+const initAccounts = 5
 
 type Project struct {
 	ID                   string
@@ -423,8 +424,7 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
-const initAccounts = 5
-
+/*
 const counterContract = `
   pub contract Counting {
 
@@ -448,9 +448,11 @@ const counterContract = `
       }
   }
 `
+*/
 
 // generateAddTwoToCounterScript generates a script that increments a counter.
 // If no counter exists, it is created.
+/*
 func generateAddTwoToCounterScript(counterAddress string) string {
 	return fmt.Sprintf(
 		`
@@ -470,10 +472,10 @@ func generateAddTwoToCounterScript(counterAddress string) string {
 		counterAddress,
 	)
 }
+*/
 
 /*
 func TestContractImport(t *testing.T) {
-	t.Parallel()
 	c := newClient()
 
 	project := createProject(t, c)
@@ -523,7 +525,6 @@ func TestContractImport(t *testing.T) {
 
 // TODO implement these tests on flow accounts still?
 func TestAccountStorage(t *testing.T) {
-	t.Parallel()
 	c := newClient()
 
 	project := createProject(t, c)

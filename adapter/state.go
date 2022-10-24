@@ -18,8 +18,8 @@
 
 package adapter
 
-import "encoding/json"
-
+// TODO: Do we still need these?
+/*
 type accountState struct {
 	Private map[string]any
 	Public  map[string]any
@@ -47,3 +47,4 @@ func stateToAPI(state string) string {
 	adaptedState, _ := json.Marshal(accState)
 	return string(adaptedState)
 }
+*/

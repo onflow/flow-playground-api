@@ -45,11 +45,11 @@ func TestProjects(t *testing.T) {
 		var resp CreateProjectResponse
 
 		contractTemplates := []*model.NewProjectContractTemplate{
-			{"Foo",
-				"pub contract Foo {}",
+			{Title: "Foo",
+				Script: "pub contract Foo {}",
 			},
-			{"Bar",
-				"pub contract Bar {}",
+			{Title: "Bar",
+				Script: "pub contract Bar {}",
 			},
 		}
 

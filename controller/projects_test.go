@@ -265,6 +265,8 @@ func Test_StateRecreation(t *testing.T) {
 	contractDeployment, err = files.DeployContract(deploy)
 	require.NoError(t, err)
 
+	_ = contractDeployment // TODO: add verifications
+
 	/*
 		// check what deployed on accounts
 		allAccs, err := accounts.AllForProjectID(newProj.ID)
