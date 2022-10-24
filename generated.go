@@ -966,12 +966,24 @@ type ProgramPosition {
   column: Int!
 }
 
+"""
+type File {
+  id: UUID!
+  index: Int!
+  title: String!
+  type: Int!
+  script: String!
+}
+"""
+
+
 type TransactionTemplate {
   id: UUID!
   index: Int!
   title: String!
   script: String!
 }
+
 
 type TransactionExecution {
   id: UUID!
@@ -988,12 +1000,14 @@ type Event {
   values: [String!]!
 }
 
+
 type ScriptTemplate {
   id: UUID!
   index: Int!
   title: String!
   script: String!
 }
+
 
 type ScriptExecution {
   id: UUID!
@@ -1004,12 +1018,14 @@ type ScriptExecution {
   logs: [String!]!
 }
 
+
 type ContractTemplate {
   id: UUID!
   index: Int!
   title: String!
   script: String!
 }
+
 
 type ContractDeployment {
   id: UUID!
