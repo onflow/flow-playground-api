@@ -66,9 +66,6 @@ func TestReplicas(t *testing.T) {
 				client2.AddCookie(cookie),
 			)
 			require.NoError(t, err)
-
-			// TODO: Add verification of deployed code
 		}
 	})
-
 }
