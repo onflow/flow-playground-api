@@ -64,11 +64,11 @@ func TransactionExecutionFromFlow(
 			Type:      TransactionFile,
 			Script:    script,
 		},
-		Arguments: nil,
-		Signers:   nil,
+		Arguments: args,
+		Signers:   signers,
 		Errors:    nil,
 		Events:    nil,
-		Logs:      nil,
+		Logs:      result.Logs,
 	}
 
 	if result.Events != nil {

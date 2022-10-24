@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -76,7 +75,6 @@ func (f *Files) CreateTransactionExecution(input model.NewTransactionExecution) 
 	if len(input.Script) == 0 {
 		return nil, errors.New("cannot execute empty transaction script")
 	}
-	fmt.Println("Files: CreateTransactionExecution")
 
 	exe, err := f.blockchain.ExecuteTransaction(input)
 	if err != nil {
@@ -96,8 +94,6 @@ func (f *Files) DeployContract(input model.NewContractDeployment) (*model.Contra
 		return nil, errors.Wrap(err, "failed to deploy contract")
 	}
 
-	fmt.Println("Deployed Contract!!")
-
 	return deploy, nil
 }
 
@@ -113,12 +109,11 @@ func (f *Files) GetFilesForProject(projID uuid.UUID, fileType model.FileType) ([
 }
 
 func (f *Files) GetFile(id uuid.UUID, projID uuid.UUID) (*model.File, error) {
-	var file *model.File
-	fmt.Println("files: GetFile() - id, projID = ", id.String(), projID.String())
-	err := f.store.GetFile(id, projID, file)
+	var file model.File
+	err := f.store.GetFile(id, projID, &file)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get file")
 	}
 
-	return file, nil
+	return &file, nil
 }

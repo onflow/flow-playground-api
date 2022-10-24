@@ -43,7 +43,7 @@ func ContractDeploymentFromFlow(
 		Address: signers[0],
 		Errors:  nil,
 		Events:  nil,
-		Logs:    nil,
+		Logs:    result.Logs,
 	}
 
 	if result.Events != nil {

@@ -194,7 +194,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Authorized")
 
 	exe, err := r.files.CreateTransactionExecution(adapter.TransactionFromAPI(input))
 	if err != nil {
@@ -419,7 +418,6 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 }
 
 func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
-	fmt.Println("TransactionTemplate()")
 	return r.files.GetFile(id, projectID)
 }
 

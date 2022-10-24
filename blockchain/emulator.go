@@ -91,7 +91,7 @@ func (e *emulator) executeTransaction(
 	arguments []string,
 	authorizers []flowsdk.Address,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	fmt.Println("emulator: executeTransaction()")
+	fmt.Println("emulator: executeTransaction(). Script: ", script)
 
 	tx := &flowsdk.Transaction{}
 	tx.Script = []byte(script)
@@ -217,6 +217,7 @@ func (e *emulator) sendTransaction(
 		sentry.CaptureMessage(fmt.Sprintf("%d transactions were executed: %v", len(res), res))
 		return nil, nil, fmt.Errorf("failure during transaction execution, multiple transactions executed")
 	}
+	fmt.Println("LOGS: ", res[0].Logs)
 
 	return res[0], tx, nil
 }

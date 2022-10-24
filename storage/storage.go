@@ -42,8 +42,8 @@ type Store interface {
 
 	InsertCadenceFile(file *model.File) error
 	UpdateCadenceFile(input model.UpdateFile, file *model.File) error
-	DeleteCadenceFile(id, pID uuid.UUID) error
-	GetFile(id, pID uuid.UUID, file *model.File) error
+	DeleteCadenceFile(id uuid.UUID, pID uuid.UUID) error
+	GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error
 	GetFilesForProject(projectID uuid.UUID, files *[]*model.File, fileType model.FileType) error
 	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
 

@@ -163,8 +163,19 @@ type File struct {
 	Index  int
 }
 
-type ContractTemplate = File
-type TransactionTemplate = File
+type ContractTemplate struct {
+	ID     string
+	Title  string
+	Script string
+	Index  int
+}
+
+type TransactionTemplate struct {
+	ID     string
+	Title  string
+	Script string
+	Index  int
+}
 
 const MutationCreateTransactionTemplate = `
 mutation($projectId: UUID!, $title: String!, $script: String!) {

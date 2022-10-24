@@ -201,6 +201,16 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 			return err
 		}
 
+		err = tx.Delete(
+			&model.ContractDeployment{},
+			&model.ContractDeployment{
+				File: model.File{ProjectID: proj.ID},
+			},
+		).Error
+		if err != nil {
+			return err
+		}
+
 		err = tx.
 			Model(&model.Project{ID: proj.ID}).
 			Updates(map[string]any{ // need to use map due to zero value, see https://gorm.io/docs/update.html
@@ -219,12 +229,14 @@ func (s *SQL) InsertCadenceFile(file *model.File) error {
 	var count int64
 	err := s.db.Model(&model.File{}).
 		Where("project_id", file.ProjectID).
+		Where("type", file.Type).
 		Count(&count).Error
 	if err != nil {
 		return err
 	}
 
 	file.Index = int(count)
+	fmt.Println("Inserting file into DB: ", file.ID, file.ProjectID, file.Script)
 	return s.db.Create(file).Error
 }
 
@@ -253,11 +265,11 @@ func (s *SQL) UpdateCadenceFile(input model.UpdateFile, file *model.File) error 
 	return s.db.First(file, input.ID).Error
 }
 
-func (s *SQL) DeleteCadenceFile(id, pID uuid.UUID) error {
+func (s *SQL) DeleteCadenceFile(id uuid.UUID, pID uuid.UUID) error {
 	return s.db.Delete(&model.File{ID: id, ProjectID: pID}).Error
 }
 
-func (s *SQL) GetFile(id, pID uuid.UUID, file *model.File) error {
+func (s *SQL) GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error {
 	return s.db.First(file, &model.File{ID: id, ProjectID: pID}).Error
 }
 

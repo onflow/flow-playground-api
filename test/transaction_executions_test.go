@@ -1,140 +1,132 @@
 package test
 
 import (
+	client2 "github.com/dapperlabs/flow-playground-api/test/client"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestTransactionExecutions(t *testing.T) {
-	/*
-		t.Run("Create execution for non-existent project", func(t *testing.T) {
-			t.Parallel()
-			c := newClient()
 
-			badID := uuid.New().String()
+	t.Run("Create execution for non-existent project", func(t *testing.T) {
+		c := newClient()
 
-			var resp CreateTransactionExecutionResponse
+		badID := uuid.New().String()
 
-			err := c.Post(
-				MutationCreateTransactionExecution,
-				&resp,
-				client2.Var("projectId", badID),
-				client2.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
-			)
+		var resp CreateTransactionExecutionResponse
 
-			assert.Error(t, err)
-		})
-	*/
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client2.Var("projectId", badID),
+			client2.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
+		)
 
-	/*
-		t.Run("Create execution without permission", func(t *testing.T) {
-			t.Parallel()
-			c := newClient()
+		assert.Error(t, err)
+	})
 
-			project := createProject(t, c)
+	t.Run("Create execution without permission", func(t *testing.T) {
+		c := newClient()
 
-			var resp CreateTransactionExecutionResponse
+		project := createProject(t, c)
 
-			const script = "transaction { execute { log(\"Hello, World!\") } }"
+		var resp CreateTransactionExecutionResponse
 
-			err := c.Post(
-				MutationCreateTransactionExecution,
-				&resp,
-				client2.Var("projectId", project.ID),
-				client2.Var("script", script),
-			)
+		const script = "transaction { execute { log(\"Hello, World!\") } }"
 
-			assert.Error(t, err)
-		})
-	*/
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+		)
 
-	/*
-		t.Run("Create execution", func(t *testing.T) {
-			t.Parallel()
-			c := newClient()
+		assert.Error(t, err)
+	})
 
-			project := createProject(t, c)
+	t.Run("Create execution", func(t *testing.T) {
+		c := newClient()
 
-			var resp CreateTransactionExecutionResponse
+		project := createProject(t, c)
 
-			const script = "transaction { execute { log(\"Hello, World!\") } }"
+		var resp CreateTransactionExecutionResponse
 
-			err := c.Post(
-				MutationCreateTransactionExecution,
-				&resp,
-				client2.Var("projectId", project.ID),
-				client2.Var("script", script),
-				client2.AddCookie(c.SessionCookie()),
-			)
-			require.NoError(t, err)
+		const script = "transaction { execute { log(\"Hello, World!\") } }"
 
-			assert.Empty(t, resp.CreateTransactionExecution.Errors)
-			assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
-			assert.Equal(t, script, resp.CreateTransactionExecution.Script)
-		})
-	*/
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
 
-	/*
-		t.Run("Multiple executions", func(t *testing.T) {
-			t.Parallel()
-			c := newClient()
+		assert.Empty(t, resp.CreateTransactionExecution.Errors)
+		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+	})
 
-			project := createProject(t, c)
+	t.Run("Multiple executions", func(t *testing.T) {
+		c := newClient()
 
-			var respA CreateTransactionExecutionResponse
+		project := createProject(t, c)
 
-			const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
+		var respA CreateTransactionExecutionResponse
 
-			err := c.Post(
-				MutationCreateTransactionExecution,
-				&respA,
-				client2.Var("projectId", project.ID),
-				client2.Var("script", script),
-				client2.Var("signers", []string{project.Accounts[0].Address}),
-				client2.AddCookie(c.SessionCookie()),
-			)
-			require.NoError(t, err)
+		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
 
-			require.Empty(t, respA.CreateTransactionExecution.Errors)
-			require.Len(t, respA.CreateTransactionExecution.Events, 6)
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&respA,
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{"0x01"}), // What should the address be?
+			client2.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
 
-			eventA := respA.CreateTransactionExecution.Events[5]
+		require.Empty(t, respA.CreateTransactionExecution.Errors)
+		require.Len(t, respA.CreateTransactionExecution.Events, 6)
 
-			// first account should have address 0x0a
-			assert.Equal(t, "flow.AccountCreated", eventA.Type)
-			assert.JSONEq(t,
-				`{"type":"Address","value":"0x000000000000000a"}`,
-				eventA.Values[0],
-			)
+		eventA := respA.CreateTransactionExecution.Events[5]
 
-			var respB CreateTransactionExecutionResponse
+		// first account should have address 0x0a
+		assert.Equal(t, "flow.AccountCreated", eventA.Type)
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x000000000000000a"}`,
+			eventA.Values[0],
+		)
 
-			err = c.Post(
-				MutationCreateTransactionExecution,
-				&respB,
-				client2.Var("projectId", project.ID),
-				client2.Var("script", script),
-				client2.Var("signers", []string{project.Accounts[0].Address}),
-				client2.AddCookie(c.SessionCookie()),
-			)
-			require.NoError(t, err)
+		var respB CreateTransactionExecutionResponse
 
-			require.Empty(t, respB.CreateTransactionExecution.Errors)
-			require.Len(t, respB.CreateTransactionExecution.Events, 6)
+		err = c.Post(
+			MutationCreateTransactionExecution,
+			&respB,
+			client2.Var("projectId", project.ID),
+			client2.Var("script", script),
+			client2.Var("signers", []string{"0x01"}),
+			client2.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
 
-			eventB := respB.CreateTransactionExecution.Events[5]
+		require.Empty(t, respB.CreateTransactionExecution.Errors)
+		require.Len(t, respB.CreateTransactionExecution.Events, 6)
 
-			// second account should have address 0x07
-			assert.Equal(t, "flow.AccountCreated", eventB.Type)
-			assert.JSONEq(t,
-				`{"type":"Address","value":"0x000000000000000b"}`,
-				eventB.Values[0],
-			)
-		})
-	*/
+		eventB := respB.CreateTransactionExecution.Events[5]
+
+		// second account should have address 0x07
+		assert.Equal(t, "flow.AccountCreated", eventB.Type)
+		assert.JSONEq(t,
+			`{"type":"Address","value":"0x000000000000000b"}`,
+			eventB.Values[0],
+		)
+	})
 
 	/*
 		t.Run("Multiple executions with reset", func(t *testing.T) {
-			t.Parallel()
 			// manually construct resolver
 			c := newClient()
 			project := createProject(t, c)
@@ -193,11 +185,11 @@ func TestTransactionExecutions(t *testing.T) {
 				eventB.Values[0],
 			)
 		})
+
 	*/
 
 	/*
 			t.Run("invalid (parse error)", func(t *testing.T) {
-				t.Parallel()
 				c := newClient()
 
 				project := createProject(t, c)
@@ -241,7 +233,6 @@ func TestTransactionExecutions(t *testing.T) {
 
 	/*
 			t.Run("invalid (semantic error)", func(t *testing.T) {
-				t.Parallel()
 				c := newClient()
 
 				project := createProject(t, c)
@@ -285,7 +276,6 @@ func TestTransactionExecutions(t *testing.T) {
 
 	/*
 			t.Run("invalid (run-time error)", func(t *testing.T) {
-				t.Parallel()
 				c := newClient()
 
 				project := createProject(t, c)
@@ -329,7 +319,6 @@ func TestTransactionExecutions(t *testing.T) {
 
 	/*
 			t.Run("exceeding computation limit", func(t *testing.T) {
-				t.Parallel()
 				c := newClient()
 
 				project := createProject(t, c)
