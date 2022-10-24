@@ -63,7 +63,7 @@ func (p *Projects) Reset(project *model.Project) (*int, error) {
 		return nil, err
 	}
 
-	numAccounts, err := p.CreateInitialAccounts(project.ID)
+	numAccounts, err := p.resetAccounts(project.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,6 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("blockchain projects: ExecuteTransaction - loaded emulator")
 
 	signers := make([]flowsdk.Address, len(execution.Signers))
 	for i, sig := range execution.Signers {
@@ -134,46 +133,14 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	return exe, nil
 }
 
-/*
-// GetAccount by the address along with its storage information.
-func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	p.mutex.load(projectID).Lock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.getAccount(em, projectID, address)
-}
-*/
-
-/*
-func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
-	p.mutex.load(projectID).Lock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	accounts := make([]*model.Account, len(addresses))
-	for i, address := range addresses {
-		account, err := p.getAccount(em, projectID, address)
-		if err != nil {
-			return nil, err
-		}
-
-		accounts[i] = account
-	}
-
-	return accounts, nil
-}
-*/
-
+// CreateInitialAccounts returns the number of accounts that were created
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (*int, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
+	return p.resetAccounts(projectID)
+}
+
+func (p *Projects) resetAccounts(projectID uuid.UUID) (*int, error) {
 	em, err := p.load(projectID)
 	if err != nil {
 		return nil, err
@@ -248,12 +215,10 @@ func (p *Projects) DeployContract(
 			return nil, err
 		}
 
-		p.mutex.remove(projectID).Unlock() // TODO: This is not ideal!
-		_, err = p.Reset(&proj)            // Only place Reset is called?
+		_, err = p.Reset(&proj)
 		if err != nil {
 			return nil, err
 		}
-		p.mutex.load(projectID).Lock()
 
 		// Reload emulator
 		em, err = p.load(projectID)
@@ -289,7 +254,6 @@ func (p *Projects) DeployContract(
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	var executions []*model.TransactionExecution
-	fmt.Println("blockchain projects: load emulator")
 
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
@@ -320,13 +284,11 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 		height = 0
 	}
 
-	fmt.Println("blockchain projects: load emulator - filter missing executions")
 	executions, err = p.filterMissingExecutions(executions, height)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("blockchain projects: load emulator - running missing executions")
 	em, err = p.runMissingExecutions(projectID, em, executions)
 	if err != nil {
 		return nil, err
