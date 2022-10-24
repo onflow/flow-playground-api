@@ -60,9 +60,8 @@ func Test_DeployContracts(t *testing.T) {
 		account, _, _, err := emu.createAccount()
 		assert.NoError(t, err)
 
-		// TODO: WHY IS THERE NO ERROR WHEN DEPLOYING AN EMPTY SCRIPT?!
-		_, _, err = emu.deployContract(account.Address, "", "")
-		assert.Error(t, err)
+		result, _, err := emu.deployContract(account.Address, "", "")
+		assert.Error(t, result.Error)
 	})
 
 	// Test deploying many contracts to a single account
