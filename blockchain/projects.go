@@ -202,6 +202,7 @@ func (p *Projects) DeployContract(
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("ADDRESS:", address, " FLOW ADDRESS:", address.ToFlowAddress())
 
 	flowAccount, _, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {

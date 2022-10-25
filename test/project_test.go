@@ -45,12 +45,8 @@ func TestProjects(t *testing.T) {
 		var resp CreateProjectResponse
 
 		contractTemplates := []*model.NewProjectContractTemplate{
-			{Title: "Foo",
-				Script: "pub contract Foo {}",
-			},
-			{Title: "Bar",
-				Script: "pub contract Bar {}",
-			},
+			{Title: "Foo", Script: "pub contract Foo {}"},
+			{Title: "Bar", Script: "pub contract Bar {}"},
 		}
 
 		err := c.Post(

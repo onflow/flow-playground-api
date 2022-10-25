@@ -208,28 +208,6 @@ func Test_LoadEmulator(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, latest) // no exe since reset
 	})
-
-	/*
-		t.Run("get multiple accounts", func(t *testing.T) {
-			projects, _, proj, err := newWithSeededProject()
-			require.NoError(t, err)
-
-			accs, err := projects.CreateInitialAccounts(proj.ID)
-			require.NoError(t, err)
-
-			addresses := make([]model.Address, len(accs))
-			for i, a := range accs {
-				addresses[i] = a.Address
-			}
-
-			getAccs, err := projects.GetAccounts(proj.ID, addresses)
-			require.NoError(t, err)
-
-			for i, getAcc := range getAccs {
-				assert.Equal(t, accs[i].Address, getAcc.Address)
-			}
-		})
-	*/
 }
 
 func Test_TransactionExecution(t *testing.T) {
@@ -420,6 +398,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 }
 
+// TODO: Add account creation to playground v2
 /*
 func Test_AccountCreation(t *testing.T) {
 	t.Run("successful account creation", func(t *testing.T) {
@@ -491,8 +470,8 @@ func Test_DeployContract(t *testing.T) {
 		txDeploy := txExe[5]
 		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
 		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
-		// TODO: Why are there no arguments?!?
 		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
+		// TODO: Address is not being translated?
 		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
 	})
 
@@ -528,10 +507,10 @@ func Test_DeployContract(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
+		// TODO: The address supposed to be translated somewhere to 0x05?
 		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), scriptA)
 		require.NoError(t, err)
 		assert.Equal(t, deploy1.Script, scriptA)
-		//assert.Equal(t, accA.DeployedCode, scriptA)
 
 		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x02"), scriptB)
 		require.NoError(t, err)
