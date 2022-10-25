@@ -361,13 +361,14 @@ func Test_TransactionExecution(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), scriptA)
+		// Note: 0x05 is the first address (translation occurs at the API level)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
 		require.NoError(t, err)
 
-		var deployments *[]*model.ContractDeployment
-		err = projects.store.GetContractDeploymentsForProject(proj.ID, deployments)
+		var deployments []*model.ContractDeployment
+		err = projects.store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		assert.NoError(t, err)
-		assert.Equal(t, (*deployments)[0].Title, deployment.Title)
+		assert.Equal(t, deployments[0].Title, deployment.Title)
 
 		projects.emulatorCache.reset(proj.ID)
 
@@ -458,7 +459,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, *accounts, numAccounts)
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), script)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), script)
 		require.NoError(t, err)
 		assert.Equal(t, deployment.Title, "HelloWorld")
 
@@ -471,7 +472,6 @@ func Test_DeployContract(t *testing.T) {
 		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
 		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
 		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
-		// TODO: Address is not being translated?
 		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
 	})
 
@@ -507,14 +507,13 @@ func Test_DeployContract(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		// TODO: The address supposed to be translated somewhere to 0x05?
-		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
 		require.NoError(t, err)
-		assert.Equal(t, deploy1.Script, scriptA)
+		assert.Equal(t, deploy1.Title, "HelloWorldA")
 
-		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x02"), scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x06"), scriptB)
 		require.NoError(t, err)
-		assert.Equal(t, deploy2.Script, scriptB)
+		assert.Equal(t, deploy2.Title, "HelloWorldB")
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -527,7 +526,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 7)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x03"), scriptC)
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x07"), scriptC)
 		require.NoError(t, err)
 
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -587,7 +586,7 @@ func Test_ScriptExecution(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x01"), scriptA)
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
 		require.NoError(t, err)
 
 		script := `

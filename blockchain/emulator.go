@@ -144,7 +144,6 @@ func (e *emulator) getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.A
 	}
 
 	account, err := e.blockchain.GetAccount(address)
-	fmt.Println("BLOCKCHAIN ADDRESS:", account.Address)
 	if err != nil {
 		return nil, nil, err
 	}
