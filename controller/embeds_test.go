@@ -110,7 +110,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 		PublicID: uuid.New(),
 		ParentID: &parentID,
 		Seed:     0,
-		Title:    "test-project",
+		Title:    "e2eTest-project",
 		Persist:  false,
 		Version:  version,
 	}
@@ -131,7 +131,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	scriptTemplate := model.ScriptTemplate{
 		ID:        uuid.MustParse(scriptID),
 		ProjectID: uuid.MustParse(projectID),
-		Title:     "test contract",
+		Title:     "e2eTest contract",
 		Script:    script,
 	}
 

@@ -1,13 +1,12 @@
-package test
+package e2eTest
 
 import (
-	client2 "github.com/dapperlabs/flow-playground-api/test/client"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
-
-	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 func TestProjects(t *testing.T) {
@@ -20,11 +19,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client2.Var("title", "foo"),
-			client2.Var("description", "bar"),
-			client2.Var("readme", "bah"),
-			client2.Var("seed", 42),
-			client2.Var("numberOfAccounts", initAccounts),
+			client.Var("title", "foo"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
 		)
 		require.NoError(t, err)
 
@@ -52,12 +51,12 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client2.Var("title", "foo"),
-			client2.Var("description", "desc"),
-			client2.Var("readme", "rtfm"),
-			client2.Var("seed", 42),
-			client2.Var("numberOfAccounts", initAccounts),
-			client2.Var("contractTemplates", contractTemplates),
+			client.Var("title", "foo"),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+			client.Var("contractTemplates", contractTemplates),
 		)
 		require.NoError(t, err)
 
@@ -89,12 +88,12 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&resp,
-			client2.Var("title", "foo"),
-			client2.Var("seed", 42),
-			client2.Var("description", "desc"),
-			client2.Var("readme", "rtfm"),
-			client2.Var("transactionTemplates", templates),
-			client2.Var("numberOfAccounts", initAccounts),
+			client.Var("title", "foo"),
+			client.Var("seed", 42),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
+			client.Var("transactionTemplates", templates),
+			client.Var("numberOfAccounts", initAccounts),
 		)
 		require.NoError(t, err)
 
@@ -115,7 +114,7 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			QueryGetProject,
 			&resp,
-			client2.Var("projectId", project.ID),
+			client.Var("projectId", project.ID),
 		)
 		require.NoError(t, err)
 
@@ -132,7 +131,7 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			QueryGetProject,
 			&resp,
-			client2.Var("projectId", badID),
+			client.Var("projectId", badID),
 		)
 
 		assert.Error(t, err)
@@ -148,11 +147,11 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("title", project.Title),
-			client2.Var("description", project.Description),
-			client2.Var("readme", project.Readme),
-			client2.Var("persist", true),
+			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
+			client.Var("persist", true),
 		)
 
 		assert.Error(t, err)
@@ -168,12 +167,12 @@ func TestProjects(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("title", project.Title),
-			client2.Var("description", project.Description),
-			client2.Var("readme", project.Readme),
-			client2.Var("persist", true),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
+			client.Var("persist", true),
+			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 

@@ -88,7 +88,7 @@ func (p *Client) Post(w *httptest.ResponseRecorder, query string, response inter
 }
 
 // RawPost is similar to Post, except it skips decoding the raw json response
-// unpacked onto Response. This is used to test extension keys which are not
+// unpacked onto Response. This is used to e2eTest extension keys which are not
 // available when using Post.
 func (p *Client) RawPost(w *httptest.ResponseRecorder, query string, options ...Option) (*Response, error) {
 	r, err := p.newRequest(query, options...)

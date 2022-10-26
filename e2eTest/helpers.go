@@ -1,10 +1,10 @@
-package test
+package e2eTest
 
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
-	client2 "github.com/dapperlabs/flow-playground-api/test/client"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 	"github.com/kelseyhightower/envconfig"
@@ -24,14 +24,14 @@ import (
 )
 
 type Client struct {
-	client        *client2.Client
+	client        *client.Client
 	resolver      *playground.Resolver
 	sessionCookie *http.Cookie
 	projects      *blockchain.Projects
 	store         storage.Store
 }
 
-func (c *Client) Post(query string, response interface{}, options ...client2.Option) error {
+func (c *Client) Post(query string, response interface{}, options ...client.Option) error {
 	w := httptest.NewRecorder()
 
 	err := c.client.Post(w, query, response, options...)
@@ -45,7 +45,7 @@ func (c *Client) Post(query string, response interface{}, options ...client2.Opt
 	return err
 }
 
-func (c *Client) MustPost(query string, response interface{}, options ...client2.Option) {
+func (c *Client) MustPost(query string, response interface{}, options ...client.Option) {
 	err := c.Post(query, response, options...)
 	if err != nil {
 		panic(err)
@@ -60,7 +60,7 @@ func (c *Client) ClearSessionCookie() {
 	c.sessionCookie = nil
 }
 
-const sessionName = "flow-playground-test"
+const sessionName = "flow-playground-e2eTest"
 
 var version, _ = semver.NewVersion("0.1.0")
 
@@ -109,7 +109,7 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
-		client:   client2.New(router),
+		client:   client.New(router),
 		resolver: resolver,
 	}
 }
@@ -120,14 +120,14 @@ func createProject(t *testing.T, c *Client) Project {
 	err := c.Post(
 		MutationCreateProject,
 		&resp,
-		client2.Var("title", "foo"),
-		client2.Var("seed", 42),
-		client2.Var("description", "desc"),
-		client2.Var("readme", "rtfm"),
-		client2.Var("numberOfAccounts", 5),
-		client2.Var("transactionTemplates", []string{}),
-		client2.Var("scriptTemplates", []string{}),
-		client2.Var("contractTemplates", []string{}),
+		client.Var("title", "foo"),
+		client.Var("seed", 42),
+		client.Var("description", "desc"),
+		client.Var("readme", "rtfm"),
+		client.Var("numberOfAccounts", 5),
+		client.Var("transactionTemplates", []string{}),
+		client.Var("scriptTemplates", []string{}),
+		client.Var("contractTemplates", []string{}),
 	)
 	require.NoError(t, err)
 

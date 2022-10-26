@@ -149,7 +149,7 @@ func Test_LoadEmulator(t *testing.T) {
 		}
 	})
 
-	t.Run("test stale cache", func(t *testing.T) {
+	t.Run("e2eTest stale cache", func(t *testing.T) {
 		projects, store, proj, err := newWithSeededProject()
 		require.NoError(t, err)
 

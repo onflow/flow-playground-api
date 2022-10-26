@@ -79,9 +79,9 @@ func createControllers() (storage.Store, *model.User, *blockchain.Projects, *Pro
 	return store, user, chain, projects, files
 }
 
-const seedTitle = "test title"
-const seedDesc = "test desc"
-const seedReadme = "test readme"
+const seedTitle = "e2eTest title"
+const seedDesc = "e2eTest desc"
+const seedReadme = "e2eTest readme"
 
 func seedProject(projects *Projects, user *model.User) (*model.Project, error) {
 	contract := model.NewProjectContractTemplate{
@@ -165,7 +165,7 @@ func Test_CreateProject(t *testing.T) {
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
 				Index:     6,
-				Script:    "test",
+				Script:    "e2eTest",
 			},
 		})
 		require.NoError(t, err)

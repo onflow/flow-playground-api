@@ -16,13 +16,15 @@
  * limitations under the License.
  */
 
-package test
+package e2eTest
 
 import (
 	"github.com/dapperlabs/flow-playground-api/model"
 )
 
 const initAccounts = 5
+const addr1 = "0000000000000001"
+const addr2 = "0000000000000002"
 
 type Project struct {
 	ID                   string
@@ -121,6 +123,30 @@ query($projectId: UUID!) {
 }
 `
 
+const QueryGetProjectContractTemplates = `
+query($projectId: UUID!) {
+  project(id: $projectId) {
+    id
+    contractTemplates {
+      id
+      script
+      index
+    }
+  }
+}
+`
+
+type GetProjectContractTemplatesResponse struct {
+	Project struct {
+		ID                string
+		ContractTemplates []struct {
+			ID     string
+			Script string
+			Index  int
+		}
+	}
+}
+
 type GetProjectTransactionTemplatesResponse struct {
 	Project struct {
 		ID                   string
@@ -211,6 +237,14 @@ type GetTransactionTemplateResponse struct {
 	}
 }
 
+type GetContractTemplateResponse struct {
+	ContractTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationUpdateTransactionTemplateScript = `
 mutation($templateId: UUID!, $projectId: UUID!, $script: String!) {
   updateTransactionTemplate(input: { id: $templateId, projectId: $projectId, script: $script }) {
@@ -239,6 +273,34 @@ type UpdateTransactionTemplateResponse struct {
 	}
 }
 
+const MutationUpdateContractTemplateScript = `
+mutation($templateId: UUID!, $projectId: UUID!, $script: String!) {
+  updateContractTemplate(input: { id: $templateId, projectId: $projectId, script: $script }) {
+    id
+    script
+    index
+  }
+}
+`
+
+const MutationUpdateContractTemplateIndex = `
+mutation($templateId: UUID!, $projectId: UUID!, $index: Int!) {
+  updateContractTemplate(input: { id: $templateId, projectId: $projectId, index: $index }) {
+    id
+    script
+    index
+  }
+}
+`
+
+type UpdateContractTemplateResponse struct {
+	UpdateContractTemplate struct {
+		ID     string
+		Script string
+		Index  int
+	}
+}
+
 const MutationDeleteTransactionTemplate = `
 mutation($templateId: UUID!, $projectId: UUID!) {
   deleteTransactionTemplate(id: $templateId, projectId: $projectId)
@@ -247,6 +309,16 @@ mutation($templateId: UUID!, $projectId: UUID!) {
 
 type DeleteTransactionTemplateResponse struct {
 	DeleteTransactionTemplate string
+}
+
+const MutationDeleteContractTemplate = `
+mutation($templateId: UUID!, $projectId: UUID!) {
+  deleteContractTemplate(id: $templateId, projectId: $projectId)
+}
+`
+
+type DeleteContractTemplateResponse struct {
+	DeleteContractTemplate string
 }
 
 const MutationCreateTransactionExecution = `
@@ -306,6 +378,30 @@ mutation CreateScriptExecution($projectId: UUID!, $script: String!, $arguments: 
 }
 `
 
+const MutationCreateContractDeployment = `
+mutation($projectId: UUID!, $script: String!, $address: Address!) {
+  createContractDeployment(input: {
+	projectId: $projectId,
+	script: $script,
+	address: $address
+  }) {
+    id
+    script
+    address
+    errors {
+      message
+      startPosition { offset line column }
+      endPosition { offset line column }
+    }
+    events {
+      type
+      values
+    }
+    logs
+  }
+}
+`
+
 type CreateScriptExecutionResponse struct {
 	CreateScriptExecution struct {
 		ID     string
@@ -323,16 +419,6 @@ mutation($projectId: UUID!, $title: String!, $script: String!) {
     title
     script
     index
-  }
-}
-`
-
-const MutationCreateContractDeployment = `
-mutation($projectId: UUID!, $script: String!, $address: Address!) {
-  createContractDeployment(input: { projectId: $projectId, script: $script, address: $address }) {
-    id
-    script
-    address
   }
 }
 `
@@ -373,9 +459,22 @@ type CreateScriptTemplateResponse struct {
 	CreateScriptTemplate ScriptTemplate
 }
 
+type CreateContractTemplateResponse struct {
+	CreateContractTemplate ContractTemplate
+}
+
 const QueryGetScriptTemplate = `
 query($templateId: UUID!, $projectId: UUID!) {
   scriptTemplate(id: $templateId, projectId: $projectId) {
+    id
+    script
+  }
+}
+`
+
+const QueryGetContractTemplate = `
+query($templateId: UUID!, $projectId: UUID!) {
+  contractTemplate(id: $templateId, projectId: $projectId) {
     id
     script
   }
@@ -425,104 +524,6 @@ type DeleteScriptTemplateResponse struct {
 }
 
 /*
-const counterContract = `
-  pub contract Counting {
-
-      pub event CountIncremented(count: Int)
-
-      pub resource Counter {
-          pub var count: Int
-
-          init() {
-              self.count = 0
-          }
-
-          pub fun add(_ count: Int) {
-              self.count = self.count + count
-              emit CountIncremented(count: self.count)
-          }
-      }
-
-      pub fun createCounter(): @Counter {
-          return <-create Counter()
-      }
-  }
-`
-*/
-
-// generateAddTwoToCounterScript generates a script that increments a counter.
-// If no counter exists, it is created.
-/*
-func generateAddTwoToCounterScript(counterAddress string) string {
-	return fmt.Sprintf(
-		`
-            import 0x%s
-
-            transaction {
-
-                prepare(signer: AuthAccount) {
-                    if signer.borrow<&Counting.Counter>(from: /storage/counter) == nil {
-                        signer.save(<-Counting.createCounter(), to: /storage/counter)
-                    }
-
-                    signer.borrow<&Counting.Counter>(from: /storage/counter)!.add(2)
-                }
-            }
-        `,
-		counterAddress,
-	)
-}
-*/
-
-/*
-func TestContractImport(t *testing.T) {
-	c := newClient()
-
-	project := createProject(t, c)
-
-	accountA := project.Accounts[0]
-	accountB := project.Accounts[1]
-
-	contractA := `
-	pub contract HelloWorldA {
-		pub var A: String
-		pub init() { self.A = "HelloWorldA" }
-	}`
-
-	contractB := `
-	import HelloWorldA from 0x01
-	pub contract HelloWorldB {
-		pub init() {
-			log(HelloWorldA.A)
-		}
-	}`
-
-	var respA UpdateAccountResponse
-
-	err := c.Post(
-		MutationUpdateAccountDeployedCode,
-		&respA,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", accountA.ID),
-		client2.Var("code", contractA),
-		client2.AddCookie(c.SessionCookie()),
-	)
-	require.NoError(t, err)
-	assert.Equal(t, contractA, respA.UpdateAccount.DeployedCode)
-
-	var respB UpdateAccountResponse
-
-	err = c.Post(
-		MutationUpdateAccountDeployedCode,
-		&respB,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", accountB.ID),
-		client2.Var("code", contractB),
-		client2.AddCookie(c.SessionCookie()),
-	)
-	require.NoError(t, err)
-}
-
 // TODO implement these tests on flow accounts still?
 func TestAccountStorage(t *testing.T) {
 	c := newClient()

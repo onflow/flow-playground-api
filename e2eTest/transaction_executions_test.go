@@ -1,8 +1,8 @@
-package test
+package e2eTest
 
 import (
+	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
-	client2 "github.com/dapperlabs/flow-playground-api/test/client"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,7 +85,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&respA,
 			client2.Var("projectId", project.ID),
 			client2.Var("script", script),
-			client2.Var("signers", []string{addr1}), // What should the address be??
+			client2.Var("signers", []string{addr1}),
 			client2.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)

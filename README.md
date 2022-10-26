@@ -11,7 +11,7 @@ make generate
 ## Testing
 
 ```shell script
-make test
+make e2eTest
 ```
 
 ## Running the server

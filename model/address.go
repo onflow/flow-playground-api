@@ -44,7 +44,7 @@ func NewAddressFromString(address string) Address {
 	return newAddress
 }
 
-func (a *Address) ToFlowAddress() flow.Address {
+func (a Address) ToFlowAddress() flow.Address {
 	return flow.BytesToAddress(a[len(a)-flow.AddressLength:])
 }
 
@@ -68,7 +68,7 @@ func (a *Address) UnmarshalGQL(v interface{}) error {
 	return nil
 }
 
-func (a *Address) MarshalGQL(w io.Writer) {
+func (a Address) MarshalGQL(w io.Writer) {
 	str := fmt.Sprintf("\"%x\"", a)
 	_, _ = io.WriteString(w, str)
 }

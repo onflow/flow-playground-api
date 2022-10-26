@@ -288,7 +288,7 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{File: model.File{ProjectID: projectID}}).
 		Find(exes).
-		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Order("\"index\" asc").
 		Error
 }
 
@@ -328,15 +328,14 @@ func (s *SQL) InsertContractDeploymentWithExecution(
 func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {
 	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}}).
 		Find(deployments).
-		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Order("\"index\" asc").
 		Error
 }
 
 func (s *SQL) GetContractDeploymentsForAddress(projectID uuid.UUID, address model.Address, deployments *[]*model.ContractDeployment) error {
-	// TODO: does address need to be converted?
 	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}, Address: address}).
 		Find(deployments).
-		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Order("\"index\" asc").
 		Error
 }
 
@@ -363,7 +362,7 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 
 func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	return s.db.Where(&model.TransactionExecution{File: model.File{ProjectID: projectID}}).
-		Order("\"index\" asc"). // TODO: Does this need to be File: index ???
+		Order("\"index\" asc").
 		Find(exes).
 		Error
 }

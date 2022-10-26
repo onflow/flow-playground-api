@@ -20,7 +20,7 @@ package client_test
 
 import (
 	"encoding/json"
-	client2 "github.com/dapperlabs/flow-playground-api/test/client"
+	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
