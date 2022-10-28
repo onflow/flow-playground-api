@@ -52,7 +52,7 @@ func NewResolver(
 	projects := controller.NewProjects(version, store, blockchain)
 	files := controller.NewFiles(store, blockchain)
 	//migrator := migrate.NewMigrator(store, projects)
-	accounts := controller.NewAccounts(blockchain)
+	accounts := controller.NewAccounts(store, blockchain)
 
 	return &Resolver{
 		version: version,

@@ -19,66 +19,67 @@
 package controller
 
 import (
+	"encoding/binary"
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 type Accounts struct {
+	store      storage.Store
 	blockchain *blockchain.Projects
 }
 
 func NewAccounts(
+	store storage.Store,
 	blockchain *blockchain.Projects,
 ) *Accounts {
 	return &Accounts{
+		store:      store,
 		blockchain: blockchain,
 	}
 }
 
 func (a *Accounts) GetByAddress(address model.Address, projectID uuid.UUID) (*model.Account, error) {
-	var acc model.Account
-
-	/*
-		err := a.store.GetAccount(ID, projectID, &acc)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get account")
-		}
-	*/
-
-	account, err := a.blockchain.GetAccount(projectID, acc.Address)
+	account, err := a.blockchain.GetAccount(projectID, address)
 	if err != nil {
 		return nil, err
 	}
-
 	return account.Export(), nil
 }
 
 func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error) {
-	var accounts []*model.Account
-
-	// TODO FIX
-	err := a.store.GetAccountsForProject(projectID, &accounts)
+	var proj model.Project
+	err := a.store.GetProject(projectID, &proj)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get accounts")
+		return nil, err
 	}
 
-	addresses := make([]model.Address, len(accounts))
-	for i, account := range accounts {
-		addresses[i] = account.Address
+	// TODO: Make sure this works :P
+	addresses := make([]model.Address, proj.NumberOfAccounts)
+	for i := 0; i < proj.NumberOfAccounts; i++ {
+		addresses[i] = getAddressForAccountIndex(i)
 	}
+	fmt.Println("ACCOUNT ADDRESSES:", addresses)
 
 	accs, err := a.blockchain.GetAccounts(projectID, addresses)
 	if err != nil {
 		return nil, err
 	}
 
-	exported := make([]*model.Account, len(accounts))
-	for i, account := range accounts {
-		accs[i].MergeFromStore(account)
+	exported := make([]*model.Account, proj.NumberOfAccounts)
+	for i := 0; i < proj.NumberOfAccounts; i++ {
 		exported[i] = accs[i].Export()
 	}
 
 	return exported, nil
+}
+
+func getAddressForAccountIndex(index int) model.Address {
+	const initialAccount = 0x05
+	bs := make([]byte, 8)
+	binary.LittleEndian.PutUint32(bs, uint32(initialAccount+index))
+	return model.NewAddressFromBytes(bs)
 }
