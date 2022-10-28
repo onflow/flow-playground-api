@@ -143,6 +143,7 @@ func createProject(t *testing.T, c *Client) Project {
 		client.Var("description", "desc"),
 		client.Var("readme", "rtfm"),
 		client.Var("numberOfAccounts", 5),
+		client.Var("accounts", []string{}),
 		client.Var("transactionTemplates", []string{}),
 		client.Var("scriptTemplates", []string{}),
 		client.Var("contractTemplates", []string{}),

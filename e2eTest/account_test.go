@@ -20,11 +20,11 @@ func TestAccountStorage(t *testing.T) {
 		QueryGetAccount,
 		&accResp,
 		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.ID),
+		client2.Var("accountId", account.Address),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.Equal(t, account.Address, accResp.Account.Address)
 	assert.Equal(t, `{}`, accResp.Account.State)
 
 	var resp CreateTransactionExecutionResponse
@@ -52,11 +52,11 @@ func TestAccountStorage(t *testing.T) {
 		QueryGetAccount,
 		&accResp,
 		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.ID),
+		client2.Var("accountId", account.Address),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, account.ID, accResp.Account.ID)
+	assert.Equal(t, account.Address, accResp.Account.Address)
 	assert.NotEmpty(t, accResp.Account.State)
 
 	type accountStorage struct {

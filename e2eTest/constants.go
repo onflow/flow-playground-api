@@ -43,7 +43,6 @@ type Project struct {
 }
 
 type Account struct {
-	ID                string
 	Address           string
 	DeployedContracts []string
 	State             string
@@ -58,6 +57,11 @@ mutation($title: String!, $description: String!, $readme: String!, $seed: Int!, 
 		readme
     seed
 	numberOfAccounts
+	accounts {
+      address
+      deployedContracts
+      state
+	}
     transactionTemplates {
       id
       title
