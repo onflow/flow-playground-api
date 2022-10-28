@@ -38,6 +38,7 @@ type Resolver struct {
 	auth    *auth.Authenticator
 	//migrator           *migrate.Migrator // TODO: implement v2 migrator
 	projects           *controller.Projects
+	accounts           *controller.Accounts
 	files              *controller.Files
 	lastCreatedProject *model.Project
 }
@@ -51,6 +52,7 @@ func NewResolver(
 	projects := controller.NewProjects(version, store, blockchain)
 	files := controller.NewFiles(store, blockchain)
 	//migrator := migrate.NewMigrator(store, projects)
+	accounts := controller.NewAccounts(blockchain)
 
 	return &Resolver{
 		version: version,
@@ -58,6 +60,7 @@ func NewResolver(
 		auth:    auth,
 		//migrator: migrator,
 		projects: projects,
+		accounts: accounts,
 		files:    files,
 	}
 }
@@ -416,4 +419,13 @@ func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectI
 
 func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ContractTemplate, error) {
 	return r.files.GetFile(id, projectID)
+}
+
+func (r *queryResolver) Account(_ context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error) {
+	acc, err := r.accounts.GetByAddress(address, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountToAPI(acc), nil
 }

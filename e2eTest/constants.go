@@ -35,10 +35,18 @@ type Project struct {
 	Persist              bool
 	Version              string
 	NumberOfAccounts     int
+	Accounts             []Account
 	TransactionTemplates []TransactionTemplate
 	ScriptTemplates      []ScriptTemplate
 	ContractTemplates    []ContractTemplate
 	Secret               string
+}
+
+type Account struct {
+	ID                string
+	Address           string
+	DeployedContracts []string
+	State             string
 }
 
 const MutationCreateProject = `
@@ -74,6 +82,21 @@ mutation($title: String!, $description: String!, $readme: String!, $seed: Int!, 
 
 type CreateProjectResponse struct {
 	CreateProject Project
+}
+
+const QueryGetAccount = `
+query($accountId: UUID!, $projectId: UUID!) {
+  account(id: $accountId, projectId: $projectId) {
+    id
+    address
+    deployedContracts
+    state
+  }
+}
+`
+
+type GetAccountResponse struct {
+	Account Account
 }
 
 const QueryGetProject = `
@@ -522,79 +545,6 @@ mutation($templateId: UUID!, $projectId: UUID!) {
 type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
-
-/*
-// TODO implement these tests on flow accounts still?
-func TestAccountStorage(t *testing.T) {
-	c := newClient()
-
-	project := createProject(t, c)
-	account := project.Accounts[0]
-
-	var accResp GetAccountResponse
-
-	err := c.Post(
-		QueryGetAccount,
-		&accResp,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.ID),
-	)
-	require.NoError(t, err)
-
-	assert.Equal(t, account.ID, accResp.Account.ID)
-	assert.Equal(t, `{}`, accResp.Account.State)
-
-	var resp CreateTransactionExecutionResponse
-
-	const script = `
-		transaction {
-		  prepare(signer: AuthAccount) {
-			  	signer.save("storage value", to: /storage/storageTest)
- 				signer.link<&String>(/public/publicTest, target: /storage/storageTest)
-				signer.link<&String>(/private/privateTest, target: /storage/storageTest)
-		  }
-   		}`
-
-	err = c.Post(
-		MutationCreateTransactionExecution,
-		&resp,
-		client2.Var("projectId", project.ID),
-		client2.Var("script", script),
-		client2.Var("signers", []string{account.Address}),
-		client2.AddCookie(c.SessionCookie()),
-	)
-	require.NoError(t, err)
-
-	err = c.Post(
-		QueryGetAccount,
-		&accResp,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.ID),
-	)
-	require.NoError(t, err)
-
-	assert.Equal(t, account.ID, accResp.Account.ID)
-	assert.NotEmpty(t, accResp.Account.State)
-
-	type accountStorage struct {
-		Private map[string]any
-		Public  map[string]any
-		Storage map[string]any
-	}
-
-	var accStorage accountStorage
-	err = json.Unmarshal([]byte(accResp.Account.State), &accStorage)
-	require.NoError(t, err)
-
-	assert.Equal(t, "storage value", accStorage.Storage["storageTest"])
-	assert.NotEmpty(t, accStorage.Private["privateTest"])
-	assert.NotEmpty(t, accStorage.Public["publicTest"])
-
-	assert.NotContains(t, accStorage.Public, "flowTokenBalance")
-	assert.NotContains(t, accStorage.Public, "flowTokenReceiver")
-	assert.NotContains(t, accStorage.Storage, "flowTokenVault")
-}
-*/
 
 // todo add tests for:
 // - failed transactions with successful transactions work (bootstrap works)??

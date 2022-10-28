@@ -19,12 +19,19 @@ type Project {
   persist: Boolean
   mutable: Boolean
   numberOfAccounts: Int!
+  accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
   scriptTemplates: [ScriptTemplate!]
   scriptExecutions: [ScriptExecution!]
   contractTemplates: [ContractTemplate!]
   contractDeployments: [ContractDeployment!]
+}
+
+type Account {
+  address: Address!
+  deployedContracts: [String!]!
+  state: String!
 }
 
 type ProgramError {
@@ -112,6 +119,7 @@ type ContractDeployment {
 type Query {
   playgroundInfo: PlaygroundInfo!
   project(id: UUID!): Project!
+  account(address: Address!, projectId: UUID!): Account!
 
   contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!

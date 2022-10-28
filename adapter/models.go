@@ -125,14 +125,9 @@ func ContractFromAPI(contract model.NewContractDeployment) model.NewContractDepl
 	return contract
 }
 
-// TODO: Remove accounts?
-/*
 func AccountToAPI(account *model.Account) *model.Account {
 	account.Address = addressToAPI(account.Address)
-	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
-
 	account.State = stateToAPI(account.State)
-
 	return account
 }
 
@@ -142,12 +137,3 @@ func AccountsToAPI(accounts []*model.Account) []*model.Account {
 	}
 	return accounts
 }
-
-func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
-	if account.DeployedCode != nil {
-		adaptedCode := ContentAddressFromAPI(*account.DeployedCode)
-		account.DeployedCode = &adaptedCode
-	}
-	return account
-}
-*/

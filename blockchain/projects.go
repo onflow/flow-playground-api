@@ -19,6 +19,7 @@
 package blockchain
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -350,4 +351,55 @@ func (p *Projects) filterMissingExecutions(
 	executions = executions[height:]
 
 	return executions, nil
+}
+
+// GetAccount by the address along with its storage information.
+func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.getAccount(em, projectID, address)
+}
+
+func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*model.Account, len(addresses))
+	for i, address := range addresses {
+		account, err := p.getAccount(em, projectID, address)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts[i] = account
+	}
+
+	return accounts, nil
+}
+
+func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStorage, err := json.Marshal(store)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling account storage")
+	}
+
+	account := model.AccountFromFlow(flowAccount, projectID)
+	account.ProjectID = projectID
+	account.State = string(jsonStorage)
+
+	return account, nil
 }
