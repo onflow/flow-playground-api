@@ -39,6 +39,7 @@ type Store interface {
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
+	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
 
 	InsertCadenceFile(file *model.File) error
 	UpdateCadenceFile(input model.UpdateFile, file *model.File) error

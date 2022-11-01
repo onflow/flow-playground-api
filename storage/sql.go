@@ -225,6 +225,11 @@ func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 	return s.db.First(proj, id).Error
 }
 
+func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error {
+	return s.db.Where(&model.Project{UserID: userID}).Find(proj).Error
+
+}
+
 func (s *SQL) InsertCadenceFile(file *model.File) error {
 	var count int64
 	err := s.db.Model(&model.File{}).

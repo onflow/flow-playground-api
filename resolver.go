@@ -397,9 +397,9 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	// todo
 	// only migrate if current user has access to this project
 	//migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate project")
-	}
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "failed to migrate project")
+	//}
 
 	// reload project if needed
 	/*
@@ -437,4 +437,24 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 	}
 
 	return adapter.AccountToAPI(acc), nil
+}
+
+func (r *queryResolver) ProjectList(ctx context.Context, userID uuid.UUID) ([]*model.Project, error) {
+	var projects []*model.Project
+	err := r.store.GetAllProjectsForUser(userID, &projects)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get projects for user "+userID.String())
+	}
+
+	exportedProjects := make([]*model.Project, len(projects))
+
+	for i, proj := range projects {
+		if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
+			exportedProjects[i] = proj.ExportPublicImmutable()
+		} else {
+			exportedProjects[i] = proj.ExportPublicMutable()
+		}
+	}
+
+	return exportedProjects, nil
 }
