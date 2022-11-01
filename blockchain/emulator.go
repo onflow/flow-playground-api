@@ -278,11 +278,3 @@ func parseContractName(code string) (string, error) {
 
 	return "", fmt.Errorf("unable to determine contract name")
 }
-
-func GetContractName(script string) (*string, error) {
-	title, err := parseContractName(script)
-	if err != nil {
-		return nil, err
-	}
-	return &title, nil
-}

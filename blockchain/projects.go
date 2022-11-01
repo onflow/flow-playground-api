@@ -199,7 +199,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	contractName, err := GetContractName(script)
+	contractName, err := parseContractName(script)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (p *Projects) DeployContract(
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := flowAccount.Contracts[*contractName]; ok {
+	if _, ok := flowAccount.Contracts[contractName]; ok {
 		// A contract with this name has already been deployed to this account
 		// TODO: change logic to just re-deploy this contract instead of resetting the state
 		var proj model.Project
@@ -238,10 +238,10 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	exe.File.Title = *contractName
+	exe.File.Title = contractName
 
 	deploy := model.ContractDeploymentFromFlow(projectID, result, tx)
-	deploy.File.Title = *contractName
+	deploy.File.Title = contractName
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {

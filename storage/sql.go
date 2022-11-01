@@ -236,7 +236,6 @@ func (s *SQL) InsertCadenceFile(file *model.File) error {
 	}
 
 	file.Index = int(count)
-	fmt.Println("Inserting file into DB: ", file.ID, file.ProjectID, file.Script)
 	return s.db.Create(file).Error
 }
 

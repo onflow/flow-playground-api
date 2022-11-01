@@ -60,9 +60,8 @@ func Test_DeployContracts(t *testing.T) {
 		account, _, _, err := emu.createAccount()
 		assert.NoError(t, err)
 
-		result, _, err := emu.deployContract(account.Address, "", "")
-		assert.NoError(t, err)
-		assert.Error(t, result.Error)
+		_, _, err = emu.deployContract(account.Address, "")
+		assert.Error(t, err)
 	})
 
 	// Test deploying many contracts to a single account
@@ -82,7 +81,7 @@ func Test_DeployContracts(t *testing.T) {
 			contract := "pub contract " + name + "{}"
 			deployedContracts = append(deployedContracts, name)
 
-			_, tx, err := emu.deployContract(account.Address, contract, name)
+			_, tx, err := emu.deployContract(account.Address, contract)
 			assert.NoError(t, err)
 			assert.Equal(t, tx.Authorizers[0], account.Address)
 		}
