@@ -238,10 +238,7 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	exe.File.Title = contractName
-
-	deploy := model.ContractDeploymentFromFlow(projectID, result, tx)
-	deploy.File.Title = contractName
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, result, tx)
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {

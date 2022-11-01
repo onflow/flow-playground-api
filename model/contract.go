@@ -37,6 +37,7 @@ type ContractDeployment struct {
 
 func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
+	contractName string,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
 ) *ContractDeployment {
@@ -54,6 +55,7 @@ func ContractDeploymentFromFlow(
 	exe := &ContractDeployment{
 		File: File{
 			ID:        uuid.New(),
+			Title:     contractName,
 			ProjectID: projectID,
 			Type:      ContractFile,
 			Script:    script,
