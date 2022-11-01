@@ -89,9 +89,8 @@ type CreateProjectResponse struct {
 }
 
 const QueryGetAccount = `
-query($accountId: UUID!, $projectId: UUID!) {
-  account(id: $accountId, projectId: $projectId) {
-    id
+query($address: Address!, $projectId: UUID!) {
+  account(address: $address, projectId: $projectId) {
     address
     deployedContracts
     state

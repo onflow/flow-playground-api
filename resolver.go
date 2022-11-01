@@ -291,7 +291,7 @@ func (r *mutationResolver) DeleteContractTemplate(
 	id uuid.UUID,
 	projectID uuid.UUID,
 ) (uuid.UUID, error) {
-	err := r.authorize(ctx, projectID) // TODO: need this?
+	err := r.authorize(ctx, projectID)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
@@ -333,13 +333,13 @@ func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Pr
 }
 
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
-	var exes *[]*model.TransactionExecution
-	err := r.store.GetTransactionExecutionsForProject(proj.ID, exes)
+	var exes []*model.TransactionExecution
+	err := r.store.GetTransactionExecutionsForProject(proj.ID, &exes)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.TransactionsToAPI(*exes), nil
+	return adapter.TransactionsToAPI(exes), nil
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
@@ -347,13 +347,13 @@ func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project
 }
 
 func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Project) ([]*model.ScriptExecution, error) {
-	var exes *[]*model.ScriptExecution
-	err := r.store.GetScriptExecutionsForProject(proj.ID, exes)
+	var exes []*model.ScriptExecution
+	err := r.store.GetScriptExecutionsForProject(proj.ID, &exes)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.ScriptsToAPI(*exes), nil
+	return adapter.ScriptsToAPI(exes), nil
 }
 
 func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
@@ -361,13 +361,22 @@ func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Proje
 }
 
 func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Project) ([]*model.ContractDeployment, error) {
-	var deploys *[]*model.ContractDeployment
-	err := r.store.GetContractDeploymentsForProject(proj.ID, deploys)
+	var deploys []*model.ContractDeployment
+	err := r.store.GetContractDeploymentsForProject(proj.ID, &deploys)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.ContractsToAPI(*deploys), nil
+	return adapter.ContractsToAPI(deploys), nil
+}
+
+func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
+	accounts, err := r.accounts.AllForProjectID(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountsToAPI(accounts), nil
 }
 
 type queryResolver struct{ *Resolver }
@@ -422,7 +431,7 @@ func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projec
 }
 
 func (r *queryResolver) Account(_ context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error) {
-	acc, err := r.accounts.GetByAddress(address, projectID)
+	acc, err := r.accounts.GetByAddress(adapter.AddressFromAPI(address), projectID)
 	if err != nil {
 		return nil, err
 	}

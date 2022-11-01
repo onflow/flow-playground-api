@@ -2,7 +2,7 @@ package e2eTest
 
 import (
 	"encoding/json"
-	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -19,8 +19,8 @@ func TestAccountStorage(t *testing.T) {
 	err := c.Post(
 		QueryGetAccount,
 		&accResp,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.Address),
+		client.Var("projectId", project.ID),
+		client.Var("address", account.Address),
 	)
 	require.NoError(t, err)
 
@@ -41,18 +41,18 @@ func TestAccountStorage(t *testing.T) {
 	err = c.Post(
 		MutationCreateTransactionExecution,
 		&resp,
-		client2.Var("projectId", project.ID),
-		client2.Var("script", script),
-		client2.Var("signers", []string{account.Address}),
-		client2.AddCookie(c.SessionCookie()),
+		client.Var("projectId", project.ID),
+		client.Var("script", script),
+		client.Var("signers", []string{account.Address}),
+		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
 	err = c.Post(
 		QueryGetAccount,
 		&accResp,
-		client2.Var("projectId", project.ID),
-		client2.Var("accountId", account.Address),
+		client.Var("projectId", project.ID),
+		client.Var("address", account.Address),
 	)
 	require.NoError(t, err)
 
