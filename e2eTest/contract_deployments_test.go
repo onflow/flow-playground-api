@@ -33,14 +33,19 @@ func TestContractDeployments(t *testing.T) {
 
 		badID := uuid.New().String()
 
-		var resp CreateContractDeploymentResponse
+		contractA := `
+		pub contract HelloWorldA {
+			pub var A: String
+			pub init() { self.A = "HelloWorldA" }
+		}`
 
+		var resp CreateContractDeploymentResponse
 		err := c.Post(
 			MutationCreateContractDeployment,
 			&resp,
 			client.Var("projectId", badID),
-			client.Var("script", "transaction { execute { log(\"Hello, World!\") } }"),
-			client.Var("Address", "0x01"),
+			client.Var("script", contractA),
+			client.Var("address", addr1),
 		)
 
 		assert.Error(t, err)

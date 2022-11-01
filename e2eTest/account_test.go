@@ -8,6 +8,58 @@ import (
 	"testing"
 )
 
+func TestAccountDeployedContracts(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+	account := project.Accounts[0]
+
+	contractA := `
+	pub contract HelloWorldA {
+		pub var A: String
+		pub init() { self.A = "HelloWorldA" }
+	}`
+
+	contractB := `
+	pub contract HelloWorldB {
+		pub var B: String
+		pub init() { self.B = "HelloWorldB" }
+	}`
+
+	var respA CreateContractDeploymentResponse
+	err := c.Post(
+		MutationCreateContractDeployment,
+		&respA,
+		client.Var("projectId", project.ID),
+		client.Var("script", contractA),
+		client.Var("address", addr1),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	var respB CreateContractDeploymentResponse
+	err = c.Post(
+		MutationCreateContractDeployment,
+		&respB,
+		client.Var("projectId", project.ID),
+		client.Var("script", contractB),
+		client.Var("address", addr1),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	var accResp GetAccountResponse
+	err = c.Post(
+		QueryGetAccount,
+		&accResp,
+		client.Var("projectId", project.ID),
+		client.Var("address", account.Address),
+	)
+	require.NoError(t, err)
+
+	require.EqualValues(t, []string{"HelloWorldA", "HelloWorldB"}, accResp.Account.DeployedContracts)
+}
+
 func TestAccountStorage(t *testing.T) {
 	c := newClient()
 
