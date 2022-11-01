@@ -57,7 +57,7 @@ type blockchain interface {
 	getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
-	deployContract(address flowsdk.Address, script string, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
+	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
@@ -154,8 +154,12 @@ func (e *emulator) getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.A
 func (e *emulator) deployContract(
 	address flowsdk.Address,
 	script string,
-	contractName string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
+	contractName, err := parseContractName(script)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	tx := templates.AddAccountContract(address, templates.Contract{
 		Name:   contractName,
 		Source: script,

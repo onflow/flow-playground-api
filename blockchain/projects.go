@@ -210,6 +210,7 @@ func (p *Projects) DeployContract(
 	}
 	if _, ok := flowAccount.Contracts[*contractName]; ok {
 		// A contract with this name has already been deployed to this account
+		// TODO: change logic to just re-deploy this contract instead of resetting the state
 		var proj model.Project
 		err := p.store.GetProject(projectID, &proj)
 		if err != nil {
@@ -228,7 +229,7 @@ func (p *Projects) DeployContract(
 		}
 	}
 
-	result, tx, err := em.deployContract(address.ToFlowAddress(), script, *contractName)
+	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
 		return nil, err
 	}
