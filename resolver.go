@@ -439,7 +439,7 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 	return adapter.AccountToAPI(acc), nil
 }
 
-func (r *queryResolver) ProjectList(ctx context.Context) ([]*model.Project, error) {
+func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, err
@@ -461,5 +461,5 @@ func (r *queryResolver) ProjectList(ctx context.Context) ([]*model.Project, erro
 		}
 	}
 
-	return exportedProjects, nil
+	return &model.ProjectList{Projects: exportedProjects}, nil
 }

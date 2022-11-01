@@ -203,14 +203,13 @@ func TestProjects(t *testing.T) {
 
 }
 
-func TestProjectList(t *testing.T) {
+func TestGetProjectList(t *testing.T) {
 	c := newClient()
 
-	var resp CreateProjectResponse
-
+	var projResp1 CreateProjectResponse
 	err := c.Post(
 		MutationCreateProject,
-		&resp,
+		&projResp1,
 		client.Var("title", "foo1"),
 		client.Var("description", "bar"),
 		client.Var("readme", "bah"),
@@ -219,25 +218,30 @@ func TestProjectList(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	var projResp2 CreateProjectResponse
 	err = c.Post(
 		MutationCreateProject,
-		&resp,
+		&projResp2,
 		client.Var("title", "foo2"),
 		client.Var("description", "bar"),
 		client.Var("readme", "bah"),
 		client.Var("seed", 42),
 		client.Var("numberOfAccounts", initAccounts),
+		client.AddCookie(c.SessionCookie()), // Use the same cookie for the same userID
 	)
 	require.NoError(t, err)
 
 	var listResp GetProjectListResponse
 
-	// TODO: Fix query for project list
 	err = c.Post(
 		QueryGetProjectList,
 		&listResp,
+		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
-	assert.Equal(t, listResp.ProjectList.projects, "")
+	assert.Equal(t, projResp1.CreateProject.ID, listResp.ProjectList.Projects[0].ID)
+	assert.Equal(t, "foo1", listResp.ProjectList.Projects[0].Title)
+	assert.Equal(t, projResp2.CreateProject.ID, listResp.ProjectList.Projects[1].ID)
+	assert.Equal(t, "foo2", listResp.ProjectList.Projects[1].Title)
 }

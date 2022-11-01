@@ -18,7 +18,7 @@
 package e2eTest
 
 import (
-	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"strconv"
@@ -55,9 +55,9 @@ func TestReplicas(t *testing.T) {
 			err := loadBalancer().Post(
 				MutationCreateTransactionExecution,
 				&resp,
-				client2.Var("projectId", project.ID),
-				client2.Var("script", script),
-				client2.AddCookie(cookie),
+				client.Var("projectId", project.ID),
+				client.Var("script", script),
+				client.AddCookie(cookie),
 			)
 
 			require.NoError(t, err)
@@ -77,10 +77,10 @@ func TestReplicas(t *testing.T) {
 			err := loadBalancer().Post(
 				MutationCreateContractDeployment,
 				&deployResp,
-				client2.Var("projectId", project.ID),
-				client2.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
-				client2.Var("script", contract),
-				client2.AddCookie(cookie),
+				client.Var("projectId", project.ID),
+				client.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
+				client.Var("script", contract),
+				client.AddCookie(cookie),
 			)
 			require.NoError(t, err)
 		}

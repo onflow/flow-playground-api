@@ -116,15 +116,18 @@ type GetProjectResponse struct {
 
 const QueryGetProjectList = `
 query() {
-  projectList {
-	projectList
+  projectList() {
+    projects {
+      id
+      title
+    }
   }
 }
 `
 
 type GetProjectListResponse struct {
 	ProjectList struct {
-		projects []*Project
+		Projects []*Project
 	}
 }
 

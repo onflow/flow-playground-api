@@ -116,9 +116,13 @@ type ContractDeployment {
   logs: [String!]
 }
 
+type ProjectList {
+  projects: [Project!]
+}
+
 type Query {
   playgroundInfo: PlaygroundInfo!
-  projectList: [Project!]
+  projectList: ProjectList!
   project(id: UUID!): Project!
   account(address: Address!, projectId: UUID!): Account!
 
