@@ -14,7 +14,7 @@ type Account struct {
 
 func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 	contractNames := make([]string, 0)
-	for name, _ := range account.Contracts {
+	for name := range account.Contracts {
 		contractNames = append(contractNames, name)
 	}
 
