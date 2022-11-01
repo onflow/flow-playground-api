@@ -439,11 +439,16 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 	return adapter.AccountToAPI(acc), nil
 }
 
-func (r *queryResolver) ProjectList(ctx context.Context, userID uuid.UUID) ([]*model.Project, error) {
-	var projects []*model.Project
-	err := r.store.GetAllProjectsForUser(userID, &projects)
+func (r *queryResolver) ProjectList(ctx context.Context) ([]*model.Project, error) {
+	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get projects for user "+userID.String())
+		return nil, err
+	}
+
+	var projects []*model.Project
+	err = r.store.GetAllProjectsForUser(user.ID, &projects)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get projects for user "+user.ID.String())
 	}
 
 	exportedProjects := make([]*model.Project, len(projects))

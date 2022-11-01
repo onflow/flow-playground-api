@@ -134,6 +134,7 @@ type ComplexityRoot struct {
 		ContractTemplate    func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		PlaygroundInfo      func(childComplexity int) int
 		Project             func(childComplexity int, id uuid.UUID) int
+		ProjectList         func(childComplexity int) int
 		ScriptTemplate      func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		TransactionTemplate func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 	}
@@ -199,6 +200,7 @@ type ProjectResolver interface {
 }
 type QueryResolver interface {
 	PlaygroundInfo(ctx context.Context) (*model.PlaygroundInfo, error)
+	ProjectList(ctx context.Context) ([]*model.Project, error)
 	Project(ctx context.Context, id uuid.UUID) (*model.Project, error)
 	Account(ctx context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error)
 	ContractTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.File, error)
@@ -719,6 +721,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Project(childComplexity, args["id"].(uuid.UUID)), true
 
+	case "Query.projectList":
+		if e.complexity.Query.ProjectList == nil {
+			break
+		}
+
+		return e.complexity.Query.ProjectList(childComplexity), true
+
 	case "Query.scriptTemplate":
 		if e.complexity.Query.ScriptTemplate == nil {
 			break
@@ -1095,6 +1104,8 @@ type ContractDeployment {
 
 type Query {
   playgroundInfo: PlaygroundInfo!
+  #projectList(userId: UUID!): [Project!] todo: needs to take in a userId?
+  projectList: [Project!]
   project(id: UUID!): Project!
   account(address: Address!, projectId: UUID!): Account!
 
@@ -4503,6 +4514,85 @@ func (ec *executionContext) fieldContext_Query_playgroundInfo(ctx context.Contex
 				return ec.fieldContext_PlaygroundInfo_cadenceVersion(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PlaygroundInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_projectList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_projectList(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ProjectList(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Project)
+	fc.Result = res
+	return ec.marshalOProject2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProjectᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_projectList(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Project_id(ctx, field)
+			case "publicId":
+				return ec.fieldContext_Project_publicId(ctx, field)
+			case "parentId":
+				return ec.fieldContext_Project_parentId(ctx, field)
+			case "title":
+				return ec.fieldContext_Project_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Project_description(ctx, field)
+			case "readme":
+				return ec.fieldContext_Project_readme(ctx, field)
+			case "seed":
+				return ec.fieldContext_Project_seed(ctx, field)
+			case "version":
+				return ec.fieldContext_Project_version(ctx, field)
+			case "persist":
+				return ec.fieldContext_Project_persist(ctx, field)
+			case "mutable":
+				return ec.fieldContext_Project_mutable(ctx, field)
+			case "numberOfAccounts":
+				return ec.fieldContext_Project_numberOfAccounts(ctx, field)
+			case "accounts":
+				return ec.fieldContext_Project_accounts(ctx, field)
+			case "transactionTemplates":
+				return ec.fieldContext_Project_transactionTemplates(ctx, field)
+			case "transactionExecutions":
+				return ec.fieldContext_Project_transactionExecutions(ctx, field)
+			case "scriptTemplates":
+				return ec.fieldContext_Project_scriptTemplates(ctx, field)
+			case "scriptExecutions":
+				return ec.fieldContext_Project_scriptExecutions(ctx, field)
+			case "contractTemplates":
+				return ec.fieldContext_Project_contractTemplates(ctx, field)
+			case "contractDeployments":
+				return ec.fieldContext_Project_contractDeployments(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Project", field.Name)
 		},
 	}
 	return fc, nil
@@ -9160,6 +9250,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Concurrently(i, func() graphql.Marshaler {
 				return rrm(innerCtx)
 			})
+		case "projectList":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_projectList(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "project":
 			field := field
 
@@ -10884,6 +10994,53 @@ func (ec *executionContext) marshalOProgramPosition2ᚖgithubᚗcomᚋdapperlabs
 		return graphql.Null
 	}
 	return ec._ProgramPosition(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProject2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Project) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProject2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProject(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOScriptExecution2ᚕᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐScriptExecutionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScriptExecution) graphql.Marshaler {

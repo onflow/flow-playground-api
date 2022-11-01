@@ -202,3 +202,42 @@ func TestProjects(t *testing.T) {
 	})
 
 }
+
+func TestProjectList(t *testing.T) {
+	c := newClient()
+
+	var resp CreateProjectResponse
+
+	err := c.Post(
+		MutationCreateProject,
+		&resp,
+		client.Var("title", "foo1"),
+		client.Var("description", "bar"),
+		client.Var("readme", "bah"),
+		client.Var("seed", 42),
+		client.Var("numberOfAccounts", initAccounts),
+	)
+	require.NoError(t, err)
+
+	err = c.Post(
+		MutationCreateProject,
+		&resp,
+		client.Var("title", "foo2"),
+		client.Var("description", "bar"),
+		client.Var("readme", "bah"),
+		client.Var("seed", 42),
+		client.Var("numberOfAccounts", initAccounts),
+	)
+	require.NoError(t, err)
+
+	var listResp GetProjectListResponse
+
+	// TODO: Fix query for project list
+	err = c.Post(
+		QueryGetProjectList,
+		&listResp,
+	)
+	require.NoError(t, err)
+
+	assert.Equal(t, listResp.ProjectList.projects, "")
+}

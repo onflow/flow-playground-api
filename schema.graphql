@@ -118,7 +118,7 @@ type ContractDeployment {
 
 type Query {
   playgroundInfo: PlaygroundInfo!
-  projectList(userId: UUID!): [Project!]
+  projectList: [Project!]
   project(id: UUID!): Project!
   account(address: Address!, projectId: UUID!): Account!
 
