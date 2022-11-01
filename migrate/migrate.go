@@ -20,7 +20,6 @@ package migrate
 
 // TODO: Remove old migrators and create migrator from stable playground to playground v2
 
-/*
 import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -38,6 +37,7 @@ type Migrator struct {
 var V0 = semver.MustParse("v0.0.0")
 var V0_1_0 = semver.MustParse("v0.1.0")
 var V0_12_0 = semver.MustParse("v0.12.0")
+var V1_0_0 = semver.MustParse("v1.0.0")
 var V2_0_0 = semver.MustParse("v2.0.0")
 
 func NewMigrator(store storage.Store, projects *controller.Projects) *Migrator {
@@ -63,17 +63,9 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 
 	if from.LessThan(V2_0_0) {
 		// TODO: Create migrator to v2?
-	}
-	if from.LessThan(V0_1_0) {
-		err := m.migrateToV0_1_0(id)
+		err := m.migrateToV2_0_0(id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
-		}
-	}
-	if from.LessThan(V0_12_0) {
-		err := m.migrateToV0_12_0(id)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_12_0)
 		}
 	}
 
@@ -86,85 +78,53 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 	return true, nil
 }
 
-// migrateToV0_1_0 migrates a project from v0.0.0 to v0.1.0.
-//
-// Steps:
-// - 1. Reset project state and recreate initial accounts
-// - 2. Update project version tag
-func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
-	proj := model.Project{
-		ID: id,
-	}
-
-	// TODO:
-	//  Update storage interface to allow atomic transactions.
-	//  Ideally the project state should be wiped and the version incremented in the
-	//  same transaction.
-
-	// Step 1/2
-	_, err := m.projects.Reset(&proj)
-	if err != nil {
-		return errors.Wrap(err, "failed to reset project state")
-	}
-
-	// Step 2/2
-	err = m.projects.UpdateVersion(id, V0_1_0)
-	if err != nil {
-		return errors.Wrap(err, "failed to update project version")
-	}
-
-	return nil
-}
-
-
-// migrateToV0_12_0 migrates a project to the version v0.12.0
+// migrateToV2_0_0 migrates a project to the version v2.0.0
 //
 // Steps:
 // - 1. Reset project state recreate initial accounts
 // - 2. Get all accounts for project and update with shifted addresses and removed unused fields
-func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
+func (m *Migrator) migrateToV2_0_0(projectID uuid.UUID) error {
 	// 1. reset project state
-	createdAccounts, err := m.projects.Reset(&model.Project{
-		ID: projectID,
-	})
+	// TODO: Need to use the old project model? And then create a new project model to store in db!
+	createdAccounts, err := m.projects.Reset(&model.Project{ID: projectID})
 	if err != nil {
 		return errors.Wrap(err, "migration failed to reset project state")
 	}
 
-	var accounts []*model.Account
-	err = m.store.GetAccountsForProject(projectID, &accounts)
+	// 2. TODO: Add back GetAccountsForProject in order to retrieve the contracts + number of accounts
+	//    TODO: Need the v1.0.0 account model to do migration
+	var oldAccounts []*v1_0_0Account
+	err = v1_0_0GetAccountsForProject(projectID, &oldAccounts)
 	if err != nil {
 		return errors.Wrap(err, "migration failed to get accounts")
 	}
 
-	if len(accounts) != len(createdAccounts) {
-		return fmt.Errorf("migration failture, created accounts length doesn't match existing accounts")
+	// 3. Create contract files from old account draft codes
+	var contractFiles []*model.File
+
+	numberOfAccounts := len(oldAccounts)
+
+	for i, account := range oldAccounts {
+		contractFiles = append(contractFiles, &model.File{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+			Title:     "", // TODO: do we need to get the title here? Probably not?
+			Type:      model.ContractFile,
+			Index:     i,
+			Script:    account.DraftCode,
+		})
 	}
 
-	// 2. migrate accounts
-	for i, acc := range accounts {
-		acc.Address = createdAccounts[i].Address
-		acc.DraftCode = adapter.ContentAddressFromAPI(acc.DraftCode)
+	// 4. TODO: Convert transaction templates and script templates to files and add to DB
+	//    TODO: Get old templates from database
 
-		err = m.store.DeleteAccount(acc.ID, acc.ProjectID)
-		if err != nil {
-			return errors.Wrap(err, "migration failed to migrate accounts")
-		}
-
-		err = m.store.InsertAccount(acc)
-		if err != nil {
-			return errors.Wrap(err, "migration failed to migrate accounts")
-		}
-	}
-
-	err = m.projects.UpdateVersion(projectID, V0_12_0)
+	err = m.projects.UpdateVersion(projectID, V2_0_0)
 	if err != nil {
 		return errors.Wrap(err, "failed to update project version")
 	}
 
 	return nil
 }
-
 
 func sanitizeVersion(version *semver.Version) *semver.Version {
 	if version == nil {
@@ -173,4 +133,3 @@ func sanitizeVersion(version *semver.Version) *semver.Version {
 
 	return version
 }
-*/
