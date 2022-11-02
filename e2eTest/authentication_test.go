@@ -20,7 +20,7 @@ package e2eTest
 
 import (
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
-	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -43,12 +43,12 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&respA,
-			client2.Var("projectId", project.ID),
-			client2.Var("title", project.Title),
-			client2.Var("description", project.Description),
-			client2.Var("readme", project.Readme),
-			client2.Var("persist", true),
-			client2.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
+			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
+			client.Var("persist", true),
+			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
 		)
 		require.NoError(t, err)
 
@@ -67,12 +67,12 @@ func TestAuthentication(t *testing.T) {
 		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
-			client2.Var("projectId", project.ID),
-			client2.Var("title", project.Title),
-			client2.Var("description", project.Description),
-			client2.Var("readme", project.Readme),
-			client2.Var("persist", false),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("title", project.Title),
+			client.Var("description", project.Description),
+			client.Var("readme", project.Readme),
+			client.Var("persist", false),
+			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -97,12 +97,12 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationCreateProject,
 			&respA,
-			client2.Var("title", "foo"),
-			client2.Var("description", "desc"),
-			client2.Var("readme", "rtfm"),
-			client2.Var("seed", 42),
-			client2.Var("numberOfAccounts", initAccounts),
-			client2.AddCookie(&malformedCookie),
+			client.Var("title", "foo"),
+			client.Var("description", "desc"),
+			client.Var("readme", "rtfm"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+			client.AddCookie(&malformedCookie),
 		)
 		require.NoError(t, err)
 
@@ -122,12 +122,12 @@ func TestAuthentication(t *testing.T) {
 		err = c.Post(
 			MutationUpdateProjectPersist,
 			&respB,
-			client2.Var("projectId", projectID),
-			client2.Var("title", projectTitle),
-			client2.Var("description", projectDescription),
-			client2.Var("readme", projectReadme),
-			client2.Var("persist", true),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", projectID),
+			client.Var("title", projectTitle),
+			client.Var("description", projectDescription),
+			client.Var("readme", projectReadme),
+			client.Var("persist", true),
+			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
@@ -156,9 +156,9 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("persist", true),
-			client2.AddCookie(&malformedCookie),
+			client.Var("projectId", project.ID),
+			client.Var("persist", true),
+			client.AddCookie(&malformedCookie),
 		)
 
 		assert.Error(t, err)
@@ -180,9 +180,9 @@ func TestAuthentication(t *testing.T) {
 		err := c.Post(
 			MutationUpdateProjectPersist,
 			&resp,
-			client2.Var("projectId", projectA.ID),
-			client2.Var("persist", true),
-			client2.AddCookie(cookieB),
+			client.Var("projectId", projectA.ID),
+			client.Var("persist", true),
+			client.AddCookie(cookieB),
 		)
 
 		// should not be able to update project A with cookie B

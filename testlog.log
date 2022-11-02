@@ -1,0 +1,346 @@
+GO111MODULE=on go test -v ./...
+?   	github.com/dapperlabs/flow-playground-api	[no test files]
+=== RUN   Test_ContentAdapter
+--- PASS: Test_ContentAdapter (0.00s)
+=== RUN   Test_AddressAdapter
+=== RUN   Test_AddressAdapter/adapt_from_input
+=== RUN   Test_AddressAdapter/adapt_to_output
+--- PASS: Test_AddressAdapter (0.00s)
+    --- PASS: Test_AddressAdapter/adapt_from_input (0.00s)
+    --- PASS: Test_AddressAdapter/adapt_to_output (0.00s)
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/adapter	(cached)
+?   	github.com/dapperlabs/flow-playground-api/auth	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/auth/legacy	[no test files]
+=== RUN   Test_Cache
+=== RUN   Test_Cache/returns_cached_emulator
+--- PASS: Test_Cache (0.16s)
+    --- PASS: Test_Cache/returns_cached_emulator (0.16s)
+=== RUN   Test_NewEmulator
+--- PASS: Test_NewEmulator (0.51s)
+=== RUN   Test_DeployContracts
+=== RUN   Test_DeployContracts/Empty_Contract
+=== RUN   Test_DeployContracts/Basic_Contracts
+--- PASS: Test_DeployContracts (0.45s)
+    --- PASS: Test_DeployContracts/Empty_Contract (0.15s)
+    --- PASS: Test_DeployContracts/Basic_Contracts (0.30s)
+=== RUN   Test_ParseContractName
+--- PASS: Test_ParseContractName (0.00s)
+=== RUN   Test_Mutex
+    mutex_test.go:31: 
+--- SKIP: Test_Mutex (0.00s)
+=== RUN   Test_ConcurrentAccess
+--- PASS: Test_ConcurrentAccess (0.20s)
+=== RUN   Test_InstancePool
+=== RUN   Test_InstancePool/get_single_instance
+=== RUN   Test_InstancePool/drain_out_the_pool
+=== RUN   Test_InstancePool/concurrently_access_pool
+--- PASS: Test_InstancePool (0.84s)
+    --- PASS: Test_InstancePool/get_single_instance (0.17s)
+    --- PASS: Test_InstancePool/drain_out_the_pool (0.33s)
+    --- PASS: Test_InstancePool/concurrently_access_pool (0.34s)
+=== RUN   Test_LoadEmulator
+=== RUN   Test_LoadEmulator/successful_load_of_emulator
+=== RUN   Test_LoadEmulator/multiple_loads_with_low_cache
+=== RUN   Test_LoadEmulator/e2eTest_stale_cache
+=== RUN   Test_LoadEmulator/reset_project_on_another_replica
+--- PASS: Test_LoadEmulator (5.32s)
+    --- PASS: Test_LoadEmulator/successful_load_of_emulator (0.36s)
+    --- PASS: Test_LoadEmulator/multiple_loads_with_low_cache (4.02s)
+    --- PASS: Test_LoadEmulator/e2eTest_stale_cache (0.52s)
+    --- PASS: Test_LoadEmulator/reset_project_on_another_replica (0.42s)
+=== RUN   Test_TransactionExecution
+=== RUN   Test_TransactionExecution/successful_transaction_execution
+=== RUN   Test_TransactionExecution/multiple_transaction_execution
+=== RUN   Test_TransactionExecution/multiple_transaction_executions,_reset_cache
+=== RUN   Test_TransactionExecution/transaction_with_contract_import_and_cache_reset
+--- PASS: Test_TransactionExecution (1.81s)
+    --- PASS: Test_TransactionExecution/successful_transaction_execution (0.31s)
+    --- PASS: Test_TransactionExecution/multiple_transaction_execution (0.35s)
+    --- PASS: Test_TransactionExecution/multiple_transaction_executions,_reset_cache (0.57s)
+    --- PASS: Test_TransactionExecution/transaction_with_contract_import_and_cache_reset (0.59s)
+=== RUN   Test_DeployContract
+=== RUN   Test_DeployContract/deploy_single_contract
+=== RUN   Test_DeployContract/multiple_deploys_with_imports_and_cache_reset
+--- PASS: Test_DeployContract (1.10s)
+    --- PASS: Test_DeployContract/deploy_single_contract (0.48s)
+    --- PASS: Test_DeployContract/multiple_deploys_with_imports_and_cache_reset (0.63s)
+=== RUN   Test_ScriptExecution
+=== RUN   Test_ScriptExecution/single_script_execution
+=== RUN   Test_ScriptExecution/script_execution_importing_deployed_contract,_with_cache_reset
+=== RUN   Test_ScriptExecution/script_with_arguments
+--- PASS: Test_ScriptExecution (1.06s)
+    --- PASS: Test_ScriptExecution/single_script_execution (0.29s)
+    --- PASS: Test_ScriptExecution/script_execution_importing_deployed_contract,_with_cache_reset (0.46s)
+    --- PASS: Test_ScriptExecution/script_with_arguments (0.31s)
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/blockchain	13.713s
+?   	github.com/dapperlabs/flow-playground-api/build	[no test files]
+=== RUN   TestEmbedsHandler_ServeHTTP
+=== RUN   TestEmbedsHandler_ServeHTTP/Shall_get_existing_script
+=== RUN   TestEmbedsHandler_ServeHTTP/Shall_get_400_on_wrong_script_type
+=== RUN   TestEmbedsHandler_ServeHTTP/Shall_get_400_on_non-existing_script_id
+=== RUN   TestEmbedsHandler_ServeHTTP/Shall_get_400_on_non-existing_project_id
+--- PASS: TestEmbedsHandler_ServeHTTP (0.01s)
+    --- PASS: TestEmbedsHandler_ServeHTTP/Shall_get_existing_script (0.01s)
+    --- PASS: TestEmbedsHandler_ServeHTTP/Shall_get_400_on_wrong_script_type (0.00s)
+    --- PASS: TestEmbedsHandler_ServeHTTP/Shall_get_400_on_non-existing_script_id (0.00s)
+    --- PASS: TestEmbedsHandler_ServeHTTP/Shall_get_400_on_non-existing_project_id (0.00s)
+=== RUN   TestGetUUID
+--- PASS: TestGetUUID (0.00s)
+=== RUN   TestGenerateWrapperStyles
+--- PASS: TestGenerateWrapperStyles (0.00s)
+=== RUN   TestCreateSnippetStyles
+--- PASS: TestCreateSnippetStyles (0.00s)
+=== RUN   TestCreateCodeStyles
+--- PASS: TestCreateCodeStyles (0.00s)
+=== RUN   TestWrapCodeBlock
+--- PASS: TestWrapCodeBlock (0.00s)
+=== RUN   Test_CreateProject
+=== RUN   Test_CreateProject/successful_creation
+=== RUN   Test_CreateProject/successful_update
+=== RUN   Test_CreateProject/reset_state
+--- PASS: Test_CreateProject (2.57s)
+    --- PASS: Test_CreateProject/successful_creation (0.61s)
+    --- PASS: Test_CreateProject/successful_update (0.71s)
+    --- PASS: Test_CreateProject/reset_state (1.26s)
+=== RUN   Test_StateRecreation
+CONTRACT TITLE:  HelloWorld
+--- PASS: Test_StateRecreation (1.32s)
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/controller	(cached)
+=== RUN   TestAccountDeployedContracts
+
+2022/11/02 16:18:12 [32m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:365 [33mSLOW SQL >= 200ms
+[0m[31;1m[777.441ms] [33m[rows:0][35m SELECT * FROM `transaction_executions` WHERE `transaction_executions`.`project_id` = "a271006d-b084-4eb5-92df-471a65dd1f27" ORDER BY "index" asc[0m
+--- PASS: TestAccountDeployedContracts (1.30s)
+=== RUN   TestAccountStorage
+--- PASS: TestAccountStorage (1.21s)
+=== RUN   TestAuthentication
+=== RUN   TestAuthentication/Migrate_legacy_auth
+=== RUN   TestAuthentication/Create_project_with_malformed_session_cookie
+=== RUN   TestAuthentication/Update_project_with_malformed_session_cookie
+time="2022-11-02T16:18:16-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: variable.title must be defined" error="input: variable.title must be defined"
+=== RUN   TestAuthentication/Update_project_with_invalid_session_cookie
+time="2022-11-02T16:18:17-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: variable.title must be defined" error="input: variable.title must be defined"
+--- PASS: TestAuthentication (3.76s)
+    --- PASS: TestAuthentication/Migrate_legacy_auth (0.84s)
+    --- PASS: TestAuthentication/Create_project_with_malformed_session_cookie (0.83s)
+    --- PASS: TestAuthentication/Update_project_with_malformed_session_cookie (0.88s)
+    --- PASS: TestAuthentication/Update_project_with_invalid_session_cookie (1.22s)
+=== RUN   TestContractDeployments
+=== RUN   TestContractDeployments/Create_deployment_for_non-existent_project
+
+2022/11/02 16:18:17 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.315ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "013074b8-70f2-47cb-b90b-374bf2e2c99d" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:17-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createContractDeployment failed to get project: failed to get project: record not found" error="input: createContractDeployment failed to get project: failed to get project: record not found"
+--- PASS: TestContractDeployments (0.02s)
+    --- PASS: TestContractDeployments/Create_deployment_for_non-existent_project (0.02s)
+=== RUN   TestContractInteraction
+--- PASS: TestContractInteraction (1.35s)
+=== RUN   TestContractImport
+--- PASS: TestContractImport (0.96s)
+=== RUN   TestContractTemplates
+=== RUN   TestContractTemplates/Create_contract_template_without_permission
+time="2022-11-02T16:18:20-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createContractTemplate access denied" error="input: createContractTemplate access denied"
+=== RUN   TestContractTemplates/Create_contract_template
+=== RUN   TestContractTemplates/Get_contract_template
+=== RUN   TestContractTemplates/Get_non-existent_contract_template
+
+2022/11/02 16:18:23 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:272 [35;1mrecord not found
+[0m[33m[0.144ms] [34;1m[rows:0][0m SELECT * FROM `files` WHERE `files`.`id` = "adef5576-9d90-4bf1-b1ea-9d875b7f7258" AND `files`.`project_id` = "7fe37566-0178-4ccc-ae30-2c5c9b21e6ab" ORDER BY `files`.`id` LIMIT 1
+time="2022-11-02T16:18:23-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: contractTemplate failed to get file: record not found" error="input: contractTemplate failed to get file: record not found"
+=== RUN   TestContractTemplates/Update_contract_template_without_permission
+time="2022-11-02T16:18:23-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateContractTemplate access denied" error="input: updateContractTemplate access denied"
+=== RUN   TestContractTemplates/Update_contract_template
+=== RUN   TestContractTemplates/Update_non-existent_contract_template
+time="2022-11-02T16:18:25-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateContractTemplate access denied" error="input: updateContractTemplate access denied"
+=== RUN   TestContractTemplates/Get_contract_templates_for_project
+=== RUN   TestContractTemplates/Get_contract_templates_for_non-existent_project
+
+2022/11/02 16:18:26 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.109ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "ec15948b-b4ad-4f46-8618-5769d0d244da" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:26-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: project failed to get project: failed to get project: record not found" error="input: project failed to get project: failed to get project: record not found"
+=== RUN   TestContractTemplates/Delete_contract_template_without_permission
+time="2022-11-02T16:18:27-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: deleteContractTemplate access denied" error="input: deleteContractTemplate access denied"
+=== RUN   TestContractTemplates/Delete_contract_template
+--- PASS: TestContractTemplates (7.78s)
+    --- PASS: TestContractTemplates/Create_contract_template_without_permission (0.75s)
+    --- PASS: TestContractTemplates/Create_contract_template (0.80s)
+    --- PASS: TestContractTemplates/Get_contract_template (0.79s)
+    --- PASS: TestContractTemplates/Get_non-existent_contract_template (0.81s)
+    --- PASS: TestContractTemplates/Update_contract_template_without_permission (0.77s)
+    --- PASS: TestContractTemplates/Update_contract_template (0.78s)
+    --- PASS: TestContractTemplates/Update_non-existent_contract_template (0.76s)
+    --- PASS: TestContractTemplates/Get_contract_templates_for_project (0.77s)
+    --- PASS: TestContractTemplates/Get_contract_templates_for_non-existent_project (0.00s)
+    --- PASS: TestContractTemplates/Delete_contract_template_without_permission (1.02s)
+    --- PASS: TestContractTemplates/Delete_contract_template (0.54s)
+=== RUN   TestProjects
+=== RUN   TestProjects/Create_empty_project
+=== RUN   TestProjects/Create_project_with_2_contract_templates
+=== RUN   TestProjects/Create_project_with_transaction_templates
+=== RUN   TestProjects/Get_project
+=== RUN   TestProjects/Get_non-existent_project
+
+2022/11/02 16:18:29 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.103ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "bbb975bf-8ae6-4179-9da1-1753aa3b384e" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:29-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: project failed to get project: failed to get project: record not found" error="input: project failed to get project: failed to get project: record not found"
+=== RUN   TestProjects/Persist_project_without_permission
+time="2022-11-02T16:18:30-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateProject access denied" error="input: updateProject access denied"
+=== RUN   TestProjects/Persist_project
+--- PASS: TestProjects (3.54s)
+    --- PASS: TestProjects/Create_empty_project (0.54s)
+    --- PASS: TestProjects/Create_project_with_2_contract_templates (0.55s)
+    --- PASS: TestProjects/Create_project_with_transaction_templates (0.55s)
+    --- PASS: TestProjects/Get_project (0.57s)
+    --- PASS: TestProjects/Get_non-existent_project (0.01s)
+    --- PASS: TestProjects/Persist_project_without_permission (0.75s)
+    --- PASS: TestProjects/Persist_project (0.57s)
+=== RUN   TestReplicas
+=== RUN   TestReplicas/Execute_transactions_on_multiple_replicas
+=== RUN   TestReplicas/Re-deploy_contracts_on_multiple_replicas_to_initial_accounts
+--- PASS: TestReplicas (4.19s)
+    --- PASS: TestReplicas/Execute_transactions_on_multiple_replicas (0.95s)
+    --- PASS: TestReplicas/Re-deploy_contracts_on_multiple_replicas_to_initial_accounts (1.70s)
+=== RUN   TestScriptExecutions
+=== RUN   TestScriptExecutions/valid,_no_return_value
+=== RUN   TestScriptExecutions/invalid_(parse_error)
+=== RUN   TestScriptExecutions/invalid_(semantic_error)
+=== RUN   TestScriptExecutions/invalid_(run-time_error)
+=== RUN   TestScriptExecutions/exceeding_computation_limit
+=== RUN   TestScriptExecutions/return_address
+=== RUN   TestScriptExecutions/argument
+--- PASS: TestScriptExecutions (4.15s)
+    --- PASS: TestScriptExecutions/valid,_no_return_value (0.59s)
+    --- PASS: TestScriptExecutions/invalid_(parse_error) (0.61s)
+    --- PASS: TestScriptExecutions/invalid_(semantic_error) (0.57s)
+    --- PASS: TestScriptExecutions/invalid_(run-time_error) (0.57s)
+    --- PASS: TestScriptExecutions/exceeding_computation_limit (0.63s)
+    --- PASS: TestScriptExecutions/return_address (0.59s)
+    --- PASS: TestScriptExecutions/argument (0.58s)
+=== RUN   TestScriptTemplates
+=== RUN   TestScriptTemplates/Create_script_template_without_permission
+time="2022-11-02T16:18:40-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createScriptTemplate access denied" error="input: createScriptTemplate access denied"
+=== RUN   TestScriptTemplates/Create_script_template
+=== RUN   TestScriptTemplates/Get_script_template
+=== RUN   TestScriptTemplates/Get_non-existent_script_template
+
+2022/11/02 16:18:41 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:272 [35;1mrecord not found
+[0m[33m[0.136ms] [34;1m[rows:0][0m SELECT * FROM `files` WHERE `files`.`id` = "eff5a565-2869-472b-8dda-8a563acc4588" AND `files`.`project_id` = "aaf4c98d-0ffc-4df0-b16a-0f775511a419" ORDER BY `files`.`id` LIMIT 1
+time="2022-11-02T16:18:41-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: scriptTemplate failed to get file: record not found" error="input: scriptTemplate failed to get file: record not found"
+=== RUN   TestScriptTemplates/Update_script_template_without_permission
+time="2022-11-02T16:18:42-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateScriptTemplate access denied" error="input: updateScriptTemplate access denied"
+=== RUN   TestScriptTemplates/Update_script_template
+=== RUN   TestScriptTemplates/Update_non-existent_script_template
+time="2022-11-02T16:18:43-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateScriptTemplate access denied" error="input: updateScriptTemplate access denied"
+=== RUN   TestScriptTemplates/Get_script_templates_for_project
+=== RUN   TestScriptTemplates/Get_script_templates_for_non-existent_project
+
+2022/11/02 16:18:44 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.597ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "50f9e4c9-d769-4609-a6bf-c7bb3d0c694e" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:44-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: project failed to get project: failed to get project: record not found" error="input: project failed to get project: failed to get project: record not found"
+=== RUN   TestScriptTemplates/Delete_script_template_without_permission
+time="2022-11-02T16:18:44-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: deleteScriptTemplate access denied" error="input: deleteScriptTemplate access denied"
+=== RUN   TestScriptTemplates/Delete_script_template
+--- PASS: TestScriptTemplates (5.96s)
+    --- PASS: TestScriptTemplates/Create_script_template_without_permission (0.56s)
+    --- PASS: TestScriptTemplates/Create_script_template (0.57s)
+    --- PASS: TestScriptTemplates/Get_script_template (0.54s)
+    --- PASS: TestScriptTemplates/Get_non-existent_script_template (0.58s)
+    --- PASS: TestScriptTemplates/Update_script_template_without_permission (0.60s)
+    --- PASS: TestScriptTemplates/Update_script_template (0.59s)
+    --- PASS: TestScriptTemplates/Update_non-existent_script_template (0.58s)
+    --- PASS: TestScriptTemplates/Get_script_templates_for_project (0.57s)
+    --- PASS: TestScriptTemplates/Get_script_templates_for_non-existent_project (0.00s)
+    --- PASS: TestScriptTemplates/Delete_script_template_without_permission (0.80s)
+    --- PASS: TestScriptTemplates/Delete_script_template (0.55s)
+=== RUN   TestTransactionExecutions
+=== RUN   TestTransactionExecutions/Create_execution_for_non-existent_project
+
+2022/11/02 16:18:45 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.297ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "591b1f47-b072-4f77-b5df-781c4dd92556" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:45-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createTransactionExecution failed to get project: failed to get project: record not found" error="input: createTransactionExecution failed to get project: failed to get project: record not found"
+=== RUN   TestTransactionExecutions/Create_execution_without_permission
+time="2022-11-02T16:18:46-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createTransactionExecution access denied" error="input: createTransactionExecution access denied"
+=== RUN   TestTransactionExecutions/Create_execution
+=== RUN   TestTransactionExecutions/Multiple_executions
+=== RUN   TestTransactionExecutions/Multiple_executions_with_reset
+=== RUN   TestTransactionExecutions/invalid_(parse_error)
+=== RUN   TestTransactionExecutions/invalid_(semantic_error)
+=== RUN   TestTransactionExecutions/invalid_(run-time_error)
+=== RUN   TestTransactionExecutions/exceeding_computation_limit
+=== RUN   TestTransactionExecutions/argument
+=== PAUSE TestTransactionExecutions/argument
+=== CONT  TestTransactionExecutions/argument
+--- PASS: TestTransactionExecutions (5.40s)
+    --- PASS: TestTransactionExecutions/Create_execution_for_non-existent_project (0.01s)
+    --- PASS: TestTransactionExecutions/Create_execution_without_permission (0.80s)
+    --- PASS: TestTransactionExecutions/Create_execution (0.60s)
+    --- PASS: TestTransactionExecutions/Multiple_executions (0.64s)
+    --- PASS: TestTransactionExecutions/Multiple_executions_with_reset (0.86s)
+    --- PASS: TestTransactionExecutions/invalid_(parse_error) (0.60s)
+    --- PASS: TestTransactionExecutions/invalid_(semantic_error) (0.64s)
+    --- PASS: TestTransactionExecutions/invalid_(run-time_error) (0.61s)
+    --- PASS: TestTransactionExecutions/exceeding_computation_limit (0.64s)
+    --- PASS: TestTransactionExecutions/argument (0.61s)
+=== RUN   TestTransactionTemplates
+=== RUN   TestTransactionTemplates/Create_transaction_template_without_permission
+time="2022-11-02T16:18:52-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: createTransactionTemplate access denied" error="input: createTransactionTemplate access denied"
+=== RUN   TestTransactionTemplates/Create_transaction_template
+=== RUN   TestTransactionTemplates/Get_transaction_template
+=== RUN   TestTransactionTemplates/Get_non-existent_transaction_template
+
+2022/11/02 16:18:53 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:272 [35;1mrecord not found
+[0m[33m[0.125ms] [34;1m[rows:0][0m SELECT * FROM `files` WHERE `files`.`id` = "35058771-01a0-42da-b9bc-747fa95532b2" AND `files`.`project_id` = "f22ba29c-94bf-4d46-b8e0-71394308d6dc" ORDER BY `files`.`id` LIMIT 1
+time="2022-11-02T16:18:53-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: transactionTemplate failed to get file: record not found" error="input: transactionTemplate failed to get file: record not found"
+=== RUN   TestTransactionTemplates/Update_transaction_template_without_permission
+time="2022-11-02T16:18:54-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateTransactionTemplate access denied" error="input: updateTransactionTemplate access denied"
+=== RUN   TestTransactionTemplates/Update_transaction_template
+=== RUN   TestTransactionTemplates/Update_non-existent_transaction_template
+time="2022-11-02T16:18:55-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: updateTransactionTemplate access denied" error="input: updateTransactionTemplate access denied"
+=== RUN   TestTransactionTemplates/Get_transaction_templates_for_project
+=== RUN   TestTransactionTemplates/Get_transaction_templates_for_non-existent_project
+
+2022/11/02 16:18:55 [31;1m/Users/dylantinianov/Development/flow-playground-api/storage/sql.go:225 [35;1mrecord not found
+[0m[33m[0.050ms] [34;1m[rows:0][0m SELECT * FROM `projects` WHERE `projects`.`id` = "7dd380b6-6c3f-4d5a-ae06-81e274c55c2f" ORDER BY `projects`.`id` LIMIT 1
+time="2022-11-02T16:18:55-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: project failed to get project: failed to get project: record not found" error="input: project failed to get project: failed to get project: record not found"
+=== RUN   TestTransactionTemplates/Delete_transaction_template_without_permission
+time="2022-11-02T16:18:56-04:00" level=warning msg="GQL Request Client Error: <nil> err = input: deleteTransactionTemplate access denied" error="input: deleteTransactionTemplate access denied"
+=== RUN   TestTransactionTemplates/Delete_transaction_template
+--- PASS: TestTransactionTemplates (5.80s)
+    --- PASS: TestTransactionTemplates/Create_transaction_template_without_permission (0.54s)
+    --- PASS: TestTransactionTemplates/Create_transaction_template (0.56s)
+    --- PASS: TestTransactionTemplates/Get_transaction_template (0.55s)
+    --- PASS: TestTransactionTemplates/Get_non-existent_transaction_template (0.58s)
+    --- PASS: TestTransactionTemplates/Update_transaction_template_without_permission (0.56s)
+    --- PASS: TestTransactionTemplates/Update_transaction_template (0.54s)
+    --- PASS: TestTransactionTemplates/Update_non-existent_transaction_template (0.53s)
+    --- PASS: TestTransactionTemplates/Get_transaction_templates_for_project (0.58s)
+    --- PASS: TestTransactionTemplates/Get_transaction_templates_for_non-existent_project (0.00s)
+    --- PASS: TestTransactionTemplates/Delete_transaction_template_without_permission (0.79s)
+    --- PASS: TestTransactionTemplates/Delete_transaction_template (0.56s)
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/e2eTest	(cached)
+=== RUN   TestClient
+--- PASS: TestClient (0.00s)
+=== RUN   TestAddHeader
+--- PASS: TestAddHeader (0.00s)
+=== RUN   TestAddClientHeader
+--- PASS: TestAddClientHeader (0.00s)
+=== RUN   TestBasicAuth
+--- PASS: TestBasicAuth (0.00s)
+=== RUN   TestAddCookie
+--- PASS: TestAddCookie (0.00s)
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/e2eTest/client	(cached)
+?   	github.com/dapperlabs/flow-playground-api/middleware/errors	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/middleware/httpcontext	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/middleware/monitoring	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/middleware/sessions	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dapperlabs/flow-playground-api/migrate	(cached) [no tests to run]
+?   	github.com/dapperlabs/flow-playground-api/model	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/server	[no test files]
+?   	github.com/dapperlabs/flow-playground-api/storage	[no test files]

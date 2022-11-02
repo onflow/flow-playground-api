@@ -23,6 +23,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 type Accounts struct {
@@ -43,7 +44,7 @@ func NewAccounts(
 func (a *Accounts) GetByAddress(address model.Address, projectID uuid.UUID) (*model.Account, error) {
 	account, err := a.blockchain.GetAccount(projectID, address)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get account by address")
 	}
 	return account.Export(), nil
 }
@@ -52,7 +53,7 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 	var proj model.Project
 	err := a.store.GetProject(projectID, &proj)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get all project accounts")
 	}
 
 	addresses := make([]model.Address, proj.NumberOfAccounts)
