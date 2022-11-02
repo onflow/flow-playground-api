@@ -199,7 +199,7 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 
 	address := model.NewAddressFromBytes(account.Address.Bytes())
 
-	return p.getAccount(em, projectID, address)
+	return p.getAccount(projectID, address)
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
@@ -261,26 +261,17 @@ func (p *Projects) DeployContract(
 // GetAccount by the address along with its storage information.
 func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
 	p.mutex.load(projectID).RLock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.getAccount(em, projectID, address)
+	defer p.mutex.remove(projectID).RUnlock()
+	return p.getAccount(projectID, address)
 }
 
 func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
 	p.mutex.load(projectID).RLock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
+	defer p.mutex.remove(projectID).RUnlock()
 
 	accounts := make([]*model.Account, len(addresses))
 	for i, address := range addresses {
-		account, err := p.getAccount(em, projectID, address)
+		account, err := p.getAccount(projectID, address)
 		if err != nil {
 			return nil, err
 		}
@@ -394,7 +385,12 @@ func (p *Projects) filterMissingExecutions(
 	return executions, nil
 }
 
-func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
+func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
 	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
