@@ -260,7 +260,7 @@ func (p *Projects) DeployContract(
 
 // GetAccount by the address along with its storage information.
 func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	p.mutex.load(projectID).Lock()
+	p.mutex.load(projectID).RLock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
@@ -271,7 +271,7 @@ func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*mode
 }
 
 func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
-	p.mutex.load(projectID).Lock()
+	p.mutex.load(projectID).RLock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
