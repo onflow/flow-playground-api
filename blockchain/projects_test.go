@@ -457,7 +457,7 @@ func Test_DeployContract(t *testing.T) {
 		const numAccounts = 5
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		require.NoError(t, err)
-		require.Equal(t, accounts, numAccounts)
+		require.Equal(t, len(accounts), numAccounts)
 
 		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), script)
 		require.NoError(t, err)
