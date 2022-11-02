@@ -145,6 +145,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 // Reset is not used in the API but for migration
-func (p *Projects) Reset(proj *model.Project) (*int, error) {
+func (p *Projects) Reset(proj *model.Project) (int, error) {
 	return p.blockchain.Reset(proj)
 }

@@ -56,17 +56,17 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new number of accounts
-func (p *Projects) Reset(project *model.Project) (*int, error) {
+func (p *Projects) Reset(project *model.Project) (int, error) {
 	p.emulatorCache.reset(project.ID)
 
 	err := p.store.ResetProjectState(project)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	numAccounts, err := p.resetAccounts(project.ID)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	return numAccounts, nil
@@ -135,32 +135,32 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 }
 
 // CreateInitialAccounts returns the number of accounts that were created
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (*int, error) {
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (int, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	return p.resetAccounts(projectID)
 }
 
-func (p *Projects) resetAccounts(projectID uuid.UUID) (*int, error) {
+func (p *Projects) resetAccounts(projectID uuid.UUID) (int, error) {
 	em, err := p.load(projectID)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
 	for i := 0; i < p.accountsNumber; i++ {
 		_, tx, result, err := em.createAccount()
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 
 		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 		err = p.store.InsertTransactionExecution(exe)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 	}
 
-	return &p.accountsNumber, nil
+	return p.accountsNumber, nil
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
