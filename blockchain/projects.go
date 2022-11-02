@@ -164,26 +164,28 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) (int, error) {
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.
-func (p *Projects) CreateAccount(projectID uuid.UUID) error {
+func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	em, err := p.load(projectID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, tx, result, err := em.createAccount()
+	account, tx, result, err := em.createAccount()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	address := model.NewAddressFromBytes(account.Address.Bytes())
+
+	return p.getAccount(em, projectID, address)
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
