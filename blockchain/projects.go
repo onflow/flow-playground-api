@@ -258,6 +258,39 @@ func (p *Projects) DeployContract(
 	return deploy, nil
 }
 
+// GetAccount by the address along with its storage information.
+func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.getAccount(em, projectID, address)
+}
+
+func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
+	p.mutex.load(projectID).Lock()
+	defer p.mutex.remove(projectID).Unlock()
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := make([]*model.Account, len(addresses))
+	for i, address := range addresses {
+		account, err := p.getAccount(em, projectID, address)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts[i] = account
+	}
+
+	return accounts, nil
+}
+
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
@@ -359,39 +392,6 @@ func (p *Projects) filterMissingExecutions(
 	executions = executions[height:]
 
 	return executions, nil
-}
-
-// GetAccount by the address along with its storage information.
-func (p *Projects) GetAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	p.mutex.load(projectID).Lock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return p.getAccount(em, projectID, address)
-}
-
-func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) ([]*model.Account, error) {
-	p.mutex.load(projectID).Lock()
-	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	accounts := make([]*model.Account, len(addresses))
-	for i, address := range addresses {
-		account, err := p.getAccount(em, projectID, address)
-		if err != nil {
-			return nil, err
-		}
-
-		accounts[i] = account
-	}
-
-	return accounts, nil
 }
 
 func (p *Projects) getAccount(em blockchain, projectID uuid.UUID, address model.Address) (*model.Account, error) {
