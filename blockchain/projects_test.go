@@ -370,6 +370,12 @@ func Test_TransactionExecution(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, deployments[0].Title, deployment.Title)
 
+		acc, err := projects.GetAccount(proj.ID, model.NewAddressFromString("0x05"))
+		assert.NoError(t, err)
+
+		assert.Equal(t, deployment.Title, acc.DeployedContracts[0])
+		assert.True(t, strings.Contains(acc.State, "HelloWorld"))
+
 		projects.emulatorCache.reset(proj.ID)
 
 		script := `
