@@ -110,7 +110,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	if err != nil {
 		return nil, err
 	}
-	//proj.NumberOfAccounts = *numAccounts
 
 	return proj, nil
 }

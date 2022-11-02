@@ -83,7 +83,7 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) (int, error) {
 		}
 	}
 
-	return numAccounts, nil
+	return len(numAccounts), nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
@@ -149,32 +149,35 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 }
 
 // CreateInitialAccounts returns the number of accounts that were created
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (int, error) {
+func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	return p.createInitialAccounts(projectID)
 }
 
-func (p *Projects) createInitialAccounts(projectID uuid.UUID) (int, error) {
+func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
 	em, err := p.load(projectID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	for i := 0; i < p.accountsNumber; i++ {
 		_, tx, result, err := em.createAccount()
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 
 		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 		err = p.store.InsertTransactionExecution(exe)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 
-	return p.accountsNumber, nil
+	// TODO: FIX
+	addresses := model.Address{}
+
+	return p.GetAccounts(projectID)
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.

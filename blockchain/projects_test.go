@@ -625,3 +625,19 @@ func Test_ScriptExecution(t *testing.T) {
 	})
 
 }
+
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
+
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
+		}
+	})
+}
