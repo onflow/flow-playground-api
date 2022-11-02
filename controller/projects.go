@@ -62,43 +62,36 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		UserID:           user.ID,
 	}
 
-	files := make(
-		[]*model.File,
-		len(input.TransactionTemplates)+len(input.ScriptTemplates)+len(input.ContractTemplates),
-	)
+	files := make([]*model.File, 0)
 
-	fileCount := 0
 	for _, tpl := range input.ContractTemplates {
-		files[fileCount] = &model.File{
+		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.ContractFile,
-		}
-		fileCount++
+		})
 	}
 
 	for _, tpl := range input.TransactionTemplates {
-		files[fileCount] = &model.File{
+		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.TransactionFile,
-		}
-		fileCount++
+		})
 	}
 
 	for _, tpl := range input.ScriptTemplates {
-		files[fileCount] = &model.File{
+		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
 			Type:      model.ScriptFile,
-		}
-		fileCount++
+		})
 	}
 
 	err := p.store.CreateProject(proj, files)
@@ -144,6 +137,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 // Reset is not used in the API but for migration
-func (p *Projects) Reset(proj *model.Project) (int, error) {
+func (p *Projects) Reset(proj *model.Project) ([]*model.Account, error) {
 	return p.blockchain.Reset(proj.ID, nil)
 }

@@ -56,34 +56,34 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new number of accounts
-func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) (int, error) {
+func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account, error) {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	p.emulatorCache.reset(projectID)
 
 	err = p.store.ResetProjectState(&project)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	numAccounts, err := p.createInitialAccounts(projectID)
+	accounts, err := p.createInitialAccounts(projectID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	// Reload emulator
 	if em != nil {
 		*em, err = p.load(projectID)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 	}
 
-	return len(numAccounts), nil
+	return accounts, nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
@@ -174,10 +174,16 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 		}
 	}
 
-	// TODO: FIX
-	addresses := model.Address{}
+	var accounts []*model.Account
+	for i := 0; i < p.accountsNumber; i++ {
+		acc, err := p.getAccount(projectID, model.NewAddressFromIndex(i))
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, acc)
+	}
 
-	return p.GetAccounts(projectID)
+	return accounts, nil
 }
 
 // CreateAccount creates a new account and return the account model as well as record the execution.

@@ -19,7 +19,6 @@
 package controller
 
 import (
-	"encoding/binary"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -58,7 +57,7 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 
 	addresses := make([]model.Address, proj.NumberOfAccounts)
 	for i := 0; i < proj.NumberOfAccounts; i++ {
-		addresses[i] = getAddressForAccountIndex(i)
+		addresses[i] = model.NewAddressFromIndex(i)
 	}
 
 	accs, err := a.blockchain.GetAccounts(projectID, addresses)
@@ -72,12 +71,4 @@ func (a *Accounts) AllForProjectID(projectID uuid.UUID) ([]*model.Account, error
 	}
 
 	return exported, nil
-}
-
-// getAddressForAccountIndex calculates the address based on the offset from the initial account address
-func getAddressForAccountIndex(index int) model.Address {
-	const initialAccount = 0x05
-	bs := make([]byte, 8)
-	binary.BigEndian.PutUint64(bs, uint64(initialAccount+index))
-	return model.NewAddressFromBytes(bs)
 }
