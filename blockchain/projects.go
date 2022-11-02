@@ -56,15 +56,21 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new number of accounts
-func (p *Projects) Reset(project *model.Project) (int, error) {
-	p.emulatorCache.reset(project.ID)
-
-	err := p.store.ResetProjectState(project)
+func (p *Projects) Reset(projectID uuid.UUID) (int, error) {
+	var project model.Project
+	err := p.store.GetProject(projectID, &project)
 	if err != nil {
 		return 0, err
 	}
 
-	numAccounts, err := p.createInitialAccounts(project.ID)
+	p.emulatorCache.reset(projectID)
+
+	err = p.store.ResetProjectState(&project)
+	if err != nil {
+		return 0, err
+	}
+
+	numAccounts, err := p.createInitialAccounts(projectID)
 	if err != nil {
 		return 0, err
 	}
@@ -219,7 +225,7 @@ func (p *Projects) DeployContract(
 			return nil, err
 		}
 
-		_, err = p.Reset(&proj)
+		_, err = p.Reset(proj.ID)
 		if err != nil {
 			return nil, err
 		}
