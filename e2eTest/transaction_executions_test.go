@@ -176,7 +176,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		_, err = c.projects.Reset(uuid.MustParse(project.ID))
+		_, err = c.projects.Reset(uuid.MustParse(project.ID), nil)
 		require.NoError(t, err)
 
 		var respB CreateTransactionExecutionResponse

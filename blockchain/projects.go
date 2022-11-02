@@ -56,7 +56,7 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new number of accounts
-func (p *Projects) Reset(projectID uuid.UUID) (int, error) {
+func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) (int, error) {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)
 	if err != nil {
@@ -73,6 +73,14 @@ func (p *Projects) Reset(projectID uuid.UUID) (int, error) {
 	numAccounts, err := p.createInitialAccounts(projectID)
 	if err != nil {
 		return 0, err
+	}
+
+	// Reload emulator
+	if em != nil {
+		*em, err = p.load(projectID)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return numAccounts, nil
@@ -225,13 +233,7 @@ func (p *Projects) DeployContract(
 			return nil, err
 		}
 
-		_, err = p.Reset(proj.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		// Reload emulator
-		em, err = p.load(projectID)
+		_, err = p.Reset(proj.ID, &em)
 		if err != nil {
 			return nil, err
 		}
