@@ -43,11 +43,7 @@ func TransactionToAPI(tx *model.TransactionExecution) *model.TransactionExecutio
 		tx.Arguments[i] = ContentAddressFromAPI(arg)
 	}
 
-	for i, e := range tx.Events {
-		for j, v := range e.Values {
-			tx.Events[i].Values[j] = contentAddressToAPI(v)
-		}
-	}
+	tx.Events = EventsToAPI(tx.Events)
 
 	for i, e := range tx.Errors {
 		tx.Errors[i].Message = contentAddressToAPI(e.Message)
@@ -94,6 +90,15 @@ func ScriptsToAPI(scripts []*model.ScriptExecution) []*model.ScriptExecution {
 	return scripts
 }
 
+func EventsToAPI(events []model.Event) []model.Event {
+	for i := range events {
+		for j, val := range events[i].Values {
+			events[i].Values[j] = contentAddressToAPI(val)
+		}
+	}
+	return events
+}
+
 func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
 	contract.Address = addressToAPI(contract.Address)
 	contract.Script = contentAddressToAPI(contract.Script)
@@ -102,12 +107,7 @@ func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment
 		contract.Errors[i].Message = contentAddressToAPI(e.Message)
 	}
 
-	for i, a := range contract.Events {
-		contract.Events[i].Type = contentAddressToAPI(a.Type)
-		for j, val := range contract.Events[i].Values {
-			contract.Events[i].Values[j] = contentAddressToAPI(val)
-		}
-	}
+	contract.Events = EventsToAPI(contract.Events)
 
 	return contract
 }
