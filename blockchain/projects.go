@@ -64,7 +64,7 @@ func (p *Projects) Reset(project *model.Project) (int, error) {
 		return 0, err
 	}
 
-	numAccounts, err := p.resetAccounts(project.ID)
+	numAccounts, err := p.createInitialAccounts(project.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -138,10 +138,10 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) (int, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	return p.resetAccounts(projectID)
+	return p.createInitialAccounts(projectID)
 }
 
-func (p *Projects) resetAccounts(projectID uuid.UUID) (int, error) {
+func (p *Projects) createInitialAccounts(projectID uuid.UUID) (int, error) {
 	em, err := p.load(projectID)
 	if err != nil {
 		return 0, err
