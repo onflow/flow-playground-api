@@ -27,6 +27,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type Migrator struct {
@@ -34,9 +35,6 @@ type Migrator struct {
 	projects *controller.Projects
 }
 
-var V0 = semver.MustParse("v0.0.0")
-var V0_1_0 = semver.MustParse("v0.1.0")
-var V0_12_0 = semver.MustParse("v0.12.0")
 var V1_0_0 = semver.MustParse("v1.0.0")
 var V2_0_0 = semver.MustParse("v2.0.0")
 
@@ -58,21 +56,20 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 	to = sanitizeVersion(to)
 
 	if !from.LessThan(to) {
+		// No migration work to do
 		return false, nil
 	}
 
-	if from.LessThan(V2_0_0) {
-		// TODO: Create migrator to v2?
-		err := m.migrateToV2_0_0(id)
-		if err != nil {
-			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", V0, V0_1_0)
-		}
+	if from.LessThan(V1_0_0) {
+		// Current version is too old to migrate to v2
+		return false, errors.New("Current version " + from.String() + " cannot be migrated to " + to.String())
 	}
 
-	// If no migration steps are left, set project version to latest.
-	err := m.projects.UpdateVersion(id, to)
-	if err != nil {
-		return false, errors.Wrap(err, "failed to update project version")
+	if from.LessThan(V2_0_0) {
+		err := m.migrateToV2_0_0(id)
+		if err != nil {
+			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", from.String(), to.String())
+		}
 	}
 
 	return true, nil
@@ -81,8 +78,8 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 // migrateToV2_0_0 migrates a project to the version v2.0.0
 //
 // Steps:
-// - 1. Reset project state recreate initial accounts
-// - 2. Get all accounts for project and update with shifted addresses and removed unused fields
+// - 1. todo
+// - 2. todo
 func (m *Migrator) migrateToV2_0_0(projectID uuid.UUID) error {
 	// 1. reset project state
 	// TODO: Need to use the old project model? And then create a new project model to store in db!
@@ -102,8 +99,6 @@ func (m *Migrator) migrateToV2_0_0(projectID uuid.UUID) error {
 	// 3. Create contract files from old account draft codes
 	var contractFiles []*model.File
 
-	numberOfAccounts := len(oldAccounts)
-
 	for i, account := range oldAccounts {
 		contractFiles = append(contractFiles, &model.File{
 			ID:        uuid.New(),
@@ -113,6 +108,31 @@ func (m *Migrator) migrateToV2_0_0(projectID uuid.UUID) error {
 			Index:     i,
 			Script:    account.DraftCode,
 		})
+	}
+
+	// TODO: implement GetV1Project for the old model
+	oldProject, err := m.projects.GetV1Project(projectID)
+	if err != nil {
+		return errors.Wrap(err, "migration failed to get project")
+	}
+
+	newProject = model.Project{
+		ID:                        projectID,
+		UserID:                    uuid.UUID{},
+		Secret:                    uuid.UUID{},
+		PublicID:                  uuid.UUID{},
+		ParentID:                  oldProject.ParentID,
+		Title:                     oldProject.Title,
+		Description:               oldProject.Description,
+		Readme:                    oldProject.Readme,
+		Seed:                      oldProject.Seed,
+		NumberOfAccounts:          len(oldAccounts),
+		TransactionExecutionCount: 0, // TODO: just reset these?
+		Persist:                   oldProject.Persist,
+		CreatedAt:                 oldProject.CreatedAt,
+		UpdatedAt:                 time.Now(),
+		Version:                   V2_0_0,
+		Mutable:                   false,
 	}
 
 	// 4. TODO: Convert transaction templates and script templates to files and add to DB

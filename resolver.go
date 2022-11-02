@@ -25,6 +25,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
@@ -33,10 +34,10 @@ import (
 )
 
 type Resolver struct {
-	version *semver.Version
-	store   storage.Store
-	auth    *auth.Authenticator
-	//migrator           *migrate.Migrator // TODO: implement v2 migrator
+	version            *semver.Version
+	store              storage.Store
+	auth               *auth.Authenticator
+	migrator           *migrate.Migrator
 	projects           *controller.Projects
 	accounts           *controller.Accounts
 	files              *controller.Files
@@ -51,14 +52,14 @@ func NewResolver(
 ) *Resolver {
 	projects := controller.NewProjects(version, store, blockchain)
 	files := controller.NewFiles(store, blockchain)
-	//migrator := migrate.NewMigrator(store, projects)
+	migrator := migrate.NewMigrator(store, projects)
 	accounts := controller.NewAccounts(store, blockchain)
 
 	return &Resolver{
-		version: version,
-		store:   store,
-		auth:    auth,
-		//migrator: migrator,
+		version:  version,
+		store:    store,
+		auth:     auth,
+		migrator: migrator,
 		projects: projects,
 		accounts: accounts,
 		files:    files,
@@ -394,22 +395,19 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	// todo
-	// only migrate if current user has access to this project
-	//migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
+	// TODO: Make sure this will work
+	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to migrate project")
 	}
 
 	// reload project if needed
-	/*
-		if migrated {
-			proj, err = r.projects.Get(id)
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to get project")
-			}
+	if migrated {
+		proj, err = r.projects.Get(id)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get project")
 		}
-	*/
+	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return proj.ExportPublicImmutable(), nil
