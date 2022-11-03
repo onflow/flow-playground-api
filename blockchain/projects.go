@@ -55,7 +55,7 @@ type Projects struct {
 	accountsNumber int
 }
 
-// Reset the blockchain state and return the new number of accounts
+// Reset the blockchain state and return the new account models
 func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account, error) {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)

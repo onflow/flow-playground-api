@@ -33,6 +33,10 @@ import (
 
 const accountsNumber = 5
 
+var x05 = model.NewAddressFromString("0x05")
+var x06 = model.NewAddressFromString("0x06")
+var x07 = model.NewAddressFromString("0x07")
+
 var store storage.Store
 
 func newStore() storage.Store {
@@ -362,7 +366,7 @@ func Test_TransactionExecution(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Note: 0x05 is the first address (translation occurs at the API level)
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		deployment, err := projects.DeployContract(proj.ID, x05, scriptA)
 		require.NoError(t, err)
 
 		var deployments []*model.ContractDeployment
@@ -370,7 +374,7 @@ func Test_TransactionExecution(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, deployments[0].Title, deployment.Title)
 
-		acc, err := projects.GetAccount(proj.ID, model.NewAddressFromString("0x05"))
+		acc, err := projects.GetAccount(proj.ID, x05)
 		assert.NoError(t, err)
 
 		assert.Equal(t, deployment.Title, acc.DeployedContracts[0])
@@ -387,9 +391,7 @@ func Test_TransactionExecution(t *testing.T) {
 				}
 			}`
 
-		signers := []model.Address{
-			model.NewAddressFromString("0x06"),
-		}
+		signers := []model.Address{x06}
 
 		tx := model.NewTransactionExecution{
 			ProjectID: proj.ID,
@@ -465,7 +467,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, len(accounts), numAccounts)
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), script)
+		deployment, err := projects.DeployContract(proj.ID, x05, script)
 		require.NoError(t, err)
 		assert.Equal(t, deployment.Title, "HelloWorld")
 
@@ -513,11 +515,11 @@ func Test_DeployContract(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, x05, scriptA)
 		require.NoError(t, err)
 		assert.Equal(t, deploy1.Title, "HelloWorldA")
 
-		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x06"), scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, x06, scriptB)
 		require.NoError(t, err)
 		assert.Equal(t, deploy2.Title, "HelloWorldB")
 
@@ -532,7 +534,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 7)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x07"), scriptC)
+		_, err = projects.DeployContract(proj.ID, x07, scriptC)
 		require.NoError(t, err)
 
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -592,7 +594,7 @@ func Test_ScriptExecution(t *testing.T) {
 		_, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		_, err = projects.DeployContract(proj.ID, x05, scriptA)
 		require.NoError(t, err)
 
 		script := `
