@@ -372,7 +372,7 @@ func Test_TransactionExecution(t *testing.T) {
 		var deployments []*model.ContractDeployment
 		err = projects.store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		assert.NoError(t, err)
-		assert.Equal(t, deployments[0].Title, deployment.Title)
+		assert.Equal(t, deployment.Title, deployments[0].Title)
 
 		acc, err := projects.GetAccount(proj.ID, x05)
 		assert.NoError(t, err)
@@ -469,7 +469,7 @@ func Test_DeployContract(t *testing.T) {
 
 		deployment, err := projects.DeployContract(proj.ID, x05, script)
 		require.NoError(t, err)
-		assert.Equal(t, deployment.Title, "HelloWorld")
+		assert.Equal(t, "HelloWorld", deployment.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -517,11 +517,11 @@ func Test_DeployContract(t *testing.T) {
 
 		deploy1, err := projects.DeployContract(proj.ID, x05, scriptA)
 		require.NoError(t, err)
-		assert.Equal(t, deploy1.Title, "HelloWorldA")
+		assert.Equal(t, "HelloWorldA", deploy1.Title)
 
 		deploy2, err := projects.DeployContract(proj.ID, x06, scriptB)
 		require.NoError(t, err)
-		assert.Equal(t, deploy2.Title, "HelloWorldB")
+		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -541,12 +541,12 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 8)
 
-		assert.Equal(t, txExe[7].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[6].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[5].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, "flow.AccountContractAdded", txExe[7].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[6].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[5].Events[0].Type)
 
-		assert.Equal(t, txExe[7].Logs[0], `"HelloWorldA"`)
-		assert.Equal(t, txExe[7].Logs[1], `"HelloWorldB"`)
+		assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
+		assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
 	})
 
 }
