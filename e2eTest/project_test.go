@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strconv"
 	"testing"
 )
 
@@ -199,6 +200,50 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, project.Description, resp.UpdateProject.Description)
 		assert.Equal(t, project.Readme, resp.UpdateProject.Readme)
 		assert.True(t, resp.UpdateProject.Persist)
+	})
+
+	t.Run("Maximum projects limit", func(t *testing.T) {
+		const MaxProjectsLimit = 10
+		const additionalAttempts = 5 // Try to create projects over the limit
+
+		c := newClient()
+
+		var resp CreateProjectResponse
+
+		var err error = nil
+		for projNum := 1; projNum <= MaxProjectsLimit+additionalAttempts; projNum++ {
+			if projNum == 1 {
+				err = c.Post(
+					MutationCreateProject,
+					&resp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+				)
+			} else {
+				// Post with session cookie to keep the same userID
+				err = c.Post(
+					MutationCreateProject,
+					&resp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+					client.AddCookie(c.SessionCookie()),
+				)
+			}
+			if projNum <= MaxProjectsLimit {
+				require.NoError(t, err)
+				assert.NotEmpty(t, resp.CreateProject.ID)
+				assert.Equal(t, 42, resp.CreateProject.Seed)
+				assert.Equal(t, initAccounts, resp.CreateProject.NumberOfAccounts)
+			} else {
+				require.Error(t, err)
+			}
+		}
 	})
 
 }

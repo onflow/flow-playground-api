@@ -120,6 +120,20 @@ func (s *SQL) GetUser(id uuid.UUID, user *model.User) error {
 	return s.db.First(user, id).Error
 }
 
+func (s *SQL) UpdateUser(user *model.User) error {
+	update := make(map[string]any)
+	update["NumberOfProjects"] = user.NumberOfProjects
+
+	err := s.db.
+		Model(&model.User{ID: user.ID}).
+		Updates(update).Error
+	if err != nil {
+		return err
+	}
+
+	return s.db.First(user, user.ID).Error
+}
+
 func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(proj).Error; err != nil {

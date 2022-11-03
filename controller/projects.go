@@ -53,7 +53,7 @@ func NewProjects(
 }
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
-	if user.NumberOfProjects+1 >= MaxProjectsLimit {
+	if user.NumberOfProjects >= MaxProjectsLimit {
 		return nil, errors.New("maximum number of" +
 			strconv.Itoa(MaxProjectsLimit) + "projects reached.")
 	}
@@ -113,6 +113,12 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	user.NumberOfProjects++
+	err = p.store.UpdateUser(user)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update user during project creation")
 	}
 
 	return proj, nil

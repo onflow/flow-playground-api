@@ -29,6 +29,7 @@ import (
 type Store interface {
 	InsertUser(user *model.User) error
 	GetUser(id uuid.UUID, user *model.User) error
+	UpdateUser(user *model.User) error
 
 	CreateProject(
 		proj *model.Project,
