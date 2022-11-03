@@ -109,6 +109,9 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
+	// TODO: Migrate user if needed
+	// TODO: Also need to check in delete project
+
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
@@ -390,6 +393,8 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
+	// TODO: Won't this just fail if the project version is old?
+	// TODO: Need to try to grab the old project model (no numberOfAccounts) if this fails and then migrate
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")

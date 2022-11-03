@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type v1_0_0Account struct {
+type v1Account struct {
 	ID                uuid.UUID
 	ProjectID         uuid.UUID
 	Index             int
@@ -14,4 +14,8 @@ type v1_0_0Account struct {
 	DeployedCode      string   // todo drop this in db
 	DeployedContracts []string `gorm:"serializer:json"`
 	State             string
+}
+
+type v1User struct {
+	ID uuid.UUID
 }

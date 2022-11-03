@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func v1_0_0GetAccountsForProject(db *gorm.DB, pID uuid.UUID, accs *[]*v1_0_0Account) error {
+func v1GetAccountsForProject(db *gorm.DB, pID uuid.UUID, accs *[]*v1Account) error {
 	return db.
 		Where(&model.Account{ProjectID: pID}).
 		Order("\"index\" asc").
