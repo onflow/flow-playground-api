@@ -358,17 +358,22 @@ func Test_TransactionExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		_, err := projects.CreateInitialAccounts(proj.ID)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		// Note: 0x05 is the first address (translation occurs at the API level)
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
 
 		var deployments []*model.ContractDeployment
 		err = projects.store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		assert.NoError(t, err)
-		assert.Equal(t, deployments[0].Title, deployment.Title)
+		assert.Equal(t, deployment.Title, deployments[0].Title)
+
+		acc, err := projects.GetAccount(proj.ID, accounts[0].Address)
+		assert.NoError(t, err)
+
+		assert.Equal(t, deployment.Title, acc.DeployedContracts[0])
+		assert.True(t, strings.Contains(acc.State, "HelloWorld"))
 
 		projects.emulatorCache.reset(proj.ID)
 
@@ -381,9 +386,7 @@ func Test_TransactionExecution(t *testing.T) {
 				}
 			}`
 
-		signers := []model.Address{
-			model.NewAddressFromString("0x06"),
-		}
+		signers := []model.Address{accounts[1].Address}
 
 		tx := model.NewTransactionExecution{
 			ProjectID: proj.ID,
@@ -457,11 +460,11 @@ func Test_DeployContract(t *testing.T) {
 		const numAccounts = 5
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		require.NoError(t, err)
-		require.Equal(t, *accounts, numAccounts)
+		require.Equal(t, len(accounts), numAccounts)
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), script)
+		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
 		require.NoError(t, err)
-		assert.Equal(t, deployment.Title, "HelloWorld")
+		assert.Equal(t, "HelloWorld", deployment.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -504,16 +507,16 @@ func Test_DeployContract(t *testing.T) {
 				}
 			}`
 
-		_, err := projects.CreateInitialAccounts(proj.ID)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
-		assert.Equal(t, deploy1.Title, "HelloWorldA")
+		assert.Equal(t, "HelloWorldA", deploy1.Title)
 
-		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromString("0x06"), scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
 		require.NoError(t, err)
-		assert.Equal(t, deploy2.Title, "HelloWorldB")
+		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -526,19 +529,19 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 7)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x07"), scriptC)
+		_, err = projects.DeployContract(proj.ID, accounts[2].Address, scriptC)
 		require.NoError(t, err)
 
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
 		require.NoError(t, err)
 		require.Len(t, txExe, 8)
 
-		assert.Equal(t, txExe[7].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[6].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[5].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, "flow.AccountContractAdded", txExe[7].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[6].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[5].Events[0].Type)
 
-		assert.Equal(t, txExe[7].Logs[0], `"HelloWorldA"`)
-		assert.Equal(t, txExe[7].Logs[1], `"HelloWorldB"`)
+		assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
+		assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
 	})
 
 }
@@ -583,10 +586,10 @@ func Test_ScriptExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		_, err := projects.CreateInitialAccounts(proj.ID)
+		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromString("0x05"), scriptA)
+		_, err = projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
 
 		script := `
@@ -624,4 +627,20 @@ func Test_ScriptExecution(t *testing.T) {
 		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
 	})
 
+}
+
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
+
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
+		}
+	})
 }
