@@ -106,7 +106,6 @@ func TestContractImport(t *testing.T) {
 	}`
 
 	var respA CreateContractDeploymentResponse
-
 	err := c.Post(
 		MutationCreateContractDeployment,
 		&respA,
@@ -116,10 +115,8 @@ func TestContractImport(t *testing.T) {
 		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
-	//assert.Equal(t, contract, respA.CreateContractDeployment.)
 
 	var respB CreateContractDeploymentResponse
-
 	err = c.Post(
 		MutationCreateContractDeployment,
 		&respB,

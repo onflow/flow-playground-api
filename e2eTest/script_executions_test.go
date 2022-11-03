@@ -19,7 +19,7 @@
 package e2eTest
 
 import (
-	client2 "github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -41,9 +41,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -62,9 +62,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -101,9 +101,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -140,9 +140,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -186,9 +186,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -225,9 +225,9 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.AddCookie(c.SessionCookie()),
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)
@@ -251,12 +251,12 @@ func TestScriptExecutions(t *testing.T) {
 		err := c.Post(
 			MutationCreateScriptExecution,
 			&resp,
-			client2.Var("projectId", project.ID),
-			client2.Var("script", script),
-			client2.Var("arguments", []string{
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.Var("arguments", []string{
 				`{"type":"Int","value":"2"}`,
 			}),
-			client2.AddCookie(c.SessionCookie()),
+			client.AddCookie(c.SessionCookie()),
 		)
 
 		require.NoError(t, err)

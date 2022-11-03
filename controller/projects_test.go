@@ -170,9 +170,9 @@ func Test_CreateProject(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		numAccounts, err := projects.Reset(proj)
+		accounts, err := projects.Reset(proj)
 		assert.NoError(t, err)
-		require.Equal(t, *numAccounts, 5) // Initial accounts
+		require.Equal(t, len(accounts), 5) // Initial accounts
 
 		var dbProj model.Project
 		err = store.GetProject(proj.ID, &dbProj)
