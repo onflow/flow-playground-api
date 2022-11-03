@@ -315,44 +315,100 @@ func TestProjects(t *testing.T) {
 }
 
 func TestGetProjectList(t *testing.T) {
-	c := newClient()
+	t.Run("get project list", func(t *testing.T) {
+		c := newClient()
 
-	var projResp1 CreateProjectResponse
-	err := c.Post(
-		MutationCreateProject,
-		&projResp1,
-		client.Var("title", "foo1"),
-		client.Var("description", "bar"),
-		client.Var("readme", "bah"),
-		client.Var("seed", 42),
-		client.Var("numberOfAccounts", initAccounts),
-	)
-	require.NoError(t, err)
+		var projResp1 CreateProjectResponse
+		err := c.Post(
+			MutationCreateProject,
+			&projResp1,
+			client.Var("title", "foo1"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
 
-	var projResp2 CreateProjectResponse
-	err = c.Post(
-		MutationCreateProject,
-		&projResp2,
-		client.Var("title", "foo2"),
-		client.Var("description", "bar"),
-		client.Var("readme", "bah"),
-		client.Var("seed", 42),
-		client.Var("numberOfAccounts", initAccounts),
-		client.AddCookie(c.SessionCookie()), // Use the same cookie for the same userID
-	)
-	require.NoError(t, err)
+		var projResp2 CreateProjectResponse
+		err = c.Post(
+			MutationCreateProject,
+			&projResp2,
+			client.Var("title", "foo2"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+			client.AddCookie(c.SessionCookie()), // Use the same cookie for the same userID
+		)
+		require.NoError(t, err)
 
-	var listResp GetProjectListResponse
+		var listResp GetProjectListResponse
 
-	err = c.Post(
-		QueryGetProjectList,
-		&listResp,
-		client.AddCookie(c.SessionCookie()),
-	)
-	require.NoError(t, err)
+		err = c.Post(
+			QueryGetProjectList,
+			&listResp,
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
 
-	assert.Equal(t, projResp1.CreateProject.ID, listResp.ProjectList.Projects[0].ID)
-	assert.Equal(t, "foo1", listResp.ProjectList.Projects[0].Title)
-	assert.Equal(t, projResp2.CreateProject.ID, listResp.ProjectList.Projects[1].ID)
-	assert.Equal(t, "foo2", listResp.ProjectList.Projects[1].Title)
+		assert.Equal(t, projResp1.CreateProject.ID, listResp.ProjectList.Projects[0].ID)
+		assert.Equal(t, "foo1", listResp.ProjectList.Projects[0].Title)
+		assert.Equal(t, projResp2.CreateProject.ID, listResp.ProjectList.Projects[1].ID)
+		assert.Equal(t, "foo2", listResp.ProjectList.Projects[1].Title)
+	})
+
+	t.Run("validate 2 users project lists", func(t *testing.T) {
+		c := newClient()
+
+		var projResp1 CreateProjectResponse
+		err := c.Post(
+			MutationCreateProject,
+			&projResp1,
+			client.Var("title", "foo1"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
+
+		user1 := c.SessionCookie()
+
+		var projResp2 CreateProjectResponse
+		err = c.Post(
+			MutationCreateProject,
+			&projResp2,
+			client.Var("title", "foo2"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
+
+		user2 := c.SessionCookie()
+
+		var user1ListResp GetProjectListResponse
+		err = c.Post(
+			QueryGetProjectList,
+			&user1ListResp,
+			client.AddCookie(user1),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, len(user1ListResp.ProjectList.Projects))
+		assert.Equal(t, "foo1", user1ListResp.ProjectList.Projects[0].Title)
+
+		var user2ListResp GetProjectListResponse
+		err = c.Post(
+			QueryGetProjectList,
+			&user2ListResp,
+			client.AddCookie(user2),
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, len(user2ListResp.ProjectList.Projects))
+		assert.Equal(t, "foo2", user2ListResp.ProjectList.Projects[0].Title)
+	})
 }
