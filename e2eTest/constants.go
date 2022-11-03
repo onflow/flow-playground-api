@@ -88,6 +88,16 @@ type CreateProjectResponse struct {
 	CreateProject Project
 }
 
+type DeleteProjectResponse struct {
+	DeleteProject string
+}
+
+const MutationDeleteProject = `
+mutation($projectId: UUID!) {
+  deleteProject(projectId: $projectId)
+}
+`
+
 const QueryGetAccount = `
 query($address: Address!, $projectId: UUID!) {
   account(address: $address, projectId: $projectId) {

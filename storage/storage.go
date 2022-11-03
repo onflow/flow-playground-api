@@ -41,6 +41,7 @@ type Store interface {
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
+	DeleteProject(id uuid.UUID) error
 
 	InsertCadenceFile(file *model.File) error
 	UpdateCadenceFile(input model.UpdateFile, file *model.File) error

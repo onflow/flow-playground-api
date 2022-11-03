@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -114,8 +113,6 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 		return nil, errors.Wrap(err, "failed to get or create user")
 	}
 
-	fmt.Println("USER: ", user.ID, "NUM PROJECTS: ", user.NumberOfProjects)
-
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
@@ -142,6 +139,20 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	}
 
 	return proj.ExportPublicMutable(), nil
+}
+
+func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.projects.Delete(projectID)
+	if err != nil {
+		return uuid.UUID{}, errors.Wrap(err, "failed to delete project")
+	}
+
+	return projectID, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {

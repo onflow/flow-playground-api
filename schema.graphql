@@ -248,8 +248,8 @@ input NewScriptExecution {
 
 type Mutation {
   createProject(input: NewProject!): Project!
-  # TODO: deleteProject(projectId: UUID!): UUID!
   updateProject(input: UpdateProject!): Project!
+  deleteProject(projectId: UUID!): UUID!
 
   createContractTemplate(input: NewContractTemplate!): ContractTemplate!
   updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!

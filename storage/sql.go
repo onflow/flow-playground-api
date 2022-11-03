@@ -235,6 +235,10 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 	})
 }
 
+func (s *SQL) DeleteProject(id uuid.UUID) error {
+	return s.db.Delete(&model.Project{ID: id}).Error
+}
+
 func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 	return s.db.First(proj, id).Error
 }

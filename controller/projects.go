@@ -124,6 +124,33 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	return proj, nil
 }
 
+func (p *Projects) Delete(id uuid.UUID) error {
+	var proj model.Project
+	err := p.store.GetProject(id, &proj)
+	if err != nil {
+		return err
+	}
+
+	err = p.store.DeleteProject(id)
+	if err != nil {
+		return err
+	}
+
+	var user model.User
+	err = p.store.GetUser(proj.UserID, &user)
+	if err != nil {
+		return err
+	}
+
+	user.NumberOfProjects--
+	err = p.store.UpdateUser(&user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 	var proj model.Project
 	err := p.store.GetProject(id, &proj)

@@ -202,12 +202,51 @@ func TestProjects(t *testing.T) {
 		assert.True(t, resp.UpdateProject.Persist)
 	})
 
+	t.Run("Delete project", func(t *testing.T) {
+		c := newClient()
+
+		var resp CreateProjectResponse
+		err := c.Post(
+			MutationCreateProject,
+			&resp,
+			client.Var("title", "foo1"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
+
+		err = c.Post(
+			MutationCreateProject,
+			&resp,
+			client.Var("title", "foo2"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var deleteResp DeleteProjectResponse
+		err = c.Post(
+			MutationDeleteProject,
+			&deleteResp,
+			client.Var("projectId", resp.CreateProject.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		assert.Equal(t, deleteResp.DeleteProject, resp.CreateProject.ID)
+	})
+
 	t.Run("Maximum projects limit", func(t *testing.T) {
 		const MaxProjectsLimit = 10
 		const additionalAttempts = 5 // Try to create projects over the limit
 
 		c := newClient()
 
+		var firstProjResp CreateProjectResponse
 		var resp CreateProjectResponse
 
 		var err error = nil
@@ -215,13 +254,14 @@ func TestProjects(t *testing.T) {
 			if projNum == 1 {
 				err = c.Post(
 					MutationCreateProject,
-					&resp,
+					&firstProjResp,
 					client.Var("title", "foo"+strconv.Itoa(projNum)),
 					client.Var("description", "bar"),
 					client.Var("readme", "bah"),
 					client.Var("seed", 42),
 					client.Var("numberOfAccounts", initAccounts),
 				)
+				resp = firstProjResp
 			} else {
 				// Post with session cookie to keep the same userID
 				err = c.Post(
@@ -244,6 +284,32 @@ func TestProjects(t *testing.T) {
 				require.Error(t, err)
 			}
 		}
+
+		// Delete a project and make sure we can create a new one
+		var deleteResp DeleteProjectResponse
+		err = c.Post(
+			MutationDeleteProject,
+			&deleteResp,
+			client.Var("projectId", firstProjResp.CreateProject.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		assert.Equal(t, firstProjResp.CreateProject.ID, deleteResp.DeleteProject)
+
+		err = c.Post(
+			MutationCreateProject,
+			&resp,
+			client.Var("title", "fooNew"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		assert.NotEmpty(t, resp.CreateProject.ID)
+		assert.Equal(t, 42, resp.CreateProject.Seed)
+		assert.Equal(t, initAccounts, resp.CreateProject.NumberOfAccounts)
 	})
 
 }
