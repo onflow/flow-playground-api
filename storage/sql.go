@@ -226,8 +226,9 @@ func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 }
 
 func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error {
-	return s.db.Where(&model.Project{UserID: userID}).Find(proj).Error
-
+	return s.db.Where(&model.Project{UserID: userID}).
+		Order("\"created_at\" desc").
+		Find(proj).Error
 }
 
 func (s *SQL) InsertCadenceFile(file *model.File) error {

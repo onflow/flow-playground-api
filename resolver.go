@@ -115,7 +115,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	r.lastCreatedProject = proj
@@ -445,21 +445,5 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 		return nil, err
 	}
 
-	var projects []*model.Project
-	err = r.store.GetAllProjectsForUser(user.ID, &projects)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get projects for user "+user.ID.String())
-	}
-
-	exportedProjects := make([]*model.Project, len(projects))
-
-	for i, proj := range projects {
-		if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-			exportedProjects[i] = proj.ExportPublicImmutable()
-		} else {
-			exportedProjects[i] = proj.ExportPublicMutable()
-		}
-	}
-
-	return &model.ProjectList{Projects: exportedProjects}, nil
+	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
