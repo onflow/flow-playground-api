@@ -249,7 +249,7 @@ func TestProjects(t *testing.T) {
 		var firstProjResp CreateProjectResponse
 		var resp CreateProjectResponse
 
-		var err error = nil
+		var err error
 		for projNum := 1; projNum <= MaxProjectsLimit+additionalAttempts; projNum++ {
 			if projNum == 1 {
 				err = c.Post(
