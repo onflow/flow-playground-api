@@ -141,6 +141,20 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
+func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.projects.Delete(projectID)
+	if err != nil {
+		return uuid.UUID{}, errors.Wrap(err, "failed to delete project")
+	}
+
+	return projectID, nil
+}
+
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
@@ -437,4 +451,13 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 	}
 
 	return adapter.AccountToAPI(acc), nil
+}
+
+func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
+	user, err := r.auth.GetOrCreateUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
