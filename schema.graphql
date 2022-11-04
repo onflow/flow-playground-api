@@ -116,8 +116,13 @@ type ContractDeployment {
   logs: [String!]
 }
 
+type ProjectList {
+  projects: [Project!]
+}
+
 type Query {
   playgroundInfo: PlaygroundInfo!
+  projectList: ProjectList!
   project(id: UUID!): Project!
   account(address: Address!, projectId: UUID!): Account!
 
@@ -244,6 +249,7 @@ input NewScriptExecution {
 type Mutation {
   createProject(input: NewProject!): Project!
   updateProject(input: UpdateProject!): Project!
+  deleteProject(projectId: UUID!): UUID!
 
   createContractTemplate(input: NewContractTemplate!): ContractTemplate!
   updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!

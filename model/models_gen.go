@@ -104,6 +104,10 @@ type ProgramPosition struct {
 	Column int `json:"column"`
 }
 
+type ProjectList struct {
+	Projects []*Project `json:"projects"`
+}
+
 type UpdateContractTemplate struct {
 	ID        uuid.UUID `json:"id"`
 	Title     *string   `json:"title"`

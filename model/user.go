@@ -23,5 +23,6 @@ import (
 )
 
 type User struct {
-	ID uuid.UUID
+	ID               uuid.UUID
+	NumberOfProjects int
 }

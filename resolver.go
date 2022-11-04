@@ -115,7 +115,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	r.lastCreatedProject = proj
@@ -139,6 +139,20 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	}
 
 	return proj.ExportPublicMutable(), nil
+}
+
+func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.projects.Delete(projectID)
+	if err != nil {
+		return uuid.UUID{}, errors.Wrap(err, "failed to delete project")
+	}
+
+	return projectID, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -397,9 +411,9 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	// todo
 	// only migrate if current user has access to this project
 	//migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate project")
-	}
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "failed to migrate project")
+	//}
 
 	// reload project if needed
 	/*
@@ -437,4 +451,13 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 	}
 
 	return adapter.AccountToAPI(acc), nil
+}
+
+func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
+	user, err := r.auth.GetOrCreateUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }

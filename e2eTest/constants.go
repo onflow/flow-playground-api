@@ -88,6 +88,16 @@ type CreateProjectResponse struct {
 	CreateProject Project
 }
 
+type DeleteProjectResponse struct {
+	DeleteProject string
+}
+
+const MutationDeleteProject = `
+mutation($projectId: UUID!) {
+  deleteProject(projectId: $projectId)
+}
+`
+
 const QueryGetAccount = `
 query($address: Address!, $projectId: UUID!) {
   account(address: $address, projectId: $projectId) {
@@ -112,6 +122,23 @@ query($projectId: UUID!) {
 
 type GetProjectResponse struct {
 	Project Project
+}
+
+const QueryGetProjectList = `
+query() {
+  projectList() {
+    projects {
+      id
+      title
+    }
+  }
+}
+`
+
+type GetProjectListResponse struct {
+	ProjectList struct {
+		Projects []*Project
+	}
 }
 
 const MutationUpdateProjectPersist = `
