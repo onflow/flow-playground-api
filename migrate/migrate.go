@@ -19,6 +19,11 @@
 package migrate
 
 // This package migrates users and projects from stable playground v1 to playground v2
+// TODO: Migration entry points:
+// TODO:    Create Project / Delete Project (needs to migrate the user if needed)
+// TODO:    Opening a project needs to migrate the project (and user if needed)
+// TODO:    ProjectList needs to migrate each project (and user if needed)
+// TODO: Everything else can't really be called before these?
 
 import (
 	"github.com/Masterminds/semver"
@@ -71,6 +76,10 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 	}
 
 	return true, nil
+}
+
+func (m *Migrator) MigrateUser(userID uuid.UUID, from, to *semver.Version) (bool, error) {
+
 }
 
 func sanitizeVersion(version *semver.Version) *semver.Version {

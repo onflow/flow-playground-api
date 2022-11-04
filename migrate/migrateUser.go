@@ -11,6 +11,7 @@ func (m *Migrator) MigrateV1UserToV2(userID uuid.UUID) (bool, error) {
 	}
 
 	if userIsV2 {
+		// No migration is required
 		return false, nil
 	}
 
@@ -24,6 +25,6 @@ func (m *Migrator) MigrateV1UserToV2(userID uuid.UUID) (bool, error) {
 }
 
 func userIsV2Model(userID uuid.UUID) (bool, error) {
-	// TODO: Check if user in DB for userID is a v1User model.
+	// TODO: Check if user in DB for userID is a v2User model.
 	return false, nil
 }
