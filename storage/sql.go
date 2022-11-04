@@ -273,7 +273,9 @@ func (s *SQL) GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error {
 }
 
 func (s *SQL) GetFilesForProject(pID uuid.UUID, files *[]*model.File, fileType model.FileType) error {
-	return s.db.Where(&model.File{ProjectID: pID, Type: fileType}).Find(files).Error
+	// Note: use map to include zero entries for fileType
+	return s.db.Where(map[string]interface{}{"project_id": pID.String(), "type": fileType}).
+		Find(files).Error
 }
 
 func (s *SQL) GetAllFilesForProject(pID uuid.UUID, files *[]*model.File) error {
