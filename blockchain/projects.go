@@ -76,7 +76,6 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	}
 
 	// Reload emulator
-	// TODO: Is this even needed?
 	if em != nil {
 		*em, err = p.load(projectID)
 		if err != nil {
@@ -162,6 +161,7 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 		return nil, err
 	}
 
+	var accounts []*model.Account
 	for i := 0; i < p.accountsNumber; i++ {
 		_, tx, result, err := em.createAccount()
 		if err != nil {
@@ -173,15 +173,12 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 		if err != nil {
 			return nil, err
 		}
-	}
 
-	var accounts []*model.Account
-	for i := 0; i < p.accountsNumber; i++ {
-		acc, err := p.getAccount(projectID, model.NewAddressFromIndex(i))
+		account, err := p.getAccount(projectID, model.NewAddressFromIndex(i))
 		if err != nil {
 			return nil, err
 		}
-		accounts = append(accounts, acc)
+		accounts = append(accounts, account)
 	}
 
 	return accounts, nil
