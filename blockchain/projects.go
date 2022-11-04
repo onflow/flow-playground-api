@@ -76,6 +76,7 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	}
 
 	// Reload emulator
+	// TODO: Is this even needed?
 	if em != nil {
 		*em, err = p.load(projectID)
 		if err != nil {

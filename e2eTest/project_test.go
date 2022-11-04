@@ -352,10 +352,11 @@ func TestGetProjectList(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		assert.Equal(t, projResp1.CreateProject.ID, listResp.ProjectList.Projects[0].ID)
-		assert.Equal(t, "foo1", listResp.ProjectList.Projects[0].Title)
-		assert.Equal(t, projResp2.CreateProject.ID, listResp.ProjectList.Projects[1].ID)
-		assert.Equal(t, "foo2", listResp.ProjectList.Projects[1].Title)
+		// Should be in order of last updated
+		assert.Equal(t, projResp1.CreateProject.ID, listResp.ProjectList.Projects[1].ID)
+		assert.Equal(t, "foo1", listResp.ProjectList.Projects[1].Title)
+		assert.Equal(t, projResp2.CreateProject.ID, listResp.ProjectList.Projects[0].ID)
+		assert.Equal(t, "foo2", listResp.ProjectList.Projects[0].Title)
 	})
 
 	t.Run("validate 2 users project lists", func(t *testing.T) {
