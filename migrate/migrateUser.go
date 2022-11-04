@@ -1,7 +1,9 @@
 package migrate
 
-import "github.com/google/uuid"
+// TODO: We won't need to migrate user if we just infer the number of projects from the database
+// TODO: Rather than have a counter in the user model! *******************
 
+/*
 // TODO: Migrate User in resolver methods where needed. Make sure not to miss any endpoints!
 
 func (m *Migrator) MigrateV1UserToV2(userID uuid.UUID) (bool, error) {
@@ -28,3 +30,4 @@ func userIsV2Model(userID uuid.UUID) (bool, error) {
 	// TODO: Check if user in DB for userID is a v2User model.
 	return false, nil
 }
+*/

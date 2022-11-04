@@ -109,8 +109,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	// TODO: Migrate user is needed
-
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
@@ -145,8 +143,6 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 }
 
 func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
-	// TODO: Migrate user is needed
-
 	err := r.authorize(ctx, projectID)
 	if err != nil {
 		return uuid.UUID{}, err
@@ -410,11 +406,11 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
 	proj, err := r.projects.Get(id)
 	if err != nil {
+		// TODO: Will this fail if the project is v2 since the model includes NumberOfAccounts now?
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	// todo
-	// only migrate if current user has access to this project
+	// TODO: Make sure this works!
 	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to migrate project")
@@ -457,7 +453,7 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 }
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
-	// TODO: Migration check is needed
+	// TODO: Migration check is needed for each project! (migrate)
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, err
