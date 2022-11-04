@@ -122,7 +122,7 @@ func main() {
 
 		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = storage.NewInMemory()
+		store = storage.NewSqlite()
 	}
 
 	const initAccountsNumber = 5
