@@ -79,7 +79,7 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 }
 
 func (m *Migrator) MigrateUser(userID uuid.UUID, from, to *semver.Version) (bool, error) {
-
+	return false, nil
 }
 
 func sanitizeVersion(version *semver.Version) *semver.Version {
