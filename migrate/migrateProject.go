@@ -8,6 +8,8 @@ import (
 )
 
 // migrateV1ProjectToV2 migrates a project from v1 to v2
+//
+// Also migrates the project user if needed
 func (m *Migrator) migrateV1ProjectToV2(projectID uuid.UUID) error {
 	// TODO: implement GetV1Project for the old model
 	v1Project, err := m.projects.GetV1Project(projectID)

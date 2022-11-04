@@ -25,7 +25,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
@@ -34,10 +33,10 @@ import (
 )
 
 type Resolver struct {
-	version            *semver.Version
-	store              storage.Store
-	auth               *auth.Authenticator
-	migrator           *migrate.Migrator
+	version *semver.Version
+	store   storage.Store
+	auth    *auth.Authenticator
+	//migrator           *migrate.Migrator // TODO: implement v2 migrator
 	projects           *controller.Projects
 	accounts           *controller.Accounts
 	files              *controller.Files
@@ -52,14 +51,14 @@ func NewResolver(
 ) *Resolver {
 	projects := controller.NewProjects(version, store, blockchain)
 	files := controller.NewFiles(store, blockchain)
-	migrator := migrate.NewMigrator(store, projects)
+	//migrator := migrate.NewMigrator(store, projects)
 	accounts := controller.NewAccounts(store, blockchain)
 
 	return &Resolver{
-		version:  version,
-		store:    store,
-		auth:     auth,
-		migrator: migrator,
+		version: version,
+		store:   store,
+		auth:    auth,
+		//migrator: migrator,
 		projects: projects,
 		accounts: accounts,
 		files:    files,
@@ -109,9 +108,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	// TODO: Migrate user if needed
-	// TODO: Also need to check in delete project
-
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
@@ -393,26 +389,27 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	// TODO: Won't this just fail if the project version is old?
-	// TODO: Need to try to grab the old project model (no numberOfAccounts) if this fails and then migrate
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
-	// TODO: Make sure this will work
-	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
+	// todo
+	// only migrate if current user has access to this project
+	//migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to migrate project")
 	}
 
 	// reload project if needed
-	if migrated {
-		proj, err = r.projects.Get(id)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get project")
+	/*
+		if migrated {
+			proj, err = r.projects.Get(id)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get project")
+			}
 		}
-	}
+	*/
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return proj.ExportPublicImmutable(), nil

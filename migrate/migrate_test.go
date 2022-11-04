@@ -18,7 +18,7 @@
 
 package migrate_test
 
-// TODO: Create new migrator tests from stable playground to playground v2
+// TODO: Create new migrator tests from stable playground v1 to playground v2
 /*
 import (
 	"fmt"
