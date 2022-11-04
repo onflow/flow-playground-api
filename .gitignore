@@ -2,3 +2,4 @@
 .DS_Store
 e2e-db
 server
+test-log.log
