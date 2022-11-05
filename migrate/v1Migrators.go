@@ -7,34 +7,6 @@ import (
 	"time"
 )
 
-// migrateV1AccountsToV2 converts old account draft codes to contract templates
-func (m *Migrator) migrateV1AccountsToV2(projectID uuid.UUID) ([]*model.File, error) {
-	// TODO: Add v1GetAccountsForProject in order to retrieve the draft codes
-	var v1Accounts []*v1Account
-	err := v1GetAccountsForProject(projectID, &v1Accounts)
-	if err != nil {
-		return nil, errors.Wrap(err, "migration failed to get accounts")
-	}
-
-	// Create contract files from old account draft codes
-	var contractFiles []*model.File
-
-	for i, account := range v1Accounts {
-		contractFiles = append(contractFiles, &model.File{
-			ID:        uuid.New(),
-			ProjectID: projectID,
-			Title:     "",
-			Type:      model.ContractFile,
-			Index:     i,
-			Script:    account.DraftCode,
-		})
-	}
-
-	// TODO: Delete v1Accounts from database
-
-	return contractFiles, nil
-}
-
 // migrateV1ProjectToV2 migrates a project from v1 to v2
 //
 // Also migrates the project user if needed
@@ -61,7 +33,7 @@ func (m *Migrator) migrateV1ProjectToV2(projectID uuid.UUID) error {
 		Readme:                    v1Project.Readme,
 		Seed:                      v1Project.Seed,
 		NumberOfAccounts:          5,
-		TransactionExecutionCount: 0, // TODO: just reset these?
+		TransactionExecutionCount: 0,
 		Persist:                   v1Project.Persist,
 		CreatedAt:                 v1Project.CreatedAt,
 		UpdatedAt:                 time.Now(),
@@ -69,8 +41,8 @@ func (m *Migrator) migrateV1ProjectToV2(projectID uuid.UUID) error {
 		Mutable:                   false,
 	}
 
-	// 4. TODO: Convert transaction templates and script templates to files and add to DB
-	//    TODO: Delete old transaction templates and script templates from DB
+	// TODO: Convert transaction templates and script templates to files and add to DB
+	// TODO: Delete old transaction templates and script templates from DB
 
 	// TODO: Need to create a DeleteV1Project method?!? This will probably fail right?
 	err = m.store.DeleteProject(projectID)
@@ -93,4 +65,32 @@ func (m *Migrator) migrateV1ProjectToV2(projectID uuid.UUID) error {
 
 	return nil
 
+}
+
+// migrateV1AccountsToV2 converts old account draft codes to contract templates
+func (m *Migrator) migrateV1AccountsToV2(projectID uuid.UUID) ([]*model.File, error) {
+	// TODO: Add v1GetAccountsForProject in order to retrieve the draft codes
+	var v1Accounts []*v1Account
+	err := v1GetAccountsForProject(projectID, &v1Accounts)
+	if err != nil {
+		return nil, errors.Wrap(err, "migration failed to get accounts")
+	}
+
+	// Create contract files from old account draft codes
+	var contractFiles []*model.File
+
+	for i, account := range v1Accounts {
+		contractFiles = append(contractFiles, &model.File{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+			Title:     "",
+			Type:      model.ContractFile,
+			Index:     i,
+			Script:    account.DraftCode,
+		})
+	}
+
+	// TODO: Delete v1Accounts from database
+
+	return contractFiles, nil
 }
