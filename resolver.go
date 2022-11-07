@@ -350,6 +350,7 @@ func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Pr
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
 	var exes []*model.TransactionExecution
 	err := r.store.GetTransactionExecutionsForProject(proj.ID, &exes)
+	r.store.GetDB()
 	if err != nil {
 		return nil, err
 	}
@@ -404,6 +405,7 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
+	// TODO: Try to get projects (might fail if project is v1)?
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		// TODO: Will this fail if the project is v2 since the model includes NumberOfAccounts now?

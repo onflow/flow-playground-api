@@ -19,6 +19,8 @@
 package migrate_test
 
 // TODO: Create new migrator tests from stable playground v1 to playground v2
+// TODO: Create a projects with accounts and templates and test migration
+
 /*
 import (
 	"fmt"

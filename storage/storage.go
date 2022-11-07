@@ -20,7 +20,6 @@ package storage
 
 import (
 	"errors"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
@@ -60,6 +59,8 @@ type Store interface {
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
+
+	GetDB() interface{} // For migration
 }
 
 var ErrNotFound = errors.New("entity not found")

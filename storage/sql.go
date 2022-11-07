@@ -381,3 +381,8 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 		Find(exes).
 		Error
 }
+
+// GetDB is used for migration
+func (s *SQL) GetDB() interface{} {
+	return s.db
+}

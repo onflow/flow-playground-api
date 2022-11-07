@@ -31,6 +31,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 )
 
 type Migrator struct {
@@ -69,13 +70,18 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 	}
 
 	if from.LessThan(V2) {
-		err := m.migrateV1ProjectToV2(id)
+		db := m.getV1ToV2MigrationDB()
+		err := m.migrateV1ProjectToV2(db, id)
 		if err != nil {
 			return false, errors.Wrapf(err, "failed to migrate project from %s to %s", from.String(), to.String())
 		}
 	}
 
 	return true, nil
+}
+
+func (m *Migrator) getV1ToV2MigrationDB() *gorm.DB {
+	return m.store.GetDB().(*gorm.DB)
 }
 
 func sanitizeVersion(version *semver.Version) *semver.Version {
