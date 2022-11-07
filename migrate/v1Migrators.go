@@ -12,17 +12,19 @@ import (
 // TODO: which sets the tables to v2 tables??
 
 // migrateV1ProjectToV2 migrates a project from v1 to v2
+//
+// Steps:
+// 1. Convert v1 project model to v2 project model
+// 2. Migrate v1 accounts draft code to v2 contract files
+// 3. Convert v1 transaction and script templates to v2 files
+// 4. Add new models to database
+// 5. Cleanup/ delete old v1 models from database
 func (m *Migrator) migrateV1ProjectToV2(db *gorm.DB, projectID uuid.UUID) error {
+	// Convert v1 project model to v2 project model
 	var v1Proj v1Project
 	err := GetV1Project(db, projectID, &v1Proj)
 	if err != nil {
 		return errors.Wrap(err, "migration failed to get project")
-	}
-
-	// Migrate v1 account draft code to v2 contract files
-	v2ContractFiles, err := m.migrateV1AccountsToV2(db, projectID)
-	if err != nil {
-		return errors.Wrap(err, "migration failed to migrate v1 accounts to v2")
 	}
 
 	v2Project := model.Project{
@@ -44,10 +46,13 @@ func (m *Migrator) migrateV1ProjectToV2(db *gorm.DB, projectID uuid.UUID) error 
 		Mutable:                   false,
 	}
 
-	// TODO: Convert transaction templates and script templates to files and add to DB
-	// TODO: Delete old transaction templates and script templates from DB
+	// Migrate v1 accounts draft code to v2 contract files
+	v2ContractFiles, err := m.migrateV1AccountsToV2(db, projectID)
+	if err != nil {
+		return errors.Wrap(err, "migration failed to migrate v1 accounts to v2")
+	}
 
-	// TODO: Clean up DB - delete v1Project, delete v1Accounts, delete v1 transaction + script templates
+	// TODO: Convert transaction templates and script templates to files and add to DB
 
 	/*
 		err = m.store.DeleteV1Project(projectID)
@@ -68,9 +73,13 @@ func (m *Migrator) migrateV1ProjectToV2(db *gorm.DB, projectID uuid.UUID) error 
 
 	// Insert new project into DB
 	err = m.store.CreateProject(&v2Project, v2ProjectFiles)
+	if err != nil {
+		return errors.Wrap(err, "migration failed to create v2 project")
+	}
+
+	// TODO: Clean up DB - delete v1Project, delete v1Accounts, delete v1 transaction + script templates
 
 	return nil
-
 }
 
 // migrateV1AccountsToV2 converts v1 account draft codes to v2 contract templates

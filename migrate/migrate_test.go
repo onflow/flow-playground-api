@@ -16,92 +16,33 @@
  * limitations under the License.
  */
 
-package migrate_test
+package migrate
+
+import (
+	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/controller"
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/getsentry/sentry-go"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"testing"
+	"time"
+)
 
 // TODO: Create new migrator tests from stable playground v1 to playground v2
 // TODO: Create a projects with accounts and templates and test migration
 
-/*
 import (
-	"fmt"
-	"testing"
-	"time"
-
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
-const numAccounts = 4
+/*
 
-func TestMigrateNilToV0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
-		projID := uuid.New()
-
-		migrated, err := c.migrator.MigrateProject(projID, nil, migrate.V0)
-		require.NoError(t, err)
-		assert.False(t, migrated)
-	})(t)
-}
-
-func TestMigrateV0ToV0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
-		projID := uuid.New()
-
-		migrated, err := c.migrator.MigrateProject(projID, migrate.V0, migrate.V0)
-		require.NoError(t, err)
-		assert.False(t, migrated)
-	})(t)
-}
-
-func TestMigrateV0ToV0_1_0(t *testing.T) {
-	migrateTest(migrate.V0, func(t *testing.T, c migrateTestCase) {
-		proj, err := c.projects.Create(c.user, model.NewProject{})
-		require.NoError(t, err)
-
-		assert.Equal(t, migrate.V0.String(), proj.Version.String())
-
-		assertAllAccountsExist(t, c.scripts, proj)
-
-		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, migrate.V0_1_0)
-		require.NoError(t, err)
-		assert.True(t, migrated)
-
-		proj, err = c.projects.Get(proj.ID)
-		require.NoError(t, err)
-
-		assert.Equal(t, migrate.V0_1_0.String(), proj.Version.String())
-
-		assertAllAccountsExist(t, c.scripts, proj)
-	})(t)
-}
-
-func TestMigrateV0_1_0ToV0_2_0(t *testing.T) {
-	migrateTest(migrate.V0_1_0, func(t *testing.T, c migrateTestCase) {
-		v0_2_0 := semver.MustParse("v0.2.0")
-
-		proj, err := c.projects.Create(c.user, model.NewProject{})
-		require.NoError(t, err)
-
-		assert.Equal(t, migrate.V0_1_0.String(), proj.Version.String())
-
-		migrated, err := c.migrator.MigrateProject(proj.ID, proj.Version, v0_2_0)
-		require.NoError(t, err)
-		assert.True(t, migrated)
-
-		proj, err = c.projects.Get(proj.ID)
-		require.NoError(t, err)
-
-		assert.Equal(t, v0_2_0.String(), proj.Version.String())
-	})(t)
-}
 
 type migrateTestCase struct {
 	store      storage.Store
@@ -272,3 +213,121 @@ func Test_MigrationV0_12_0(t *testing.T) {
 	assert.Equal(t, 5, project.TransactionExecutionCount)
 }
 */
+
+func v1NewSQL(dial gorm.Dialector, level logger.LogLevel) *gorm.DB {
+	gormConf := &gorm.Config{
+		Logger: logger.Default.LogMode(level),
+	}
+
+	db, err := gorm.Open(dial, gormConf)
+	if err != nil {
+		err := errors.Wrap(err, "failed to connect database")
+		sentry.CaptureException(err)
+		panic(err)
+	}
+
+	v1MigrateDB(db)
+
+	d, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	d.SetMaxIdleConns(5) // we increase idle connection count due to nature of Playground API usage
+
+	return db
+}
+
+func v1MigrateDB(db *gorm.DB) {
+	err := db.AutoMigrate(
+		&v1Project{},
+		&v1Account{},
+		&v1ScriptTemplate{},
+		&v1TransactionTemplate{},
+		&model.User{},
+	)
+	if err != nil {
+		err := errors.Wrap(err, "failed to migrate database")
+		panic(err)
+	}
+}
+
+func CreateV1Project(db *gorm.DB, proj *v1Project, ttmpl []*v1TransactionTemplate, stmpl []*v1ScriptTemplate) error {
+	return nil
+}
+
+func Test_Migration_V1_To_V2(t *testing.T) {
+	// Create database for migration testing
+	db := v1NewSQL(sqlite.Open("./test-db"), logger.Warn)
+
+	store := storage.NewSqlite()
+	chain := blockchain.NewProjects(store, 5)
+	projects := controller.NewProjects(semver.MustParse("v0.5.0"), store, chain)
+	migrator := NewMigrator(store, projects)
+
+	user := model.User{
+		ID: uuid.New(),
+	}
+
+	err := store.InsertUser(&user)
+	require.NoError(t, err)
+
+	projID := uuid.New()
+	err = CreateV1Project(
+		db,
+		&v1Project{
+			ID:                        projID,
+			UserID:                    user.ID,
+			Secret:                    uuid.New(),
+			PublicID:                  uuid.New(),
+			ParentID:                  nil,
+			Title:                     "e2eTest project",
+			Description:               "e2eTest description",
+			Readme:                    "",
+			Seed:                      1,
+			TransactionExecutionCount: 5,
+			Persist:                   true,
+			CreatedAt:                 time.Now(),
+			UpdatedAt:                 time.Now(),
+			Version:                   V1,
+		}, []*v1TransactionTemplate{{
+			ID:        uuid.New(),
+			ProjectID: projID,
+			Title:     "tx template",
+			Script: `
+			import A from 0x01
+			transaction {}
+		`,
+			Index: 0,
+		}}, []*v1ScriptTemplate{{
+			ID:        uuid.New(),
+			ProjectID: projID,
+			Title:     "script template",
+			Script: `
+			import Foo from 0x01
+			transaction {}
+		`,
+		}})
+	require.NoError(t, err)
+
+	/*
+		accTmpl := `
+			import A%d from 0x0%d
+			pub contract B {}`
+
+		for i := 0; i < 5; i++ {
+			err = store.InsertAccount(&model.Account{
+				ID:        uuid.New(),
+				ProjectID: projID,
+				Address:   model.NewAddressFromString(fmt.Sprintf("0x0%d", i+1)),
+				DraftCode: fmt.Sprintf(accTmpl, i, i+1),
+				Index:     i,
+			})
+			require.NoError(t, err)
+		}
+	*/
+
+	migrated, err := migrator.MigrateProject(projID, V1, V2)
+	require.NoError(t, err)
+	require.Equal(t, true, migrated)
+
+}
