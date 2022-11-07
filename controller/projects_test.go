@@ -52,8 +52,7 @@ func createStore() storage.Store {
 
 func createUser(store storage.Store) *model.User {
 	user := &model.User{
-		ID:               uuid.New(),
-		NumberOfProjects: 0,
+		ID: uuid.New(),
 	}
 
 	err := store.InsertUser(user)

@@ -29,7 +29,6 @@ import (
 type Store interface {
 	InsertUser(user *model.User) error
 	GetUser(id uuid.UUID, user *model.User) error
-	UpdateUser(user *model.User) error
 
 	CreateProject(
 		proj *model.Project,
@@ -41,6 +40,7 @@ type Store interface {
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
+	GetProjectCountForUser(userID uuid.UUID, count *int64) error
 	DeleteProject(id uuid.UUID) error
 
 	InsertCadenceFile(file *model.File) error
