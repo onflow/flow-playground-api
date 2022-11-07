@@ -63,8 +63,8 @@ func (m *Migrator) migrateV1ProjectToV2(db *gorm.DB, projectID uuid.UUID) error 
 	}
 
 	// TODO: Add transaction and script templates
-	v2ProjectFiles = append(v2ProjectFiles, v2TransactionTemplates)
-	v2ProjectFiles = append(v2ProjectFiles, v2ScriptTemplates)
+	//v2ProjectFiles = append(v2ProjectFiles, v2TransactionTemplates)
+	//v2ProjectFiles = append(v2ProjectFiles, v2ScriptTemplates)
 
 	// Insert new project into DB
 	err = m.store.CreateProject(&v2Project, v2ProjectFiles)
@@ -73,7 +73,7 @@ func (m *Migrator) migrateV1ProjectToV2(db *gorm.DB, projectID uuid.UUID) error 
 
 }
 
-// migrateV1AccountsToV2 converts old account draft codes to contract templates
+// migrateV1AccountsToV2 converts v1 account draft codes to v2 contract templates
 func (m *Migrator) migrateV1AccountsToV2(db *gorm.DB, projectID uuid.UUID) ([]*model.File, error) {
 	var v1Accounts []*v1Account
 	err := v1GetAccountsForProject(db, projectID, &v1Accounts)
@@ -94,8 +94,6 @@ func (m *Migrator) migrateV1AccountsToV2(db *gorm.DB, projectID uuid.UUID) ([]*m
 			Script:    account.DraftCode,
 		})
 	}
-
-	// TODO: Delete v1Accounts from database
 
 	return contractFiles, nil
 }

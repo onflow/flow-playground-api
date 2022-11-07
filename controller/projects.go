@@ -55,7 +55,11 @@ func NewProjects(
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
 	var projectCount int64
 	err := p.store.GetProjectCountForUser(user.ID, &projectCount)
-	if projectCount >= MaxProjectsLimit {
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get user project count")
+	}
+
+	if int(projectCount) >= MaxProjectsLimit {
 		return nil, errors.New("maximum number of" +
 			strconv.Itoa(MaxProjectsLimit) + "projects reached.")
 	}

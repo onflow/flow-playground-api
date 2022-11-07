@@ -236,7 +236,10 @@ func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) er
 }
 
 func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {
-	return s.db.Where(&model.Project{UserID: userID}).Count(count).Error
+	return s.db.Where(&model.Project{UserID: userID}).
+		Find(&[]*model.Project{}).
+		Count(count).
+		Error
 }
 
 func (s *SQL) InsertCadenceFile(file *model.File) error {
