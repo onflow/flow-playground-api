@@ -60,6 +60,8 @@ type Store interface {
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error
+
+	Ping() error
 }
 
 var ErrNotFound = errors.New("entity not found")

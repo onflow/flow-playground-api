@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"log"
 	"net/http"
 	"strings"
@@ -32,7 +33,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	middlewareErrors "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
 	"github.com/dapperlabs/flow-playground-api/middleware/monitoring"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
@@ -72,6 +73,8 @@ type SentryConfig struct {
 
 const sessionName = "flow-playground"
 
+var store storage.Store
+
 func main() {
 	var sentryConf SentryConfig
 
@@ -91,7 +94,7 @@ func main() {
 		AttachStacktrace: sentryConf.AttachStacktrace,
 		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
 			if hint.Context != nil {
-				if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
+				if sentryLevel, ok := middlewareErrors.SentryLogLevel(hint.Context); ok {
 					event.Level = sentryLevel
 				}
 			}
@@ -111,8 +114,6 @@ func main() {
 	if err := envconfig.Process("FLOW", &conf); err != nil {
 		log.Fatal(err)
 	}
-
-	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
 		var datastoreConf storage.DatabaseConfig
@@ -185,7 +186,7 @@ func main() {
 			"/",
 			playground.GraphQLHandler(
 				resolver,
-				errors.Middleware(entry, localHub),
+				middlewareErrors.Middleware(entry, localHub),
 			),
 		)
 
@@ -216,6 +217,13 @@ func main() {
 }
 
 func ping(w http.ResponseWriter, _ *http.Request) {
+	if err := store.Ping(); err != nil {
+		sentry.CaptureException(errors.Wrap(err, "database ping failed"))
+		w.WriteHeader(500)
+		_, _ = w.Write([]byte("database ping failed"))
+		return
+	}
+
 	w.WriteHeader(200)
 	_, _ = w.Write([]byte("ok"))
 }
