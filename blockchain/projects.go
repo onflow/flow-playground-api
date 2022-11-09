@@ -76,6 +76,7 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	}
 
 	// Reload emulator
+	// TODO: refactor reset logic: https://github.com/onflow/flow-playground-api/issues/113
 	if em != nil {
 		*em, err = p.load(projectID)
 		if err != nil {

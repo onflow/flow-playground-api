@@ -29,7 +29,6 @@ import (
 type Store interface {
 	InsertUser(user *model.User) error
 	GetUser(id uuid.UUID, user *model.User) error
-	UpdateUser(user *model.User) error
 
 	CreateProject(
 		proj *model.Project,
@@ -41,11 +40,12 @@ type Store interface {
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
 	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
+	GetProjectCountForUser(userID uuid.UUID, count *int64) error
 	DeleteProject(id uuid.UUID) error
 
-	InsertCadenceFile(file *model.File) error
-	UpdateCadenceFile(input model.UpdateFile, file *model.File) error
-	DeleteCadenceFile(id uuid.UUID, pID uuid.UUID) error
+	InsertFile(file *model.File) error
+	UpdateFile(input model.UpdateFile, file *model.File) error
+	DeleteFile(id uuid.UUID, pID uuid.UUID) error
 	GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error
 	GetFilesForProject(projectID uuid.UUID, files *[]*model.File, fileType model.FileType) error
 	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
@@ -53,7 +53,6 @@ type Store interface {
 	InsertContractDeployment(deploy *model.ContractDeployment) error
 	InsertContractDeploymentWithExecution(deploy *model.ContractDeployment, exe *model.TransactionExecution) error
 	GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error
-	GetContractDeploymentsForAddress(projectID uuid.UUID, address model.Address, deployments *[]*model.ContractDeployment) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error

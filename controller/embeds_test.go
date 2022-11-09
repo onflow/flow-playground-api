@@ -136,7 +136,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	}
 
 	// insert your mock data
-	err := store.InsertCadenceFile(&scriptTemplate)
+	err := store.InsertFile(&scriptTemplate)
 	require.NoError(t, err)
 
 	r := chi.NewRouter()

@@ -53,7 +53,13 @@ func NewProjects(
 }
 
 func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Project, error) {
-	if user.NumberOfProjects >= MaxProjectsLimit {
+	var projectCount int64
+	err := p.store.GetProjectCountForUser(user.ID, &projectCount)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get user project count")
+	}
+
+	if int(projectCount) >= MaxProjectsLimit {
 		return nil, errors.New("maximum number of" +
 			strconv.Itoa(MaxProjectsLimit) + "projects reached.")
 	}
@@ -105,7 +111,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		})
 	}
 
-	err := p.store.CreateProject(proj, files)
+	err = p.store.CreateProject(proj, files)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create project")
 	}
@@ -113,12 +119,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
 	if err != nil {
 		return nil, err
-	}
-
-	user.NumberOfProjects++
-	err = p.store.UpdateUser(user)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update user during project creation")
 	}
 
 	return proj, nil
@@ -132,18 +132,6 @@ func (p *Projects) Delete(id uuid.UUID) error {
 	}
 
 	err = p.store.DeleteProject(id)
-	if err != nil {
-		return err
-	}
-
-	var user model.User
-	err = p.store.GetUser(proj.UserID, &user)
-	if err != nil {
-		return err
-	}
-
-	user.NumberOfProjects--
-	err = p.store.UpdateUser(&user)
 	if err != nil {
 		return err
 	}
