@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/ping"
 	"log"
 	"net/http"
 	"strings"
@@ -206,18 +207,18 @@ func main() {
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
 
-	router.HandleFunc("/ping", ping)
+	err = ping.SetPingHandlers(store.Ping)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	router.HandleFunc("/ping", ping.Ping)
 
 	logStartMessage(build.Version())
 
 	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", conf.Port)
 	log.Print("Allowed origins", conf.AllowedOrigins)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
-}
-
-func ping(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(200)
-	_, _ = w.Write([]byte("ok"))
 }
 
 func logStartMessage(version *semver.Version) {
