@@ -1,5 +1,5 @@
 .idea
 .DS_Store
 e2e-db
-server
+server/server
 test-log.log
