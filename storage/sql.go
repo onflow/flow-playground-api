@@ -377,3 +377,11 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 		Find(exes).
 		Error
 }
+
+func (s *SQL) Ping() error {
+	db, err := s.db.DB()
+	if err != nil {
+		return err
+	}
+	return db.Ping()
+}
