@@ -50,7 +50,7 @@ func (f *Files) CreateFile(projectID uuid.UUID, input model.NewFile, fileType mo
 		Script:    input.Script,
 	}
 
-	err := f.store.InsertCadenceFile(&file)
+	err := f.store.InsertFile(&file)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to store file")
 	}
@@ -60,7 +60,7 @@ func (f *Files) CreateFile(projectID uuid.UUID, input model.NewFile, fileType mo
 
 func (f *Files) UpdateFile(input model.UpdateFile) (*model.File, error) {
 	var file model.File
-	err := f.store.UpdateCadenceFile(input, &file)
+	err := f.store.UpdateFile(input, &file)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update cadence file")
 	}
@@ -69,7 +69,7 @@ func (f *Files) UpdateFile(input model.UpdateFile) (*model.File, error) {
 }
 
 func (f *Files) DeleteFile(scriptID, projectID uuid.UUID) error {
-	err := f.store.DeleteCadenceFile(scriptID, projectID)
+	err := f.store.DeleteFile(scriptID, projectID)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete cadence file")
 	}

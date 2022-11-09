@@ -76,6 +76,7 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	}
 
 	// Reload emulator
+	// TODO: refactor reset logic: https://github.com/onflow/flow-playground-api/issues/113
 	if em != nil {
 		*em, err = p.load(projectID)
 		if err != nil {
@@ -289,6 +290,29 @@ func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) (
 	return accounts, nil
 }
 
+func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
+	em, err := p.load(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStorage, err := json.Marshal(store)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling account storage")
+	}
+
+	account := model.AccountFromFlow(flowAccount, projectID)
+	account.ProjectID = projectID
+	account.State = string(jsonStorage)
+
+	return account, nil
+}
+
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
@@ -390,27 +414,4 @@ func (p *Projects) filterMissingExecutions(
 	executions = executions[height:]
 
 	return executions, nil
-}
-
-func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
-	if err != nil {
-		return nil, err
-	}
-
-	jsonStorage, err := json.Marshal(store)
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling account storage")
-	}
-
-	account := model.AccountFromFlow(flowAccount, projectID)
-	account.ProjectID = projectID
-	account.State = string(jsonStorage)
-
-	return account, nil
 }

@@ -402,54 +402,6 @@ func Test_TransactionExecution(t *testing.T) {
 
 }
 
-// TODO: Add account creation to playground v2
-/*
-func Test_AccountCreation(t *testing.T) {
-	t.Run("successful account creation", func(t *testing.T) {
-		projects, store, proj, _ := newWithSeededProject()
-
-		account, err := projects.CreateAccount(proj.ID)
-		require.NoError(t, err)
-		assert.Equal(t, "0000000000000005", account.Address.ToFlowAddress().String())
-		assert.Equal(t, "", account.DraftCode)
-		assert.Len(t, account.DeployedContracts, 0)
-		assert.Equal(t, "", account.DeployedCode)
-		assert.Equal(t, "", account.State)
-		assert.Equal(t, proj.ID, account.ProjectID)
-
-		var executions []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
-		require.NoError(t, err)
-
-		require.Len(t, executions, 1)
-		assert.Len(t, executions[0].Errors, 0)
-		assert.True(t, strings.Contains(executions[0].Script, "AuthAccount(payer: signer)"))
-	})
-
-	// todo multiple account creations no reset cache - is saving emulator to cache after modifications needed
-	t.Run("multiple account creations, reset cache", func(t *testing.T) {
-		projects, store, proj, _ := newWithSeededProject()
-
-		createAndAssert := func(createNumber int) {
-			account, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("000000000000000%d", createNumber+4), account.Address.ToFlowAddress().String())
-
-			projects.emulatorCache.reset(proj.ID)
-
-			var executions []*model.TransactionExecution
-			err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
-			require.NoError(t, err)
-			require.Len(t, executions, createNumber)
-		}
-
-		for i := 0; i < 5; i++ {
-			createAndAssert(i + 1)
-		}
-	})
-}
-*/
-
 func Test_DeployContract(t *testing.T) {
 
 	t.Run("deploy single contract", func(t *testing.T) {

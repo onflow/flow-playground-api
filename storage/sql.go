@@ -120,20 +120,6 @@ func (s *SQL) GetUser(id uuid.UUID, user *model.User) error {
 	return s.db.First(user, id).Error
 }
 
-func (s *SQL) UpdateUser(user *model.User) error {
-	update := make(map[string]any)
-	update["NumberOfProjects"] = user.NumberOfProjects
-
-	err := s.db.
-		Model(&model.User{ID: user.ID}).
-		Updates(update).Error
-	if err != nil {
-		return err
-	}
-
-	return s.db.First(user, user.ID).Error
-}
-
 func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(proj).Error; err != nil {
@@ -249,7 +235,14 @@ func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) er
 		Find(proj).Error
 }
 
-func (s *SQL) InsertCadenceFile(file *model.File) error {
+func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {
+	return s.db.Where(&model.Project{UserID: userID}).
+		Find(&[]*model.Project{}).
+		Count(count).
+		Error
+}
+
+func (s *SQL) InsertFile(file *model.File) error {
 	var count int64
 	err := s.db.Model(&model.File{}).
 		Where("project_id", file.ProjectID).
@@ -263,7 +256,7 @@ func (s *SQL) InsertCadenceFile(file *model.File) error {
 	return s.db.Create(file).Error
 }
 
-func (s *SQL) UpdateCadenceFile(input model.UpdateFile, file *model.File) error {
+func (s *SQL) UpdateFile(input model.UpdateFile, file *model.File) error {
 	update := make(map[string]any)
 	if input.Script != nil {
 		update["script"] = *input.Script
@@ -288,7 +281,7 @@ func (s *SQL) UpdateCadenceFile(input model.UpdateFile, file *model.File) error 
 	return s.db.First(file, input.ID).Error
 }
 
-func (s *SQL) DeleteCadenceFile(id uuid.UUID, pID uuid.UUID) error {
+func (s *SQL) DeleteFile(id uuid.UUID, pID uuid.UUID) error {
 	return s.db.Delete(&model.File{ID: id, ProjectID: pID}).Error
 }
 
@@ -357,13 +350,6 @@ func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments 
 		Error
 }
 
-func (s *SQL) GetContractDeploymentsForAddress(projectID uuid.UUID, address model.Address, deployments *[]*model.ContractDeployment) error {
-	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}, Address: address}).
-		Find(deployments).
-		Order("\"index\" asc").
-		Error
-}
-
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
 	var proj model.Project
 	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
@@ -390,12 +376,4 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 		Order("\"index\" asc").
 		Find(exes).
 		Error
-}
-
-func (s *SQL) Ping() error {
-	db, err := s.db.DB()
-	if err != nil {
-		return err
-	}
-	return db.Ping()
 }
