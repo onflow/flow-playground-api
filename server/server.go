@@ -218,14 +218,12 @@ func main() {
 
 func ping(w http.ResponseWriter, _ *http.Request) {
 	if err := store.Ping(); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		sentry.CaptureException(errors.Wrap(err, "database ping failed"))
-		w.WriteHeader(500)
-		_, _ = w.Write([]byte("database ping failed"))
 		return
 	}
 
-	w.WriteHeader(200)
-	_, _ = w.Write([]byte("ok"))
+	w.WriteHeader(http.StatusOK)
 }
 
 func logStartMessage(version *semver.Version) {
