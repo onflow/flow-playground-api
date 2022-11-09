@@ -110,17 +110,16 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 		PublicID: uuid.New(),
 		ParentID: &parentID,
 		Seed:     0,
-		Title:    "test-project",
+		Title:    "e2eTest-project",
 		Persist:  false,
 		Version:  version,
 	}
 
-	ttpls := make([]*model.TransactionTemplate, 0)
-	stpls := make([]*model.ScriptTemplate, 0)
+	files := make([]*model.File, 0)
 
 	internalProj.UserID = user.ID
 
-	projErr := store.CreateProject(internalProj, ttpls, stpls)
+	projErr := store.CreateProject(internalProj, files)
 	require.NoError(t, projErr)
 
 	script := `
@@ -132,12 +131,12 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	scriptTemplate := model.ScriptTemplate{
 		ID:        uuid.MustParse(scriptID),
 		ProjectID: uuid.MustParse(projectID),
-		Title:     "test contract",
+		Title:     "e2eTest contract",
 		Script:    script,
 	}
 
 	// insert your mock data
-	err := store.InsertScriptTemplate(&scriptTemplate)
+	err := store.InsertFile(&scriptTemplate)
 	require.NoError(t, err)
 
 	r := chi.NewRouter()

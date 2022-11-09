@@ -18,11 +18,11 @@
 
 package migrate
 
-import (
-	"fmt"
+// TODO: Remove old migrators and create migrator from stable playground to playground v2
 
+/*
+import (
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/controller"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -38,6 +38,7 @@ type Migrator struct {
 var V0 = semver.MustParse("v0.0.0")
 var V0_1_0 = semver.MustParse("v0.1.0")
 var V0_12_0 = semver.MustParse("v0.12.0")
+var V2_0_0 = semver.MustParse("v2.0.0")
 
 func NewMigrator(store storage.Store, projects *controller.Projects) *Migrator {
 	return &Migrator{
@@ -60,6 +61,9 @@ func (m *Migrator) MigrateProject(id uuid.UUID, from, to *semver.Version) (bool,
 		return false, nil
 	}
 
+	if from.LessThan(V2_0_0) {
+		// TODO: Create migrator to v2?
+	}
 	if from.LessThan(V0_1_0) {
 		err := m.migrateToV0_1_0(id)
 		if err != nil {
@@ -112,6 +116,7 @@ func (m *Migrator) migrateToV0_1_0(id uuid.UUID) error {
 	return nil
 }
 
+
 // migrateToV0_12_0 migrates a project to the version v0.12.0
 //
 // Steps:
@@ -160,6 +165,7 @@ func (m *Migrator) migrateToV0_12_0(projectID uuid.UUID) error {
 	return nil
 }
 
+
 func sanitizeVersion(version *semver.Version) *semver.Version {
 	if version == nil {
 		return V0
@@ -167,3 +173,4 @@ func sanitizeVersion(version *semver.Version) *semver.Version {
 
 	return version
 }
+*/

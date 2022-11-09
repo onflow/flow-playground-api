@@ -43,11 +43,7 @@ func TransactionToAPI(tx *model.TransactionExecution) *model.TransactionExecutio
 		tx.Arguments[i] = ContentAddressFromAPI(arg)
 	}
 
-	for i, e := range tx.Events {
-		for j, v := range e.Values {
-			tx.Events[i].Values[j] = contentAddressToAPI(v)
-		}
-	}
+	tx.Events = EventsToAPI(tx.Events)
 
 	for i, e := range tx.Errors {
 		tx.Errors[i].Message = contentAddressToAPI(e.Message)
@@ -87,12 +83,51 @@ func ScriptToAPI(script *model.ScriptExecution) *model.ScriptExecution {
 	return script
 }
 
+func ScriptsToAPI(scripts []*model.ScriptExecution) []*model.ScriptExecution {
+	for i, a := range scripts {
+		scripts[i] = ScriptToAPI(a)
+	}
+	return scripts
+}
+
+func EventsToAPI(events []model.Event) []model.Event {
+	for i := range events {
+		for j, val := range events[i].Values {
+			events[i].Values[j] = contentAddressToAPI(val)
+		}
+	}
+	return events
+}
+
+func ContractToAPI(contract *model.ContractDeployment) *model.ContractDeployment {
+	contract.Address = addressToAPI(contract.Address)
+	contract.Script = contentAddressToAPI(contract.Script)
+
+	for i, e := range contract.Errors {
+		contract.Errors[i].Message = contentAddressToAPI(e.Message)
+	}
+
+	contract.Events = EventsToAPI(contract.Events)
+
+	return contract
+}
+
+func ContractsToAPI(contracts []*model.ContractDeployment) []*model.ContractDeployment {
+	for i, a := range contracts {
+		contracts[i] = ContractToAPI(a)
+	}
+	return contracts
+}
+
+func ContractFromAPI(contract model.NewContractDeployment) model.NewContractDeployment {
+	contract.Address = AddressFromAPI(contract.Address)
+	contract.Script = ContentAddressFromAPI(contract.Script)
+	return contract
+}
+
 func AccountToAPI(account *model.Account) *model.Account {
 	account.Address = addressToAPI(account.Address)
-	account.DeployedCode = contentAddressToAPI(account.DeployedCode)
-
 	account.State = stateToAPI(account.State)
-
 	return account
 }
 
@@ -101,12 +136,4 @@ func AccountsToAPI(accounts []*model.Account) []*model.Account {
 		accounts[i] = AccountToAPI(a)
 	}
 	return accounts
-}
-
-func AccountFromAPI(account model.UpdateAccount) model.UpdateAccount {
-	if account.DeployedCode != nil {
-		adaptedCode := ContentAddressFromAPI(*account.DeployedCode)
-		account.DeployedCode = &adaptedCode
-	}
-	return account
 }

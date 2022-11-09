@@ -26,8 +26,6 @@ models:
     model: github.com/dapperlabs/flow-playground-api/model.Project
   Account:
     model: github.com/dapperlabs/flow-playground-api/model.Account
-  UpdateAccount:
-    model: github.com/dapperlabs/flow-playground-api/model.UpdateAccount
   TransactionTemplate:
     model: github.com/dapperlabs/flow-playground-api/model.TransactionTemplate
   TransactionExecution:
@@ -36,3 +34,7 @@ models:
     model: github.com/dapperlabs/flow-playground-api/model.ScriptTemplate
   ScriptExecution:
     model: github.com/dapperlabs/flow-playground-api/model.ScriptExecution
+  ContractTemplate:
+    model: github.com/dapperlabs/flow-playground-api/model.ContractTemplate
+  ContractDeployment:
+    model: github.com/dapperlabs/flow-playground-api/model.ContractDeployment

@@ -32,36 +32,30 @@ type Store interface {
 
 	CreateProject(
 		proj *model.Project,
-		ttpl []*model.TransactionTemplate,
-		stpl []*model.ScriptTemplate,
+		files []*model.File,
 	) error
 	UpdateProject(input model.UpdateProject, proj *model.Project) error
 	UpdateProjectOwner(id, userID uuid.UUID) error
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
+	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
+	GetProjectCountForUser(userID uuid.UUID, count *int64) error
+	DeleteProject(id uuid.UUID) error
 
-	InsertAccount(acc *model.Account) error
-	InsertAccounts(accs []*model.Account) error
-	GetAccount(id, pID uuid.UUID, acc *model.Account) error
-	GetAccountsForProject(projectID uuid.UUID, accs *[]*model.Account) error
-	DeleteAccount(id, pID uuid.UUID) error
-	UpdateAccount(input model.UpdateAccount, acc *model.Account) error
+	InsertFile(file *model.File) error
+	UpdateFile(input model.UpdateFile, file *model.File) error
+	DeleteFile(id uuid.UUID, pID uuid.UUID) error
+	GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error
+	GetFilesForProject(projectID uuid.UUID, files *[]*model.File, fileType model.FileType) error
+	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
 
-	InsertTransactionTemplate(tpl *model.TransactionTemplate) error
-	UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error
-	GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTemplate) error
-	GetTransactionTemplatesForProject(projectID uuid.UUID, tpls *[]*model.TransactionTemplate) error
-	DeleteTransactionTemplate(id, pID uuid.UUID) error
+	InsertContractDeployment(deploy *model.ContractDeployment) error
+	InsertContractDeploymentWithExecution(deploy *model.ContractDeployment, exe *model.TransactionExecution) error
+	GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
-
-	InsertScriptTemplate(tpl *model.ScriptTemplate) error
-	UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error
-	GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) error
-	GetScriptTemplatesForProject(projectID uuid.UUID, tpls *[]*model.ScriptTemplate) error
-	DeleteScriptTemplate(id, pID uuid.UUID) error
 
 	InsertScriptExecution(exe *model.ScriptExecution) error
 	GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error

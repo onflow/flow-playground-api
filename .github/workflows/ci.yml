@@ -4,9 +4,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master, staging ]
+    branches: [ master, staging, v2 ]
   pull_request:
-    branches: [ master, staging ]
+    branches: [ master, staging, v2 ]
 
 jobs:
   test:

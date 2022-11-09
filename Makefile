@@ -14,6 +14,10 @@ generate:
 test:
 	GO111MODULE=on go test -v ./...
 
+.PHONY: test-log
+test-log:
+	GO111MODULE=on go test -v ./... > test-log.log
+
 .PHONY: test-datastore
 test-pg:
 	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test -v ./...

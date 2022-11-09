@@ -25,7 +25,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
-	"github.com/dapperlabs/flow-playground-api/migrate"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
@@ -34,14 +33,13 @@ import (
 )
 
 type Resolver struct {
-	version            *semver.Version
-	store              storage.Store
-	auth               *auth.Authenticator
-	migrator           *migrate.Migrator
+	version *semver.Version
+	store   storage.Store
+	auth    *auth.Authenticator
+	//migrator           *migrate.Migrator // TODO: implement v2 migrator
 	projects           *controller.Projects
-	scripts            *controller.Scripts
-	transactions       *controller.Transactions
 	accounts           *controller.Accounts
+	files              *controller.Files
 	lastCreatedProject *model.Project
 }
 
@@ -52,20 +50,18 @@ func NewResolver(
 	blockchain *blockchain.Projects,
 ) *Resolver {
 	projects := controller.NewProjects(version, store, blockchain)
-	scripts := controller.NewScripts(store, blockchain)
-	transactions := controller.NewTransactions(store, blockchain)
+	files := controller.NewFiles(store, blockchain)
+	//migrator := migrate.NewMigrator(store, projects)
 	accounts := controller.NewAccounts(store, blockchain)
-	migrator := migrate.NewMigrator(store, projects)
 
 	return &Resolver{
-		version:      version,
-		store:        store,
-		auth:         auth,
-		migrator:     migrator,
-		projects:     projects,
-		scripts:      scripts,
-		transactions: transactions,
-		accounts:     accounts,
+		version: version,
+		store:   store,
+		auth:    auth,
+		//migrator: migrator,
+		projects: projects,
+		accounts: accounts,
+		files:    files,
 	}
 }
 
@@ -79,10 +75,6 @@ func (r *Resolver) Project() ProjectResolver {
 
 func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
-}
-
-func (r *Resolver) TransactionExecution() TransactionExecutionResolver {
-	return &transactionExecutionResolver{r}
 }
 
 func (r *Resolver) LastCreatedProject() *model.Project {
@@ -123,7 +115,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	r.lastCreatedProject = proj
@@ -149,22 +141,18 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
-func (r *mutationResolver) UpdateAccount(ctx context.Context, input model.UpdateAccount) (*model.Account, error) {
-	err := r.authorize(ctx, input.ProjectID)
+func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, err
 	}
 
-	if err := validateUpdate(&input); err != nil {
-		return nil, err
-	}
-
-	acc, err := r.accounts.Update(adapter.AccountFromAPI(input))
+	err = r.projects.Delete(projectID)
 	if err != nil {
-		return nil, err
+		return uuid.UUID{}, errors.Wrap(err, "failed to delete project")
 	}
 
-	return adapter.AccountToAPI(acc), nil
+	return projectID, nil
 }
 
 func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input model.NewTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -172,8 +160,7 @@ func (r *mutationResolver) CreateTransactionTemplate(ctx context.Context, input 
 	if err != nil {
 		return nil, err
 	}
-
-	return r.transactions.CreateTemplate(input.ProjectID, input.Title, input.Script)
+	return r.files.CreateFile(input.ProjectID, model.NewFile(input), model.TransactionFile)
 }
 
 func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input model.UpdateTransactionTemplate) (*model.TransactionTemplate, error) {
@@ -186,7 +173,7 @@ func (r *mutationResolver) UpdateTransactionTemplate(ctx context.Context, input 
 		return nil, err
 	}
 
-	return r.transactions.UpdateTemplate(input)
+	return r.files.UpdateFile(model.UpdateFile(input))
 }
 
 func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (uuid.UUID, error) {
@@ -195,7 +182,7 @@ func (r *mutationResolver) DeleteTransactionTemplate(ctx context.Context, id uui
 		return uuid.UUID{}, err
 	}
 
-	err = r.transactions.DeleteTemplate(id, projectID)
+	err = r.files.DeleteFile(id, projectID)
 	if err != nil {
 		return id, err
 	}
@@ -212,9 +199,7 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	exe, err := r.transactions.CreateTransactionExecution(
-		adapter.TransactionFromAPI(input),
-	)
+	exe, err := r.files.CreateTransactionExecution(adapter.TransactionFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
@@ -228,12 +213,13 @@ func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	tpl, err := r.scripts.CreateTemplate(input.ProjectID, input)
+	file, err := r.files.CreateFile(input.ProjectID, model.NewFile(input), model.ScriptFile)
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create script template")
 	}
 
-	return tpl, nil
+	return file, nil
 }
 
 func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model.UpdateScriptTemplate) (*model.ScriptTemplate, error) {
@@ -246,7 +232,7 @@ func (r *mutationResolver) UpdateScriptTemplate(ctx context.Context, input model
 		return nil, err
 	}
 
-	return r.scripts.UpdateTemplate(input)
+	return r.files.UpdateFile(model.UpdateFile(input))
 }
 
 func (r *mutationResolver) DeleteScriptTemplate(
@@ -259,7 +245,7 @@ func (r *mutationResolver) DeleteScriptTemplate(
 		return uuid.UUID{}, err
 	}
 
-	err = r.scripts.DeleteTemplate(id, projectID)
+	err = r.files.DeleteFile(id, projectID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -276,7 +262,7 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.scripts.CreateExecution(adapter.ScriptFromAPI(input))
+	exe, err := r.files.CreateScriptExecution(adapter.ScriptFromAPI(input))
 	if err != nil {
 		return nil, err
 	}
@@ -284,23 +270,85 @@ func (r *mutationResolver) CreateScriptExecution(
 	return adapter.ScriptToAPI(exe), nil
 }
 
-type projectResolver struct{ *Resolver }
-
-func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
-	accounts, err := r.accounts.AllForProjectID(proj.ID)
+func (r *mutationResolver) CreateContractTemplate(ctx context.Context, input model.NewContractTemplate) (*model.File, error) {
+	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.AccountsToAPI(accounts), nil
+	file, err := r.files.CreateFile(input.ProjectID, model.NewFile(input), model.ContractFile)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create contract template")
+	}
+
+	return file, nil
 }
 
+func (r *mutationResolver) UpdateContractTemplate(
+	ctx context.Context, input model.UpdateContractTemplate,
+) (*model.ContractTemplate, error) {
+	err := r.authorize(ctx, input.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := validateUpdate(&input); err != nil {
+		return nil, err
+	}
+
+	return r.files.UpdateFile(model.UpdateFile(input))
+}
+
+func (r *mutationResolver) DeleteContractTemplate(
+	ctx context.Context,
+	id uuid.UUID,
+	projectID uuid.UUID,
+) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.files.DeleteFile(id, projectID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
+}
+
+func (r *mutationResolver) CreateContractDeployment(
+	ctx context.Context,
+	input model.NewContractDeployment,
+) (*model.ContractDeployment, error) {
+	err := r.authorize(ctx, input.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	deployment, err := r.files.DeployContract(adapter.ContractFromAPI(input))
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ContractToAPI(deployment), nil
+}
+
+type projectResolver struct{ *Resolver }
+
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
-	return r.transactions.AllTemplatesForProjectID(proj.ID)
+	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return files, nil
 }
 
 func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.Project) ([]*model.TransactionExecution, error) {
-	exes, err := r.transactions.AllExecutionsForProjectID(proj.ID)
+	var exes []*model.TransactionExecution
+	err := r.store.GetTransactionExecutionsForProject(proj.ID, &exes)
 	if err != nil {
 		return nil, err
 	}
@@ -309,12 +357,40 @@ func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.P
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
-	return r.scripts.AllTemplatesForProjectID(proj.ID)
+	return r.files.GetFilesForProject(proj.ID, model.ScriptFile)
 }
 
-func (r *projectResolver) ScriptExecutions(_ context.Context, _ *model.Project) ([]*model.ScriptExecution, error) {
-	// todo implement
-	panic("not implemented")
+func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Project) ([]*model.ScriptExecution, error) {
+	var exes []*model.ScriptExecution
+	err := r.store.GetScriptExecutionsForProject(proj.ID, &exes)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ScriptsToAPI(exes), nil
+}
+
+func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
+	return r.files.GetFilesForProject(proj.ID, model.ContractFile)
+}
+
+func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Project) ([]*model.ContractDeployment, error) {
+	var deploys []*model.ContractDeployment
+	err := r.store.GetContractDeploymentsForProject(proj.ID, &deploys)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.ContractsToAPI(deploys), nil
+}
+
+func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
+	accounts, err := r.accounts.AllForProjectID(proj.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return adapter.AccountsToAPI(accounts), nil
 }
 
 type queryResolver struct{ *Resolver }
@@ -334,18 +410,20 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 
 	// todo
 	// only migrate if current user has access to this project
-	migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to migrate project")
-	}
+	//migrated, err := r.migrator.MigrateProject(id, proj.Version, r.version)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, "failed to migrate project")
+	//}
 
 	// reload project if needed
-	if migrated {
-		proj, err = r.projects.Get(id)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get project")
+	/*
+		if migrated {
+			proj, err = r.projects.Get(id)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to get project")
+			}
 		}
-	}
+	*/
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		return proj.ExportPublicImmutable(), nil
@@ -354,8 +432,20 @@ func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Proje
 	return proj.ExportPublicMutable(), nil
 }
 
-func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.Account, error) {
-	acc, err := r.accounts.GetByID(id, projectID)
+func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
+	return r.files.GetFile(id, projectID)
+}
+
+func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
+	return r.files.GetFile(id, projectID)
+}
+
+func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ContractTemplate, error) {
+	return r.files.GetFile(id, projectID)
+}
+
+func (r *queryResolver) Account(_ context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error) {
+	acc, err := r.accounts.GetByAddress(adapter.AddressFromAPI(address), projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -363,16 +453,11 @@ func (r *queryResolver) Account(_ context.Context, id uuid.UUID, projectID uuid.
 	return adapter.AccountToAPI(acc), nil
 }
 
-func (r *queryResolver) TransactionTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.TransactionTemplate, error) {
-	return r.transactions.TemplateByID(id, projectID)
-}
+func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
+	user, err := r.auth.GetOrCreateUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-func (r *queryResolver) ScriptTemplate(_ context.Context, id uuid.UUID, projectID uuid.UUID) (*model.ScriptTemplate, error) {
-	return r.scripts.TemplateByID(id, projectID)
-}
-
-type transactionExecutionResolver struct{ *Resolver }
-
-func (*transactionExecutionResolver) Signers(_ context.Context, _ *model.TransactionExecution) ([]*model.Account, error) {
-	panic("not implemented")
+	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }

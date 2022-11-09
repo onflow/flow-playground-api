@@ -18,18 +18,18 @@ type Project {
   version: Version!
   persist: Boolean
   mutable: Boolean
+  numberOfAccounts: Int!
   accounts: [Account!]
   transactionTemplates: [TransactionTemplate!]
   transactionExecutions: [TransactionExecution!]
   scriptTemplates: [ScriptTemplate!]
   scriptExecutions: [ScriptExecution!]
+  contractTemplates: [ContractTemplate!]
+  contractDeployments: [ContractDeployment!]
 }
 
 type Account {
-  id: UUID!
   address: Address!
-  draftCode: String!
-  deployedCode: String!
   deployedContracts: [String!]!
   state: String!
 }
@@ -46,6 +46,17 @@ type ProgramPosition {
   column: Int!
 }
 
+"""
+type File {
+  id: UUID!
+  index: Int!
+  title: String!
+  type: Int!
+  script: String!
+}
+"""
+
+
 type TransactionTemplate {
   id: UUID!
   index: Int!
@@ -53,11 +64,12 @@ type TransactionTemplate {
   script: String!
 }
 
+
 type TransactionExecution {
   id: UUID!
   script: String!
   arguments: [String!]
-  signers: [Account!]!
+  signers: [Address!]!
   errors: [ProgramError!]
   events: [Event]!
   logs: [String!]!
@@ -68,12 +80,14 @@ type Event {
   values: [String!]!
 }
 
+
 type ScriptTemplate {
   id: UUID!
   index: Int!
   title: String!
   script: String!
 }
+
 
 type ScriptExecution {
   id: UUID!
@@ -84,11 +98,35 @@ type ScriptExecution {
   logs: [String!]!
 }
 
+
+type ContractTemplate {
+  id: UUID!
+  index: Int!
+  title: String!
+  script: String!
+}
+
+
+type ContractDeployment {
+  id: UUID!
+  script: String!
+  address: Address!
+  errors: [ProgramError!]
+  events: [Event!]
+  logs: [String!]
+}
+
+type ProjectList {
+  projects: [Project!]
+}
+
 type Query {
   playgroundInfo: PlaygroundInfo!
+  projectList: ProjectList!
   project(id: UUID!): Project!
+  account(address: Address!, projectId: UUID!): Account!
 
-  account(id: UUID!, projectId: UUID!): Account!
+  contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
 }
@@ -99,9 +137,15 @@ input NewProject {
   description: String!
   readme: String!
   seed: Int!
-  accounts: [String!]
+  numberOfAccounts: Int!
   transactionTemplates: [NewProjectTransactionTemplate!]
   scriptTemplates: [NewProjectScriptTemplate!]
+  contractTemplates: [NewProjectContractTemplate!]
+}
+
+input NewProjectFile {
+  title: String!
+  script: String!
 }
 
 input NewProjectTransactionTemplate {
@@ -114,6 +158,11 @@ input NewProjectScriptTemplate {
   script: String!
 }
 
+input NewProjectContractTemplate {
+  title: String!
+  script: String!
+}
+
 input UpdateProject {
   id: UUID!
   title: String
@@ -122,11 +171,38 @@ input UpdateProject {
   persist: Boolean
 }
 
-input UpdateAccount {
+input UpdateFile {
   id: UUID!
+  title: String
   projectId: UUID!
-  draftCode: String
-  deployedCode: String
+  index: Int
+  script: String
+}
+
+input NewFile {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input NewContractTemplate {
+  projectId: UUID!
+  title: String!
+  script: String!
+}
+
+input UpdateContractTemplate {
+  id: UUID!
+  title: String
+  projectId: UUID!
+  index: Int
+  script: String
+}
+
+input NewContractDeployment {
+  projectId: UUID!
+  script: String!
+  address: Address!
 }
 
 input NewTransactionTemplate {
@@ -173,8 +249,12 @@ input NewScriptExecution {
 type Mutation {
   createProject(input: NewProject!): Project!
   updateProject(input: UpdateProject!): Project!
+  deleteProject(projectId: UUID!): UUID!
 
-  updateAccount(input: UpdateAccount!): Account!
+  createContractTemplate(input: NewContractTemplate!): ContractTemplate!
+  updateContractTemplate(input: UpdateContractTemplate!): ContractTemplate!
+  deleteContractTemplate(id: UUID!, projectId: UUID!): UUID!
+  createContractDeployment(input: NewContractDeployment!): ContractDeployment!
 
   createTransactionTemplate(input: NewTransactionTemplate!): TransactionTemplate!
   updateTransactionTemplate(input: UpdateTransactionTemplate!): TransactionTemplate!
@@ -186,4 +266,3 @@ type Mutation {
   deleteScriptTemplate(id: UUID!, projectId: UUID!): UUID!
   createScriptExecution(input: NewScriptExecution!): ScriptExecution!
 }
-

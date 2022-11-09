@@ -95,10 +95,9 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 func migrate(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&model.Project{},
-		&model.Account{},
-		&model.ScriptTemplate{},
+		&model.File{},
+		&model.ContractDeployment{},
 		&model.ScriptExecution{},
-		&model.TransactionTemplate{},
 		&model.TransactionExecution{},
 		&model.User{},
 	)
@@ -121,20 +120,14 @@ func (s *SQL) GetUser(id uuid.UUID, user *model.User) error {
 	return s.db.First(user, id).Error
 }
 
-func (s *SQL) CreateProject(proj *model.Project, ttpl []*model.TransactionTemplate, stpl []*model.ScriptTemplate) error {
+func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(proj).Error; err != nil {
 			return err
 		}
 
-		if len(ttpl) > 0 {
-			if err := tx.Create(ttpl).Error; err != nil {
-				return err
-			}
-		}
-
-		if len(stpl) > 0 {
-			if err := tx.Create(stpl).Error; err != nil {
+		if len(files) > 0 {
+			if err := tx.Create(files).Error; err != nil {
 				return err
 			}
 		}
@@ -190,7 +183,9 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Delete(
 			&model.TransactionExecution{},
-			&model.TransactionExecution{ProjectID: proj.ID},
+			&model.TransactionExecution{
+				File: model.File{ProjectID: proj.ID},
+			},
 		).Error
 		if err != nil {
 			return err
@@ -198,7 +193,19 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 
 		err = tx.Delete(
 			&model.ScriptExecution{},
-			&model.ScriptExecution{ProjectID: proj.ID},
+			&model.ScriptExecution{
+				File: model.File{ProjectID: proj.ID},
+			},
+		).Error
+		if err != nil {
+			return err
+		}
+
+		err = tx.Delete(
+			&model.ContractDeployment{},
+			&model.ContractDeployment{
+				File: model.File{ProjectID: proj.ID},
+			},
 		).Error
 		if err != nil {
 			return err
@@ -214,65 +221,42 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 	})
 }
 
+func (s *SQL) DeleteProject(id uuid.UUID) error {
+	return s.db.Delete(&model.Project{ID: id}).Error
+}
+
 func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 	return s.db.First(proj, id).Error
 }
 
-func (s *SQL) InsertAccount(acc *model.Account) error {
-	return s.db.Save(acc).Error
+func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error {
+	return s.db.Where(&model.Project{UserID: userID}).
+		Order("\"updated_at\" desc").
+		Find(proj).Error
 }
 
-func (s *SQL) InsertAccounts(accs []*model.Account) error {
-	return s.db.Create(accs).Error
-}
-
-func (s *SQL) GetAccount(id, pID uuid.UUID, acc *model.Account) error {
-	return s.db.First(acc, &model.Account{ID: id, ProjectID: pID}).Error
-}
-
-func (s *SQL) GetAccountsForProject(pID uuid.UUID, accs *[]*model.Account) error {
-	return s.db.
-		Where(&model.Account{ProjectID: pID}).
-		Order("\"index\" asc").
-		Find(accs).
+func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {
+	return s.db.Where(&model.Project{UserID: userID}).
+		Find(&[]*model.Project{}).
+		Count(count).
 		Error
 }
 
-func (s *SQL) DeleteAccount(id, pID uuid.UUID) error {
-	return s.db.Delete(&model.Account{ID: id, ProjectID: pID}).Error
-}
-
-func (s *SQL) UpdateAccount(input model.UpdateAccount, acc *model.Account) error {
-	update := make(map[string]any)
-	if input.DraftCode != nil {
-		update["draft_code"] = *input.DraftCode
-	}
-
-	err := s.db.Model(&model.Account{
-		ID:        input.ID,
-		ProjectID: input.ProjectID,
-	}).Updates(update).Error
-	if err != nil {
-		return err
-	}
-
-	return s.db.First(acc, input.ID).Error
-}
-
-func (s *SQL) InsertTransactionTemplate(tpl *model.TransactionTemplate) error {
+func (s *SQL) InsertFile(file *model.File) error {
 	var count int64
-	err := s.db.Model(&model.TransactionTemplate{}).
-		Where("project_id", tpl.ProjectID).
+	err := s.db.Model(&model.File{}).
+		Where("project_id", file.ProjectID).
+		Where("type", file.Type).
 		Count(&count).Error
 	if err != nil {
 		return err
 	}
 
-	tpl.Index = int(count)
-	return s.db.Create(tpl).Error
+	file.Index = int(count)
+	return s.db.Create(file).Error
 }
 
-func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, tpl *model.TransactionTemplate) error {
+func (s *SQL) UpdateFile(input model.UpdateFile, file *model.File) error {
 	update := make(map[string]any)
 	if input.Script != nil {
 		update["script"] = *input.Script
@@ -285,7 +269,7 @@ func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, t
 	}
 
 	err := s.db.
-		Model(&model.TransactionTemplate{
+		Model(&model.File{
 			ID:        input.ID,
 			ProjectID: input.ProjectID,
 		}).
@@ -294,19 +278,76 @@ func (s *SQL) UpdateTransactionTemplate(input model.UpdateTransactionTemplate, t
 		return err
 	}
 
-	return s.db.First(tpl, input.ID).Error
+	return s.db.First(file, input.ID).Error
 }
 
-func (s *SQL) GetTransactionTemplate(id, pID uuid.UUID, tpl *model.TransactionTemplate) error {
-	return s.db.First(tpl, &model.TransactionTemplate{ID: id, ProjectID: pID}).Error
+func (s *SQL) DeleteFile(id uuid.UUID, pID uuid.UUID) error {
+	return s.db.Delete(&model.File{ID: id, ProjectID: pID}).Error
 }
 
-func (s *SQL) GetTransactionTemplatesForProject(pID uuid.UUID, tpls *[]*model.TransactionTemplate) error {
-	return s.db.Where(&model.TransactionTemplate{ProjectID: pID}).Find(tpls).Error
+func (s *SQL) GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error {
+	return s.db.First(file, &model.File{ID: id, ProjectID: pID}).Error
 }
 
-func (s *SQL) DeleteTransactionTemplate(id, pID uuid.UUID) error {
-	return s.db.Delete(&model.TransactionTemplate{ID: id, ProjectID: pID}).Error
+func (s *SQL) GetFilesForProject(pID uuid.UUID, files *[]*model.File, fileType model.FileType) error {
+	// Note: use map to include zero entries for fileType
+	return s.db.Where(map[string]interface{}{"project_id": pID.String(), "type": fileType}).
+		Find(files).Error
+}
+
+func (s *SQL) GetAllFilesForProject(pID uuid.UUID, files *[]*model.File) error {
+	return s.db.Where(&model.File{ProjectID: pID}).Find(files).Error
+}
+
+func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
+	return s.db.Create(exe).Error
+}
+
+func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
+	return s.db.Where(&model.ScriptExecution{File: model.File{ProjectID: projectID}}).
+		Find(exes).
+		Order("\"index\" asc").
+		Error
+}
+
+func (s *SQL) InsertContractDeployment(deploy *model.ContractDeployment) error {
+	// Should avoid this!
+	return s.db.Create(deploy).Error
+}
+
+func (s *SQL) InsertContractDeploymentWithExecution(
+	deploy *model.ContractDeployment,
+	exe *model.TransactionExecution,
+) error {
+	var proj model.Project
+	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
+		return err
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		exe.Index = proj.TransactionExecutionCount
+		proj.TransactionExecutionCount += 1
+		if err := tx.Save(proj).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(exe).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Create(deploy).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {
+	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}}).
+		Find(deployments).
+		Order("\"index\" asc").
+		Error
 }
 
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
@@ -330,64 +371,9 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 	})
 }
 
-func (s *SQL) GetTransactionExecutionsForProject(pID uuid.UUID, exes *[]*model.TransactionExecution) error {
-	return s.db.Where(&model.TransactionExecution{ProjectID: pID}).
+func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
+	return s.db.Where(&model.TransactionExecution{File: model.File{ProjectID: projectID}}).
 		Order("\"index\" asc").
 		Find(exes).
 		Error
-}
-
-func (s *SQL) InsertScriptTemplate(tpl *model.ScriptTemplate) error {
-	var count int64
-	err := s.db.Model(&model.ScriptTemplate{}).
-		Where("project_id", tpl.ProjectID).
-		Count(&count).Error
-	if err != nil {
-		return err
-	}
-
-	tpl.Index = int(count)
-	return s.db.Create(tpl).Error
-}
-
-func (s *SQL) UpdateScriptTemplate(input model.UpdateScriptTemplate, tpl *model.ScriptTemplate) error {
-	update := make(map[string]any)
-	if input.Script != nil {
-		update["script"] = *input.Script
-	}
-	if input.Index != nil {
-		update["index"] = *input.Index
-	}
-	if input.Title != nil {
-		update["title"] = *input.Title
-	}
-
-	err := s.db.Model(&model.ScriptTemplate{
-		ID: input.ID, ProjectID: input.ProjectID,
-	}).Updates(update).Error
-	if err != nil {
-		return err
-	}
-
-	return s.db.First(tpl, input.ID).Error
-}
-
-func (s *SQL) GetScriptTemplate(id, pID uuid.UUID, tpl *model.ScriptTemplate) error {
-	return s.db.First(tpl, &model.ScriptTemplate{ID: id, ProjectID: pID}).Error
-}
-
-func (s *SQL) GetScriptTemplatesForProject(pID uuid.UUID, tpls *[]*model.ScriptTemplate) error {
-	return s.db.Where(&model.ScriptTemplate{ProjectID: pID}).Find(tpls).Error
-}
-
-func (s *SQL) DeleteScriptTemplate(id, pID uuid.UUID) error {
-	return s.db.Delete(&model.ScriptTemplate{ID: id, ProjectID: pID}).Error
-}
-
-func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
-	return s.db.Create(exe).Error
-}
-
-func (s *SQL) GetScriptExecutionsForProject(pID uuid.UUID, exes *[]*model.ScriptExecution) error {
-	return s.db.Where(&model.ScriptExecution{ProjectID: pID}).Find(exes).Error
 }

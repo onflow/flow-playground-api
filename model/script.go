@@ -25,20 +25,27 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ScriptTemplate struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Title     string
-	Index     int
-	Script    string
+type ScriptTemplate = File
+
+type ScriptExecution struct {
+	File
+	Arguments []string `gorm:"serializer:json"`
+	Value     string
+	Errors    []ProgramError `gorm:"serializer:json"`
+	Logs      []string       `gorm:"serializer:json"`
 }
 
 func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
 	exe := &ScriptExecution{
-		ID:        uuid.New(),
-		ProjectID: projectID,
-		Script:    script,
+		File: File{
+			ID:        uuid.New(),
+			ProjectID: projectID,
+			Type:      ScriptFile,
+			Script:    script,
+		},
 		Arguments: arguments,
+		Value:     "",
+		Errors:    nil,
 		Logs:      result.Logs,
 	}
 
@@ -50,17 +57,6 @@ func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, sc
 	}
 
 	return exe
-}
-
-type ScriptExecution struct {
-	ID        uuid.UUID
-	ProjectID uuid.UUID
-	Index     int
-	Script    string
-	Arguments []string `gorm:"serializer:json"`
-	Value     string
-	Errors    []ProgramError `gorm:"serializer:json"`
-	Logs      []string       `gorm:"serializer:json"`
 }
 
 func (u *UpdateScriptTemplate) Validate() error {

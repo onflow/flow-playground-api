@@ -122,7 +122,7 @@ func main() {
 
 		store = storage.NewPostgreSQL(&datastoreConf)
 	} else {
-		store = storage.NewInMemory()
+		store = storage.NewSqlite()
 	}
 
 	const initAccountsNumber = 5
@@ -211,7 +211,7 @@ func main() {
 	logStartMessage(build.Version())
 
 	log.Printf("Connect to http://localhost:%d/ for GraphQL playground", conf.Port)
-	log.Printf("Allowed origins", conf.AllowedOrigins)
+	log.Print("Allowed origins", conf.AllowedOrigins)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), router))
 }
 

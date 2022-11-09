@@ -19,81 +19,35 @@
 package model
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
-	"github.com/pkg/errors"
 )
 
-func (a *Account) Export() *Account {
-	return &Account{
-		ID:                a.ID,
-		ProjectID:         a.ProjectID,
-		Address:           a.Address,
-		DraftCode:         a.DraftCode,
-		DeployedCode:      a.DeployedCode,
-		DeployedContracts: a.DeployedContracts,
-		State:             a.State,
-	}
-}
-
 type Account struct {
-	ID                uuid.UUID
 	ProjectID         uuid.UUID
-	Index             int
-	Address           Address `gorm:"serializer:json"`
-	DraftCode         string
-	DeployedCode      string   // todo drop this in db
-	DeployedContracts []string `gorm:"serializer:json"`
+	Address           Address
+	DeployedContracts []string
 	State             string
-}
-
-func (a *Account) MergeFromStore(acc *Account) *Account {
-	a.ID = acc.ID
-	a.DraftCode = acc.DraftCode
-	return a
-}
-
-func (a *Account) HasDeployedCode() bool {
-	return a.DeployedCode != ""
-}
-
-type UpdateAccount struct {
-	ID                uuid.UUID `json:"id"`
-	ProjectID         uuid.UUID `json:"projectId"`
-	DraftCode         *string   `json:"draftCode"`
-	DeployedCode      *string   `json:"deployedCode"`
-	DeployedContracts *[]string
-}
-
-func (u *UpdateAccount) Validate() error {
-	if u.DeployedCode == nil && u.DraftCode == nil {
-		return errors.Wrap(missingValuesError, "deployed code, draft code")
-	}
-	if u.DeployedCode != nil && u.DraftCode != nil {
-		return fmt.Errorf("can only provide deployed code or draft code")
-	}
-
-	return nil
-}
-
-func (u *UpdateAccount) UpdateCode() bool {
-	return u.DeployedCode == nil && u.DraftCode != nil
 }
 
 func AccountFromFlow(account *flowsdk.Account, projectID uuid.UUID) *Account {
 	contractNames := make([]string, 0)
-	contractCode := ""
-	for name, code := range account.Contracts {
+	for name := range account.Contracts {
 		contractNames = append(contractNames, name)
-		contractCode = string(code)
-		break // we only allow one deployed contract on account so only get the first if present
 	}
 
 	return &Account{
 		ProjectID:         projectID,
 		Address:           NewAddressFromBytes(account.Address.Bytes()),
-		DeployedCode:      contractCode,
 		DeployedContracts: contractNames,
+	}
+}
+
+func (a *Account) Export() *Account {
+	return &Account{
+		ProjectID:         a.ProjectID,
+		Address:           a.Address,
+		DeployedContracts: a.DeployedContracts,
+		State:             a.State,
 	}
 }

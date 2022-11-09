@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -50,7 +49,7 @@ func newProjects() (*Projects, storage.Store) {
 	return chain, store
 }
 
-func projectSeed() (*model.Project, []*model.TransactionTemplate, []*model.ScriptTemplate) {
+func projectSeed() (*model.Project, []*model.File) {
 	proj := &model.Project{
 		ID:          uuid.New(),
 		Secret:      uuid.New(),
@@ -64,8 +63,9 @@ func projectSeed() (*model.Project, []*model.TransactionTemplate, []*model.Scrip
 		Version:     semver.MustParse("1.0.0"),
 	}
 
-	txTpls := make([]*model.TransactionTemplate, 0)
-	txTpls = append(txTpls, &model.TransactionTemplate{
+	files := make([]*model.File, 0)
+
+	files = append(files, &model.TransactionTemplate{
 		ID:        uuid.New(),
 		ProjectID: proj.ID,
 		Title:     "Transaction 1",
@@ -73,8 +73,7 @@ func projectSeed() (*model.Project, []*model.TransactionTemplate, []*model.Scrip
 		Script:    "transaction {}",
 	})
 
-	scriptTpls := make([]*model.ScriptTemplate, 0)
-	scriptTpls = append(scriptTpls, &model.ScriptTemplate{
+	files = append(files, &model.ScriptTemplate{
 		ID:        uuid.New(),
 		ProjectID: proj.ID,
 		Title:     "Script 1",
@@ -82,13 +81,13 @@ func projectSeed() (*model.Project, []*model.TransactionTemplate, []*model.Scrip
 		Script:    "pub fun main(): Int { return 42; }",
 	})
 
-	return proj, txTpls, scriptTpls
+	return proj, files
 }
 
 func newWithSeededProject() (*Projects, storage.Store, *model.Project, error) {
 	projects, store := newProjects()
-	proj, txTpls, scriptTpls := projectSeed()
-	err := store.CreateProject(proj, txTpls, scriptTpls)
+	proj, files := projectSeed()
+	err := store.CreateProject(proj, files)
 
 	return projects, store, proj, err
 }
@@ -112,105 +111,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	})
 }
 
-func Benchmark_GetAccounts(b *testing.B) {
-	projects, _, proj, _ := newWithSeededProject()
-	accs, _ := projects.CreateInitialAccounts(proj.ID)
-
-	addresses := make([]model.Address, len(accs))
-	for i, a := range accs {
-		addresses[i] = a.Address
-	}
-
-	b.Run("get batch accounts", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			_, _ = projects.GetAccounts(proj.ID, addresses)
-		}
-	})
-}
-
-func Test_ConcurrentRequests(t *testing.T) {
-	t.Parallel()
-	testConcurrently := func(
-		numOfRequests int,
-		request func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project),
-		test func(ch chan any, proj *model.Project),
-	) {
-		projects, _, proj, _ := newWithSeededProject()
-
-		ch := make(chan any)
-		var wg sync.WaitGroup
-
-		wg.Add(numOfRequests)
-
-		for i := 0; i < numOfRequests; i++ {
-			go request(i, ch, &wg, projects, proj)
-		}
-
-		test(ch, proj)
-
-		wg.Wait()
-	}
-
-	t.Run("concurrent account creation", func(t *testing.T) {
-		const numOfRequests = 10
-
-		testAccount := func(ch chan any, proj *model.Project) {
-			accounts := make([]*model.Account, 0)
-			for a := range ch {
-				account := a.(*model.Account)
-				accounts = append(accounts, account)
-
-				if len(accounts) == numOfRequests {
-					close(ch)
-				}
-			}
-
-			require.Len(t, accounts, numOfRequests)
-
-			addresses := make([]string, numOfRequests)
-			for i, acc := range accounts {
-				assert.Equal(t, proj.ID, acc.ProjectID)
-				addr := acc.Address.ToFlowAddress().String()
-				assert.NotContains(t, addresses, addr) // make sure unique address is returned
-				addresses[i] = addr
-			}
-		}
-
-		t.Run("with cache", func(t *testing.T) {
-			// create accounts
-			createAccount := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
-				defer wg.Done()
-
-				acc, err := projects.CreateAccount(proj.ID)
-				require.NoError(t, err)
-
-				ch <- acc
-			}
-
-			testConcurrently(numOfRequests, createAccount, testAccount)
-		})
-
-		t.Run("without cache", func(t *testing.T) {
-			// create accounts but reset cache in between
-			createAccountNoCache := func(i int, ch chan any, wg *sync.WaitGroup, projects *Projects, proj *model.Project) {
-				defer wg.Done()
-
-				acc, err := projects.CreateAccount(proj.ID)
-				require.NoError(t, err)
-
-				projects.emulatorCache.reset(proj.ID)
-
-				ch <- acc
-			}
-
-			testConcurrently(numOfRequests, createAccountNoCache, testAccount)
-		})
-
-	})
-}
-
 func Test_LoadEmulator(t *testing.T) {
-	t.Parallel()
 
 	t.Run("successful load of emulator", func(t *testing.T) {
 		projects, _, proj, err := newWithSeededProject()
@@ -236,8 +137,8 @@ func Test_LoadEmulator(t *testing.T) {
 		testProjs := make([]*model.Project, 150)
 
 		for i := 0; i < len(testProjs); i++ {
-			proj, txTpls, scriptTpls := projectSeed()
-			err := store.CreateProject(proj, txTpls, scriptTpls)
+			proj, files := projectSeed()
+			err := store.CreateProject(proj, files)
 			require.NoError(t, err)
 			testProjs[i] = proj
 		}
@@ -248,7 +149,7 @@ func Test_LoadEmulator(t *testing.T) {
 		}
 	})
 
-	t.Run("test stale cache", func(t *testing.T) {
+	t.Run("e2eTest stale cache", func(t *testing.T) {
 		projects, store, proj, err := newWithSeededProject()
 		require.NoError(t, err)
 
@@ -262,13 +163,15 @@ func Test_LoadEmulator(t *testing.T) {
 
 		// add another transaction directly to the database to simulate request coming from another replica
 		err = store.InsertTransactionExecution(&model.TransactionExecution{
-			ID:        uuid.New(),
-			ProjectID: proj.ID,
-			Script: `transaction {
+			File: model.File{
+				ID:        uuid.New(),
+				ProjectID: proj.ID,
+				Script: `transaction {
 				execute {
 					log("hello")
 				}
 			}`,
+			},
 		})
 		require.NoError(t, err)
 
@@ -305,30 +208,9 @@ func Test_LoadEmulator(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 0, latest) // no exe since reset
 	})
-
-	t.Run("get multiple accounts", func(t *testing.T) {
-		projects, _, proj, err := newWithSeededProject()
-		require.NoError(t, err)
-
-		accs, err := projects.CreateInitialAccounts(proj.ID)
-		require.NoError(t, err)
-
-		addresses := make([]model.Address, len(accs))
-		for i, a := range accs {
-			addresses[i] = a.Address
-		}
-
-		getAccs, err := projects.GetAccounts(proj.ID, addresses)
-		require.NoError(t, err)
-
-		for i, getAcc := range getAccs {
-			assert.Equal(t, accs[i].Address, getAcc.Address)
-		}
-	})
 }
 
 func Test_TransactionExecution(t *testing.T) {
-	t.Parallel()
 
 	t.Run("successful transaction execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -479,9 +361,19 @@ func Test_TransactionExecution(t *testing.T) {
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
-		assert.Equal(t, accA.DeployedCode, scriptA)
+
+		var deployments []*model.ContractDeployment
+		err = projects.store.GetContractDeploymentsForProject(proj.ID, &deployments)
+		assert.NoError(t, err)
+		assert.Equal(t, deployment.Title, deployments[0].Title)
+
+		acc, err := projects.GetAccount(proj.ID, accounts[0].Address)
+		assert.NoError(t, err)
+
+		assert.Equal(t, deployment.Title, acc.DeployedContracts[0])
+		assert.True(t, strings.Contains(acc.State, "HelloWorld"))
 
 		projects.emulatorCache.reset(proj.ID)
 
@@ -494,9 +386,7 @@ func Test_TransactionExecution(t *testing.T) {
 				}
 			}`
 
-		signers := []model.Address{
-			model.NewAddressFromString("0x06"),
-		}
+		signers := []model.Address{accounts[1].Address}
 
 		tx := model.NewTransactionExecution{
 			ProjectID: proj.ID,
@@ -512,54 +402,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 }
 
-func Test_AccountCreation(t *testing.T) {
-	t.Parallel()
-	t.Run("successful account creation", func(t *testing.T) {
-		projects, store, proj, _ := newWithSeededProject()
-
-		account, err := projects.CreateAccount(proj.ID)
-		require.NoError(t, err)
-		assert.Equal(t, "0000000000000005", account.Address.ToFlowAddress().String())
-		assert.Equal(t, "", account.DraftCode)
-		assert.Len(t, account.DeployedContracts, 0)
-		assert.Equal(t, "", account.DeployedCode)
-		assert.Equal(t, "", account.State)
-		assert.Equal(t, proj.ID, account.ProjectID)
-
-		var executions []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
-		require.NoError(t, err)
-
-		require.Len(t, executions, 1)
-		assert.Len(t, executions[0].Errors, 0)
-		assert.True(t, strings.Contains(executions[0].Script, "AuthAccount(payer: signer)"))
-	})
-
-	// todo multiple account creations no reset cache - is saving emulator to cache after modifications needed
-	t.Run("multiple account creations, reset cache", func(t *testing.T) {
-		projects, store, proj, _ := newWithSeededProject()
-
-		createAndAssert := func(createNumber int) {
-			account, err := projects.CreateAccount(proj.ID)
-			require.NoError(t, err)
-			assert.Equal(t, fmt.Sprintf("000000000000000%d", createNumber+4), account.Address.ToFlowAddress().String())
-
-			projects.emulatorCache.reset(proj.ID)
-
-			var executions []*model.TransactionExecution
-			err = store.GetTransactionExecutionsForProject(proj.ID, &executions)
-			require.NoError(t, err)
-			require.Len(t, executions, createNumber)
-		}
-
-		for i := 0; i < 5; i++ {
-			createAndAssert(i + 1)
-		}
-	})
-}
-
 func Test_DeployContract(t *testing.T) {
-	t.Parallel()
 
 	t.Run("deploy single contract", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -569,15 +412,11 @@ func Test_DeployContract(t *testing.T) {
 		const numAccounts = 5
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		require.NoError(t, err)
-		require.Len(t, accounts, numAccounts)
+		require.Equal(t, len(accounts), numAccounts)
 
-		account, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
-
+		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
 		require.NoError(t, err)
-		assert.Equal(t, []string{"HelloWorld"}, account.DeployedContracts)
-		assert.Equal(t, script, account.DeployedCode)
-		assert.True(t, strings.Contains(account.State, "HelloWorld"))
-		assert.Equal(t, proj.ID, account.ProjectID)
+		assert.Equal(t, "HelloWorld", deployment.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -623,13 +462,13 @@ func Test_DeployContract(t *testing.T) {
 		accounts, err := projects.CreateInitialAccounts(proj.ID)
 		assert.NoError(t, err)
 
-		accA, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
 		require.NoError(t, err)
-		assert.Equal(t, accA.DeployedCode, scriptA)
+		assert.Equal(t, "HelloWorldA", deploy1.Title)
 
-		accB, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
 		require.NoError(t, err)
-		assert.Equal(t, accB.DeployedCode, scriptB)
+		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
 		var txExe []*model.TransactionExecution
 		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
@@ -649,18 +488,17 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, txExe, 8)
 
-		assert.Equal(t, txExe[7].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[6].Events[0].Type, "flow.AccountContractAdded")
-		assert.Equal(t, txExe[5].Events[0].Type, "flow.AccountContractAdded")
+		assert.Equal(t, "flow.AccountContractAdded", txExe[7].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[6].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", txExe[5].Events[0].Type)
 
-		assert.Equal(t, txExe[7].Logs[0], `"HelloWorldA"`)
-		assert.Equal(t, txExe[7].Logs[1], `"HelloWorldB"`)
+		assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
+		assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
 	})
 
 }
 
 func Test_ScriptExecution(t *testing.T) {
-	t.Parallel()
 
 	t.Run("single script execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
@@ -741,4 +579,20 @@ func Test_ScriptExecution(t *testing.T) {
 		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
 	})
 
+}
+
+func Benchmark_GetAccounts(b *testing.B) {
+	projects, _, proj, _ := newWithSeededProject()
+	accs, _ := projects.CreateInitialAccounts(proj.ID)
+
+	addresses := make([]model.Address, len(accs))
+	for i, a := range accs {
+		addresses[i] = a.Address
+	}
+
+	b.Run("get batch accounts", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, _ = projects.GetAccounts(proj.ID, addresses)
+		}
+	})
 }

@@ -25,31 +25,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TransactionTemplate = File
+type ContractTemplate = File
 
-type TransactionExecution struct {
+type ContractDeployment struct {
 	File
-	Arguments []string       `gorm:"serializer:json"`
-	Signers   []Address      `gorm:"serializer:json"`
-	Errors    []ProgramError `gorm:"serializer:json"`
-	Events    []Event        `gorm:"serializer:json"`
-	Logs      []string       `gorm:"serializer:json"`
+	Address Address        `gorm:"serializer:json"`
+	Errors  []ProgramError `gorm:"serializer:json"`
+	Events  []Event        `gorm:"serializer:json"`
+	Logs    []string       `gorm:"serializer:json"`
 }
 
-func TransactionExecutionFromFlow(
+func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
+	contractName string,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
-) *TransactionExecution {
-	args := make([]string, 0)
+) *ContractDeployment {
 	signers := make([]Address, 0)
 	script := ""
 	// transaction could be nil in case where we get transaction result errors
 	if tx != nil {
-		for _, a := range tx.Arguments {
-			args = append(args, string(a))
-		}
-
 		for _, a := range tx.Authorizers {
 			signers = append(signers, NewAddressFromBytes(a.Bytes()))
 		}
@@ -57,18 +52,18 @@ func TransactionExecutionFromFlow(
 		script = string(tx.Script)
 	}
 
-	exe := &TransactionExecution{
+	exe := &ContractDeployment{
 		File: File{
 			ID:        uuid.New(),
+			Title:     contractName,
 			ProjectID: projectID,
-			Type:      TransactionFile,
+			Type:      ContractFile,
 			Script:    script,
 		},
-		Arguments: args,
-		Signers:   signers,
-		Errors:    nil,
-		Events:    nil,
-		Logs:      result.Logs,
+		Address: signers[0],
+		Errors:  nil,
+		Events:  nil,
+		Logs:    result.Logs,
 	}
 
 	if result.Events != nil {
@@ -83,24 +78,7 @@ func TransactionExecutionFromFlow(
 	return exe
 }
 
-func (n *NewTransactionExecution) SignersToFlow() []flowsdk.Address {
-	return convertSigners(n.Signers)
-}
-
-func (t *TransactionExecution) SignersToFlow() []flowsdk.Address {
-	return convertSigners(t.Signers)
-}
-
-func convertSigners(signers []Address) []flowsdk.Address {
-	sigs := make([]flowsdk.Address, len(signers))
-	for i, sig := range signers {
-		sigs[i] = sig.ToFlowAddress()
-	}
-
-	return sigs
-}
-
-func (u *UpdateTransactionTemplate) Validate() error {
+func (u *UpdateContractTemplate) Validate() error {
 	if u.Title == nil && u.Index == nil && u.Script == nil {
 		return errors.Wrap(missingValuesError, "title, index, script")
 	}

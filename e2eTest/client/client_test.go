@@ -20,14 +20,13 @@ package client_test
 
 import (
 	"encoding/json"
+	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/dapperlabs/flow-playground-api/client"
 )
 
 func TestClient(t *testing.T) {
