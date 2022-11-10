@@ -314,6 +314,51 @@ func TestProjects(t *testing.T) {
 
 }
 
+func TestProjectSavedTime(t *testing.T) {
+	c := newClient()
+
+	var projResp1 CreateProjectResponse
+	err := c.Post(
+		MutationCreateProject,
+		&projResp1,
+		client.Var("title", "foo1"),
+		client.Var("description", "bar"),
+		client.Var("readme", "bah"),
+		client.Var("seed", 42),
+		client.Var("numberOfAccounts", initAccounts),
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, projResp1.CreateProject.UpdatedAt)
+
+	cookie := c.SessionCookie()
+	projectID := projResp1.CreateProject.ID
+
+	var projResp2 GetProjectResponse
+	err = c.Post(
+		QueryGetProject,
+		&projResp2,
+		client.Var("projectId", projectID),
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, projResp2.Project.UpdatedAt)
+
+	require.Equal(t, projResp1.CreateProject.UpdatedAt, projResp2.Project.UpdatedAt)
+
+	var projResp3 UpdateProjectResponse
+	err = c.Post(
+		MutationUpdateProjectPersist,
+		&projResp3,
+		client.Var("projectId", projectID),
+		client.Var("title", "updated title"),
+		client.Var("description", "updated desc"),
+		client.Var("readme", "updated readme"),
+		client.Var("persist", true),
+		client.AddCookie(cookie),
+	)
+	require.NoError(t, err)
+	require.NotEmpty(t, projResp2.Project.UpdatedAt)
+}
+
 func TestGetProjectList(t *testing.T) {
 	t.Run("get project list", func(t *testing.T) {
 		c := newClient()

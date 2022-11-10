@@ -35,6 +35,7 @@ type Project struct {
 	Persist              bool
 	Version              string
 	NumberOfAccounts     int
+	UpdatedAt            string
 	Accounts             []Account
 	TransactionTemplates []TransactionTemplate
 	ScriptTemplates      []ScriptTemplate
@@ -57,6 +58,7 @@ mutation($title: String!, $description: String!, $readme: String!, $seed: Int!, 
 		readme
     seed
 	numberOfAccounts
+	updatedAt
 	accounts {
       address
       deployedContracts
@@ -116,6 +118,7 @@ const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {
     id
+	updatedAt
   }
 }
 `
@@ -148,18 +151,22 @@ mutation($projectId: UUID!, $title: String!, $description: String!, $readme: Str
 		title
 		description
 		readme
+    updatedAt
     persist
   }
 }
 `
 
 type UpdateProjectResponse struct {
+	//UpdateProject Project
+
 	UpdateProject struct {
 		ID          string
 		Title       string
 		Description string
 		Readme      string
 		Persist     bool
+		UpdatedAt   string
 	}
 }
 

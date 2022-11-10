@@ -63,6 +63,7 @@ func (p *Project) ExportPublicMutable() *Project {
 		Seed:             p.Seed,
 		NumberOfAccounts: p.NumberOfAccounts,
 		Version:          p.Version,
+		UpdatedAt:        p.UpdatedAt,
 		Mutable:          true,
 	}
 }
@@ -81,6 +82,7 @@ func (p *Project) ExportPublicImmutable() *Project {
 		Seed:             p.Seed,
 		NumberOfAccounts: p.NumberOfAccounts,
 		Version:          p.Version,
+		UpdatedAt:        p.UpdatedAt,
 		Mutable:          false,
 	}
 }

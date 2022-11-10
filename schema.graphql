@@ -17,6 +17,7 @@ type Project {
   seed: Int!
   version: Version!
   persist: Boolean
+  updatedAt: String!
   mutable: Boolean
   numberOfAccounts: Int!
   accounts: [Account!]
@@ -124,6 +125,7 @@ type Query {
   playgroundInfo: PlaygroundInfo!
   projectList: ProjectList!
   project(id: UUID!): Project!
+
   account(address: Address!, projectId: UUID!): Account!
 
   contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
