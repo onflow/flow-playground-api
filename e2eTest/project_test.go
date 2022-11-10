@@ -336,10 +336,10 @@ func TestProjectSavedTime(t *testing.T) {
 
 	time.Sleep(1)
 
-	var projResp3 UpdateProjectResponse
+	var projResp2 UpdateProjectResponse
 	err = c.Post(
 		MutationUpdateProjectPersist,
-		&projResp3,
+		&projResp2,
 		client.Var("projectId", projectID),
 		client.Var("title", "updated title"),
 		client.Var("description", "updated desc"),
@@ -348,8 +348,15 @@ func TestProjectSavedTime(t *testing.T) {
 		client.AddCookie(cookie),
 	)
 	require.NoError(t, err)
-	require.NotEmpty(t, projResp3.UpdateProject.UpdatedAt)
-	require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp3.UpdateProject.UpdatedAt)
+	require.NotEmpty(t, projResp2.UpdateProject.UpdatedAt)
+
+	createdTime, _ := time.Parse(time.RFC1123Z, projResp1.CreateProject.UpdatedAt)
+	updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
+
+	fiveSeconds := int64(5000)
+	require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
+
+	require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp2.UpdateProject.UpdatedAt)
 }
 
 func TestGetProjectList(t *testing.T) {
