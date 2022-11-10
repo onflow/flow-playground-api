@@ -352,6 +352,7 @@ func TestProjectSavedTime(t *testing.T) {
 
 	createdTime, _ := time.Parse(time.RFC1123Z, projResp1.CreateProject.UpdatedAt)
 	updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
+	require.True(t, createdTime.Before(updatedTime))
 
 	fiveSeconds := int64(5000)
 	require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
