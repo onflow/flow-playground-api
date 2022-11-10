@@ -29,7 +29,6 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 var _ Store = &SQL{}
@@ -151,8 +150,6 @@ func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) erro
 	if input.Persist != nil {
 		update["persist"] = *input.Persist
 	}
-
-	update["updated_at"] = time.Now()
 
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).

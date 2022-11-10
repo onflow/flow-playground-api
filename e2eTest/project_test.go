@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestProjects(t *testing.T) {
@@ -333,16 +334,7 @@ func TestProjectSavedTime(t *testing.T) {
 	cookie := c.SessionCookie()
 	projectID := projResp1.CreateProject.ID
 
-	var projResp2 GetProjectResponse
-	err = c.Post(
-		QueryGetProject,
-		&projResp2,
-		client.Var("projectId", projectID),
-	)
-	require.NoError(t, err)
-	require.NotEmpty(t, projResp2.Project.UpdatedAt)
-
-	require.Equal(t, projResp1.CreateProject.UpdatedAt, projResp2.Project.UpdatedAt)
+	time.Sleep(1)
 
 	var projResp3 UpdateProjectResponse
 	err = c.Post(
@@ -356,7 +348,8 @@ func TestProjectSavedTime(t *testing.T) {
 		client.AddCookie(cookie),
 	)
 	require.NoError(t, err)
-	require.NotEmpty(t, projResp2.Project.UpdatedAt)
+	require.NotEmpty(t, projResp3.UpdateProject.UpdatedAt)
+	require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp3.UpdateProject.UpdatedAt)
 }
 
 func TestGetProjectList(t *testing.T) {

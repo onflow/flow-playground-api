@@ -23,13 +23,11 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"strconv"
-	"time"
-
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 )
 
 // MaxProjectsLimit limit on the number of projects a user can create
@@ -65,8 +63,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 			strconv.Itoa(MaxProjectsLimit) + "projects reached.")
 	}
 
-	creationTime := time.Now()
-
 	proj := &model.Project{
 		ID:               uuid.New(),
 		Secret:           uuid.New(),
@@ -79,8 +75,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		Persist:          false,
 		NumberOfAccounts: input.NumberOfAccounts,
 		Version:          p.version,
-		CreatedAt:        creationTime,
-		UpdatedAt:        creationTime,
 		UserID:           user.ID,
 	}
 

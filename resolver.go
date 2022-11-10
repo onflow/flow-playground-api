@@ -395,7 +395,7 @@ func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*m
 }
 
 func (r *projectResolver) UpdatedAt(_ context.Context, proj *model.Project) (string, error) {
-	return proj.UpdatedAt.Format(time.RFC822Z), nil
+	return proj.UpdatedAt.Format(time.RFC1123Z), nil
 }
 
 type queryResolver struct{ *Resolver }
