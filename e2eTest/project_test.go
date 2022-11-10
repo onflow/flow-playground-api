@@ -334,7 +334,7 @@ func TestProjectSavedTime(t *testing.T) {
 	cookie := c.SessionCookie()
 	projectID := projResp1.CreateProject.ID
 
-	time.Sleep(1)
+	time.Sleep(time.Second * 1)
 
 	var projResp2 UpdateProjectResponse
 	err = c.Post(
