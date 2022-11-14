@@ -30,6 +30,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
+	"time"
 )
 
 type Resolver struct {
@@ -391,6 +392,10 @@ func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*m
 	}
 
 	return adapter.AccountsToAPI(accounts), nil
+}
+
+func (r *projectResolver) UpdatedAt(_ context.Context, proj *model.Project) (string, error) {
+	return proj.UpdatedAt.Format(time.RFC1123Z), nil
 }
 
 type queryResolver struct{ *Resolver }
