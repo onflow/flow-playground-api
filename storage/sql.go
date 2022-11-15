@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -53,7 +54,7 @@ type DatabaseConfig struct {
 }
 
 func NewPostgreSQL(conf *DatabaseConfig) *SQL {
-	config := postgres.Config{
+	cfg := postgres.Config{
 		DSN: fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
 			conf.Host,
@@ -64,7 +65,7 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	return newSQL(postgres.New(config), logger.Error)
+	return newSQL(postgres.New(cfg), logger.Error)
 }
 
 func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
@@ -77,6 +78,18 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		err := errors.Wrap(err, "failed to connect database")
 		sentry.CaptureException(err)
 		panic(err)
+	}
+
+	conf := config.GetConfig()
+	if conf.Platform == config.Staging && conf.ForceMigration {
+		// Delete v1 tables for v2 staging
+		db.Exec("DELETE FROM users")
+		db.Exec("DELETE FROM projects")
+		db.Exec("DELETE FROM accounts")
+		db.Exec("DELETE FROM transaction_templates")
+		db.Exec("DELETE FROM script_templates")
+		db.Exec("DELETE FROM transaction_executions")
+		db.Exec("DELETE FROM script_executions")
 	}
 
 	migrate(db)

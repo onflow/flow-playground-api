@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
 	"log"
 	"net/http"
@@ -51,39 +52,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Config struct {
-	Port                       int           `default:"8080"`
-	Debug                      bool          `default:"false"`
-	AllowedOrigins             []string      `default:"http://localhost:3000"`
-	SessionAuthKey             string        `default:"428ce08c21b93e5f0eca24fbeb0c7673"`
-	SessionMaxAge              time.Duration `default:"157680000s"`
-	SessionCookiesSecure       bool          `default:"true"`
-	SessionCookiesHTTPOnly     bool          `default:"true"`
-	SessionCookiesSameSiteNone bool          `default:"false"`
-	LedgerCacheSize            int           `default:"128"`
-	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
-	StorageBackend             string
-}
-
-type SentryConfig struct {
-	Dsn              string `default:"https://e8ff473e48aa4962b1a518411489ec5d@o114654.ingest.sentry.io/6398442"`
-	Debug            bool   `default:"true"`
-	AttachStacktrace bool   `default:"true"`
-}
-
 const sessionName = "flow-playground"
 
 func main() {
-	var sentryConf SentryConfig
-
-	if err := envconfig.Process("SENTRY", &sentryConf); err != nil {
-		log.Fatal(err)
-	}
-
 	semVer := ""
 	if build.Version() != nil {
 		semVer = build.Version().String()
 	}
+
+	var sentryConf = config.GetSentryConfig()
 
 	err := sentry.Init(sentry.ClientOptions{
 		Release:          semVer,
@@ -107,11 +84,7 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 
-	var conf Config
-
-	if err := envconfig.Process("FLOW", &conf); err != nil {
-		log.Fatal(err)
-	}
+	var conf = config.GetConfig()
 
 	var store storage.Store
 
