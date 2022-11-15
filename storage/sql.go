@@ -45,15 +45,7 @@ func NewSqlite() *SQL {
 	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
 }
 
-type DatabaseConfig struct {
-	User     string
-	Password string
-	Name     string
-	Host     string
-	Port     int
-}
-
-func NewPostgreSQL(conf *DatabaseConfig) *SQL {
+func NewPostgreSQL(conf *config.DatabaseConfig) *SQL {
 	cfg := postgres.Config{
 		DSN: fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
@@ -80,8 +72,8 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		panic(err)
 	}
 
-	conf := config.GetConfig()
-	if conf.Platform == config.Staging && conf.ForceMigration {
+	conf := config.GetPlayground()
+	if config.GetPlatform() == config.Staging && conf.ForceMigration {
 		// Delete v1 tables for v2 staging
 		db.Exec("DELETE FROM users")
 		db.Exec("DELETE FROM projects")

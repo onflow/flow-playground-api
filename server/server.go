@@ -47,7 +47,6 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	gsessions "github.com/gorilla/sessions"
-	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
 )
@@ -60,7 +59,7 @@ func main() {
 		semVer = build.Version().String()
 	}
 
-	var sentryConf = config.GetSentryConfig()
+	var sentryConf = config.GetSentry()
 
 	err := sentry.Init(sentry.ClientOptions{
 		Release:          semVer,
@@ -84,17 +83,13 @@ func main() {
 	defer sentry.Flush(2 * time.Second)
 	defer sentry.Recover()
 
-	var conf = config.GetConfig()
+	var conf = config.GetPlayground()
 
 	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
-		var datastoreConf storage.DatabaseConfig
-		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
-			log.Fatal(err)
-		}
-
-		store = storage.NewPostgreSQL(&datastoreConf)
+		var databaseConf = config.GetDatabase()
+		store = storage.NewPostgreSQL(&databaseConf)
 	} else {
 		store = storage.NewSqlite()
 	}

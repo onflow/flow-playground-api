@@ -25,3 +25,13 @@ const (
 	Staging    Platform = "STAGING"
 	Production Platform = "PRODUCTION"
 )
+
+type PlatformConfig struct {
+	Type Platform `default:"LOCAL"`
+}
+
+func GetPlatformConfig() PlatformConfig {
+	var platformConf PlatformConfig
+	getEnv("FLOW_PLATFORM", &platformConf)
+	return platformConf
+}

@@ -21,35 +21,57 @@ package config
 import (
 	"github.com/kelseyhightower/envconfig"
 	"log"
-	"time"
 )
 
-// GetConfig parses environment variables and returns a copy of the config
-func GetConfig() Config {
-	if config == nil {
-		config = &Config{}
-		if err := envconfig.Process("FLOW", config); err != nil {
-			log.Fatal(err)
-		}
-	}
-	return *config
+// config holds all parsed environment variables
+var config struct {
+	envParsed  bool
+	platform   PlatformConfig
+	playground PlaygroundConfig
+	sentry     SentryConfig
+	database   DatabaseConfig
 }
 
-var config *Config = nil
+func GetPlatform() Platform {
+	if !config.envParsed {
+		parseConfig()
+	}
+	return config.platform.Type
+}
 
-// Config holds the environment variables for Playground
-type Config struct {
-	Platform                   Platform
-	ForceMigration             bool          `default:"false"`
-	Port                       int           `default:"8080"`
-	Debug                      bool          `default:"false"`
-	AllowedOrigins             []string      `default:"http://localhost:3000"`
-	SessionAuthKey             string        `default:"428ce08c21b93e5f0eca24fbeb0c7673"`
-	SessionMaxAge              time.Duration `default:"157680000s"`
-	SessionCookiesSecure       bool          `default:"true"`
-	SessionCookiesHTTPOnly     bool          `default:"true"`
-	SessionCookiesSameSiteNone bool          `default:"false"`
-	LedgerCacheSize            int           `default:"128"`
-	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
-	StorageBackend             string
+func GetPlayground() PlaygroundConfig {
+	if !config.envParsed {
+		parseConfig()
+	}
+	return config.playground
+}
+
+func GetSentry() SentryConfig {
+	if !config.envParsed {
+		parseConfig()
+	}
+	return config.sentry
+}
+
+func GetDatabase() DatabaseConfig {
+	if !config.envParsed {
+		parseConfig()
+	}
+	return config.database
+}
+
+// parseConfig parses all environment variables into config
+func parseConfig() {
+	config.platform = GetPlatformConfig()
+	config.playground = GetPlaygroundConfig()
+	config.sentry = getSentryConfig()
+	config.database = getDatabaseConfig()
+	config.envParsed = true
+}
+
+// getEnv parses environment variables into dest pointer
+func getEnv(name string, dest interface{}) {
+	if err := envconfig.Process(name, dest); err != nil {
+		log.Fatal(err)
+	}
 }
