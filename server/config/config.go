@@ -25,7 +25,6 @@ import (
 
 // config holds parsed environment variables
 var config struct {
-	envParsed  bool
 	platform   PlatformConfig
 	playground PlaygroundConfig
 	sentry     SentryConfig
@@ -38,7 +37,6 @@ func init() {
 	config.playground.getConfig()
 	config.sentry.getConfig()
 	config.database.getConfig()
-	config.envParsed = true
 }
 
 func Platform() PlatformType {
