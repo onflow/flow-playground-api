@@ -72,16 +72,15 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		panic(err)
 	}
 
-	conf := config.Playground()
-	if config.Platform() == config.Staging && conf.ForceMigration {
+	if config.Platform() == config.Staging && config.Playground().ForceMigration {
 		// Delete v1 tables for v2 staging
-		db.Exec("DELETE FROM users")
-		db.Exec("DELETE FROM projects")
-		db.Exec("DELETE FROM accounts")
-		db.Exec("DELETE FROM transaction_templates")
-		db.Exec("DELETE FROM script_templates")
-		db.Exec("DELETE FROM transaction_executions")
-		db.Exec("DELETE FROM script_executions")
+		_ = db.Migrator().DropTable("users")
+		_ = db.Migrator().DropTable("projects")
+		_ = db.Migrator().DropTable("accounts")
+		_ = db.Migrator().DropTable("transaction_templates")
+		_ = db.Migrator().DropTable("script_templates")
+		_ = db.Migrator().DropTable("transaction_executions")
+		_ = db.Migrator().DropTable("script_executions")
 	}
 
 	migrate(db)
