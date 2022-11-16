@@ -31,8 +31,8 @@ type PlaygroundConfig struct {
 	SessionCookiesSameSiteNone bool          `default:"false"`
 	LedgerCacheSize            int           `default:"128"`
 	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
+	ForceMigration             bool          `default:"false"`
 	StorageBackend             string
-	ForceMigration             bool `default:"false"`
 }
 
 var _ envConfig = &PlaygroundConfig{}
