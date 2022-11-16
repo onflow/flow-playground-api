@@ -18,16 +18,16 @@
 
 package config
 
-type Platform string
+type PlatformType string
 
 const (
-	Local      Platform = "LOCAL"
-	Staging    Platform = "STAGING"
-	Production Platform = "PRODUCTION"
+	Local      PlatformType = "LOCAL"
+	Staging    PlatformType = "STAGING"
+	Production PlatformType = "PRODUCTION"
 )
 
 type PlatformConfig struct {
-	Type Platform `default:"LOCAL"`
+	Type PlatformType `default:"LOCAL"`
 }
 
 var _ envConfig = &PlatformConfig{}

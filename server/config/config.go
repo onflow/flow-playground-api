@@ -32,47 +32,35 @@ var config struct {
 	database   DatabaseConfig
 }
 
-// envConfig interface for sub-configs
-type envConfig interface {
-	// getConfig parses environment variables for sub-config
-	getConfig()
-}
-
-func GetPlatform() Platform {
-	if !config.envParsed {
-		parseConfig()
-	}
-	return config.platform.Type
-}
-
-func GetPlayground() PlaygroundConfig {
-	if !config.envParsed {
-		parseConfig()
-	}
-	return config.playground
-}
-
-func GetSentry() SentryConfig {
-	if !config.envParsed {
-		parseConfig()
-	}
-	return config.sentry
-}
-
-func GetDatabase() DatabaseConfig {
-	if !config.envParsed {
-		parseConfig()
-	}
-	return config.database
-}
-
-// parseConfig parses all environment variables into config
-func parseConfig() {
+// init parses all environment variables into config
+func init() {
 	config.platform.getConfig()
 	config.playground.getConfig()
 	config.sentry.getConfig()
 	config.database.getConfig()
 	config.envParsed = true
+}
+
+func Platform() PlatformType {
+	return config.platform.Type
+}
+
+func Playground() PlaygroundConfig {
+	return config.playground
+}
+
+func Sentry() SentryConfig {
+	return config.sentry
+}
+
+func Database() DatabaseConfig {
+	return config.database
+}
+
+// envConfig interface for sub-configs
+type envConfig interface {
+	// getConfig parses environment variables for sub-config
+	getConfig()
 }
 
 // getEnv parses environment variables into dest pointer

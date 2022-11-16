@@ -59,10 +59,10 @@ func main() {
 		semVer = build.Version().String()
 	}
 
-	platform := config.GetPlatform()
+	platform := config.Platform()
 
 	if platform == config.Staging || platform == config.Production {
-		var sentryConf = config.GetSentry()
+		var sentryConf = config.Sentry()
 		err := sentry.Init(sentry.ClientOptions{
 			Release:          semVer,
 			Dsn:              sentryConf.Dsn,
@@ -86,12 +86,12 @@ func main() {
 		defer sentry.Recover()
 	}
 
-	var conf = config.GetPlayground()
+	var conf = config.Playground()
 
 	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
-		var databaseConf = config.GetDatabase()
+		var databaseConf = config.Database()
 		store = storage.NewPostgreSQL(&databaseConf)
 	} else {
 		store = storage.NewSqlite()

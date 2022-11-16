@@ -72,8 +72,8 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		panic(err)
 	}
 
-	conf := config.GetPlayground()
-	if config.GetPlatform() == config.Staging && conf.ForceMigration {
+	conf := config.Playground()
+	if config.Platform() == config.Staging && conf.ForceMigration {
 		// Delete v1 tables for v2 staging
 		db.Exec("DELETE FROM users")
 		db.Exec("DELETE FROM projects")
