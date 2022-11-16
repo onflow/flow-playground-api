@@ -59,29 +59,32 @@ func main() {
 		semVer = build.Version().String()
 	}
 
-	var sentryConf = config.GetSentry()
+	platform := config.GetPlatform()
 
-	err := sentry.Init(sentry.ClientOptions{
-		Release:          semVer,
-		Dsn:              sentryConf.Dsn,
-		Debug:            sentryConf.Debug,
-		AttachStacktrace: sentryConf.AttachStacktrace,
-		BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-			if hint.Context != nil {
-				if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
-					event.Level = sentryLevel
+	if platform == config.Staging || platform == config.Production {
+		var sentryConf = config.GetSentry()
+		err := sentry.Init(sentry.ClientOptions{
+			Release:          semVer,
+			Dsn:              sentryConf.Dsn,
+			Debug:            sentryConf.Debug,
+			AttachStacktrace: sentryConf.AttachStacktrace,
+			BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+				if hint.Context != nil {
+					if sentryLevel, ok := errors.SentryLogLevel(hint.Context); ok {
+						event.Level = sentryLevel
+					}
 				}
-			}
-			return event
-		},
-	})
+				return event
+			},
+		})
 
-	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
+		if err != nil {
+			log.Fatalf("sentry.Init: %s", err)
+		}
+
+		defer sentry.Flush(2 * time.Second)
+		defer sentry.Recover()
 	}
-
-	defer sentry.Flush(2 * time.Second)
-	defer sentry.Recover()
 
 	var conf = config.GetPlayground()
 
@@ -175,7 +178,7 @@ func main() {
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
 
-	err = ping.SetPingHandlers(store.Ping)
+	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {
 		log.Fatal(err)
 	}

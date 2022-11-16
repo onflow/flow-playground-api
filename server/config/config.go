@@ -23,13 +23,19 @@ import (
 	"log"
 )
 
-// config holds all parsed environment variables
+// config holds parsed environment variables
 var config struct {
 	envParsed  bool
 	platform   PlatformConfig
 	playground PlaygroundConfig
 	sentry     SentryConfig
 	database   DatabaseConfig
+}
+
+// envConfig interface for sub-configs
+type envConfig interface {
+	// getConfig parses environment variables for sub-config
+	getConfig()
 }
 
 func GetPlatform() Platform {
@@ -62,10 +68,10 @@ func GetDatabase() DatabaseConfig {
 
 // parseConfig parses all environment variables into config
 func parseConfig() {
-	config.platform = GetPlatformConfig()
-	config.playground = GetPlaygroundConfig()
-	config.sentry = getSentryConfig()
-	config.database = getDatabaseConfig()
+	config.platform.getConfig()
+	config.playground.getConfig()
+	config.sentry.getConfig()
+	config.database.getConfig()
 	config.envParsed = true
 }
 
