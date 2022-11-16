@@ -59,8 +59,8 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	}
 
 	if int(projectCount) >= MaxProjectsLimit {
-		return nil, errors.New("maximum number of" +
-			strconv.Itoa(MaxProjectsLimit) + "projects reached.")
+		return nil, errors.New("maximum number of " +
+			strconv.Itoa(MaxProjectsLimit) + " projects reached.")
 	}
 
 	proj := &model.Project{
