@@ -102,12 +102,7 @@ func (f *Files) fileChanged(projectID uuid.UUID) error {
 	}
 
 	// Only pass in project ID to update the project's updated_at time
-	err = f.store.UpdateProject(model.UpdateProject{ID: proj.ID}, &proj)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return f.store.UpdateProject(model.UpdateProject{ID: proj.ID}, &proj)
 }
 
 func (f *Files) CreateScriptExecution(input model.NewScriptExecution) (*model.ScriptExecution, error) {
