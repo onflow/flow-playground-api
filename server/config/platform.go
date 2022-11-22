@@ -30,7 +30,7 @@ type PlatformConfig struct {
 	Type PlatformType `default:"LOCAL"`
 }
 
-var _ envConfig = &PlatformConfig{}
+var _ configGetter = &PlatformConfig{}
 
 func (c *PlatformConfig) getConfig() {
 	getEnv("FLOW_PLATFORM", c)

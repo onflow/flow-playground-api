@@ -24,7 +24,7 @@ type SentryConfig struct {
 	AttachStacktrace bool   `default:"true"`
 }
 
-var _ envConfig = &SentryConfig{}
+var _ configGetter = &SentryConfig{}
 
 func (c *SentryConfig) getConfig() {
 	getEnv("SENTRY", c)

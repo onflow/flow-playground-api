@@ -26,7 +26,7 @@ type DatabaseConfig struct {
 	Port     int
 }
 
-var _ envConfig = &DatabaseConfig{}
+var _ configGetter = &DatabaseConfig{}
 
 func (c *DatabaseConfig) getConfig() {
 	getEnv("FLOW_DB", c)

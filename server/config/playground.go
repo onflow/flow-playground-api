@@ -35,7 +35,7 @@ type PlaygroundConfig struct {
 	StorageBackend             string
 }
 
-var _ envConfig = &PlaygroundConfig{}
+var _ configGetter = &PlaygroundConfig{}
 
 func (c *PlaygroundConfig) getConfig() {
 	getEnv("FLOW", c)

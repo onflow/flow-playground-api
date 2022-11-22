@@ -55,8 +55,8 @@ func Database() DatabaseConfig {
 	return config.database
 }
 
-// envConfig interface for sub-configs
-type envConfig interface {
+// configGetter interface for sub-configs
+type configGetter interface {
 	// getConfig parses environment variables for sub-config
 	getConfig()
 }
