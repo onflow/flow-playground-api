@@ -81,7 +81,6 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		_ = db.Migrator().DropTable("script_templates")
 		_ = db.Migrator().DropTable("transaction_executions")
 		_ = db.Migrator().DropTable("script_executions")
-
 	}
 
 	migrate(db)
