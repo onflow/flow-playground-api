@@ -92,7 +92,8 @@ func (f *Files) DeleteFile(scriptID, projectID uuid.UUID) error {
 	return nil
 }
 
-// fileChanged updates project when a file is changed to set new updated time
+// fileChanged updates project updated_at time when a file is changed so that
+// updated_at represents when any part of a project was last updated
 func (f *Files) fileChanged(projectID uuid.UUID) error {
 	var proj model.Project
 	err := f.store.GetProject(projectID, &proj)
@@ -100,13 +101,8 @@ func (f *Files) fileChanged(projectID uuid.UUID) error {
 		return err
 	}
 
-	err = f.store.UpdateProject(model.UpdateProject{
-		ID:          proj.ID,
-		Title:       nil,
-		Description: nil,
-		Readme:      nil,
-		Persist:     nil,
-	}, &proj)
+	// Only pass in project ID to update the project's updated_at time
+	err = f.store.UpdateProject(model.UpdateProject{ID: proj.ID}, &proj)
 	if err != nil {
 		return err
 	}
