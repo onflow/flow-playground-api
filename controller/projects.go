@@ -20,6 +20,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -27,7 +28,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"strconv"
 )
 
 // MaxProjectsLimit limit on the number of projects a user can create
@@ -59,8 +59,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 	}
 
 	if int(projectCount) >= MaxProjectsLimit {
-		return nil, errors.New("maximum number of " +
-			strconv.Itoa(MaxProjectsLimit) + " projects reached.")
+		return nil, fmt.Errorf("maximum number of %d projects reached", MaxProjectsLimit)
 	}
 
 	proj := &model.Project{

@@ -61,7 +61,7 @@ func main() {
 
 	platform := config.Platform()
 
-	if platform == config.Staging || platform == config.Production {
+	if platform != config.Local {
 		var sentryConf = config.Sentry()
 		err := sentry.Init(sentry.ClientOptions{
 			Release:          semVer,
