@@ -55,6 +55,11 @@ func (f *Files) CreateFile(projectID uuid.UUID, input model.NewFile, fileType mo
 		return nil, errors.Wrap(err, "failed to store file")
 	}
 
+	err = f.fileChanged(projectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project on file change")
+	}
+
 	return &file, nil
 }
 
@@ -63,6 +68,11 @@ func (f *Files) UpdateFile(input model.UpdateFile) (*model.File, error) {
 	err := f.store.UpdateFile(input, &file)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update cadence file")
+	}
+
+	err = f.fileChanged(input.ProjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project on file change")
 	}
 
 	return &file, nil
@@ -74,7 +84,25 @@ func (f *Files) DeleteFile(scriptID, projectID uuid.UUID) error {
 		return errors.Wrap(err, "failed to delete cadence file")
 	}
 
+	err = f.fileChanged(projectID)
+	if err != nil {
+		return errors.Wrap(err, "failed to update project on file change")
+	}
+
 	return nil
+}
+
+// fileChanged updates project updated_at time when a file is changed so that
+// updated_at represents when any part of a project was last updated
+func (f *Files) fileChanged(projectID uuid.UUID) error {
+	var proj model.Project
+	err := f.store.GetProject(projectID, &proj)
+	if err != nil {
+		return err
+	}
+
+	// Only pass in project ID to update the project's updated_at time
+	return f.store.UpdateProject(model.UpdateProject{ID: proj.ID}, &proj)
 }
 
 func (f *Files) CreateScriptExecution(input model.NewScriptExecution) (*model.ScriptExecution, error) {
@@ -86,6 +114,12 @@ func (f *Files) CreateScriptExecution(input model.NewScriptExecution) (*model.Sc
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute script")
 	}
+
+	err = f.fileChanged(input.ProjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project from script execution")
+	}
+
 	return execution, nil
 }
 
@@ -99,6 +133,11 @@ func (f *Files) CreateTransactionExecution(input model.NewTransactionExecution) 
 		return nil, errors.Wrap(err, "failed to execute transaction")
 	}
 
+	err = f.fileChanged(input.ProjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project from transaction execution")
+	}
+
 	return exe, nil
 }
 
@@ -110,6 +149,11 @@ func (f *Files) DeployContract(input model.NewContractDeployment) (*model.Contra
 	deploy, err := f.blockchain.DeployContract(input.ProjectID, input.Address, input.Script)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to deploy contract")
+	}
+
+	err = f.fileChanged(input.ProjectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project from deployed contract")
 	}
 
 	return deploy, nil

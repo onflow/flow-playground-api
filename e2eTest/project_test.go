@@ -315,49 +315,96 @@ func TestProjects(t *testing.T) {
 
 }
 
-func TestProjectSavedTime(t *testing.T) {
-	c := newClient()
+func TestProjectUpdatedTime(t *testing.T) {
+	t.Run("create and update project", func(t *testing.T) {
+		c := newClient()
 
-	var projResp1 CreateProjectResponse
-	err := c.Post(
-		MutationCreateProject,
-		&projResp1,
-		client.Var("title", "foo1"),
-		client.Var("description", "bar"),
-		client.Var("readme", "bah"),
-		client.Var("seed", 42),
-		client.Var("numberOfAccounts", initAccounts),
-	)
-	require.NoError(t, err)
-	require.NotEmpty(t, projResp1.CreateProject.UpdatedAt)
+		var projResp1 CreateProjectResponse
+		err := c.Post(
+			MutationCreateProject,
+			&projResp1,
+			client.Var("title", "foo1"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
+		require.NotEmpty(t, projResp1.CreateProject.UpdatedAt)
 
-	cookie := c.SessionCookie()
-	projectID := projResp1.CreateProject.ID
+		cookie := c.SessionCookie()
+		projectID := projResp1.CreateProject.ID
 
-	time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 1)
 
-	var projResp2 UpdateProjectResponse
-	err = c.Post(
-		MutationUpdateProjectPersist,
-		&projResp2,
-		client.Var("projectId", projectID),
-		client.Var("title", "updated title"),
-		client.Var("description", "updated desc"),
-		client.Var("readme", "updated readme"),
-		client.Var("persist", true),
-		client.AddCookie(cookie),
-	)
-	require.NoError(t, err)
-	require.NotEmpty(t, projResp2.UpdateProject.UpdatedAt)
+		var projResp2 UpdateProjectResponse
+		err = c.Post(
+			MutationUpdateProjectPersist,
+			&projResp2,
+			client.Var("projectId", projectID),
+			client.Var("title", "updated title"),
+			client.Var("description", "updated desc"),
+			client.Var("readme", "updated readme"),
+			client.Var("persist", true),
+			client.AddCookie(cookie),
+		)
+		require.NoError(t, err)
+		require.NotEmpty(t, projResp2.UpdateProject.UpdatedAt)
 
-	createdTime, _ := time.Parse(time.RFC1123Z, projResp1.CreateProject.UpdatedAt)
-	updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
-	require.True(t, createdTime.Before(updatedTime))
+		createdTime, _ := time.Parse(time.RFC1123Z, projResp1.CreateProject.UpdatedAt)
+		updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
+		require.True(t, createdTime.Before(updatedTime))
 
-	fiveSeconds := int64(5000)
-	require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
+		fiveSeconds := int64(5000)
+		require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
 
-	require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp2.UpdateProject.UpdatedAt)
+		require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp2.UpdateProject.UpdatedAt)
+	})
+
+	t.Run("updating a file", func(t *testing.T) {
+		c := newClient()
+
+		var projResp1 CreateProjectResponse
+		err := c.Post(
+			MutationCreateProject,
+			&projResp1,
+			client.Var("title", "foo1"),
+			client.Var("description", "bar"),
+			client.Var("readme", "bah"),
+			client.Var("seed", 42),
+			client.Var("numberOfAccounts", initAccounts),
+		)
+		require.NoError(t, err)
+		require.NotEmpty(t, projResp1.CreateProject.UpdatedAt)
+
+		cookie := c.SessionCookie()
+		projectID := projResp1.CreateProject.ID
+
+		var templateResp CreateContractTemplateResponse
+		err = c.Post(
+			MutationCreateContractTemplate,
+			&templateResp,
+			client.Var("projectId", projectID),
+			client.Var("title", "foo"),
+			client.Var("script", "bar"),
+			client.Var("numberOfAccounts", initAccounts),
+			client.AddCookie(cookie),
+		)
+		require.NoError(t, err)
+
+		var projResp2 GetProjectResponse
+		err = c.Post(
+			QueryGetProject,
+			&projResp2,
+			client.Var("projectId", projectID),
+			client.AddCookie(cookie),
+		)
+		require.NoError(t, err)
+
+		createdTime, _ := time.Parse(time.RFC1123Z, projResp1.CreateProject.UpdatedAt)
+		updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.Project.UpdatedAt)
+		require.True(t, createdTime.Before(updatedTime))
+	})
 }
 
 func TestGetProjectList(t *testing.T) {
