@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -44,16 +45,8 @@ func NewSqlite() *SQL {
 	return newSQL(sqlite.Open("./e2e-db"), logger.Warn)
 }
 
-type DatabaseConfig struct {
-	User     string
-	Password string
-	Name     string
-	Host     string
-	Port     int
-}
-
-func NewPostgreSQL(conf *DatabaseConfig) *SQL {
-	config := postgres.Config{
+func NewPostgreSQL(conf *config.DatabaseConfig) *SQL {
+	cfg := postgres.Config{
 		DSN: fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%d sslmode=disable",
 			conf.Host,
@@ -64,7 +57,7 @@ func NewPostgreSQL(conf *DatabaseConfig) *SQL {
 		),
 	}
 
-	return newSQL(postgres.New(config), logger.Error)
+	return newSQL(postgres.New(cfg), logger.Error)
 }
 
 func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
@@ -77,6 +70,17 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 		err := errors.Wrap(err, "failed to connect database")
 		sentry.CaptureException(err)
 		panic(err)
+	}
+
+	if config.Platform() == config.Staging && config.Playground().ForceMigration {
+		// Delete v1 tables for v2 staging
+		_ = db.Migrator().DropTable("users")
+		_ = db.Migrator().DropTable("projects")
+		_ = db.Migrator().DropTable("accounts")
+		_ = db.Migrator().DropTable("transaction_templates")
+		_ = db.Migrator().DropTable("script_templates")
+		_ = db.Migrator().DropTable("transaction_executions")
+		_ = db.Migrator().DropTable("script_executions")
 	}
 
 	migrate(db)

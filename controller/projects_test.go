@@ -19,6 +19,7 @@
 package controller
 
 import (
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func createStore() storage.Store {
 	var store storage.Store
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
-		var datastoreConf storage.DatabaseConfig
+		var datastoreConf config.DatabaseConfig
 		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			panic(err)
 		}

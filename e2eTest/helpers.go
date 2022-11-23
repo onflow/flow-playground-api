@@ -23,6 +23,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 	"github.com/kelseyhightower/envconfig"
@@ -91,7 +92,7 @@ func newStore() storage.Store {
 	}
 
 	if strings.EqualFold(os.Getenv("FLOW_STORAGEBACKEND"), storage.PostgreSQL) {
-		var datastoreConf storage.DatabaseConfig
+		var datastoreConf config.DatabaseConfig
 		if err := envconfig.Process("FLOW_DB", &datastoreConf); err != nil {
 			panic(err)
 		}
