@@ -59,6 +59,9 @@ type blockchain interface {
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
+	// removeContract removes specified contract from provided address and returns transaction and result.
+	removeContract(flowAccount *flowsdk.Account, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
+
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
 }
@@ -165,6 +168,14 @@ func (e *emulator) deployContract(
 		Source: script,
 	})
 
+	return e.sendTransaction(tx, nil)
+}
+
+func (e *emulator) removeContract(
+	flowAccount *flowsdk.Account,
+	contractName string,
+) (*types.TransactionResult, *flowsdk.Transaction, error) {
+	tx := templates.RemoveAccountContract(flowAccount.Address, contractName)
 	return e.sendTransaction(tx, nil)
 }
 

@@ -56,7 +56,7 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new account models
-func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account, error) {
+func (p *Projects) Reset(projectID uuid.UUID) ([]*model.Account, error) {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)
 	if err != nil {
@@ -73,15 +73,6 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	accounts, err := p.createInitialAccounts(projectID)
 	if err != nil {
 		return nil, err
-	}
-
-	// Reload emulator
-	// TODO: refactor reset logic: https://github.com/onflow/flow-playground-api/issues/113
-	if em != nil {
-		*em, err = p.load(projectID)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return accounts, nil
@@ -232,18 +223,42 @@ func (p *Projects) DeployContract(
 	if err != nil {
 		return nil, err
 	}
+
 	if _, ok := flowAccount.Contracts[contractName]; ok {
 		// A contract with this name has already been deployed to this account
-		// TODO: change logic to just re-deploy this contract instead of resetting the state
-		var proj model.Project
-		err := p.store.GetProject(projectID, &proj)
+		// Remove the contract and then re-deploy
+		result, _, err := em.removeContract(flowAccount, contractName)
+		if err != nil {
+			return nil, err
+		}
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		// Remove contract deployment from db
+		var deployments []*model.ContractDeployment
+		err = p.store.GetContractDeploymentsForProject(projectID, &deployments)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = p.Reset(proj.ID, &em)
-		if err != nil {
-			return nil, err
+		for _, deploy := range deployments {
+			if deploy.Address != address {
+				continue
+			}
+
+			deployedContractName, err := parseContractName(deploy.Script)
+			if err != nil {
+				return nil, err
+			}
+
+			if deployedContractName == contractName {
+				err = p.store.DeleteContractDeployment(deploy)
+				if err != nil {
+					return nil, err
+				}
+				break // There's only one possible deployment with this name
+			}
 		}
 	}
 

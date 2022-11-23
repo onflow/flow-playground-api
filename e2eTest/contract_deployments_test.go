@@ -53,6 +53,12 @@ func TestContractDeployments(t *testing.T) {
 
 }
 
+func TestContractDeletion(t *testing.T) {
+	// TODO: redeploy a contract that has the same name but different methods name and init arguments
+	// TODO: and make sure the re-deploy works ;P
+
+}
+
 func TestContractInteraction(t *testing.T) {
 	c := newClient()
 

@@ -315,8 +315,11 @@ func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.
 }
 
 func (s *SQL) InsertContractDeployment(deploy *model.ContractDeployment) error {
-	// Should avoid this!
 	return s.db.Create(deploy).Error
+}
+
+func (s *SQL) DeleteContractDeployment(deploy *model.ContractDeployment) error {
+	return s.db.Delete(deploy).Error
 }
 
 func (s *SQL) InsertContractDeploymentWithExecution(
