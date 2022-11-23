@@ -176,6 +176,9 @@ func (e *emulator) removeContract(
 	contractName string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
 	tx := templates.RemoveAccountContract(flowAccount.Address, contractName)
+	// TODO: Fix not authorized error?!
+	//tx.SetPayer(flowAccount.Address)
+	//authorizers := []flowsdk.Address{flowAccount.Address}
 	return e.sendTransaction(tx, nil)
 }
 

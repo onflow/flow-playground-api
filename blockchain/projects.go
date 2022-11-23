@@ -236,29 +236,15 @@ func (p *Projects) DeployContract(
 		}
 
 		// Remove contract deployment from db
-		var deployments []*model.ContractDeployment
-		err = p.store.GetContractDeploymentsForProject(projectID, &deployments)
+		var deployment model.ContractDeployment
+		err = p.store.GetContractDeploymentByName(projectID, address, contractName, &deployment)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, deploy := range deployments {
-			if deploy.Address != address {
-				continue
-			}
-
-			deployedContractName, err := parseContractName(deploy.Script)
-			if err != nil {
-				return nil, err
-			}
-
-			if deployedContractName == contractName {
-				err = p.store.DeleteContractDeployment(deploy)
-				if err != nil {
-					return nil, err
-				}
-				break // There's only one possible deployment with this name
-			}
+		err = p.store.DeleteContractDeployment(&deployment)
+		if err != nil {
+			return nil, err
 		}
 	}
 

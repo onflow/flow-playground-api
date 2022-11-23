@@ -255,7 +255,6 @@ func Test_StateRecreation(t *testing.T) {
 	}
 
 	contractDeployment, err := files.DeployContract(deploy)
-	println("CONTRACT TITLE: ", contractDeployment.Title)
 	require.NoError(t, err)
 
 	assert.Equal(t, "HelloWorld", contractDeployment.File.Title)

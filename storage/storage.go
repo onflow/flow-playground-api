@@ -51,9 +51,10 @@ type Store interface {
 	GetAllFilesForProject(projectID uuid.UUID, files *[]*model.File) error
 
 	InsertContractDeployment(deploy *model.ContractDeployment) error
-	DeleteContractDeployment(deploy *model.ContractDeployment) error // TODO?
+	DeleteContractDeployment(deploy *model.ContractDeployment) error
 	InsertContractDeploymentWithExecution(deploy *model.ContractDeployment, exe *model.TransactionExecution) error
 	GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error
+	GetContractDeploymentByName(projectID uuid.UUID, address model.Address, contractName string, deployment *model.ContractDeployment) error
 
 	InsertTransactionExecution(exe *model.TransactionExecution) error
 	GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error
