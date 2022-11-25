@@ -54,8 +54,68 @@ func TestContractDeployments(t *testing.T) {
 }
 
 func TestContractRedeployment(t *testing.T) {
-	// TODO: redeploy a contract that has the same name but different methods name and init arguments
-	// TODO: and verify that the re-deploy works as expected
+	t.Run("same contract name different arguments", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		contractA := `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+			access(all) fun returnInt(): Int {
+        		return self.A
+    		}
+		}`
+
+		contractB := `
+		pub contract HelloWorld {
+			pub var B: String
+			pub init() { self.B = "HelloWorldB" }
+			access(all) fun returnString(): String {
+        		return self.B
+    		}
+		}`
+
+		var respA CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		// TODO: Why isn't the actual contract script stored in the deployment?
+		// TODO: How can I verify that the right contract was deployed?
+		require.Equal(t, contractA, respA.CreateContractDeployment.Script)
+
+		var respB CreateContractDeploymentResponse
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractB),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, contractB, respB.CreateContractDeployment.Script)
+
+		var accountResp GetAccountResponse
+		err = c.Post(
+			QueryGetAccount,
+			&accountResp,
+			client.Var("address", addr1),
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		require.Equal(t, "HelloWorld", accountResp.Account.DeployedContracts)
+	})
 }
 
 func TestContractInteraction(t *testing.T) {
