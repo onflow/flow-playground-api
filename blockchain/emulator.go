@@ -26,7 +26,6 @@ import (
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
 	emu "github.com/onflow/flow-emulator"
-	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
@@ -60,7 +59,7 @@ type blockchain interface {
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
 	// removeContract removes specified contract from provided address and returns transaction and result.
-	removeContract(flowAccount *flowsdk.Account, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
+	removeContract(address flowsdk.Address, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
@@ -74,11 +73,11 @@ type emulator struct {
 
 func newEmulator() (*emulator, error) {
 	blockchain, err := emu.NewBlockchain(
-		emu.WithStore(memstore.New()),
 		emu.WithTransactionValidationEnabled(false),
 		emu.WithSimpleAddresses(),
 		emu.WithStorageLimitEnabled(false),
 		emu.WithTransactionFeesEnabled(false),
+		emu.WithContractRemovalRestricted(false),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new emulator instance")
@@ -172,13 +171,10 @@ func (e *emulator) deployContract(
 }
 
 func (e *emulator) removeContract(
-	flowAccount *flowsdk.Account,
+	address flowsdk.Address,
 	contractName string,
 ) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	tx := templates.RemoveAccountContract(flowAccount.Address, contractName)
-	// TODO: Fix not authorized error?!
-	//tx.SetPayer(flowAccount.Address)
-	//authorizers := []flowsdk.Address{flowAccount.Address}
+	tx := templates.RemoveAccountContract(address, contractName)
 	return e.sendTransaction(tx, nil)
 }
 

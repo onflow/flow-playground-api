@@ -202,6 +202,7 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
+// If a contract with the same name is already deployed to this address, then it will be updated.
 func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
@@ -226,13 +227,20 @@ func (p *Projects) DeployContract(
 
 	if _, ok := flowAccount.Contracts[contractName]; ok {
 		// A contract with this name has already been deployed to this account
-		// Remove the contract and then re-deploy
-		result, _, err := em.removeContract(flowAccount, contractName)
+		// Remove previous contract from the account
+		result, tx, err := em.removeContract(address.ToFlowAddress(), contractName)
 		if err != nil {
 			return nil, err
 		}
 		if result.Error != nil {
 			return nil, result.Error
+		}
+
+		// Insert transaction execution of contract removal into db
+		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+		err = p.store.InsertTransactionExecution(exe)
+		if err != nil {
+			return nil, err
 		}
 
 		// Remove contract deployment from db
