@@ -5,8 +5,8 @@ CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
 KUBECONFIG := $(shell uuidgen)
-PACKAGE_TEST_FILES = $(shell go list ./... | grep -v /e2eTest)
-E2E_TEST_FILES = ./e2eTest/...
+PACKAGE_TEST_DIRS = $(shell go list ./... | grep -v /e2eTest)
+E2E_TEST_DIRS = ./...#$(shell go list ./e2eTest/...) #TODO: Client test must be included...
 
 .PHONY: generate
 generate:
@@ -14,11 +14,15 @@ generate:
 
 .PHONY: package-test-ci
 package-test-ci: check-tidy
-	GO111MODULE=on go test -v $(PACKAGE_TEST_FILES)
+	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
 
 .PHONY: e2e-test-ci
 e2e-test-ci: check-tidy
-	GO111MODULE=on go test -v $(E2E_TEST_FILES)
+	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
+
+.PHONY: test-ci
+test-ci: check-tidy
+	GO111MODULE=on go test -v ./... -timeout 30m
 
 .PHONY: test-local
 test-local:
