@@ -38,18 +38,16 @@ type ContractDeployment struct {
 func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
 	contractName string,
+	script string,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
 ) *ContractDeployment {
 	signers := make([]Address, 0)
-	script := ""
 	// transaction could be nil in case where we get transaction result errors
 	if tx != nil {
 		for _, a := range tx.Authorizers {
 			signers = append(signers, NewAddressFromBytes(a.Bytes()))
 		}
-
-		script = string(tx.Script)
 	}
 
 	exe := &ContractDeployment{

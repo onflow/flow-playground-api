@@ -87,10 +87,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-
-		// TODO: Why isn't the actual contract script stored in the deployment?
-		// TODO: How can I verify that the right contract was deployed?
-		//require.Equal(t, contractA, respA.CreateContractDeployment.Script)
+		require.Equal(t, contractA, respA.CreateContractDeployment.Script)
 
 		var respB CreateContractDeploymentResponse
 		err = c.Post(
@@ -102,7 +99,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		//require.Equal(t, contractB, respB.CreateContractDeployment.Script)
+		require.Equal(t, contractB, respB.CreateContractDeployment.Script)
 
 		var accountResp GetAccountResponse
 		err = c.Post(
