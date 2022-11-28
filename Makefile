@@ -6,7 +6,7 @@ IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
 KUBECONFIG := $(shell uuidgen)
 PACKAGE_TEST_FILES = $(shell go list ./... | grep -v /e2eTest)
-E2E_TEST_FILES = ./e2eTest
+E2E_TEST_FILES = ./e2eTest/...
 
 .PHONY: generate
 generate:
