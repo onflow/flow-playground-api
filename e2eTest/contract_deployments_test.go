@@ -66,6 +66,9 @@ func TestContractRedeployment(t *testing.T) {
 			access(all) fun returnInt(): Int {
         		return self.A
     		}
+			access(all) fun setVar(a: Int) {
+				self.A = a
+			}
 		}`
 
 		contractB := `
@@ -75,6 +78,9 @@ func TestContractRedeployment(t *testing.T) {
 			access(all) fun returnString(): String {
         		return self.B
     		}
+			access(all) fun setVar(b: String) {
+				self.B = b
+			}
 		}`
 
 		var respA CreateContractDeploymentResponse

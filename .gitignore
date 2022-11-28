@@ -2,4 +2,4 @@
 .DS_Store
 e2e-db
 server/server
-test-log.log
+test-results.log
