@@ -12,15 +12,15 @@ E2E_TEST_FILES = ./e2eTest
 generate:
 	GO111MODULE=on go generate ./...
 
-.PHONY: test
-test:
+.PHONY: test-ci
+test: check-tidy
 	GO111MODULE=on go test -v $(MODULE_TEST_FILES)
 
-.PHONY: e2e-test
-e2eTest:
+.PHONY: e2e-test-ci
+e2e-test: check-tidy
 	GO111MODULE=on go test -v $(E2E_TEST_FILES)
 
-.PHONY: test-log
+.PHONY: test-local
 test-log:
 	GO111MODULE=on go test -v ./... -timeout 30m > test-log.log
 
@@ -46,18 +46,12 @@ run-pg:
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
-.PHONY: check
-check: check-tidy check-headers
-
-.PHONY: ci
-ci: test
-
 .PHONY: install-linter
 install-linter:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${GOPATH}/bin v1.47.2
 
 .PHONY: lint
-lint:
+lint: check-headers
 	golangci-lint run -v ./...
 
 .PHONY: check-headers
