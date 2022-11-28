@@ -5,6 +5,8 @@ CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
 KUBECONFIG := $(shell uuidgen)
+MODULE_TEST_FILES = $(shell go list ./... | grep -v /e2eTest)
+E2E_TEST_FILES = ./e2eTest
 
 .PHONY: generate
 generate:
@@ -12,20 +14,15 @@ generate:
 
 .PHONY: test
 test:
-	GO111MODULE=on go test -v ./...
+	GO111MODULE=on go test -v $(MODULE_TEST_FILES)
+
+.PHONY: e2e-test
+e2eTest:
+	GO111MODULE=on go test -v $(E2E_TEST_FILES)
 
 .PHONY: test-log
 test-log:
-	GO111MODULE=on go test -v ./... > test-log.log
-
-.PHONY: test-datastore
-test-pg:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test -v ./...
-
-.PHONY: test-migration
-test-migration:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./migrate/...
-
+	GO111MODULE=on go test -v ./... -timeout 30m > test-log.log
 
 .PHONY: run
 run:
@@ -49,8 +46,11 @@ run-pg:
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
+.PHONY: check
+check: check-tidy check-headers
+
 .PHONY: ci
-ci: check-tidy test check-headers
+ci: test
 
 .PHONY: install-linter
 install-linter:
