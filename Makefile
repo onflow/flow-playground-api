@@ -21,7 +21,7 @@ e2e-test: check-tidy
 	GO111MODULE=on go test -v $(E2E_TEST_FILES)
 
 .PHONY: test-local
-test-log:
+test-local:
 	GO111MODULE=on go test -v ./... -timeout 30m > test-log.log
 
 .PHONY: run
