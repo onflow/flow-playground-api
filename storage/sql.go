@@ -350,12 +350,12 @@ func (s *SQL) InsertContractDeploymentWithExecution(
 	})
 }
 
-func (s *SQL) GetContractDeploymentByName(
+func (s *SQL) DeleteContractDeploymentByName(
 	projectID uuid.UUID,
 	address model.Address,
 	contractName string,
-	deployment *model.ContractDeployment,
 ) error {
+	var deployment model.ContractDeployment
 	getModel := &model.ContractDeployment{
 		Address: address,
 		File: model.File{
@@ -363,8 +363,12 @@ func (s *SQL) GetContractDeploymentByName(
 			Title:     contractName,
 		},
 	}
+	err := s.db.Where(getModel).Find(&deployment).Error
+	if err != nil {
+		return err
+	}
 
-	return s.db.Where(getModel).Find(deployment).Error
+	return s.DeleteContractDeployment(&deployment)
 }
 
 func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {
