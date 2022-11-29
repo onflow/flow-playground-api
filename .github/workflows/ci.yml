@@ -56,7 +56,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Run lint
-      - run: make lint-ci
+        run: make lint-ci
       #- name: Run golangci-lint
       #  uses: golangci/golangci-lint-action@v3.2.0
       #  with:
