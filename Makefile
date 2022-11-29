@@ -13,11 +13,11 @@ generate:
 	GO111MODULE=on go generate ./...
 
 .PHONY: package-test-ci
-package-test-ci: check-tidy
+package-test-ci:
 	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
 
 .PHONY: e2e-test-ci
-e2e-test-ci: check-tidy
+e2e-test-ci:
 	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
 
 .PHONY: test-local
@@ -53,6 +53,10 @@ install-linter:
 .PHONY: lint
 lint: check-headers
 	golangci-lint run -v ./...
+
+.PHONY: lint-ci
+lint-ci: check-tidy
+	make lint
 
 .PHONY: check-headers
 check-headers:

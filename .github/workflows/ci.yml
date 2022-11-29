@@ -55,9 +55,11 @@ jobs:
           go-version: '1.18.4'
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3.2.0
-        with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.49
-          args: --timeout=10m
+      - name: Run lint
+      - run: make lint-ci
+      #- name: Run golangci-lint
+      #  uses: golangci/golangci-lint-action@v3.2.0
+      #  with:
+      #    # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+      #    version: v1.49
+      #    args: --timeout=10m
