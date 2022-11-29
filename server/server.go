@@ -20,14 +20,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/server/telemetry"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-chi/httplog"
-
-	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
@@ -41,8 +40,10 @@ import (
 	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
+	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
+	"github.com/go-chi/httplog"
 	"github.com/go-chi/render"
 	gsessions "github.com/gorilla/sessions"
 	"github.com/kelseyhightower/envconfig"
@@ -177,6 +178,8 @@ func main() {
 			}
 		}()
 
+		telemetry.Register()
+
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
@@ -208,6 +211,7 @@ func main() {
 	})
 
 	router.HandleFunc("/ping", ping)
+	router.Handle("/metrics", promhttp.Handler())
 
 	logStartMessage(build.Version())
 
