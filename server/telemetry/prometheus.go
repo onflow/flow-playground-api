@@ -41,7 +41,7 @@ var (
 )
 
 type (
-	MetricTracer struct{}
+	Tracer struct{}
 )
 
 var _ interface {
@@ -49,7 +49,7 @@ var _ interface {
 	graphql.OperationInterceptor
 	graphql.ResponseInterceptor
 	graphql.FieldInterceptor
-} = MetricTracer{}
+} = Tracer{}
 
 func Register() {
 	RegisterOn(prometheusclient.DefaultRegisterer)
@@ -121,20 +121,20 @@ func UnRegisterFrom(registerer prometheusclient.Registerer) {
 	registerer.Unregister(timeToHandleRequest)
 }
 
-func (a MetricTracer) ExtensionName() string {
+func (a Tracer) ExtensionName() string {
 	return "Prometheus"
 }
 
-func (a MetricTracer) Validate(schema graphql.ExecutableSchema) error {
+func (a Tracer) Validate(schema graphql.ExecutableSchema) error {
 	return nil
 }
 
-func (a MetricTracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+func (a Tracer) InterceptOperation(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
 	requestStartedCounter.Inc()
 	return next(ctx)
 }
 
-func (a MetricTracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
+func (a Tracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
 	errList := graphql.GetErrors(ctx)
 
 	var exitStatus string
@@ -155,7 +155,7 @@ func (a MetricTracer) InterceptResponse(ctx context.Context, next graphql.Respon
 	return next(ctx)
 }
 
-func (a MetricTracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
+func (a Tracer) InterceptField(ctx context.Context, next graphql.Resolver) (interface{}, error) {
 	fc := graphql.GetFieldContext(ctx)
 
 	resolverStartedCounter.WithLabelValues(fc.Object, fc.Field.Name).Inc()

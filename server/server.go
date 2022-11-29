@@ -22,10 +22,6 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/telemetry"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net/http"
 	"strings"
@@ -76,8 +72,6 @@ type SentryConfig struct {
 }
 
 const sessionName = "flow-playground"
-
-var tracer = otel.Tracer("playground-api")
 
 func main() {
 	var sentryConf SentryConfig
@@ -185,7 +179,6 @@ func main() {
 		}()
 
 		telemetry.Register()
-		initTracer()
 
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
@@ -237,21 +230,4 @@ func logStartMessage(version *semver.Version) {
 	} else {
 		log.Print("Starting Playground API")
 	}
-}
-
-func initTracer() {
-	traceExporter, err := stdouttrace.New(
-		stdouttrace.WithPrettyPrint(),
-	)
-	if err != nil {
-		log.Fatalf("failed to initialize stdouttrace export pipeline: %v", err)
-	}
-
-	tp := trace.NewTracerProvider(
-		trace.WithSampler(trace.AlwaysSample()),
-		trace.WithSyncer(traceExporter),
-	)
-
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 }
