@@ -9,8 +9,8 @@ on:
     branches: [ master, staging, v2 ]
 
 jobs:
-  package-test:
-    name: Package Tests
+  test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
