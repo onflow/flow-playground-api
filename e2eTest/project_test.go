@@ -335,7 +335,7 @@ func TestProjectUpdatedTime(t *testing.T) {
 		cookie := c.SessionCookie()
 		projectID := projResp1.CreateProject.ID
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 2)
 
 		var projResp2 UpdateProjectResponse
 		err = c.Post(
@@ -355,10 +355,8 @@ func TestProjectUpdatedTime(t *testing.T) {
 		updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
 		require.True(t, createdTime.Before(updatedTime))
 
-		fiveSeconds := int64(5000)
-		require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
-
-		require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp2.UpdateProject.UpdatedAt)
+		tenSeconds := int64(10000)
+		require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < tenSeconds)
 	})
 
 	t.Run("updating a file", func(t *testing.T) {
@@ -379,6 +377,8 @@ func TestProjectUpdatedTime(t *testing.T) {
 
 		cookie := c.SessionCookie()
 		projectID := projResp1.CreateProject.ID
+
+		time.Sleep(time.Second * 2)
 
 		var templateResp CreateContractTemplateResponse
 		err = c.Post(

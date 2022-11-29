@@ -13,16 +13,16 @@ generate:
 	GO111MODULE=on go generate ./...
 
 .PHONY: package-test-ci
-package-test-ci: check-tidy
-	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
+package-test-ci: #check-tidy
+	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS) > package-test-results.log
 
 .PHONY: e2e-test-ci
-e2e-test-ci: check-tidy
-	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
+e2e-test-ci: #check-tidy
+	GO111MODULE=on go test -v $(E2E_TEST_DIRS) > e2e-test-results.log
 
 .PHONY: test-ci
 test-ci: check-tidy
-	GO111MODULE=on go test -v ./... -timeout 30m
+	GO111MODULE=on go test -v ./... -timeout 20m
 
 .PHONY: test-local
 test-local:
