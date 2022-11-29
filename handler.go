@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/telemetry"
+	"github.com/ravilushqa/otelgqlgen"
 
 	"github.com/99designs/gqlgen/graphql"
 	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
@@ -33,7 +34,8 @@ import (
 func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {
 	srv := gqlHandler.NewDefaultServer(NewExecutableSchema(Config{Resolvers: resolver}))
 
-	srv.Use(telemetry.Tracer{})
+	srv.Use(telemetry.MetricTracer{})
+	srv.Use(otelgqlgen.Middleware())
 
 	for _, middleware := range middlewares {
 		srv.AroundResponses(middleware)
