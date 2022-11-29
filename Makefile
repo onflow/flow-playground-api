@@ -20,10 +20,6 @@ package-test-ci:
 e2e-test-ci:
 	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
 
-.PHONY: test-ci
-test-ci:
-	GO111MODULE=on go test -v ./... -timeout 20m
-
 .PHONY: test-local
 test-local:
 	GO111MODULE=on go test -v ./... -timeout 20m > test-results.log
