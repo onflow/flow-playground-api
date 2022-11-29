@@ -54,10 +54,6 @@ install-linter:
 lint: check-headers
 	golangci-lint run -v ./...
 
-.PHONY: lint-ci
-lint-ci: check-tidy
-	make lint
-
 .PHONY: check-headers
 check-headers:
 	@./check-headers.sh
