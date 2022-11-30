@@ -23,9 +23,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
-
-import (
 	"testing"
 )
 
@@ -36,7 +33,7 @@ func TestContractTemplates(t *testing.T) {
 
 		project := createProject(t, c)
 
-		var resp CreateContractDeploymentResponse
+		var resp CreateContractTemplateResponse
 
 		err := c.Post(
 			MutationCreateContractTemplate,
@@ -47,7 +44,7 @@ func TestContractTemplates(t *testing.T) {
 		)
 
 		assert.Error(t, err)
-		assert.Empty(t, resp.CreateContractDeployment.ID)
+		assert.Empty(t, resp.CreateContractTemplate.ID)
 	})
 
 	t.Run("Create contract template", func(t *testing.T) {

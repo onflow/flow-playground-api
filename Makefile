@@ -14,14 +14,17 @@ generate:
 
 .PHONY: package-test
 package-test:
+	go clean -cache -testcache
 	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
 
 .PHONY: e2e-test
 e2e-test:
+	go clean -cache -testcache
 	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
 
 .PHONY: test
 test:
+	go clean -cache -testcache
 	GO111MODULE=on go test -v ./... -timeout 20m > test-results.log
 
 .PHONY: run
