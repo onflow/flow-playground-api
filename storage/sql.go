@@ -248,17 +248,60 @@ func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) er
 		Find(proj).Error
 }
 
-func (s *SQL) GetStaleProjects(stale *[]*model.Project) error {
-	queryString := fmt.Sprintf("SELECT * FROM projects WHERE accessed_at < %s", time.Now().String())
-	return s.db.Raw(queryString).Find(stale).Error
+func (s *SQL) GetStaleProjects(stale time.Duration, projs *[]*model.Project) error {
+	staleBefore := time.Now().Add(-1 * stale)
+	return s.db.Where("accessed_at < ?", staleBefore).
+		Find(&projs).Error
+}
 
-	/*
-		var projects []*model.Project
-		batchSize := 10000
-		for i:= 0; i <
-		err := s.db.Where(&model.Project{}).Offset().Limit(batchSize).Find(&projects).Error
+func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
+	staleBefore := time.Now().Add(-1 * stale)
 
-	*/
+	var staleIDs []*uuid.UUID
+	err := s.db.Select("id").
+		Where("accessed_at < ?", staleBefore).
+		Model(&model.Project{}).
+		Find(&staleIDs).Error
+	if err != nil {
+		return err
+	}
+
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("accessed_at < ?", staleBefore).
+			Delete(&model.Project{}).
+			Error; err != nil {
+			return err
+		}
+
+		// Delete the project's files, deployments, and executions
+		for _, projID := range staleIDs {
+			if err := tx.Where(&model.File{ProjectID: *projID}).
+				Delete(&model.File{}).
+				Error; err != nil {
+				return err
+			}
+
+			if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: *projID}}).
+				Delete(&model.TransactionExecution{}).
+				Error; err != nil {
+				return err
+			}
+
+			if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: *projID}}).
+				Delete(&model.ScriptExecution{}).
+				Error; err != nil {
+				return err
+			}
+
+			if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: *projID}}).
+				Delete(&model.ContractDeployment{}).
+				Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {

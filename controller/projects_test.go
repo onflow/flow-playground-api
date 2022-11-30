@@ -19,7 +19,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onflow/flow-go-sdk"
@@ -203,11 +202,108 @@ func Test_AccessedTime(t *testing.T) {
 		require.NoError(t, err)
 
 		require.True(t, project.AccessedAt.Before(getProj.AccessedAt))
+	})
+}
 
-		stale, err := projects.GetStaleProjects()
+func Test_StaleProjects(t *testing.T) {
+	projects, store, user := createProjects()
+
+	t.Run("get stale projects", func(t *testing.T) {
+		for i := 0; i < 5; i++ {
+			project, err := seedProject(projects, user)
+			require.NoError(t, err)
+			require.NotEmpty(t, project.AccessedAt)
+		}
+
+		stale := time.Second * 1
+
+		// Make all projects stale
+		time.Sleep(time.Second * 2)
+
+		var staleProjects []*model.Project
+		err := store.GetStaleProjects(stale, &staleProjects)
+		require.NoError(t, err)
+		require.Equal(t, 5, len(staleProjects))
+	})
+
+	t.Run("no stale projects", func(t *testing.T) {
+		for i := 0; i < 5; i++ {
+			project, err := seedProject(projects, user)
+			require.NoError(t, err)
+			require.NotEmpty(t, project.AccessedAt)
+		}
+
+		stale := time.Hour * 1
+
+		time.Sleep(time.Second * 2)
+
+		var staleProjects []*model.Project
+		err := store.GetStaleProjects(stale, &staleProjects)
+		require.NoError(t, err)
+		require.Empty(t, staleProjects)
+	})
+
+	t.Run("delete stale projects", func(t *testing.T) {
+		for i := 0; i < 5; i++ {
+			project, err := seedProject(projects, user)
+			require.NoError(t, err)
+			require.NotEmpty(t, project.AccessedAt)
+
+			err = store.InsertScriptExecution(&model.ScriptExecution{
+				File: model.File{
+					ID:        uuid.New(),
+					ProjectID: project.ID,
+					Title:     "title",
+					Type:      0,
+					Index:     0,
+					Script:    "script",
+				},
+			})
+			require.NoError(t, err)
+		}
+
+		// This execution should not be deleted
+		newProjID := uuid.New()
+		err := store.InsertScriptExecution(&model.ScriptExecution{
+			File: model.File{
+				ID:        uuid.New(),
+				ProjectID: newProjID,
+				Title:     "title",
+				Type:      0,
+				Index:     0,
+				Script:    "script",
+			},
+		})
 		require.NoError(t, err)
 
-		fmt.Println("STALE: ", len(stale))
+		stale := time.Second * 1
+
+		// Make all projects stale
+		time.Sleep(time.Second * 2)
+
+		var staleProjects []*model.Project
+		err = store.GetStaleProjects(stale, &staleProjects)
+		require.NoError(t, err)
+		require.NotEmpty(t, staleProjects)
+
+		var exes []*model.ScriptExecution
+		err = store.GetScriptExecutionsForProject(staleProjects[0].ID, &exes)
+		require.NotEmpty(t, exes)
+
+		testProjID := staleProjects[0].ID
+
+		err = store.DeleteStaleProjects(stale)
+		require.NoError(t, err)
+
+		err = store.GetStaleProjects(stale, &staleProjects)
+		require.NoError(t, err)
+		require.Empty(t, staleProjects)
+
+		err = store.GetScriptExecutionsForProject(testProjID, &exes)
+		require.Empty(t, exes)
+
+		err = store.GetScriptExecutionsForProject(newProjID, &exes)
+		require.NotEmpty(t, exes)
 	})
 }
 
