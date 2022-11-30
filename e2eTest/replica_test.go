@@ -21,7 +21,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strconv"
 	"testing"
 )
 
@@ -67,22 +66,25 @@ func TestReplicas(t *testing.T) {
 		}
 	})
 
-	t.Run("Re-deploy contracts on multiple replicas to initial accounts", func(t *testing.T) {
-		var contract = "pub contract Foo {}"
+	/*
+		t.Run("Re-deploy contracts on multiple replicas to initial accounts", func(t *testing.T) {
+			var contract = "pub contract Foo {}"
 
-		for i := 0; i < 10; i++ {
-			accountIdx := i % project.NumberOfAccounts
+			for i := 0; i < 10; i++ {
+				accountIdx := i % project.NumberOfAccounts
 
-			var deployResp CreateContractDeploymentResponse
-			err := loadBalancer().Post(
-				MutationCreateContractDeployment,
-				&deployResp,
-				client.Var("projectId", project.ID),
-				client.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
-				client.Var("script", contract),
-				client.AddCookie(cookie),
-			)
-			require.NoError(t, err)
-		}
-	})
+				var deployResp CreateContractDeploymentResponse
+				err := loadBalancer().Post(
+					MutationCreateContractDeployment,
+					&deployResp,
+					client.Var("projectId", project.ID),
+					client.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
+					client.Var("script", contract),
+					client.AddCookie(cookie),
+				)
+				require.NoError(t, err)
+			}
+		})
+
+	*/
 }

@@ -12,16 +12,16 @@ E2E_TEST_DIRS = $(shell go list ./e2eTest/...)
 generate:
 	GO111MODULE=on go generate ./...
 
-.PHONY: package-test-ci
-package-test-ci:
+.PHONY: package-test
+package-test:
 	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
 
-.PHONY: e2e-test-ci
-e2e-test-ci:
+.PHONY: e2e-test
+e2e-test:
 	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
 
-.PHONY: test-local
-test-local:
+.PHONY: test
+test:
 	GO111MODULE=on go test -v ./... -timeout 20m > test-results.log
 
 .PHONY: run

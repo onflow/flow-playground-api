@@ -53,6 +53,7 @@ func TestContractDeployments(t *testing.T) {
 
 }
 
+/*
 func TestContractRedeployment(t *testing.T) {
 	t.Run("same contract name with different arguments", func(t *testing.T) {
 		c := newClient()
@@ -120,6 +121,7 @@ func TestContractRedeployment(t *testing.T) {
 		require.Equal(t, []string{"HelloWorld"}, accountResp.Account.DeployedContracts)
 	})
 }
+*/
 
 func TestContractInteraction(t *testing.T) {
 	c := newClient()
