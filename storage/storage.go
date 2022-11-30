@@ -39,8 +39,10 @@ type Store interface {
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
+	ProjectAccessed(id uuid.UUID) error
 	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
 	GetProjectCountForUser(userID uuid.UUID, count *int64) error
+	GetStaleProjects(stale *[]*model.Project) error
 	DeleteProject(id uuid.UUID) error
 
 	InsertFile(file *model.File) error

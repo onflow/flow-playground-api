@@ -28,6 +28,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"time"
 )
 
 // MaxProjectsLimit limit on the number of projects a user can create
@@ -73,6 +74,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		Readme:           input.Readme,
 		Persist:          false,
 		NumberOfAccounts: input.NumberOfAccounts,
+		AccessedAt:       time.Now(),
 		Version:          p.version,
 		UserID:           user.ID,
 	}
@@ -138,8 +140,13 @@ func (p *Projects) Delete(id uuid.UUID) error {
 }
 
 func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
+	err := p.store.ProjectAccessed(id)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project accessed time")
+	}
+
 	var proj model.Project
-	err := p.store.GetProject(id, &proj)
+	err = p.store.GetProject(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -184,6 +191,16 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	}
 
 	return nil
+}
+
+func (p *Projects) GetStaleProjects() ([]*model.Project, error) {
+	var stale []*model.Project
+	err := p.store.GetStaleProjects(&stale)
+	if err != nil {
+		return nil, err
+	}
+
+	return stale, nil
 }
 
 // Reset is not used in the API but for testing

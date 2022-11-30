@@ -30,6 +30,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"time"
 )
 
 var _ Store = &SQL{}
@@ -140,6 +141,12 @@ func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 	})
 }
 
+func (s *SQL) ProjectAccessed(id uuid.UUID) error {
+	update := make(map[string]any)
+	update["accessed_at"] = time.Now()
+	return s.db.Model(&model.Project{ID: id}).Updates(update).Error
+}
+
 func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) error {
 	update := make(map[string]any)
 	if input.Title != nil {
@@ -154,6 +161,8 @@ func (s *SQL) UpdateProject(input model.UpdateProject, proj *model.Project) erro
 	if input.Persist != nil {
 		update["persist"] = *input.Persist
 	}
+
+	update["accessed_at"] = time.Now()
 
 	err := s.db.
 		Model(&model.Project{ID: input.ID}).
@@ -237,6 +246,19 @@ func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) er
 	return s.db.Where(&model.Project{UserID: userID}).
 		Order("\"updated_at\" desc").
 		Find(proj).Error
+}
+
+func (s *SQL) GetStaleProjects(stale *[]*model.Project) error {
+	queryString := fmt.Sprintf("SELECT * FROM projects WHERE accessed_at < %s", time.Now().String())
+	return s.db.Raw(queryString).Find(stale).Error
+
+	/*
+		var projects []*model.Project
+		batchSize := 10000
+		for i:= 0; i <
+		err := s.db.Where(&model.Project{}).Offset().Limit(batchSize).Find(&projects).Error
+
+	*/
 }
 
 func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {

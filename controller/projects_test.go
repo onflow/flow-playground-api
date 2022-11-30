@@ -19,6 +19,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onflow/flow-go-sdk"
@@ -26,6 +27,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -178,6 +180,34 @@ func Test_CreateProject(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
+	})
+}
+
+func Test_AccessedTime(t *testing.T) {
+	projects, store, user := createProjects()
+
+	t.Run("update accessed time", func(t *testing.T) {
+		project, err := seedProject(projects, user)
+		require.NoError(t, err)
+		require.NotEmpty(t, project.AccessedAt)
+
+		var dbProj model.Project
+		err = store.GetProject(project.ID, &dbProj)
+		require.NoError(t, err)
+
+		require.Equal(t, project.AccessedAt.UnixMilli(), dbProj.AccessedAt.UnixMilli())
+
+		time.Sleep(2 * time.Second)
+
+		getProj, err := projects.Get(project.ID)
+		require.NoError(t, err)
+
+		require.True(t, project.AccessedAt.Before(getProj.AccessedAt))
+
+		stale, err := projects.GetStaleProjects()
+		require.NoError(t, err)
+
+		fmt.Println("STALE: ", len(stale))
 	})
 }
 

@@ -41,6 +41,7 @@ type Project struct {
 	Persist                   bool
 	CreatedAt                 time.Time
 	UpdatedAt                 time.Time
+	AccessedAt                time.Time
 	Version                   *semver.Version `gorm:"serializer:json"`
 	Mutable                   bool            // todo don't persist this
 }
