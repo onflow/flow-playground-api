@@ -288,6 +288,7 @@ func Test_StaleProjects(t *testing.T) {
 
 		var exes []*model.ScriptExecution
 		err = store.GetScriptExecutionsForProject(staleProjects[0].ID, &exes)
+		require.NoError(t, err)
 		require.NotEmpty(t, exes)
 
 		testProjID := staleProjects[0].ID
@@ -300,9 +301,11 @@ func Test_StaleProjects(t *testing.T) {
 		require.Empty(t, staleProjects)
 
 		err = store.GetScriptExecutionsForProject(testProjID, &exes)
+		require.NoError(t, err)
 		require.Empty(t, exes)
 
 		err = store.GetScriptExecutionsForProject(newProjID, &exes)
+		require.NoError(t, err)
 		require.NotEmpty(t, exes)
 	})
 }
