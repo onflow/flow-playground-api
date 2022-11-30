@@ -183,9 +183,9 @@ func Test_CreateProject(t *testing.T) {
 }
 
 func Test_AccessedTime(t *testing.T) {
-	projects, store, user := createProjects()
-
 	t.Run("update accessed time", func(t *testing.T) {
+		projects, store, user := createProjects()
+
 		project, err := seedProject(projects, user)
 		require.NoError(t, err)
 		require.NotEmpty(t, project.AccessedAt)
@@ -206,9 +206,9 @@ func Test_AccessedTime(t *testing.T) {
 }
 
 func Test_StaleProjects(t *testing.T) {
-	projects, store, user := createProjects()
-
 	t.Run("get stale projects", func(t *testing.T) {
+		projects, store, user := createProjects()
+
 		for i := 0; i < 5; i++ {
 			project, err := seedProject(projects, user)
 			require.NoError(t, err)
@@ -227,6 +227,8 @@ func Test_StaleProjects(t *testing.T) {
 	})
 
 	t.Run("no stale projects", func(t *testing.T) {
+		projects, store, user := createProjects()
+
 		for i := 0; i < 5; i++ {
 			project, err := seedProject(projects, user)
 			require.NoError(t, err)
@@ -244,6 +246,8 @@ func Test_StaleProjects(t *testing.T) {
 	})
 
 	t.Run("delete stale projects", func(t *testing.T) {
+		projects, store, user := createProjects()
+
 		for i := 0; i < 5; i++ {
 			project, err := seedProject(projects, user)
 			require.NoError(t, err)
