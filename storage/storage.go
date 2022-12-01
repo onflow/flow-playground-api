@@ -20,10 +20,10 @@ package storage
 
 import (
 	"errors"
-
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
+	"time"
 )
 
 type Store interface {
@@ -39,9 +39,13 @@ type Store interface {
 	UpdateProjectVersion(id uuid.UUID, version *semver.Version) error
 	ResetProjectState(proj *model.Project) error
 	GetProject(id uuid.UUID, proj *model.Project) error
+	ProjectAccessed(id uuid.UUID) error
 	GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error
 	GetProjectCountForUser(userID uuid.UUID, count *int64) error
 	DeleteProject(id uuid.UUID) error
+
+	GetStaleProjects(stale time.Duration, projs *[]*model.Project) error
+	DeleteStaleProjects(stale time.Duration) error
 
 	InsertFile(file *model.File) error
 	UpdateFile(input model.UpdateFile, file *model.File) error

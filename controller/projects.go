@@ -28,10 +28,14 @@ import (
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"time"
 )
 
 // MaxProjectsLimit limit on the number of projects a user can create
 const MaxProjectsLimit = 10
+
+// StaleDuration is the amount a time before a project is considered stale if not accessed
+const StaleDuration = (time.Hour * 24) * 90 // 90 days
 
 type Projects struct {
 	version    *semver.Version
@@ -73,6 +77,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		Readme:           input.Readme,
 		Persist:          false,
 		NumberOfAccounts: input.NumberOfAccounts,
+		AccessedAt:       time.Now(),
 		Version:          p.version,
 		UserID:           user.ID,
 	}
@@ -138,8 +143,13 @@ func (p *Projects) Delete(id uuid.UUID) error {
 }
 
 func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
+	err := p.store.ProjectAccessed(id)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update project accessed time")
+	}
+
 	var proj model.Project
-	err := p.store.GetProject(id, &proj)
+	err = p.store.GetProject(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
@@ -184,6 +194,20 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	}
 
 	return nil
+}
+
+func (p *Projects) GetStaleProjects() ([]*model.Project, error) {
+	var projs []*model.Project
+	err := p.store.GetStaleProjects(StaleDuration, &projs)
+	if err != nil {
+		return nil, err
+	}
+
+	return projs, nil
+}
+
+func (p *Projects) DeleteStaleProjects() error {
+	return p.store.DeleteStaleProjects(StaleDuration)
 }
 
 // Reset is not used in the API but for testing

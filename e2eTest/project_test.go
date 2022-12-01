@@ -335,7 +335,7 @@ func TestProjectUpdatedTime(t *testing.T) {
 		cookie := c.SessionCookie()
 		projectID := projResp1.CreateProject.ID
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second * 2)
 
 		var projResp2 UpdateProjectResponse
 		err = c.Post(
@@ -379,6 +379,8 @@ func TestProjectUpdatedTime(t *testing.T) {
 
 		cookie := c.SessionCookie()
 		projectID := projResp1.CreateProject.ID
+
+		time.Sleep(time.Second * 2)
 
 		var templateResp CreateContractTemplateResponse
 		err = c.Post(
