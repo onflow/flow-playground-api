@@ -257,7 +257,7 @@ func (s *SQL) GetStaleProjects(stale time.Duration, projs *[]*model.Project) err
 func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
 	staleBefore := time.Now().Add(-1 * stale)
 
-	var staleIDs []*uuid.UUID
+	var staleIDs []uuid.UUID
 	err := s.db.Select("id").
 		Where("accessed_at < ?", staleBefore).
 		Model(&model.Project{}).
@@ -266,42 +266,48 @@ func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
 		return err
 	}
 
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("accessed_at < ?", staleBefore).
-			Delete(&model.Project{}).
-			Error; err != nil {
-			return err
-		}
+	for _, projID := range staleIDs {
+		err := s.db.Transaction(func(tx *gorm.DB) error {
+			// Delete the project and corresponding files, deployments, and executions
+			if err := tx.Where(model.Project{ID: projID}).
+				Delete(&model.Project{}).
+				Error; err != nil {
+				return err
+			}
 
-		// Delete the project's files, deployments, and executions
-		for _, projID := range staleIDs {
-			if err := tx.Where(&model.File{ProjectID: *projID}).
+			if err := tx.Where(&model.File{ProjectID: projID}).
 				Delete(&model.File{}).
 				Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: *projID}}).
+			if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: projID}}).
 				Delete(&model.TransactionExecution{}).
 				Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: *projID}}).
+			if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: projID}}).
 				Delete(&model.ScriptExecution{}).
 				Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: *projID}}).
+			if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: projID}}).
 				Delete(&model.ContractDeployment{}).
 				Error; err != nil {
 				return err
 			}
-		}
 
-		return nil
-	})
+			return nil
+		})
+
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to delete project %s", projID))
+		}
+	}
+
+	return nil
 }
 
 func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {
