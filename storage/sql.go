@@ -250,52 +250,39 @@ func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) er
 
 func (s *SQL) GetStaleProjects(stale time.Duration, projs *[]*model.Project) error {
 	staleBefore := time.Now().Add(-1 * stale)
-	return s.db.Where("accessed_at < ?", staleBefore).
-		Find(&projs).Error
+	return s.db.Where("accessed_at < ?", staleBefore).Find(&projs).Error
 }
 
 func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
-	staleBefore := time.Now().Add(-1 * stale)
-
-	var staleIDs []uuid.UUID
-	err := s.db.Select("id").
-		Where("accessed_at < ?", staleBefore).
-		Model(&model.Project{}).
-		Find(&staleIDs).Error
-	if err != nil {
+	var stales []*model.Project
+	if err := s.GetStaleProjects(stale, &stales); err != nil {
 		return err
 	}
 
-	for _, projID := range staleIDs {
+	for _, proj := range stales {
 		err := s.db.Transaction(func(tx *gorm.DB) error {
 			// Delete the project and corresponding files, deployments, and executions
-			if err := tx.Where(model.Project{ID: projID}).
-				Delete(&model.Project{}).
-				Error; err != nil {
+			if err := tx.Delete(proj).Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.File{ProjectID: projID}).
-				Delete(&model.File{}).
-				Error; err != nil {
+			if err := tx.Where(&model.File{ProjectID: proj.ID}).
+				Delete(&model.File{}).Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: projID}}).
-				Delete(&model.TransactionExecution{}).
-				Error; err != nil {
+			if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: proj.ID}}).
+				Delete(&model.TransactionExecution{}).Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: projID}}).
-				Delete(&model.ScriptExecution{}).
-				Error; err != nil {
+			if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: proj.ID}}).
+				Delete(&model.ScriptExecution{}).Error; err != nil {
 				return err
 			}
 
-			if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: projID}}).
-				Delete(&model.ContractDeployment{}).
-				Error; err != nil {
+			if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: proj.ID}}).
+				Delete(&model.ContractDeployment{}).Error; err != nil {
 				return err
 			}
 
@@ -303,7 +290,7 @@ func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
 		})
 
 		if err != nil {
-			return errors.Wrap(err, fmt.Sprintf("failed to delete project %s", projID))
+			return errors.Wrap(err, fmt.Sprintf("failed to delete stale project %s", proj.ID))
 		}
 	}
 
