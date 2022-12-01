@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -30,7 +31,6 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver"
-	"github.com/alecthomas/assert"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
