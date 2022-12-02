@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
+	"github.com/dapperlabs/flow-playground-api/server/telemetry"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
 	"log"
 	"net/http"
 	"strings"
@@ -52,6 +55,8 @@ import (
 )
 
 const sessionName = "flow-playground"
+
+var tracer = otel.Tracer("playground-api")
 
 func main() {
 	semVer := ""
@@ -149,6 +154,9 @@ func main() {
 			}
 		}()
 
+		telemetry.Register()
+		telemetry.InitTracer()
+
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
@@ -183,7 +191,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
+
 	router.HandleFunc("/ping", ping.Ping)
+	router.Handle("/metrics", promhttp.Handler())
+	router.HandleFunc("/stale", telemetry.StaleProjects)
 
 	logStartMessage(build.Version())
 
