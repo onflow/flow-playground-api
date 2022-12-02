@@ -195,7 +195,7 @@ func main() {
 
 	router.HandleFunc("/ping", ping.Ping)
 	router.Handle("/metrics", promhttp.Handler())
-	router.HandleFunc("/stale", telemetry.StaleProjects)
+	router.HandleFunc("/stales", telemetry.StaleProjects)
 
 	logStartMessage(build.Version())
 

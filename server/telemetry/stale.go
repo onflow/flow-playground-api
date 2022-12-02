@@ -7,10 +7,11 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"net/http"
+	"strconv"
 	"time"
 )
 
-// staleProjectCounter returns the number of stale projects in the database
+// staleProjectScanner scans for stale projects in the database
 var staleProjectScanner func(stale time.Duration, projs *[]*model.Project) error = nil
 
 func SetStaleProjectScanner(scanner func(stale time.Duration, projs *[]*model.Project) error) {
@@ -24,8 +25,6 @@ func StaleProjects(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	// TODO: Display stale project count then IDs
-
 	var stales []*model.Project
 	err := staleProjectScanner(controller.StaleDuration, &stales)
 	if err != nil {
@@ -34,10 +33,20 @@ func StaleProjects(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 
-	_, _ = w.Write([]byte(fmt.Sprintf("StaleProjectCount: %d\n", len(stales))))
-	_, _ = w.Write([]byte("StaleProjectIDs:\n"))
-	for _, proj := range stales {
-		_, _ = w.Write([]byte(fmt.Sprintf("  %s\n", proj.ID.String())))
+	staleDurationDays := controller.StaleDuration.Hours() / 24
+
+	_, _ = w.Write([]byte(fmt.Sprintf("stale_project_duration_days %s\n",
+		strconv.FormatFloat(staleDurationDays, 'f', -1, 64))))
+
+	_, _ = w.Write([]byte(fmt.Sprintf("stale_project_count %d\n", len(stales))))
+
+	_, _ = w.Write([]byte("stale_project_ids "))
+	if (len(stales)) == 0 {
+		_, _ = w.Write([]byte("none"))
 	}
+	for _, proj := range stales {
+		_, _ = w.Write([]byte(fmt.Sprintf("\n  %s", proj.ID.String())))
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
