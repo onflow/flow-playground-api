@@ -29,6 +29,7 @@ var config struct {
 	playground PlaygroundConfig
 	sentry     SentryConfig
 	database   DatabaseConfig
+	telemetry  TelemetryConfig
 }
 
 // init parses all environment variables into config
@@ -37,6 +38,7 @@ func init() {
 	config.playground.getConfig()
 	config.sentry.getConfig()
 	config.database.getConfig()
+	config.telemetry.getConfig()
 }
 
 func Platform() PlatformType {
@@ -53,6 +55,10 @@ func Sentry() SentryConfig {
 
 func Database() DatabaseConfig {
 	return config.database
+}
+
+func Telemetry() TelemetryConfig {
+	return config.telemetry
 }
 
 // configGetter interface for sub-configs

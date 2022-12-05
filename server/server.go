@@ -154,9 +154,6 @@ func main() {
 			}
 		}()
 
-		telemetry.Register()
-		telemetry.InitTracer()
-
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
 		r.Use(monitoring.Middleware())
@@ -190,11 +187,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	router.HandleFunc("/ping", ping.Ping)
+
+	if config.Telemetry().TracingEnabled {
+		telemetry.Register()
+		telemetry.InitTracer()
+		router.Handle("/metrics", promhttp.Handler())
+	}
 
 	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
-
-	router.HandleFunc("/ping", ping.Ping)
-	router.Handle("/metrics", promhttp.Handler())
 	router.HandleFunc("/stales", telemetry.StaleProjects)
 
 	logStartMessage(build.Version())

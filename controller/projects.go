@@ -34,9 +34,6 @@ import (
 // MaxProjectsLimit limit on the number of projects a user can create
 const MaxProjectsLimit = 10
 
-// StaleDuration is the amount a time before a project is considered stale if not accessed
-const StaleDuration = (time.Hour * 24) * 90 // 90 days
-
 type Projects struct {
 	version    *semver.Version
 	store      storage.Store
@@ -194,20 +191,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	}
 
 	return nil
-}
-
-func (p *Projects) GetStaleProjects() ([]*model.Project, error) {
-	var projs []*model.Project
-	err := p.store.GetStaleProjects(StaleDuration, &projs)
-	if err != nil {
-		return nil, err
-	}
-
-	return projs, nil
-}
-
-func (p *Projects) DeleteStaleProjects() error {
-	return p.store.DeleteStaleProjects(StaleDuration)
 }
 
 // Reset is not used in the API but for testing
