@@ -117,12 +117,6 @@ type SQL struct {
 	db *gorm.DB
 }
 
-func (s *SQL) Atomic(runInTransaction func(sql *SQL) error) error {
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		return runInTransaction(&SQL{db: tx})
-	})
-}
-
 func (s *SQL) InsertUser(user *model.User) error {
 	return s.db.Create(user).Error
 }

@@ -27,8 +27,6 @@ import (
 )
 
 type Store interface {
-	Atomic(runInTransaction func(sql *SQL) error) error
-
 	InsertUser(user *model.User) error
 	GetUser(id uuid.UUID, user *model.User) error
 
