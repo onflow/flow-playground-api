@@ -21,6 +21,7 @@ package playground
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
 	"net/http"
 	"runtime/debug"
@@ -31,6 +32,8 @@ import (
 
 func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {
 	srv := gqlHandler.NewDefaultServer(NewExecutableSchema(Config{Resolvers: resolver}))
+
+	srv.Use(telemetry.NewHandler())
 
 	for _, middleware := range middlewares {
 		srv.AroundResponses(middleware)

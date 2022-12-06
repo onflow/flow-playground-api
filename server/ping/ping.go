@@ -19,6 +19,7 @@
 package ping
 
 import (
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"net/http"
@@ -46,6 +47,8 @@ func SetPingHandlers(storagePing func() error) error {
 //
 // Calls each handler in ping handlers
 func Ping(w http.ResponseWriter, _ *http.Request) {
+	telemetry.FooCounter.Inc()
+
 	if !handlers.initialized {
 		w.WriteHeader(http.StatusInternalServerError)
 		sentry.CaptureException(errors.New("unset ping handlers"))
