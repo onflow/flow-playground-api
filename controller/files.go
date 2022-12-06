@@ -95,14 +95,8 @@ func (f *Files) DeleteFile(scriptID, projectID uuid.UUID) error {
 // fileChanged updates project updated_at time when a file is changed so that
 // updated_at represents when any part of a project was last updated
 func (f *Files) fileChanged(projectID uuid.UUID) error {
-	var proj model.Project
-	err := f.store.GetProject(projectID, &proj)
-	if err != nil {
-		return err
-	}
-
 	// Only pass in project ID to update the project's updated_at time
-	return f.store.UpdateProject(model.UpdateProject{ID: proj.ID}, &proj)
+	return f.store.UpdateProject(model.UpdateProject{ID: projectID}, &model.Project{})
 }
 
 func (f *Files) CreateScriptExecution(input model.NewScriptExecution) (*model.ScriptExecution, error) {

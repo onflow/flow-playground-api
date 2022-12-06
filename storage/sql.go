@@ -235,7 +235,34 @@ func (s *SQL) ResetProjectState(proj *model.Project) error {
 }
 
 func (s *SQL) DeleteProject(id uuid.UUID) error {
-	return s.db.Delete(&model.Project{ID: id}).Error
+	// Delete the project and corresponding files, deployments, and executions
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Delete(&model.Project{ID: id}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where(&model.File{ProjectID: id}).
+			Delete(&model.File{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where(&model.TransactionExecution{File: model.File{ProjectID: id}}).
+			Delete(&model.TransactionExecution{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where(&model.ScriptExecution{File: model.File{ProjectID: id}}).
+			Delete(&model.ScriptExecution{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where(&model.ContractDeployment{File: model.File{ProjectID: id}}).
+			Delete(&model.ContractDeployment{}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
