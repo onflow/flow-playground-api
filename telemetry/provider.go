@@ -37,6 +37,7 @@ func NewProvider(
 		trace.WithResource(r),
 	}
 
+	// todo don't use stdout, only for testing
 	//traceOpts = append(traceOpts, trace.WithBatcher(exporter))
 
 	exp, err := stdouttrace.New(
