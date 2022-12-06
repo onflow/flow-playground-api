@@ -196,6 +196,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
+
 	router.HandleFunc("/ping", ping.Ping)
 	router.Handle("/metrics", promhttp.Handler())
 

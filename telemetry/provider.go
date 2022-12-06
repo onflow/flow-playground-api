@@ -15,7 +15,7 @@ import (
 )
 
 // NewProvider registers a global tracer provider with a default OTLP exporter pointing to a collector.
-// The global trace provider allows you initialize a new trace from anywhere in code.
+// The global trace provider allows you to initialize a new trace from anywhere in code.
 func NewProvider(
 	ctx context.Context,
 	serviceName string,
@@ -62,10 +62,10 @@ func NewProvider(
 	return
 }
 
-// Cleanup calls the TraceProvider to shutdown any span processors
+// Cleanup calls the TraceProvider to shut down any span processors
 func Cleanup(ctx context.Context, tp *trace.TracerProvider) {
 	if tp != nil {
-		tp.ForceFlush(ctx)
+		_ = tp.ForceFlush(ctx)
 		_ = tp.Shutdown(ctx)
 	}
 }

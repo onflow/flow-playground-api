@@ -2,6 +2,8 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -10,10 +12,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var FooCounter = promauto.NewCounter(prometheus.CounterOpts{
-	Name: "foo_counter",
-	Help: "The total number of foo",
-})
+var _ = promauto.NewCounterFunc(prometheus.CounterOpts{
+	Name: "stale_projects",
+	Help: fmt.Sprintf("The total number of projects not accessed within the last %s days.",
+		strconv.FormatFloat(staleDuration.Hours()/24, 'f', -1, 64)),
+}, StaleProjectCounter)
 
 const (
 	existStatusFailure = "failure"

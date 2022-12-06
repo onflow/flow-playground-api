@@ -31,7 +31,6 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.8.0
 	go.opentelemetry.io/otel v1.8.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.8.0
-	go.opentelemetry.io/otel/metric v0.31.0
 	go.opentelemetry.io/otel/sdk v1.8.0
 	go.opentelemetry.io/otel/trace v1.8.0
 	gorm.io/driver/postgres v1.3.10
