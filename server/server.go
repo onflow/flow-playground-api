@@ -118,6 +118,8 @@ func main() {
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
+	telemetry.Register()
+
 	tp, err := telemetry.NewProvider(ctx, "playground-api", "", trace.ParentBased(trace.AlwaysSample()))
 	if err != nil {
 		log.Fatal("failed to setup telemetry provider", err)
