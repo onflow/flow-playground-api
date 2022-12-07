@@ -28,6 +28,7 @@ var config struct {
 	platform   PlatformConfig
 	playground PlaygroundConfig
 	sentry     SentryConfig
+	telemetry  TelemetryConfig
 	database   DatabaseConfig
 }
 
@@ -36,6 +37,7 @@ func init() {
 	config.platform.getConfig()
 	config.playground.getConfig()
 	config.sentry.getConfig()
+	config.telemetry.getConfig()
 	config.database.getConfig()
 }
 
@@ -49,6 +51,10 @@ func Playground() PlaygroundConfig {
 
 func Sentry() SentryConfig {
 	return config.sentry
+}
+
+func Telemetry() TelemetryConfig {
+	return config.telemetry
 }
 
 func Database() DatabaseConfig {

@@ -118,12 +118,19 @@ func main() {
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
-	tp, err := telemetry.NewProvider(ctx, "playground-api", "", trace.ParentBased(trace.AlwaysSample()))
-	if err != nil {
-		log.Fatal("failed to setup telemetry provider", err)
+	if config.Telemetry().TracingEnabled {
+		tp, err := telemetry.NewProvider(ctx,
+			"playground-api",
+			config.Telemetry().TracingCollectorEndpoint,
+			trace.ParentBased(trace.AlwaysSample()),
+		)
+		if err != nil {
+			log.Fatal("failed to setup telemetry provider", err)
+		}
+		defer telemetry.CleanupTraceProvider(ctx, tp)
 	}
-	defer telemetry.Cleanup(ctx, tp)
-	defer telemetry.UnRegister()
+
+	defer telemetry.UnRegisterMetrics()
 
 	logger := logrus.StandardLogger()
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
@@ -190,7 +197,7 @@ func main() {
 		r.HandleFunc("/version", utilsHandler.VersionHandler)
 	})
 
-	err = ping.SetPingHandlers(store.Ping)
+	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {
 		log.Fatal(err)
 	}

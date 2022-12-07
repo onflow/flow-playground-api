@@ -21,15 +21,15 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	otlpgrpc "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.8.0"
+	"google.golang.org/grpc"
 )
 
 // NewProvider registers a global tracer provider with a default OTLP exporter pointing to a collector.
@@ -55,21 +55,17 @@ func NewProvider(
 		trace.WithResource(r),
 	}
 
-	// todo don't use stdout, only for testing
-	//traceOpts = append(traceOpts, trace.WithBatcher(exporter))
-
-	exp, err := stdouttrace.New(
-		stdouttrace.WithWriter(os.Stdout),
-		// Use human-readable output.
-		stdouttrace.WithPrettyPrint(),
-		// Do not print timestamps for the demo.
-		stdouttrace.WithoutTimestamps(),
+	// Create default otlp exporter
+	exporter, err := otlptrace.New(
+		ctx,
+		otlpgrpc.NewClient(
+			otlpgrpc.WithInsecure(),
+			otlpgrpc.WithEndpoint(collectorEndpoint),
+			otlpgrpc.WithDialOption(grpc.WithBlock()),
+		),
 	)
-	if err != nil {
-		fmt.Println("exp err", err)
-	}
 
-	traceOpts = append(traceOpts, trace.WithBatcher(exp))
+	traceOpts = append(traceOpts, trace.WithBatcher(exporter))
 
 	// Create a new tracer provider with a batch span processor and the otlp exporters.
 	tp = trace.NewTracerProvider(traceOpts...)
@@ -80,8 +76,8 @@ func NewProvider(
 	return
 }
 
-// Cleanup calls the TraceProvider to shut down any span processors
-func Cleanup(ctx context.Context, tp *trace.TracerProvider) {
+// CleanupTraceProvider calls the TraceProvider to shut down any span processors
+func CleanupTraceProvider(ctx context.Context, tp *trace.TracerProvider) {
 	if tp != nil {
 		_ = tp.ForceFlush(ctx)
 		_ = tp.Shutdown(ctx)

@@ -58,7 +58,6 @@ func (GQLGenTracer) InterceptField(ctx context.Context, next graphql.Resolver) (
 }
 
 func (GQLGenTracer) InterceptResponse(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
-
 	ctx = startOperationExecution(ctx)
 	defer endOperationExecution(ctx)
 

@@ -56,11 +56,11 @@ var _ interface {
 } = RequestsMetrics{}
 
 func NewMetrics() graphql.HandlerExtension {
-	Register()
+	RegisterMetrics()
 	return RequestsMetrics{}
 }
 
-func Register() {
+func RegisterMetrics() {
 	if !registered {
 		RegisterOn(prometheus.DefaultRegisterer)
 		registered = true
@@ -127,7 +127,7 @@ func RegisterOn(registerer prometheus.Registerer) {
 	)
 }
 
-func UnRegister() {
+func UnRegisterMetrics() {
 	if registered {
 		UnRegisterFrom(prometheus.DefaultRegisterer)
 		registered = false
