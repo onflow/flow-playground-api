@@ -19,8 +19,8 @@ var _ interface {
 // GQLGenTracer must implement HandlerExtension, ResponseInterceptor and FieldInterceptor
 type GQLGenTracer struct{}
 
-// NewHandler creates a tracer
-func NewHandler() graphql.HandlerExtension {
+// NewTracer creates a tracer
+func NewTracer() graphql.HandlerExtension {
 	return GQLGenTracer{}
 }
 

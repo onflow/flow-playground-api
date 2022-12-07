@@ -8,15 +8,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/prometheus/client_golang/prometheus"
-	prometheusclient "github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
-
-var _ = promauto.NewCounterFunc(prometheus.CounterOpts{
-	Name: "stale_projects",
-	Help: fmt.Sprintf("The total number of projects not accessed within the last %s days.",
-		strconv.FormatFloat(staleDuration.Hours()/24, 'f', -1, 64)),
-}, StaleProjectCounter)
 
 const (
 	existStatusFailure = "failure"
@@ -24,12 +16,14 @@ const (
 )
 
 var (
-	requestStartedCounter    prometheusclient.Counter
-	requestCompletedCounter  prometheusclient.Counter
-	resolverStartedCounter   *prometheusclient.CounterVec
-	resolverCompletedCounter *prometheusclient.CounterVec
-	timeToResolveField       *prometheusclient.HistogramVec
-	timeToHandleRequest      *prometheusclient.HistogramVec
+	registered               bool
+	requestStartedCounter    prometheus.Counter
+	requestCompletedCounter  prometheus.Counter
+	resolverStartedCounter   *prometheus.CounterVec
+	resolverCompletedCounter *prometheus.CounterVec
+	timeToResolveField       *prometheus.HistogramVec
+	timeToHandleRequest      *prometheus.HistogramVec
+	staleProjectCounter      prometheus.CounterFunc
 )
 
 type (
@@ -43,52 +37,66 @@ var _ interface {
 	graphql.FieldInterceptor
 } = RequestsMetrics{}
 
-func Register() {
-	RegisterOn(prometheusclient.DefaultRegisterer)
+func NewMetrics() graphql.HandlerExtension {
+	Register()
+	return RequestsMetrics{}
 }
 
-func RegisterOn(registerer prometheusclient.Registerer) {
-	requestStartedCounter = prometheusclient.NewCounter(
-		prometheusclient.CounterOpts{
+func Register() {
+	if !registered {
+		RegisterOn(prometheus.DefaultRegisterer)
+		registered = true
+	}
+}
+
+func RegisterOn(registerer prometheus.Registerer) {
+	requestStartedCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
 			Name: "graphql_request_started_total",
 			Help: "Total number of requests started on the graphql server.",
 		},
 	)
 
-	requestCompletedCounter = prometheusclient.NewCounter(
-		prometheusclient.CounterOpts{
+	requestCompletedCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
 			Name: "graphql_request_completed_total",
 			Help: "Total number of requests completed on the graphql server.",
 		},
 	)
 
-	resolverStartedCounter = prometheusclient.NewCounterVec(
-		prometheusclient.CounterOpts{
+	resolverStartedCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "graphql_resolver_started_total",
 			Help: "Total number of resolver started on the graphql server.",
 		},
 		[]string{"object", "field"},
 	)
 
-	resolverCompletedCounter = prometheusclient.NewCounterVec(
-		prometheusclient.CounterOpts{
+	resolverCompletedCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
 			Name: "graphql_resolver_completed_total",
 			Help: "Total number of resolver completed on the graphql server.",
 		},
 		[]string{"object", "field"},
 	)
 
-	timeToResolveField = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
+	timeToResolveField = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "graphql_resolver_duration_ms",
 		Help:    "The time taken to resolve a field by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
+		Buckets: prometheus.ExponentialBuckets(1, 2, 11),
 	}, []string{"exitStatus", "object", "field"})
 
-	timeToHandleRequest = prometheusclient.NewHistogramVec(prometheusclient.HistogramOpts{
+	timeToHandleRequest = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "graphql_request_duration_ms",
 		Help:    "The time taken to handle a request by graphql server.",
-		Buckets: prometheusclient.ExponentialBuckets(1, 2, 11),
+		Buckets: prometheus.ExponentialBuckets(1, 2, 11),
 	}, []string{"exitStatus"})
+
+	staleProjectCounter = prometheus.NewCounterFunc(prometheus.CounterOpts{
+		Name: "stale_projects_total",
+		Help: fmt.Sprintf("The total number of projects not accessed within the last %s days.",
+			strconv.FormatFloat(staleDuration.Hours()/24, 'f', -1, 64)),
+	}, StaleProjectCounter)
 
 	registerer.MustRegister(
 		requestStartedCounter,
@@ -97,14 +105,18 @@ func RegisterOn(registerer prometheusclient.Registerer) {
 		resolverCompletedCounter,
 		timeToResolveField,
 		timeToHandleRequest,
+		staleProjectCounter,
 	)
 }
 
 func UnRegister() {
-	UnRegisterFrom(prometheusclient.DefaultRegisterer)
+	if registered {
+		UnRegisterFrom(prometheus.DefaultRegisterer)
+		registered = false
+	}
 }
 
-func UnRegisterFrom(registerer prometheusclient.Registerer) {
+func UnRegisterFrom(registerer prometheus.Registerer) {
 	registerer.Unregister(requestStartedCounter)
 	registerer.Unregister(requestCompletedCounter)
 	registerer.Unregister(resolverStartedCounter)
@@ -139,7 +151,7 @@ func (a RequestsMetrics) InterceptResponse(ctx context.Context, next graphql.Res
 	oc := graphql.GetOperationContext(ctx)
 	observerStart := oc.Stats.OperationStart
 
-	timeToHandleRequest.With(prometheusclient.Labels{"exitStatus": exitStatus}).
+	timeToHandleRequest.With(prometheus.Labels{"exitStatus": exitStatus}).
 		Observe(float64(time.Since(observerStart).Nanoseconds() / int64(time.Millisecond)))
 
 	requestCompletedCounter.Inc()

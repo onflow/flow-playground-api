@@ -33,8 +33,8 @@ import (
 func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {
 	srv := gqlHandler.NewDefaultServer(NewExecutableSchema(Config{Resolvers: resolver}))
 
-	srv.Use(telemetry.NewHandler())
-	srv.Use(telemetry.RequestsMetrics{})
+	srv.Use(telemetry.NewTracer())
+	srv.Use(telemetry.NewMetrics())
 
 	for _, middleware := range middlewares {
 		srv.AroundResponses(middleware)
