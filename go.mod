@@ -30,9 +30,11 @@ require (
 	github.com/vektah/gqlparser/v2 v2.4.2
 	go.opentelemetry.io/contrib/detectors/gcp v1.8.0
 	go.opentelemetry.io/otel v1.8.0
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.8.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.8.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.8.0
 	go.opentelemetry.io/otel/sdk v1.8.0
 	go.opentelemetry.io/otel/trace v1.8.0
+	google.golang.org/grpc v1.50.1
 	gorm.io/driver/postgres v1.3.10
 	gorm.io/driver/sqlite v1.3.6
 	gorm.io/gorm v1.23.9
@@ -138,8 +140,6 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zeebo/blake3 v0.2.3 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.8.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.8.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.8.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.18.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
@@ -149,7 +149,6 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
-	google.golang.org/grpc v1.50.1 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.66.6 // indirect
