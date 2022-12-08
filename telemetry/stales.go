@@ -55,7 +55,7 @@ func StaleProjectCounter() (int, error) {
 func UpdateStaleProjectCounter(w http.ResponseWriter, _ *http.Request) {
 	staleCount, err := StaleProjectCounter()
 	if err != nil {
-		sentry.CaptureException(errors.New("failed to get stale project count"))
+		sentry.CaptureException(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
