@@ -23,6 +23,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
+	"net/http"
 	"time"
 )
 
@@ -37,18 +38,28 @@ func SetStaleProjectScanner(scanner func(stale time.Duration, projs *[]*model.Pr
 }
 
 // StaleProjectCounter returns the number of stale projects
-func StaleProjectCounter() float64 {
+func StaleProjectCounter() (int, error) {
 	if staleProjectScanner == nil {
-		sentry.CaptureException(errors.New("stale project scanner not set"))
-		return 0
+		return 0, errors.New("stale project scanner not set")
 	}
 
 	var stales []*model.Project
 	err := staleProjectScanner(staleDuration, &stales)
 	if err != nil {
-		sentry.CaptureException(errors.Wrap(err, "failed to get stale projects"))
-		return 0
+		return 0, err
 	}
 
-	return float64(len(stales))
+	return len(stales), nil
+}
+
+func UpdateStaleProjectCounter(w http.ResponseWriter, _ *http.Request) {
+	staleCount, err := StaleProjectCounter()
+	if err != nil {
+		sentry.CaptureException(errors.New("failed to get stale project count"))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	staleProjectGauge.Set(float64(staleCount))
+	w.WriteHeader(http.StatusOK)
 }

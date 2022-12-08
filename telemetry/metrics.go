@@ -41,7 +41,7 @@ var (
 	resolverCompletedCounter *prometheus.CounterVec
 	timeToResolveField       *prometheus.HistogramVec
 	timeToHandleRequest      *prometheus.HistogramVec
-	staleProjectCounter      prometheus.CounterFunc
+	staleProjectGauge        prometheus.Gauge
 )
 
 type (
@@ -110,11 +110,11 @@ func RegisterOn(registerer prometheus.Registerer) {
 		Buckets: prometheus.ExponentialBuckets(1, 2, 11),
 	}, []string{"exitStatus"})
 
-	staleProjectCounter = prometheus.NewCounterFunc(prometheus.CounterOpts{
+	staleProjectGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "stale_projects_total",
 		Help: fmt.Sprintf("The total number of projects not accessed within the last %s days.",
 			strconv.FormatFloat(staleDuration.Hours()/24, 'f', -1, 64)),
-	}, StaleProjectCounter)
+	})
 
 	registerer.MustRegister(
 		requestStartedCounter,
@@ -123,7 +123,7 @@ func RegisterOn(registerer prometheus.Registerer) {
 		resolverCompletedCounter,
 		timeToResolveField,
 		timeToHandleRequest,
-		staleProjectCounter,
+		staleProjectGauge,
 	)
 }
 
