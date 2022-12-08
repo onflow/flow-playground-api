@@ -6,7 +6,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    types: [opened, reopened]
+    types: [opened, synchronize, edited, ready_for_review]
 
 jobs:
   package-test:
