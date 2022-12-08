@@ -19,7 +19,7 @@ package-test:
 
 .PHONY: e2e-test
 e2e-test:
-	go clean -cache -testcache
+	go clean -cache -testcache -timeout 15m
 	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
 
 .PHONY: test
