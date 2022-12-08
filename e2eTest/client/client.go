@@ -17,14 +17,13 @@
  */
 
 // Package client is used internally for testing. See readme for alternatives
-//
 package client
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -135,7 +134,7 @@ func (p *Client) newRequest(query string, options ...Option) (*http.Request, err
 		if err != nil {
 			return nil, fmt.Errorf("encode: %s", err.Error())
 		}
-		bd.HTTP.Body = ioutil.NopCloser(bytes.NewBuffer(requestBody))
+		bd.HTTP.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 	default:
 		panic("unsupported encoding" + bd.HTTP.Header.Get("Content-Type"))
 	}
