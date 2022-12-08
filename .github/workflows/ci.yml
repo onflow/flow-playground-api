@@ -4,9 +4,9 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master, staging, v2 ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, staging, v2 ]
+    types: [opened, reopened]
 
 jobs:
   package-test:
