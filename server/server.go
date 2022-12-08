@@ -20,6 +20,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"strings"
@@ -208,6 +209,7 @@ func main() {
 	})
 
 	router.HandleFunc("/ping", ping)
+	router.Handle("/metrics", promhttp.Handler())
 
 	logStartMessage(build.Version())
 
