@@ -30,6 +30,7 @@ jobs:
   e2e-test:
     name: End-To-End Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v2
         with:
