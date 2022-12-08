@@ -23,7 +23,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
-	"net/http"
+	"github.com/robfig/cron"
 	"time"
 )
 
@@ -52,14 +52,26 @@ func StaleProjectCounter() (int, error) {
 	return len(stales), nil
 }
 
-func UpdateStaleProjectCounter(w http.ResponseWriter, _ *http.Request) {
-	staleCount, err := StaleProjectCounter()
+// registerStaleProjectJob registers recurring query for stale project count
+func registerStaleProjectJob() error {
+	job := cron.New()
+
+	err := job.AddFunc(
+		config.Telemetry().StaleProjectQueryTime,
+		func() {
+			staleCount, err := StaleProjectCounter()
+			if err != nil {
+				sentry.CaptureException(err)
+				return
+			}
+			staleProjectGauge.Set(float64(staleCount))
+		},
+	)
 	if err != nil {
-		sentry.CaptureException(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 
-	staleProjectGauge.Set(float64(staleCount))
-	w.WriteHeader(http.StatusOK)
+	job.Start()
+
+	return nil
 }

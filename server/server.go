@@ -202,11 +202,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
+
 	router.HandleFunc("/ping", ping.Ping)
 	router.Handle("/metrics", promhttp.Handler())
-
-	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
-	router.HandleFunc("/stales", telemetry.UpdateStaleProjectCounter)
 
 	logStartMessage(build.Version())
 

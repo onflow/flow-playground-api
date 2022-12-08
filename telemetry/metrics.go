@@ -21,6 +21,7 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -63,6 +64,10 @@ func NewMetrics() graphql.HandlerExtension {
 func RegisterMetrics() {
 	if !registered {
 		RegisterOn(prometheus.DefaultRegisterer)
+		err := registerStaleProjectJob()
+		if err != nil {
+			log.Printf("Failed to register job for stale project metrics: %s", err.Error())
+		}
 		registered = true
 	}
 }
