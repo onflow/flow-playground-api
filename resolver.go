@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -107,7 +106,6 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
-	fmt.Println("Resolver: CreateProject() called")
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get or create user")
