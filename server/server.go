@@ -20,6 +20,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"strings"
@@ -208,6 +210,9 @@ func main() {
 	})
 
 	router.HandleFunc("/ping", ping)
+
+	router.Handle("/metrics", promhttp.Handler())
+	defer telemetry.UnRegisterMetrics()
 
 	logStartMessage(build.Version())
 
