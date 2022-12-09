@@ -113,7 +113,7 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 
 	err = p.store.CreateProject(proj, files)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create  project")
+		return nil, errors.Wrap(err, "failed to create project")
 	}
 
 	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
