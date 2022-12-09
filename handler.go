@@ -42,7 +42,6 @@ func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddlewar
 
 	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		sentry.CaptureException(fmt.Errorf("panic: %v, stack: %s", err, string(debug.Stack())))
-		telemetry.ServerErrorCounter.Inc()
 		return errors.ServerErr
 	})
 
