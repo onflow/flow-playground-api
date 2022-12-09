@@ -20,6 +20,7 @@ package playground
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/getsentry/sentry-go"
 	"net/http"
@@ -38,7 +39,7 @@ func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddlewar
 
 	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		sentry.CaptureException(fmt.Errorf("panic: %v, stack: %s", err, string(debug.Stack())))
-		return fmt.Errorf("panic: %s\n\n%s", err, string(debug.Stack()))
+		return errors.New("something went wrong, we are looking into the issue")
 	})
 
 	return srv.ServeHTTP

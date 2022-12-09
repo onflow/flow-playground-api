@@ -111,7 +111,6 @@ func main() {
 	if err := envconfig.Process("FLOW", &conf); err != nil {
 		log.Fatal(err)
 	}
-
 	var store storage.Store
 
 	if strings.EqualFold(conf.StorageBackend, storage.PostgreSQL) {
@@ -188,7 +187,6 @@ func main() {
 				errors.Middleware(entry, localHub),
 			),
 		)
-
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)

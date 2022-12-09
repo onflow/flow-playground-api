@@ -20,12 +20,16 @@ package errors
 
 import (
 	"context"
-
+	"errors"
 	"github.com/99designs/gqlgen/graphql"
+	playground "github.com/dapperlabs/flow-playground-api"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/getsentry/sentry-go"
 )
+
+var ServerErr = errors.New("something went wrong, we are looking into the issue")
 
 type errCtxKeyType string
 
@@ -48,20 +52,32 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 		res := next(ctx)
 		errList := graphql.GetErrors(ctx)
 
-		for _, err := range errList {
+		for i, err := range errList {
 			contextEntry := entry.
 				WithFields(debugFields)
 
 			if cause := err.Extensions["cause"]; cause != nil {
+				// count error metric here
+				// count fatal error metric here
 				contextEntry.
 					WithError(cause.(error)).
 					Error("GQL Request Server Error")
 				sentryCtx := context.WithValue(ctx, sentryLevelCtxKey, sentry.LevelError)
 				localHub.RecoverWithContext(sentryCtx, err)
 			} else if err != nil {
-				contextEntry.WithError(err).Warnf("GQL Request Client Error: %v err = %+v", err.Extensions["general_error"], err)
-				sentryCtx := context.WithValue(ctx, sentryLevelCtxKey, sentry.LevelWarning)
-				localHub.RecoverWithContext(sentryCtx, err)
+				var invalidErr *playground.InvalidError
+				if errors.As(err, &invalidErr) {
+					// count invalid error metric here
+					res.Extensions["code"] = "BAD_REQUEST"
+				} else {
+					// count error metric here
+					res.Errors[i].Message = ServerErr.Error()
+					res.Extensions["code"] = "INTERNAL_SERVER_ERROR"
+				}
+
+				contextEntry.
+					WithError(err).
+					Warnf("GQL Request Client Error: %v err = %+v", err.Extensions["general_error"], err)
 			}
 		}
 

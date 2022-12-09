@@ -20,6 +20,7 @@ package playground
 
 import (
 	"context"
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -29,7 +30,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
-	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
 )
 
@@ -319,11 +319,27 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, _ *model.Project) 
 
 type queryResolver struct{ *Resolver }
 
+type InvalidError struct {
+	msg string
+}
+
+func NewInvalidErr(msg string) *InvalidError {
+	return &InvalidError{msg}
+}
+
+func (i *InvalidError) Error() string {
+	return fmt.Sprintf("invalid error: %s", i.msg)
+}
+
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
-	return &model.PlaygroundInfo{
-		APIVersion:     *r.version,
-		CadenceVersion: *semver.MustParse(cadence.Version),
-	}, nil
+	return nil, fmt.Errorf("random server error")
+	//return nil, NewInvalidErr("project limit reached")
+
+	/*
+		return &model.PlaygroundInfo{
+			APIVersion:     *r.version,
+			CadenceVersion: *semver.MustParse(cadence.Version),
+		}, nil */
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
