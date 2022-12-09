@@ -43,6 +43,8 @@ var (
 	timeToResolveField       *prometheus.HistogramVec
 	timeToHandleRequest      *prometheus.HistogramVec
 	staleProjectGauge        prometheus.Gauge
+	ServerErrorCounter       prometheus.Counter
+	UserErrorCounter         prometheus.Counter
 )
 
 type (
@@ -121,6 +123,20 @@ func RegisterOn(registerer prometheus.Registerer) {
 			strconv.FormatFloat(staleDuration.Hours()/24, 'f', -1, 64)),
 	})
 
+	ServerErrorCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "server_error_total",
+			Help: "Total number of internal server errors.",
+		},
+	)
+
+	UserErrorCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "user_error_total",
+			Help: "Total number of bad requests from users.",
+		},
+	)
+
 	registerer.MustRegister(
 		requestStartedCounter,
 		requestCompletedCounter,
@@ -129,6 +145,8 @@ func RegisterOn(registerer prometheus.Registerer) {
 		timeToResolveField,
 		timeToHandleRequest,
 		staleProjectGauge,
+		ServerErrorCounter,
+		UserErrorCounter,
 	)
 }
 
@@ -146,6 +164,9 @@ func UnRegisterFrom(registerer prometheus.Registerer) {
 	registerer.Unregister(resolverCompletedCounter)
 	registerer.Unregister(timeToResolveField)
 	registerer.Unregister(timeToHandleRequest)
+	registerer.Unregister(staleProjectGauge)
+	registerer.Unregister(ServerErrorCounter)
+	registerer.Unregister(UserErrorCounter)
 }
 
 func (a RequestsMetrics) ExtensionName() string {

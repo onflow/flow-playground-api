@@ -24,15 +24,14 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
+	userErrors "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"time"
 )
-
-// MaxProjectsLimit limit on the number of projects a user can create
-const MaxProjectsLimit = 10
 
 type Projects struct {
 	version    *semver.Version
@@ -59,8 +58,9 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		return nil, errors.Wrap(err, "failed to get user project count")
 	}
 
-	if int(projectCount) >= MaxProjectsLimit {
-		return nil, fmt.Errorf("maximum number of %d projects reached", MaxProjectsLimit)
+	if int(projectCount) >= config.Playground().MaxProjectsLimit {
+		return nil, userErrors.NewUserError(fmt.Sprintf("maximum number of %d projects reached",
+			config.Playground().MaxProjectsLimit))
 	}
 
 	proj := &model.Project{
