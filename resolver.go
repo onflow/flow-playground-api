@@ -25,6 +25,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
+	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
@@ -99,7 +100,7 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-		return err
+		return userErr.NewUserError("not authorized")
 	}
 
 	return nil
@@ -113,7 +114,7 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create project")
+		return nil, err
 	}
 
 	r.lastCreatedProject = proj
