@@ -76,7 +76,7 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 					telemetry.UserErrorCounter.Inc()
 					res.Extensions["code"] = "BAD_REQUEST"
 				} else {
-					sentry.CaptureException(err)
+					localHub.CaptureException(err)
 					telemetry.ServerErrorCounter.Inc()
 					res.Errors[i].Message = ServerErr.Error()
 					res.Extensions["code"] = "INTERNAL_SERVER_ERROR"
