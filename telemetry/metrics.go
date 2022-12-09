@@ -39,6 +39,8 @@ var (
 	resolverCompletedCounter *prometheus.CounterVec
 	timeToResolveField       *prometheus.HistogramVec
 	timeToHandleRequest      *prometheus.HistogramVec
+	ServerErrorCounter       prometheus.Counter
+	UserErrorCounter         prometheus.Counter
 )
 
 type (
@@ -107,6 +109,20 @@ func RegisterOn(registerer prometheus.Registerer) {
 		Buckets: prometheus.ExponentialBuckets(1, 2, 11),
 	}, []string{"exitStatus"})
 
+	ServerErrorCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "server_error_total",
+			Help: "Total number of internal server errors.",
+		},
+	)
+
+	UserErrorCounter = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "user_error_total",
+			Help: "Total number of bad requests from users.",
+		},
+	)
+
 	registerer.MustRegister(
 		requestStartedCounter,
 		requestCompletedCounter,
@@ -114,6 +130,8 @@ func RegisterOn(registerer prometheus.Registerer) {
 		resolverCompletedCounter,
 		timeToResolveField,
 		timeToHandleRequest,
+		ServerErrorCounter,
+		UserErrorCounter,
 	)
 }
 
@@ -131,6 +149,8 @@ func UnRegisterFrom(registerer prometheus.Registerer) {
 	registerer.Unregister(resolverCompletedCounter)
 	registerer.Unregister(timeToResolveField)
 	registerer.Unregister(timeToHandleRequest)
+	registerer.Unregister(ServerErrorCounter)
+	registerer.Unregister(UserErrorCounter)
 }
 
 func (a RequestsMetrics) ExtensionName() string {
