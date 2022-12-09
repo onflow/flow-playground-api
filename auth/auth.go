@@ -61,18 +61,22 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 	var user *model.User
 	var err error
 
-	if session.IsNew {
+	gotUser := false
+	if !session.IsNew {
+		// Try to get user from session
+		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+		if err == nil {
+			gotUser = true
+		}
+	}
+
+	if !gotUser {
 		user, err = a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
 
 		session.Values[userIDKey] = user.ID.String()
-	} else {
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to load user from session")
-		}
 	}
 
 	err = sessions.Save(ctx, session)
