@@ -398,12 +398,10 @@ func (r *projectResolver) UpdatedAt(_ context.Context, proj *model.Project) (str
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
-	panic("test panic error")
 	return &model.PlaygroundInfo{
 		APIVersion:     *r.version,
 		CadenceVersion: *semver.MustParse(cadence.Version),
 	}, nil
-
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
