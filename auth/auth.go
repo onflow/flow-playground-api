@@ -135,12 +135,12 @@ func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
 
 	err := userID.UnmarshalText([]byte(userIDStr))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to unmarshal userIDStr")
 	}
 
 	err = a.store.GetUser(userID, &user)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get user from db")
 	}
 
 	return &user, nil

@@ -122,7 +122,7 @@ func (s *SQL) InsertUser(user *model.User) error {
 }
 
 func (s *SQL) GetUser(id uuid.UUID, user *model.User) error {
-	return s.db.First(user, id).Error
+	return s.db.First(user, &model.User{ID: id}).Error
 }
 
 func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
