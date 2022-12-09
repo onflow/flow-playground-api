@@ -22,15 +22,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/sirupsen/logrus"
-
+	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
+	"github.com/sirupsen/logrus"
 )
 
 var ServerErr = errors.New("something went wrong, we are looking into the issue")
+var GraphqlErr = errors.New("invalid graphql request")
 
 type UserError struct {
 	msg string
@@ -69,19 +68,15 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 			contextEntry := entry.
 				WithFields(debugFields)
 
-			if cause := err.Extensions["cause"]; cause != nil {
-				telemetry.ServerErrorCounter.Inc()
-				contextEntry.
-					WithError(cause.(error)).
-					Error("GQL Request Server Error")
-				sentryCtx := context.WithValue(ctx, sentryLevelCtxKey, sentry.LevelError)
-				localHub.RecoverWithContext(sentryCtx, err)
+			if code := err.Extensions["code"]; code != nil {
+				res.Errors[i].Message = GraphqlErr.Error()
 			} else if err != nil {
 				var userErr *UserError
 				if errors.As(err, &userErr) {
 					telemetry.UserErrorCounter.Inc()
 					res.Extensions["code"] = "BAD_REQUEST"
 				} else {
+					sentry.CaptureException(err)
 					telemetry.ServerErrorCounter.Inc()
 					res.Errors[i].Message = ServerErr.Error()
 					res.Extensions["code"] = "INTERNAL_SERVER_ERROR"
