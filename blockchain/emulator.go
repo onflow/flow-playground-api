@@ -26,7 +26,7 @@ import (
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
 	emu "github.com/onflow/flow-emulator"
-	"github.com/onflow/flow-emulator/storage/memstore"
+	"github.com/onflow/flow-emulator/storage/badger"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
@@ -70,8 +70,13 @@ type emulator struct {
 }
 
 func newEmulator() (*emulator, error) {
+	store, err := badger.New(badger.WithPersist(false))
+	if err != nil {
+		return nil, err
+	}
+
 	blockchain, err := emu.NewBlockchain(
-		emu.WithStore(memstore.New()),
+		emu.WithStore(store),
 		emu.WithTransactionValidationEnabled(false),
 		emu.WithSimpleAddresses(),
 		emu.WithStorageLimitEnabled(false),
