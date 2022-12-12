@@ -21,7 +21,6 @@ package errors
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -29,21 +28,6 @@ import (
 
 	"github.com/getsentry/sentry-go"
 )
-
-var ServerErr = errors.New("something went wrong, we are looking into the issue")
-var GraphqlErr = errors.New("invalid graphql request")
-
-type UserError struct {
-	msg string
-}
-
-func NewUserError(msg string) *UserError {
-	return &UserError{msg}
-}
-
-func (i *UserError) Error() string {
-	return fmt.Sprintf("user error: %s", i.msg)
-}
 
 type errCtxKeyType string
 
@@ -74,9 +58,12 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 				res.Errors[i].Message = GraphqlErr.Error()
 			} else if err != nil {
 				var userErr *UserError
+				var authErr *AuthorizationError
 				if errors.As(err, &userErr) {
 					telemetry.UserErrorCounter.Inc()
 					res.Extensions["code"] = "BAD_REQUEST"
+				} else if errors.As(err, &authErr) {
+					res.Extensions["code"] = "AUTHORIZATION_ERROR"
 				} else {
 					localHub.CaptureException(err)
 					telemetry.ServerErrorCounter.Inc()
