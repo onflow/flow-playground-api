@@ -32,7 +32,7 @@ func newEmulatorPool(size int) *emulatorPool {
 	}
 
 	for i := 0; i < size; i++ {
-		go pool.create()
+		pool.create()
 	}
 
 	return pool
