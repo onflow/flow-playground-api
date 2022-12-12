@@ -24,7 +24,6 @@ type PlaygroundConfig struct {
 	Port                       int           `default:"8080"`
 	Debug                      bool          `default:"false"`
 	AllowedOrigins             []string      `default:"http://localhost:3000"`
-	BetaOrigins                string        `default:""`
 	SessionAuthKey             string        `default:"428ce08c21b93e5f0eca24fbeb0c7673"`
 	SessionMaxAge              time.Duration `default:"157680000s"`
 	SessionCookiesSecure       bool          `default:"true"`
@@ -42,8 +41,4 @@ var _ configGetter = &PlaygroundConfig{}
 
 func (c *PlaygroundConfig) getConfig() {
 	getEnv("FLOW", c)
-
-	if c.BetaOrigins != "" {
-		c.AllowedOrigins = append(c.AllowedOrigins, c.BetaOrigins)
-	}
 }
