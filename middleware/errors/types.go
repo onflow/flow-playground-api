@@ -23,8 +23,12 @@ import (
 	"fmt"
 )
 
-var ServerErr = errors.New("something went wrong, we are looking into the issue")
-var GraphqlErr = errors.New("invalid graphql request")
+var (
+	ServerErr        = errors.New("something went wrong, we are looking into the issue")
+	GraphqlErr       = errors.New("invalid graphql request")
+	_          error = &AuthorizationError{}
+	_          error = &UserError{}
+)
 
 type AuthorizationError struct {
 	msg string
