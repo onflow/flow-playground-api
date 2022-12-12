@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	ServerErr        = errors.New("something went wrong, we are looking into the issue")
-	GraphqlErr       = errors.New("invalid graphql request")
+	ServerErr  error = errors.New("something went wrong, we are looking into the issue")
+	GraphqlErr error = errors.New("invalid graphql request")
 	_          error = &AuthorizationError{}
 	_          error = &UserError{}
 )
