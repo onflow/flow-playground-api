@@ -67,3 +67,13 @@ func Test_InstancePool(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func Benchmark_InstancePool(b *testing.B) {
+	b.Run("Create instance pool", func(b *testing.B) {
+		const size = 10
+		for i := 0; i < b.N; i++ {
+			pool := newEmulatorPool(size)
+			assert.Len(b, pool.instances, size)
+		}
+	})
+}
