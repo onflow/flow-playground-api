@@ -75,6 +75,8 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 					WithError(err).
 					Warnf("GQL Request Client Error: %v err = %+v", err.Extensions["general_error"], err)
 			}
+
+			res.Errors[i].Extensions = res.Extensions
 		}
 
 		return res
