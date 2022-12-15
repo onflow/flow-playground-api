@@ -23,6 +23,7 @@ type PlatformType string
 const (
 	Local      PlatformType = "LOCAL"
 	Staging    PlatformType = "STAGING"
+	OpenBeta   PlatformType = "BETA"
 	Production PlatformType = "PRODUCTION"
 )
 
