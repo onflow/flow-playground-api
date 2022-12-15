@@ -26,6 +26,7 @@
 package build
 
 import (
+	"fmt"
 	"github.com/Masterminds/semver"
 )
 
@@ -37,6 +38,7 @@ var version string
 
 // Version returns the semantic version of this build.
 func Version() *semver.Version {
+	fmt.Println("VERSION :", version)
 	if version == undefined {
 		return nil
 	}
