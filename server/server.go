@@ -19,9 +19,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
+	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net/http"
 	"strings"
@@ -54,6 +58,7 @@ import (
 const sessionName = "flow-playground"
 
 func main() {
+	ctx := context.Background()
 	semVer := ""
 	if build.Version() != nil {
 		semVer = build.Version().String()
@@ -112,6 +117,20 @@ func main() {
 		router.Use(httplog.RequestLogger(logger))
 		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
+
+	if config.Telemetry().TracingEnabled {
+		tp, err := telemetry.NewProvider(ctx,
+			"playground-api",
+			config.Telemetry().TracingCollectorEndpoint,
+			trace.ParentBased(trace.AlwaysSample()),
+		)
+		if err != nil {
+			log.Fatal("failed to setup telemetry provider", err)
+		}
+		defer telemetry.CleanupTraceProvider(ctx, tp)
+	}
+
+	defer telemetry.UnRegisterMetrics()
 
 	logger := logrus.StandardLogger()
 	logger.Formatter = stackdriver.NewFormatter(stackdriver.WithService("flow-playground"))
@@ -183,7 +202,10 @@ func main() {
 		log.Fatal(err)
 	}
 
+	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
+
 	router.HandleFunc("/ping", ping.Ping)
+	router.Handle("/metrics", promhttp.Handler())
 
 	logStartMessage(build.Version())
 

@@ -18,21 +18,18 @@
 
 package config
 
-type PlatformType string
-
-const (
-	Local      PlatformType = "LOCAL"
-	Staging    PlatformType = "STAGING"
-	OpenBeta   PlatformType = "BETA"
-	Production PlatformType = "PRODUCTION"
-)
-
-type PlatformConfig struct {
-	Type PlatformType `default:"LOCAL"`
+// TelemetryConfig defines tracing configuration
+type TelemetryConfig struct {
+	// StaleProjectQueryTime how often to query database for stale project count
+	StaleProjectQueryTime string `default:"0 0 * * *"`
+	// TracingEnabled determines whether to collect and export traces
+	TracingEnabled bool `default:"false"`
+	// TracingCollectorEndpoint is the OTEL collector endpoint to which traces should be sent
+	TracingCollectorEndpoint string
 }
 
-var _ configGetter = &PlatformConfig{}
+var _ configGetter = &TelemetryConfig{}
 
-func (c *PlatformConfig) getConfig() {
-	getEnv("FLOW_PLATFORM", c)
+func (c *TelemetryConfig) getConfig() {
+	getEnv("TELEMETRY", c)
 }

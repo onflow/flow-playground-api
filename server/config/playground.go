@@ -32,6 +32,8 @@ type PlaygroundConfig struct {
 	LedgerCacheSize            int           `default:"128"`
 	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
 	ForceMigration             bool          `default:"false"`
+	MaxProjectsLimit           int           `default:"10"`
+	StaleProjectDays           int           `default:"90"`
 	StorageBackend             string
 }
 
