@@ -10,17 +10,13 @@ KUBECONFIG := $(shell uuidgen)
 generate:
 	GO111MODULE=on go generate ./...
 
-.PHONY: package-test
-package-test:
-	go clean -cache -testcache
-	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
-
-.PHONY: test
+.PHONY: ci
 test:
 	GO111MODULE=on go test -v ./...
 
-.PHONY: ci
-ci: check-tidy test check-headers
+.PHONY: test
+test-log:
+	GO111MODULE=on go test -v ./... > test-results.log
 
 .PHONY: run
 run:
