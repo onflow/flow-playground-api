@@ -26,6 +26,7 @@ import (
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
 	emu "github.com/onflow/flow-emulator"
+	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
@@ -73,6 +74,7 @@ type emulator struct {
 
 func newEmulator() (*emulator, error) {
 	blockchain, err := emu.NewBlockchain(
+		emu.WithStore(memstore.New()),
 		emu.WithTransactionValidationEnabled(false),
 		emu.WithSimpleAddresses(),
 		emu.WithStorageLimitEnabled(false),
@@ -266,7 +268,7 @@ func parseArguments(args []string) ([][]byte, error) {
 
 // parseContractName extracts contract name from its source
 func parseContractName(code string) (string, error) {
-	program, err := parser.ParseProgram([]byte(code), nil)
+	program, err := parser.ParseProgram(nil, []byte(code), parser.Config{})
 	if err != nil {
 		return "", err
 	}
