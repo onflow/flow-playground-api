@@ -4,31 +4,12 @@ name: CI
 # events but only for the master branch
 on:
   push:
-    branches: [ master, staging, v2 ]
+    branches: [ master ]
   pull_request:
-    branches: [ master, staging, v2 ]
+    types: [opened, synchronize, edited, ready_for_review]
 
 jobs:
-  package-test:
-    name: Package Tests
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '1.18.4'
-    - uses: actions/cache@v1
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - run: make package-test
-
-  e2e-test:
-    name: End-To-End Tests
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -36,14 +17,14 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v2
         with:
-          go-version: '1.18.4'
+          go-version: '1.19'
       - uses: actions/cache@v1
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - run: make e2e-test
+      - run: make ci
 
   lint:
     name: Lint
@@ -52,7 +33,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.18.4'
+          go-version: '1.19'
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Check Headers

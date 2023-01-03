@@ -5,8 +5,6 @@ CONTAINER := flow-playground-api
 IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
 KUBECONFIG := $(shell uuidgen)
-PACKAGE_TEST_DIRS = $(shell go list ./... | grep -v /e2eTest)
-E2E_TEST_DIRS = $(shell go list ./e2eTest/...)
 
 .PHONY: generate
 generate:
@@ -17,15 +15,12 @@ package-test:
 	go clean -cache -testcache
 	GO111MODULE=on go test -v $(PACKAGE_TEST_DIRS)
 
-.PHONY: e2e-test
-e2e-test:
-	go clean -cache -testcache
-	GO111MODULE=on go test -v $(E2E_TEST_DIRS)
-
 .PHONY: test
 test:
-	go clean -cache -testcache
-	GO111MODULE=on go test -v ./... -timeout 20m > test-results.log
+	GO111MODULE=on go test -v ./...
+
+.PHONY: ci
+ci: check-tidy test check-headers
 
 .PHONY: run
 run:
