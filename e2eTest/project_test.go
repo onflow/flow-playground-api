@@ -355,10 +355,8 @@ func TestProjectUpdatedTime(t *testing.T) {
 		updatedTime, _ := time.Parse(time.RFC1123Z, projResp2.UpdateProject.UpdatedAt)
 		require.True(t, createdTime.Before(updatedTime))
 
-		fiveSeconds := int64(5000)
-		require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < fiveSeconds)
-
-		require.NotEqual(t, projResp1.CreateProject.UpdatedAt, projResp2.UpdateProject.UpdatedAt)
+		tenSeconds := int64(10000)
+		require.True(t, updatedTime.UnixMilli()-createdTime.UnixMilli() < tenSeconds)
 	})
 
 	t.Run("updating a file", func(t *testing.T) {

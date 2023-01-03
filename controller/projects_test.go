@@ -69,14 +69,15 @@ func createProjects() (*Projects, storage.Store, *model.User) {
 	return NewProjects(version, store, chain), store, user
 }
 
-func createControllers() (storage.Store, *model.User, *blockchain.Projects, *Projects, *Files) {
+func createControllers() (storage.Store, *model.User, *blockchain.Projects, *Projects, *Files, *Accounts) {
 	store := createStore()
 	user := createUser(store)
 	chain := blockchain.NewProjects(store, 5)
 	projects := NewProjects(version, store, chain)
 	files := NewFiles(store, chain)
+	accounts := NewAccounts(store, chain)
 
-	return store, user, chain, projects, files
+	return store, user, chain, projects, files, accounts
 }
 
 const seedTitle = "e2eTest title"
@@ -315,7 +316,7 @@ func Test_StaleProjects(t *testing.T) {
 }
 
 func Test_StateRecreation(t *testing.T) {
-	_, user, _, projects, files := createControllers()
+	_, user, _, projects, files, accounts := createControllers()
 
 	contract1 := `pub contract HelloWorld { 
 		init() {
@@ -388,56 +389,16 @@ func Test_StateRecreation(t *testing.T) {
 	}
 
 	contractDeployment, err := files.DeployContract(deploy)
-	println("CONTRACT TITLE: ", contractDeployment.Title)
 	require.NoError(t, err)
 
 	assert.Equal(t, "HelloWorld", contractDeployment.File.Title)
 
 	// Re-deploy contract
-	contractDeployment, err = files.DeployContract(deploy)
+	_, err = files.DeployContract(deploy)
 	require.NoError(t, err)
 
-	_ = contractDeployment // TODO: add verifications
+	acc, err := accounts.GetByAddress(model.Address(flow.HexToAddress("0x01")), newProj.ID)
+	require.NoError(t, err)
 
-	/*
-		// check what deployed on accounts
-		allAccs, err := accounts.AllForProjectID(newProj.ID)
-		require.NoError(t, err)
-		for i, rAcc := range allAccs {
-			assert.Equal(t, // asserting that account addresses are ordered
-				flow.HexToAddress(fmt.Sprintf("0x0%d", i+5)).String(),
-				rAcc.Address.ToFlowAddress().String(),
-			)
-			if rAcc.ID == redeployAcc.ID {
-				// only one redeploy account has deployed code due to clear state
-				assert.Equal(t, contract1, rAcc.DeployedCode)
-			} else {
-				assert.Equal(t, "", rAcc.DeployedCode)
-			}
-		}
-
-		tx2 := `import HelloWorld from 0x05
-			transaction {
-				prepare(auth: AuthAccount) {}
-				execute {}
-			}`
-
-		for i := 0; i < 5; i++ {
-			txExe, err := transactions.CreateTransactionExecution(model.NewTransactionExecution{
-				ProjectID: newProj.ID,
-				Script:    tx2,
-				Signers:   []model.Address{redeployAcc.Address},
-			})
-			require.NoError(t, err)
-			assert.Len(t, txExe.Errors, 0)
-		}
-
-		exes, err := transactions.AllExecutionsForProjectID(newProj.ID)
-		require.NoError(t, err)
-		for i, exe := range exes {
-			assert.Equal(t, exe.Index, i)
-		}
-
-	*/
-
+	assert.Contains(t, acc.DeployedContracts, "HelloWorld")
 }

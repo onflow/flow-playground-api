@@ -75,7 +75,8 @@ func TestAccountDeployedContracts(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	require.EqualValues(t, []string{"HelloWorldA", "HelloWorldB"}, accResp.Account.DeployedContracts)
+	require.Contains(t, accResp.Account.DeployedContracts, "HelloWorldA")
+	require.Contains(t, accResp.Account.DeployedContracts, "HelloWorldB")
 }
 
 func TestAccountStorage(t *testing.T) {

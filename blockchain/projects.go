@@ -56,7 +56,7 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new account models
-func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account, error) {
+func (p *Projects) Reset(projectID uuid.UUID) ([]*model.Account, error) {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)
 	if err != nil {
@@ -73,15 +73,6 @@ func (p *Projects) Reset(projectID uuid.UUID, em *blockchain) ([]*model.Account,
 	accounts, err := p.createInitialAccounts(projectID)
 	if err != nil {
 		return nil, err
-	}
-
-	// Reload emulator
-	// TODO: refactor reset logic: https://github.com/onflow/flow-playground-api/issues/113
-	if em != nil {
-		*em, err = p.load(projectID)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return accounts, nil
@@ -211,6 +202,7 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 }
 
 // DeployContract deploys a new contract to the provided address and return the updated account as well as record the execution.
+// If a contract with the same name is already deployed to this address, then it will be updated.
 func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
@@ -232,16 +224,27 @@ func (p *Projects) DeployContract(
 	if err != nil {
 		return nil, err
 	}
+
 	if _, ok := flowAccount.Contracts[contractName]; ok {
 		// A contract with this name has already been deployed to this account
-		// TODO: change logic to just re-deploy this contract instead of resetting the state
-		var proj model.Project
-		err := p.store.GetProject(projectID, &proj)
+		// Remove previous contract from the account
+		result, tx, err := em.removeContract(address.ToFlowAddress(), contractName)
+		if err != nil {
+			return nil, err
+		}
+		if result.Error != nil {
+			return nil, result.Error
+		}
+
+		// Insert transaction execution of contract removal into db
+		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
+		err = p.store.InsertTransactionExecution(exe)
 		if err != nil {
 			return nil, err
 		}
 
-		_, err = p.Reset(proj.ID, &em)
+		// Remove contract deployment from db
+		err = p.store.DeleteContractDeploymentByName(projectID, address, contractName)
 		if err != nil {
 			return nil, err
 		}
@@ -256,7 +259,7 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	deploy := model.ContractDeploymentFromFlow(projectID, contractName, result, tx)
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx)
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {

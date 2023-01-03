@@ -53,6 +53,74 @@ func TestContractDeployments(t *testing.T) {
 
 }
 
+func TestContractRedeployment(t *testing.T) {
+	t.Run("same contract name with different arguments", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		contractA := `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+			access(all) fun returnInt(): Int {
+        		return self.A
+    		}
+			access(all) fun setVar(a: Int) {
+				self.A = a
+			}
+		}`
+
+		contractB := `
+		pub contract HelloWorld {
+			pub var B: String
+			pub init() { self.B = "HelloWorldB" }
+			access(all) fun returnString(): String {
+        		return self.B
+    		}
+			access(all) fun setVar(b: String) {
+				self.B = b
+			}
+		}`
+
+		var respA CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&respA,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, contractA, respA.CreateContractDeployment.Script)
+
+		var respB CreateContractDeploymentResponse
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&respB,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractB),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, contractB, respB.CreateContractDeployment.Script)
+
+		var accountResp GetAccountResponse
+		err = c.Post(
+			QueryGetAccount,
+			&accountResp,
+			client.Var("address", addr1),
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		require.Equal(t, []string{"HelloWorld"}, accountResp.Account.DeployedContracts)
+	})
+}
+
 func TestContractInteraction(t *testing.T) {
 	c := newClient()
 

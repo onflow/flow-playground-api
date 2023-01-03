@@ -400,8 +400,11 @@ func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.
 }
 
 func (s *SQL) InsertContractDeployment(deploy *model.ContractDeployment) error {
-	// Should avoid this!
 	return s.db.Create(deploy).Error
+}
+
+func (s *SQL) DeleteContractDeployment(deploy *model.ContractDeployment) error {
+	return s.db.Delete(deploy).Error
 }
 
 func (s *SQL) InsertContractDeploymentWithExecution(
@@ -430,6 +433,27 @@ func (s *SQL) InsertContractDeploymentWithExecution(
 
 		return nil
 	})
+}
+
+func (s *SQL) DeleteContractDeploymentByName(
+	projectID uuid.UUID,
+	address model.Address,
+	contractName string,
+) error {
+	var deployment model.ContractDeployment
+	getModel := &model.ContractDeployment{
+		Address: address,
+		File: model.File{
+			ProjectID: projectID,
+			Title:     contractName,
+		},
+	}
+	err := s.db.Where(getModel).Find(&deployment).Error
+	if err != nil {
+		return err
+	}
+
+	return s.DeleteContractDeployment(&deployment)
 }
 
 func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {

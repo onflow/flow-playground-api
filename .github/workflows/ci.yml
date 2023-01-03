@@ -7,34 +7,41 @@ on:
     branches: [ master, staging, v2 ]
   pull_request:
     branches: [ master, staging, v2 ]
+    types: [opened, synchronize, edited, ready_for_review]
 
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - uses: actions/setup-go@v2
-      with:
-        go-version: '1.18.4'
-    - uses: actions/cache@v1
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - run: make ci
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.19'
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - run: make ci
 
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.18.4'
+          go-version: '1.19'
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Check Headers
+        run: make check-headers
+      - name: Check Tidy
+        run: make check-tidy
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3.2.0
         with:

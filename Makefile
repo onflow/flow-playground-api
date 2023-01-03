@@ -10,22 +10,13 @@ KUBECONFIG := $(shell uuidgen)
 generate:
 	GO111MODULE=on go generate ./...
 
-.PHONY: test
-test:
+.PHONY: ci
+test: check-tidy
 	GO111MODULE=on go test -v ./...
 
-.PHONY: test-log
+.PHONY: test
 test-log:
-	GO111MODULE=on go test -v ./... > test-log.log
-
-.PHONY: test-datastore
-test-pg:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test -v ./...
-
-.PHONY: test-migration
-test-migration:
-	DATASTORE_EMULATOR_HOST=localhost:8081 FLOW_STORAGEBACKEND=datastore GO111MODULE=on go test ./migrate/...
-
+	GO111MODULE=on go test -v ./... > test-results.log
 
 .PHONY: run
 run:
@@ -49,15 +40,12 @@ run-pg:
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
-.PHONY: ci
-ci: check-tidy test check-headers
-
 .PHONY: install-linter
 install-linter:
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ${GOPATH}/bin v1.47.2
 
 .PHONY: lint
-lint:
+lint: check-headers
 	golangci-lint run -v ./...
 
 .PHONY: check-headers

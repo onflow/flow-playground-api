@@ -59,6 +59,9 @@ type blockchain interface {
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
 
+	// removeContract removes specified contract from provided address and returns transaction and result.
+	removeContract(address flowsdk.Address, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
+
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
 }
@@ -76,6 +79,7 @@ func newEmulator() (*emulator, error) {
 		emu.WithSimpleAddresses(),
 		emu.WithStorageLimitEnabled(false),
 		emu.WithTransactionFeesEnabled(false),
+		emu.WithContractRemovalRestricted(false),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new emulator instance")
@@ -168,6 +172,14 @@ func (e *emulator) deployContract(
 	return e.sendTransaction(tx, nil)
 }
 
+func (e *emulator) removeContract(
+	address flowsdk.Address,
+	contractName string,
+) (*types.TransactionResult, *flowsdk.Transaction, error) {
+	tx := templates.RemoveAccountContract(address, contractName)
+	return e.sendTransaction(tx, nil)
+}
+
 func (e *emulator) sendTransaction(
 	tx *flowsdk.Transaction,
 	authorizers []flowsdk.Address,
@@ -256,7 +268,7 @@ func parseArguments(args []string) ([][]byte, error) {
 
 // parseContractName extracts contract name from its source
 func parseContractName(code string) (string, error) {
-	program, err := parser.ParseProgram([]byte(code), nil)
+	program, err := parser.ParseProgram(nil, []byte(code), parser.Config{})
 	if err != nil {
 		return "", err
 	}
