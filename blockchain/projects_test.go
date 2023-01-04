@@ -582,7 +582,7 @@ func Test_DeployContract(t *testing.T) {
 		txDeploy := txExe[5]
 		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
 		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
-		assert.Equal(t, `{"type":"String","value":"HelloWorld"}`, txDeploy.Arguments[0])
+		assert.Equal(t, `{"value":"HelloWorld","type":"String"}`, txDeploy.Arguments[0])
 		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
 	})
 
@@ -674,7 +674,7 @@ func Test_ScriptExecution(t *testing.T) {
 		require.NoError(t, err)
 		assert.Len(t, exe.Errors, 0)
 		assert.Equal(t, `"purpose"`, exe.Logs[0])
-		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
+		assert.Equal(t, "{\"value\":\"42\",\"type\":\"Int\"}\n", exe.Value)
 		assert.Equal(t, proj.ID, exe.ProjectID)
 
 		var dbScripts []*model.ScriptExecution
@@ -714,7 +714,7 @@ func Test_ScriptExecution(t *testing.T) {
 
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"type\":\"String\",\"value\":\"HelloWorldA\"}\n", exe.Value)
+		assert.Equal(t, "{\"value\":\"HelloWorldA\",\"type\":\"String\"}\n", exe.Value)
 	})
 
 	t.Run("script with arguments", func(t *testing.T) {
@@ -732,7 +732,7 @@ func Test_ScriptExecution(t *testing.T) {
 
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"type\":\"Int\",\"value\":\"42\"}\n", exe.Value)
+		assert.Equal(t, "{\"value\":\"42\",\"type\":\"Int\"}\n", exe.Value)
 	})
 
 }
