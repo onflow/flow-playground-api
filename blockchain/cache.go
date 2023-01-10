@@ -27,11 +27,11 @@ import (
 // emulatorCache caches the emulator state.
 //
 // In the environment where multiple replicas maintain its own cache copy it can get into multiple states:
-// - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
-//   then replica A needs to apply missed transaction execution 2 before continuing
-// - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
-//   doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
-//   executions that wasn't cleared
+//   - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
+//     then replica A needs to apply missed transaction execution 2 before continuing
+//   - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
+//     doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
+//     executions that wasn't cleared
 type emulatorCache struct {
 	cache *lru.Cache
 }
@@ -40,6 +40,7 @@ type emulatorCache struct {
 func newEmulatorCache(capacity int) *emulatorCache {
 	cache, err := lru.New(capacity)
 	if err != nil {
+		cache = nil
 		sentry.CaptureMessage("Continuing without emulator caching: " + err.Error())
 	}
 
