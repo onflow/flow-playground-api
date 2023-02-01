@@ -203,6 +203,7 @@ func main() {
 	}
 
 	telemetry.SetStaleProjectScanner(store.GetStaleProjects)
+	telemetry.SetTotalProjectCounter(store.TotalProjectCount)
 
 	router.HandleFunc("/ping", ping.Ping)
 	router.Handle("/metrics", promhttp.Handler())

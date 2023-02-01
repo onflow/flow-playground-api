@@ -20,8 +20,8 @@ package config
 
 // TelemetryConfig defines tracing configuration
 type TelemetryConfig struct {
-	// StaleProjectQueryTime how often to query database for stale project count
-	StaleProjectQueryTime string `default:"0 0 * * *"`
+	// ProjectQueryTime how often to query database for project metrics
+	ProjectQueryTime string `default:"0 0 * * *"`
 	// TracingEnabled determines whether to collect and export traces
 	TracingEnabled bool `default:"false"`
 	// TracingCollectorEndpoint is the OTEL collector endpoint to which traces should be sent

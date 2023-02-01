@@ -33,8 +33,15 @@ var staleDuration = (time.Hour * 24) * time.Duration(config.Playground().StalePr
 // staleProjectScanner scans for stale projects in the database
 var staleProjectScanner func(stale time.Duration, projs *[]*model.Project) error = nil
 
+// totalProjectCounter queries for the total number of projects in the database
+var totalProjectCounter func(totalProjects *int64) error = nil
+
 func SetStaleProjectScanner(scanner func(stale time.Duration, projs *[]*model.Project) error) {
 	staleProjectScanner = scanner
+}
+
+func SetTotalProjectCounter(counter func(totalProjects *int64) error) {
+	totalProjectCounter = counter
 }
 
 // StaleProjectCounter returns the number of stale projects
@@ -52,12 +59,26 @@ func StaleProjectCounter() (int, error) {
 	return len(stales), nil
 }
 
-// registerStaleProjectJob registers recurring query for stale project count
-func registerStaleProjectJob() error {
+func TotalProjectCounter() (int, error) {
+	if totalProjectCounter == nil {
+		return 0, errors.New("total project counter not set")
+	}
+
+	var count int64
+	err := totalProjectCounter(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+// registerStaleProjectJob registers recurring database query for project metrics
+func registerProjectJobs() error {
 	job := cron.New()
 
 	err := job.AddFunc(
-		config.Telemetry().StaleProjectQueryTime,
+		config.Telemetry().ProjectQueryTime,
 		func() {
 			staleCount, err := StaleProjectCounter()
 			if err != nil {
@@ -65,6 +86,13 @@ func registerStaleProjectJob() error {
 				return
 			}
 			staleProjectGauge.Set(float64(staleCount))
+
+			totalProjects, err := TotalProjectCounter()
+			if err != nil {
+				sentry.CaptureException(err)
+				return
+			}
+			totalProjectGauge.Set(float64(totalProjects))
 		},
 	)
 	if err != nil {
@@ -72,6 +100,7 @@ func registerStaleProjectJob() error {
 	}
 
 	job.Start()
+	job.Run()
 
 	return nil
 }

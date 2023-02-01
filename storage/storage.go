@@ -46,6 +46,7 @@ type Store interface {
 
 	GetStaleProjects(stale time.Duration, projs *[]*model.Project) error
 	DeleteStaleProjects(stale time.Duration) error
+	TotalProjectCount(totalProjects *int64) error
 
 	InsertFile(file *model.File) error
 	UpdateFile(input model.UpdateFile, file *model.File) error

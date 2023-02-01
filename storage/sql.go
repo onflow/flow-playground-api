@@ -324,6 +324,12 @@ func (s *SQL) DeleteStaleProjects(stale time.Duration) error {
 	return nil
 }
 
+func (s *SQL) TotalProjectCount(count *int64) error {
+	return s.db.Model(&model.Project{}).
+		Count(count).
+		Error
+}
+
 func (s *SQL) GetProjectCountForUser(userID uuid.UUID, count *int64) error {
 	return s.db.Where(&model.Project{UserID: userID}).
 		Find(&[]*model.Project{}).
