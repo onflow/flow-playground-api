@@ -12,3 +12,18 @@ updates:
     allow:
       - dependency-name: "github.com/onflow/flow-emulator"
       - dependency-name: "github.com/onflow/cadence"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "v2"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "v2"
+    allow:
+      - dependency-name: "github.com/onflow/flow-emulator"
+      - dependency-name: "github.com/onflow/cadence"
