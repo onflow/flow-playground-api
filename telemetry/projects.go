@@ -100,7 +100,6 @@ func registerProjectJobs() error {
 	}
 
 	job.Start()
-	job.Run()
 
 	return nil
 }
