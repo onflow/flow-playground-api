@@ -19,7 +19,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onflow/cadence v0.31.3
+	github.com/onflow/cadence v0.33.1
 	github.com/onflow/flow-emulator v0.44.1
 	github.com/onflow/flow-go-sdk v0.31.3
 	github.com/pkg/errors v0.9.1
