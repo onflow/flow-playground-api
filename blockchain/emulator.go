@@ -79,7 +79,7 @@ func newEmulator() (*emulator, error) {
 		emu.WithSimpleAddresses(),
 		emu.WithStorageLimitEnabled(false),
 		emu.WithTransactionFeesEnabled(false),
-		emu.WithContractRemovalRestricted(false),
+		emu.WithContractRemovalEnabled(true),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a new emulator instance")
