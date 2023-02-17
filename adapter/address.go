@@ -37,6 +37,8 @@ import (
 const numberOfServiceAccounts = 4
 const addressLength = 8
 
+var r = regexp.MustCompile(`0x0*(\d+)`)
+
 // ContentAddressFromAPI converts addresses found in content from the user input.
 func ContentAddressFromAPI(input string) string {
 	return contentAdapter(input, true)
@@ -48,25 +50,35 @@ func contentAddressToAPI(input string) string {
 }
 
 func contentAdapter(input string, fromInput bool) string {
-	r := regexp.MustCompile(`0x0*(\d+)`)
-
-	// we must use this logic since if we parse the address to Address type
-	// it outputs it in standard format which might be different to the input format
-	for _, addressMatch := range r.FindAllStringSubmatch(input, -1) {
-		original := addressMatch[0]
-		addr, _ := strconv.Atoi(addressMatch[1])
-
-		if fromInput {
-			addr = addr + numberOfServiceAccounts
-		} else if addr > numberOfServiceAccounts { // don't convert if service address, shouldn't happen
-			addr = addr - numberOfServiceAccounts
-		}
-
-		replaced := strings.ReplaceAll(original, addressMatch[1], fmt.Sprintf("%d", addr))
-		input = strings.ReplaceAll(input, original, replaced)
+	if fromInput {
+		input = r.ReplaceAllStringFunc(input, translateFrom)
+	} else {
+		input = r.ReplaceAllStringFunc(input, translateTo)
 	}
 
 	return input
+}
+
+func translateFrom(input string) string {
+	addressMatch := r.FindStringSubmatch(input)
+	original := addressMatch[0]
+	addr, _ := strconv.Atoi(addressMatch[1])
+
+	addr += numberOfServiceAccounts
+
+	return strings.ReplaceAll(original, addressMatch[1], fmt.Sprintf("%d", addr))
+}
+
+func translateTo(input string) string {
+	addressMatch := r.FindStringSubmatch(input)
+	original := addressMatch[0]
+	addr, _ := strconv.Atoi(addressMatch[1])
+
+	if addr > numberOfServiceAccounts { // don't convert if service address, shouldn't happen
+		addr -= numberOfServiceAccounts
+	}
+
+	return strings.ReplaceAll(original, addressMatch[1], fmt.Sprintf("%d", addr))
 }
 
 // AddressFromAPI converts the address from the user input and shifts it for number of service accounts.

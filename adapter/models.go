@@ -40,7 +40,7 @@ func TransactionToAPI(tx *model.TransactionExecution) *model.TransactionExecutio
 	tx.Signers = addressesToAPI(tx.Signers)
 
 	for i, arg := range tx.Arguments {
-		tx.Arguments[i] = ContentAddressFromAPI(arg)
+		tx.Arguments[i] = contentAddressToAPI(arg)
 	}
 
 	for i, e := range tx.Events {

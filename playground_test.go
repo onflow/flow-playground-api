@@ -2383,6 +2383,35 @@ func TestScriptExecutions(t *testing.T) {
 		require.Empty(t, resp.CreateScriptExecution.Errors)
 	})
 
+	t.Run("Multiple translation (missing imports)", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = `
+			import contractA from 0x01
+			import FungibleToken from 0x05
+			pub fun main(): Address { return 0x01 }`
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		// Ensure the declaration address is 0000000000000005 and not 0000000000000009
+		require.Contains(t, resp.CreateScriptExecution.Errors,
+			"{cannot find declaration `contractA` in `0000000000000005.contractA` 0x14006d25428 0x14006d25440}")
+
+		require.Contains(t, resp.CreateScriptExecution.Errors,
+			"{cannot find declaration `FungibleToken` in `0000000000000005.FungibleToken` 0x14006d25428 0x14006d25440}")
+	})
+
 	t.Run("invalid (parse error)", func(t *testing.T) {
 
 		c := newClient()
