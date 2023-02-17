@@ -2392,7 +2392,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		const script = `
 			import contractA from 0x01
-			import FungibleToken from 0x05
+			import contractB from 0x05
 			pub fun main(): Address { return 0x01 }`
 
 		err := c.Post(
@@ -2404,12 +2404,11 @@ func TestScriptExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		// Ensure the declaration address is 0000000000000005 and not 0000000000000009
-		require.Contains(t, resp.CreateScriptExecution.Errors,
-			"{cannot find declaration `contractA` in `0000000000000005.contractA` 0x14006d25428 0x14006d25440}")
+		require.Equal(t, "cannot find declaration `contractA` in `0000000000000005.contractA`",
+			resp.CreateScriptExecution.Errors[0].Message)
 
-		require.Contains(t, resp.CreateScriptExecution.Errors,
-			"{cannot find declaration `FungibleToken` in `0000000000000005.FungibleToken` 0x14006d25428 0x14006d25440}")
+		require.Equal(t, "cannot find declaration `contractB` in `0000000000000009.contractB`",
+			resp.CreateScriptExecution.Errors[1].Message)
 	})
 
 	t.Run("invalid (parse error)", func(t *testing.T) {
