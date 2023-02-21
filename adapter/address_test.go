@@ -65,6 +65,34 @@ func Test_ContentAdapter(t *testing.T) {
 		in:        "0x01",
 		out:       "0x01",
 		fromInput: false,
+	}, {
+		in: `
+			import Foo from 0x01
+			import Zoo from 0x05
+			pub fun main(): Address { return 0x01 }
+			pub fun main(): Address { return 0x05 }
+		`,
+		out: `
+			import Foo from 0x05
+			import Zoo from 0x09
+			pub fun main(): Address { return 0x05 }
+			pub fun main(): Address { return 0x09 }
+		`,
+		fromInput: true,
+	}, {
+		in: `
+			import Foo from 0x05
+			import Zoo from 0x09
+			pub fun main(): Address { return 0x05 }
+			pub fun main(): Address { return 0x09 }
+		`,
+		out: `
+			import Foo from 0x01
+			import Zoo from 0x05
+			pub fun main(): Address { return 0x01 }
+			pub fun main(): Address { return 0x05 }
+		`,
+		fromInput: false,
 	}}
 
 	for _, vector := range testVectors {

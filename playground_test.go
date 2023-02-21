@@ -2383,6 +2383,34 @@ func TestScriptExecutions(t *testing.T) {
 		require.Empty(t, resp.CreateScriptExecution.Errors)
 	})
 
+	t.Run("Multiple translation (missing imports)", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = `
+			import contractA from 0x01
+			import contractB from 0x05
+			pub fun main(): Address { return 0x01 }`
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		require.Equal(t, "cannot find declaration `contractA` in `0000000000000005.contractA`",
+			resp.CreateScriptExecution.Errors[0].Message)
+
+		require.Equal(t, "cannot find declaration `contractB` in `0000000000000009.contractB`",
+			resp.CreateScriptExecution.Errors[1].Message)
+	})
+
 	t.Run("invalid (parse error)", func(t *testing.T) {
 
 		c := newClient()
