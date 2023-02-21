@@ -51,12 +51,9 @@ func contentAddressToAPI(input string) string {
 
 func contentAdapter(input string, fromInput bool) string {
 	if fromInput {
-		input = r.ReplaceAllStringFunc(input, translateFrom)
-	} else {
-		input = r.ReplaceAllStringFunc(input, translateTo)
+		return r.ReplaceAllStringFunc(input, translateFrom)
 	}
-
-	return input
+	return r.ReplaceAllStringFunc(input, translateTo)
 }
 
 func translateFrom(input string) string {
