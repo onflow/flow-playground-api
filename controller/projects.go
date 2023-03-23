@@ -151,6 +151,13 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
+	if proj.TransactionExecutionCount == 0 {
+		_, err = p.blockchain.CreateInitialAccounts(proj.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &proj, nil
 }
 
