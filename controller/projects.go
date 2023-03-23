@@ -151,6 +151,7 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
+	// Migrated projects require initial accounts to be created
 	if proj.TransactionExecutionCount == 0 {
 		_, err = p.blockchain.CreateInitialAccounts(proj.ID)
 		if err != nil {
