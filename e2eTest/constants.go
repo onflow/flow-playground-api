@@ -446,6 +446,7 @@ mutation($projectId: UUID!, $script: String!, $address: Address!) {
 	address: $address
   }) {
     id
+	title
     script
     address
     errors {
@@ -497,6 +498,7 @@ mutation($projectId: UUID!, $title: String!, $script: String!) {
 type CreateContractDeploymentResponse struct {
 	CreateContractDeployment struct {
 		ID      string
+		Title   string
 		Script  string
 		Address string
 		Errors  []model.ProgramError

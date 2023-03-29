@@ -53,7 +53,7 @@ func ContractDeploymentFromFlow(
 	exe := &ContractDeployment{
 		File: File{
 			ID:        uuid.New(),
-			Title:     contractName,
+			Title:     contractName, // Parsed contract name
 			ProjectID: projectID,
 			Type:      ContractFile,
 			Script:    script,

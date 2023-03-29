@@ -110,6 +110,7 @@ type ContractTemplate {
 
 type ContractDeployment {
   id: UUID!
+  title: String!
   script: String!
   address: Address!
   errors: [ProgramError!]
