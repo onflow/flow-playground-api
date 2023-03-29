@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.5.0
+	github.com/icza/bitio v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onflow/cadence v0.31.3

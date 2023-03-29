@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
+	"github.com/dapperlabs/flow-playground-api/server/version"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -49,7 +50,6 @@ import (
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
 	gsessions "github.com/gorilla/sessions"
 	"github.com/rs/cors"
 	"github.com/sirupsen/logrus"
@@ -185,17 +185,7 @@ func main() {
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
 
-	utilsHandler := controller.NewUtilsHandler()
-	router.Route("/utils", func(r chi.Router) {
-		// Add CORS middleware around every request
-		// See https://github.com/rs/cors for full option listing
-		r.Use(cors.New(cors.Options{
-			AllowedOrigins: conf.AllowedOrigins,
-		}).Handler)
-
-		r.Use(render.SetContentType(render.ContentTypeJSON))
-		r.HandleFunc("/version", utilsHandler.VersionHandler)
-	})
+	router.HandleFunc("/version", version.Handler)
 
 	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {
