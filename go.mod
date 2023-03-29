@@ -20,7 +20,7 @@ require (
 	github.com/icza/bitio v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onflow/cadence v0.31.3
+	github.com/onflow/cadence v0.37.0
 	github.com/onflow/flow-emulator v0.44.2
 	github.com/onflow/flow-go-sdk v0.31.3
 	github.com/pkg/errors v0.9.1
@@ -130,7 +130,7 @@ require (
 	github.com/multiformats/go-multicodec v0.6.0 // indirect
 	github.com/multiformats/go-multihash v0.2.1 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
-	github.com/onflow/atree v0.4.0 // indirect
+	github.com/onflow/atree v0.5.0 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/contracts v0.11.2-0.20221216161720-c1b31d5a4722 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/templates v0.11.2-0.20221216161720-c1b31d5a4722 // indirect
 	github.com/onflow/flow-ft/lib/go/contracts v0.5.0 // indirect
