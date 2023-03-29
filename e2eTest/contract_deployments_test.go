@@ -53,6 +53,29 @@ func TestContractDeployments(t *testing.T) {
 
 }
 
+func TestContractTitleParsing(t *testing.T) {
+	c := newClient()
+
+	project := createProject(t, c)
+	contractA := `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+		}`
+
+	var respA CreateContractDeploymentResponse
+	err := c.Post(
+		MutationCreateContractDeployment,
+		&respA,
+		client.Var("projectId", project.ID),
+		client.Var("script", contractA),
+		client.Var("address", addr1),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+	require.Equal(t, "HelloWorld", respA.CreateContractDeployment.Title)
+}
+
 func TestContractRedeployment(t *testing.T) {
 	t.Run("same contract name with different arguments", func(t *testing.T) {
 		c := newClient()
