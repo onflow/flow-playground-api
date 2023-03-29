@@ -16,30 +16,29 @@
  * limitations under the License.
  */
 
-package controller
+package version
 
 import (
+	"errors"
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/build"
+	"github.com/go-chi/render"
+	"github.com/icza/bitio"
 	"github.com/onflow/cadence"
 	"net/http"
-
-	"github.com/go-chi/render"
+	"runtime/debug"
 )
 
-type UtilsHandler struct{}
-
-func NewUtilsHandler() *UtilsHandler {
-	return &UtilsHandler{}
-}
-
-func (u *UtilsHandler) VersionHandler(w http.ResponseWriter, r *http.Request) {
+func Handler(w http.ResponseWriter, r *http.Request) {
 	version := struct {
-		API     string
-		cadence string
+		API      string
+		Cadence  string
+		Emulator string
 	}{
-		API:     "n/a",
-		cadence: "n/a",
+		API:      "n/a",
+		Cadence:  "n/a",
+		Emulator: "n/a",
 	}
 
 	apiVer := build.Version()
@@ -49,8 +48,30 @@ func (u *UtilsHandler) VersionHandler(w http.ResponseWriter, r *http.Request) {
 
 	cadenceVer := semver.MustParse(cadence.Version)
 	if cadenceVer != nil {
-		version.cadence = cadenceVer.String()
+		version.Cadence = cadenceVer.String()
+	}
+
+	emulatorVer, err := getDependencyVersion("github.com/onflow/flow-emulator")
+	if err == nil {
+		version.Emulator = semver.MustParse(emulatorVer).String()
 	}
 
 	render.JSON(w, r, version)
+}
+
+func getDependencyVersion(path string) (string, error) {
+	_ = bitio.NewReader
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", errors.New("failed to read build info")
+	}
+
+	for _, dep := range bi.Deps {
+		fmt.Printf("Dep: %+v\n", dep)
+		if dep.Path == path {
+			return dep.Version, nil
+		}
+	}
+
+	return "", errors.New("dependency not found")
 }
