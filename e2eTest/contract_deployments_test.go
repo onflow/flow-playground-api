@@ -59,8 +59,7 @@ func TestContractTitleParsing(t *testing.T) {
 	project := createProject(t, c)
 	contractA := `
 		pub contract HelloWorld {
-			pub var A: Int
-			pub init() { self.A = 5 }
+			pub init() {}
 		}`
 
 	var respA CreateContractDeploymentResponse
