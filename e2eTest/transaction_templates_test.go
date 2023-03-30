@@ -203,7 +203,7 @@ func TestTransactionTemplates(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateTransactionTemplate.ID, respC.UpdateTransactionTemplate.ID)
-		assert.Equal(t, 1, respC.UpdateTransactionTemplate.Index)
+		assert.Equal(t, 0, respC.UpdateTransactionTemplate.Index)
 		assert.Equal(t, respB.UpdateTransactionTemplate.Script, respC.UpdateTransactionTemplate.Script)
 	})
 

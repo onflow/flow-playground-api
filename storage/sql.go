@@ -359,9 +359,6 @@ func (s *SQL) UpdateFile(input model.UpdateFile, file *model.File) error {
 	if input.Title != nil {
 		update["title"] = *input.Title
 	}
-	if input.Index != nil {
-		update["index"] = *input.Index
-	}
 
 	err := s.db.
 		Model(&model.File{

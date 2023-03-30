@@ -204,7 +204,7 @@ func TestContractTemplates(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateContractTemplate.ID, respC.UpdateContractTemplate.ID)
-		assert.Equal(t, 1, respC.UpdateContractTemplate.Index)
+		assert.Equal(t, 0, respC.UpdateContractTemplate.Index)
 		assert.Equal(t, respB.UpdateContractTemplate.Script, respC.UpdateContractTemplate.Script)
 	})
 
