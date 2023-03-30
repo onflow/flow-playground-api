@@ -197,7 +197,7 @@ func TestScriptTemplates(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
-		assert.Equal(t, 1, respC.UpdateScriptTemplate.Index)
+		assert.Equal(t, 0, respC.UpdateScriptTemplate.Index) // Index updates are disabled
 		assert.Equal(t, respB.UpdateScriptTemplate.Script, respC.UpdateScriptTemplate.Script)
 	})
 
