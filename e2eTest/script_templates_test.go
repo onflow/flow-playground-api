@@ -191,13 +191,13 @@ func TestScriptTemplates(t *testing.T) {
 			&respC,
 			client.Var("projectId", project.ID),
 			client.Var("templateId", templateID),
-			client.Var("index", 1), // Ignore index updates
+			client.Var("index", 1),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
 
 		assert.Equal(t, respA.CreateScriptTemplate.ID, respC.UpdateScriptTemplate.ID)
-		assert.Equal(t, 0, respC.UpdateScriptTemplate.Index)
+		assert.Equal(t, 0, respC.UpdateScriptTemplate.Index) // Index updates are disabled
 		assert.Equal(t, respB.UpdateScriptTemplate.Script, respC.UpdateScriptTemplate.Script)
 	})
 
