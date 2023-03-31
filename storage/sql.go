@@ -385,8 +385,8 @@ func (s *SQL) GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error {
 func (s *SQL) GetFilesForProject(pID uuid.UUID, files *[]*model.File, fileType model.FileType) error {
 	// Note: use map to include zero entries for fileType
 	return s.db.Where(map[string]interface{}{"project_id": pID.String(), "type": fileType}).
-		Order("\"index\" asc").
 		Find(files).
+		Order("\"index\" asc").
 		Error
 }
 
@@ -400,8 +400,8 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 
 func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{File: model.File{ProjectID: projectID}}).
-		Order("\"index\" asc").
 		Find(exes).
+		Order("\"index\" asc").
 		Error
 }
 
@@ -492,8 +492,8 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 
 func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	return s.db.Where(&model.TransactionExecution{File: model.File{ProjectID: projectID}}).
-		Order("\"index\" asc").
 		Find(exes).
+		Order("\"index\" asc").
 		Error
 }
 
