@@ -81,32 +81,35 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 
 	files := make([]*model.File, 0)
 
-	for _, tpl := range input.ContractTemplates {
+	for i, tpl := range input.ContractTemplates {
 		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
+			Index:     i,
 			Type:      model.ContractFile,
 		})
 	}
 
-	for _, tpl := range input.TransactionTemplates {
+	for i, tpl := range input.TransactionTemplates {
 		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
+			Index:     i,
 			Type:      model.TransactionFile,
 		})
 	}
 
-	for _, tpl := range input.ScriptTemplates {
+	for i, tpl := range input.ScriptTemplates {
 		files = append(files, &model.File{
 			ID:        uuid.New(),
 			ProjectID: proj.ID,
 			Title:     tpl.Title,
 			Script:    tpl.Script,
+			Index:     i,
 			Type:      model.ScriptFile,
 		})
 	}

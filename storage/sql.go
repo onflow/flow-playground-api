@@ -348,6 +348,7 @@ func (s *SQL) InsertFile(file *model.File) error {
 	}
 
 	file.Index = int(count)
+	fmt.Println("FILE INDEX: ", file.Index)
 	return s.db.Create(file).Error
 }
 
