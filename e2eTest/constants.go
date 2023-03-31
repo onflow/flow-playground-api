@@ -189,6 +189,7 @@ query($projectId: UUID!) {
     id
     contractTemplates {
       id
+      title
       script
       index
     }
@@ -201,6 +202,7 @@ type GetProjectContractTemplatesResponse struct {
 		ID                string
 		ContractTemplates []struct {
 			ID     string
+			Title  string
 			Script string
 			Index  int
 		}
@@ -343,6 +345,17 @@ mutation($templateId: UUID!, $projectId: UUID!, $script: String!) {
 }
 `
 
+const MutationUpdateContractTemplateTitle = `
+mutation($templateId: UUID!, $projectId: UUID!, $title: String) {
+  updateContractTemplate(input: { id: $templateId, projectId: $projectId, title: $title }) {
+    id
+	title
+    script
+    index
+  }
+}
+`
+
 const MutationUpdateContractTemplateIndex = `
 mutation($templateId: UUID!, $projectId: UUID!, $index: Int!) {
   updateContractTemplate(input: { id: $templateId, projectId: $projectId, index: $index }) {
@@ -356,8 +369,9 @@ mutation($templateId: UUID!, $projectId: UUID!, $index: Int!) {
 type UpdateContractTemplateResponse struct {
 	UpdateContractTemplate struct {
 		ID     string
-		Script string
 		Index  int
+		Title  string
+		Script string
 	}
 }
 

@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"strconv"
 	"testing"
 )
 
@@ -206,6 +207,66 @@ func TestContractTemplates(t *testing.T) {
 		assert.Equal(t, respA.CreateContractTemplate.ID, respC.UpdateContractTemplate.ID)
 		assert.Equal(t, 0, respC.UpdateContractTemplate.Index) // Index updates are disabled
 		assert.Equal(t, respB.UpdateContractTemplate.Script, respC.UpdateContractTemplate.Script)
+	})
+
+	t.Run("Test same contract ordering after updating", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var index4ID string
+
+		// Create 5 contracts
+		for i := 1; i <= 5; i++ {
+			var respA CreateContractTemplateResponse
+			err := c.Post(
+				MutationCreateContractTemplate,
+				&respA,
+				client.Var("projectId", project.ID),
+				client.Var("title", "Contract "+strconv.Itoa(i)),
+				client.Var("script", "apple"),
+				client.AddCookie(c.SessionCookie()),
+			)
+			require.NoError(t, err)
+
+			if i == 4 {
+				index4ID = respA.CreateContractTemplate.ID
+			}
+		}
+
+		var respC UpdateContractTemplateResponse
+		err := c.Post(
+			MutationUpdateContractTemplateTitle,
+			&respC,
+			client.Var("templateId", index4ID),
+			client.Var("projectId", project.ID),
+			client.Var("title", "Test Contract"),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var respD UpdateContractTemplateResponse
+		err = c.Post(
+			MutationUpdateContractTemplateScript,
+			&respD,
+			client.Var("templateId", index4ID),
+			client.Var("projectId", project.ID),
+			client.Var("script", "Contract5"),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var templatesResp GetProjectContractTemplatesResponse
+		err = c.Post(
+			QueryGetProjectContractTemplates,
+			&templatesResp,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		// Assert the ordering is correct
+		assert.Equal(t, "Test Contract", templatesResp.Project.ContractTemplates[3].Title)
 	})
 
 	t.Run("Update non-existent contract template", func(t *testing.T) {

@@ -491,8 +491,8 @@ func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error 
 
 func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*model.TransactionExecution) error {
 	return s.db.Where(&model.TransactionExecution{File: model.File{ProjectID: projectID}}).
-		Order("\"index\" asc").
 		Find(exes).
+		Order("\"index\" asc").
 		Error
 }
 
