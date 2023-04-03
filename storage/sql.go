@@ -70,6 +70,7 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 	if err != nil {
 		err := errors.Wrap(err, "failed to connect database")
 		sentry.CaptureException(err)
+		fmt.Println(err.Error())
 		panic(err)
 	}
 
@@ -98,6 +99,7 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 }
 
 func migrate(db *gorm.DB) {
+	fmt.Println("Running database auto migration")
 	err := db.AutoMigrate(
 		&model.Project{},
 		&model.File{},
@@ -109,6 +111,7 @@ func migrate(db *gorm.DB) {
 	if err != nil {
 		err := errors.Wrap(err, "failed to migrate database")
 		sentry.CaptureException(err)
+		fmt.Println(err.Error())
 		//panic(err)
 	}
 }
