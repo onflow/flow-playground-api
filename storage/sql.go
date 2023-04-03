@@ -109,7 +109,7 @@ func migrate(db *gorm.DB) {
 	if err != nil {
 		err := errors.Wrap(err, "failed to migrate database")
 		sentry.CaptureException(err)
-		panic(err)
+		//panic(err)
 	}
 }
 
