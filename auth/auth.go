@@ -20,6 +20,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -67,6 +68,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 		// Try to load existing user
 		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
 		if err == nil {
+			fmt.Printf("Failed to load user id %s from session\n", session.Values[userIDKey].(string))
 			userLoaded = true
 		}
 	}
