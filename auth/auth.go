@@ -20,7 +20,6 @@ package auth
 
 import (
 	"context"
-	errorTypes "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -62,18 +61,24 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 	var user *model.User
 	var err error
 
-	if session.IsNew {
+	userLoaded := false
+
+	if !session.IsNew {
+		// Try to load existing user
+		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+		if err == nil {
+			userLoaded = true
+		}
+	}
+
+	if !userLoaded {
+		// Create new user
 		user, err = a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
 
 		session.Values[userIDKey] = user.ID.String()
-	} else {
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err != nil {
-			return nil, errorTypes.NewAuthorizationError("failed to load user from session")
-		}
 	}
 
 	err = sessions.Save(ctx, session)
