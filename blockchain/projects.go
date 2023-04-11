@@ -388,7 +388,6 @@ func (p *Projects) runMissingExecutions(
 	em *emulator,
 	executions []*model.TransactionExecution) (*emulator, error) {
 
-	// TODO:
 	for _, execution := range executions {
 		result, _, err := em.executeTransaction(
 			execution.Script,
