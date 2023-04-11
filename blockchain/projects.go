@@ -320,6 +320,25 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 //
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
+	em, err := p.rebuildState(projectID)
+	if err != nil {
+		_, err = p.Reset(projectID)
+		if err != nil {
+			return nil, err
+		}
+
+		em, err = p.rebuildState(projectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	p.emulatorCache.add(projectID, em)
+
+	return em, nil
+}
+
+func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	var executions []*model.TransactionExecution
 
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
@@ -360,8 +379,6 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	p.emulatorCache.add(projectID, em)
 
 	return em, nil
 }
