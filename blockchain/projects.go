@@ -338,15 +338,21 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	return em, nil
 }
 
-func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
+func (p *Projects) rebuildState(projectID uuid.UUID) (em *emulator, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("Failed to rebuild state")
+		}
+	}()
+
 	var executions []*model.TransactionExecution
 
-	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
+	err = p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
 
-	em := p.emulatorCache.get(projectID)
+	em = p.emulatorCache.get(projectID)
 	if em == nil { // if cache miss create new emulator
 		em, err = p.emulatorPool.new()
 		if err != nil {
