@@ -94,8 +94,14 @@ func (e *emulator) executeTransaction(
 	script string,
 	arguments []string,
 	authorizers []flowsdk.Address,
-) (*types.TransactionResult, *flowsdk.Transaction, error) {
-	tx := &flowsdk.Transaction{}
+) (result *types.TransactionResult, tx *flowsdk.Transaction, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("Panic occurred during transaction execution")
+		}
+	}()
+
+	tx = &flowsdk.Transaction{}
 	tx.Script = []byte(script)
 
 	args, err := parseArguments(arguments)
