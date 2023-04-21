@@ -509,7 +509,7 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 		Error
 }
 
-func (s *SQL) TruncateDeploymentsAndExecutionsByBlockHeight(projectID uuid.UUID, blockHeight int) error {
+func (s *SQL) TruncateDeploymentsAndExecutionsAfterBlockHeight(projectID uuid.UUID, blockHeight int) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Delete(
 			&model.TransactionExecution{File: model.File{ProjectID: projectID}},

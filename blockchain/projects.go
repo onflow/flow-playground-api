@@ -237,7 +237,7 @@ func (p *Projects) DeployContract(
 		blockHeight := deployment.BlockHeight
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
-		err = p.store.TruncateDeploymentsAndExecutionsByBlockHeight(projectID, blockHeight)
+		err = p.store.TruncateDeploymentsAndExecutionsAfterBlockHeight(projectID, blockHeight)
 		if err != nil {
 			return nil, err
 		}
