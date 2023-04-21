@@ -29,10 +29,11 @@ type ContractTemplate = File
 
 type ContractDeployment struct {
 	File
-	Address Address        `gorm:"serializer:json"`
-	Errors  []ProgramError `gorm:"serializer:json"`
-	Events  []Event        `gorm:"serializer:json"`
-	Logs    []string       `gorm:"serializer:json"`
+	Address     Address        `gorm:"serializer:json"`
+	BlockHeight int            `json:"blockHeight"`
+	Errors      []ProgramError `gorm:"serializer:json"`
+	Events      []Event        `gorm:"serializer:json"`
+	Logs        []string       `gorm:"serializer:json"`
 }
 
 func ContractDeploymentFromFlow(
@@ -41,6 +42,7 @@ func ContractDeploymentFromFlow(
 	script string,
 	result *types.TransactionResult,
 	tx *flowsdk.Transaction,
+	blockHeight int,
 ) *ContractDeployment {
 	signers := make([]Address, 0)
 	// transaction could be nil in case where we get transaction result errors
@@ -50,7 +52,7 @@ func ContractDeploymentFromFlow(
 		}
 	}
 
-	exe := &ContractDeployment{
+	deploy := &ContractDeployment{
 		File: File{
 			ID:        uuid.New(),
 			Title:     contractName, // Parsed contract name
@@ -58,22 +60,23 @@ func ContractDeploymentFromFlow(
 			Type:      ContractFile,
 			Script:    script,
 		},
-		Address: signers[0],
-		Errors:  nil,
-		Events:  nil,
-		Logs:    result.Logs,
+		Address:     signers[0],
+		BlockHeight: blockHeight,
+		Errors:      nil,
+		Events:      nil,
+		Logs:        result.Logs,
 	}
 
 	if result.Events != nil {
 		events, _ := EventsFromFlow(result.Events)
-		exe.Events = events
+		deploy.Events = events
 	}
 
 	if result.Error != nil {
-		exe.Errors = ProgramErrorFromFlow(result.Error)
+		deploy.Errors = ProgramErrorFromFlow(result.Error)
 	}
 
-	return exe
+	return deploy
 }
 
 func (u *UpdateContractTemplate) Validate() error {
