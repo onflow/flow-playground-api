@@ -54,13 +54,14 @@ type ComplexityRoot struct {
 	}
 
 	ContractDeployment struct {
-		Address func(childComplexity int) int
-		Errors  func(childComplexity int) int
-		Events  func(childComplexity int) int
-		ID      func(childComplexity int) int
-		Logs    func(childComplexity int) int
-		Script  func(childComplexity int) int
-		Title   func(childComplexity int) int
+		Address     func(childComplexity int) int
+		BlockHeight func(childComplexity int) int
+		Errors      func(childComplexity int) int
+		Events      func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Logs        func(childComplexity int) int
+		Script      func(childComplexity int) int
+		Title       func(childComplexity int) int
 	}
 
 	ContractTemplate struct {
@@ -260,6 +261,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ContractDeployment.Address(childComplexity), true
+
+	case "ContractDeployment.blockHeight":
+		if e.complexity.ContractDeployment.BlockHeight == nil {
+			break
+		}
+
+		return e.complexity.ContractDeployment.BlockHeight(childComplexity), true
 
 	case "ContractDeployment.errors":
 		if e.complexity.ContractDeployment.Errors == nil {
@@ -1142,6 +1150,7 @@ type ContractDeployment {
   title: String!
   script: String!
   address: Address!
+  blockHeight: Int!
   errors: [ProgramError!]
   events: [Event!]
   logs: [String!]
@@ -2030,6 +2039,50 @@ func (ec *executionContext) fieldContext_ContractDeployment_address(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _ContractDeployment_blockHeight(ctx context.Context, field graphql.CollectedField, obj *model.ContractDeployment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ContractDeployment_blockHeight(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockHeight, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ContractDeployment_blockHeight(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ContractDeployment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ContractDeployment_errors(ctx context.Context, field graphql.CollectedField, obj *model.ContractDeployment) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ContractDeployment_errors(ctx, field)
 	if err != nil {
@@ -2908,6 +2961,8 @@ func (ec *executionContext) fieldContext_Mutation_createContractDeployment(ctx c
 				return ec.fieldContext_ContractDeployment_script(ctx, field)
 			case "address":
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_ContractDeployment_blockHeight(ctx, field)
 			case "errors":
 				return ec.fieldContext_ContractDeployment_errors(ctx, field)
 			case "events":
@@ -4672,6 +4727,8 @@ func (ec *executionContext) fieldContext_Project_contractDeployments(ctx context
 				return ec.fieldContext_ContractDeployment_script(ctx, field)
 			case "address":
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
+			case "blockHeight":
+				return ec.fieldContext_ContractDeployment_blockHeight(ctx, field)
 			case "errors":
 				return ec.fieldContext_ContractDeployment_errors(ctx, field)
 			case "events":
@@ -8904,6 +8961,13 @@ func (ec *executionContext) _ContractDeployment(ctx context.Context, sel ast.Sel
 		case "address":
 
 			out.Values[i] = ec._ContractDeployment_address(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "blockHeight":
+
+			out.Values[i] = ec._ContractDeployment_blockHeight(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
