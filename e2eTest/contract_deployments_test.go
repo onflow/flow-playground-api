@@ -224,6 +224,8 @@ func TestContractRedeployment(t *testing.T) {
 		)
 		require.NoError(t, err)
 
+		require.Equal(t, 6, createContractResp.CreateContractDeployment.BlockHeight)
+
 		err = c.Post(
 			QueryGetAccount,
 			&accResp,
