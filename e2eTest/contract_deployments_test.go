@@ -141,6 +141,100 @@ func TestContractRedeployment(t *testing.T) {
 
 		require.Equal(t, []string{"HelloWorld"}, accountResp.Account.DeployedContracts)
 	})
+
+	t.Run("Contract redeployment with resource", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		PersonContract := `
+		pub contract Person {
+			pub fun makeFriends(): @Friendship {
+				return <-create Friendship()
+			}
+		
+			pub resource Friendship {
+				pub fun yaay() {
+					log("such a nice friend") // we can log to output, useful on emualtor for debugging
+				}
+			}
+		}`
+
+		var createContractResp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		MakeFriendsTransaction := `
+		import Person from 0x01
+		
+		transaction {
+			let acc: AuthAccount
+		
+			prepare(signer: AuthAccount) {
+				self.acc = signer    
+			}
+			
+			execute {
+				self.acc.save<@Person.Friendship>(<-Person.makeFriends(), to: StoragePath(identifier: "friendship")!)
+			}
+		}`
+
+		var executeTransactionResp CreateTransactionExecutionResponse
+		err = c.Post(
+			MutationCreateTransactionExecution,
+			&executeTransactionResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", MakeFriendsTransaction),
+			client.Var("signers", []string{addr1}),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		var accResp GetAccountResponse
+		err = c.Post(
+			QueryGetAccount,
+			&accResp,
+			client.Var("projectId", project.ID),
+			client.Var("address", addr1),
+		)
+		require.NoError(t, err)
+		require.Equal(t,
+			"{\"Private\":null,\"Public\":{},\"Storage\":{\"friendship\":{\"Fields\":[37],\"ResourceType\":{\"Fields\":[{\"Identifier\":\"uuid\",\"Type\":{}}],\"Initializers\":null,\"Location\":{\"Address\":\"0x0000000000000005\",\"Name\":\"Person\",\"Type\":\"AddressLocation\"},\"QualifiedIdentifier\":\"Person.Friendship\"}}}}",
+			accResp.Account.State)
+
+		PersonContractUpdate := `
+		pub contract Person { 
+		// empty
+		}`
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContractUpdate),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		require.Equal(t, 6, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			QueryGetAccount,
+			&accResp,
+			client.Var("projectId", project.ID),
+			client.Var("address", addr1),
+		)
+		require.NoError(t, err)
+		require.Equal(t, "{}", accResp.Account.State)
+	})
 }
 
 func TestContractInteraction(t *testing.T) {

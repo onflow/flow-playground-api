@@ -113,6 +113,7 @@ type ContractDeployment {
   title: String!
   script: String!
   address: Address!
+  blockHeight: Int!
   errors: [ProgramError!]
   events: [Event!]
   logs: [String!]

@@ -471,6 +471,16 @@ func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments 
 		Error
 }
 
+func (s *SQL) GetContractDeploymentOnAddress(
+	projectID uuid.UUID, title string,
+	address model.Address,
+	deployment *model.ContractDeployment) error {
+	return s.db.Where(&model.ContractDeployment{
+		File: model.File{ProjectID: projectID, Title: title}, Address: address}).
+		Find(&deployment).
+		Error
+}
+
 func (s *SQL) InsertTransactionExecution(exe *model.TransactionExecution) error {
 	var proj model.Project
 	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
@@ -497,6 +507,36 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 		Find(exes).
 		Order("\"index\" asc").
 		Error
+}
+
+func (s *SQL) TruncateDeploymentsAndExecutionsAfterBlockHeight(projectID uuid.UUID, blockHeight int) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Delete(
+			&model.TransactionExecution{File: model.File{ProjectID: projectID}},
+			fmt.Sprintf("\"index\" >= %d", blockHeight-1)). // index starts at 0
+			Error
+		if err != nil {
+			return err
+		}
+
+		err = tx.Model(&model.Project{ID: projectID}).
+			Updates(map[string]any{
+				"TransactionExecutionCount": blockHeight - 1,
+			}).Error
+		if err != nil {
+			return err
+		}
+
+		err = tx.Delete(
+			&model.ContractDeployment{File: model.File{ProjectID: projectID}},
+			fmt.Sprintf("\"blockHeight\" >= %d", blockHeight)).
+			Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (s *SQL) Ping() error {

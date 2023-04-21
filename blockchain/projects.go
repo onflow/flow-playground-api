@@ -227,24 +227,29 @@ func (p *Projects) DeployContract(
 
 	if _, ok := flowAccount.Contracts[contractName]; ok {
 		// A contract with this name has already been deployed to this account
-		// Remove previous contract from the account
-		result, tx, err := em.removeContract(address.ToFlowAddress(), contractName)
-		if err != nil {
-			return nil, err
-		}
-		if result.Error != nil {
-			return nil, result.Error
-		}
-
-		// Insert transaction execution of contract removal into db
-		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-		err = p.store.InsertTransactionExecution(exe)
+		// Rollback to block height before this contract was initially deployed
+		var deployment model.ContractDeployment
+		err := p.store.GetContractDeploymentOnAddress(projectID, contractName, address, &deployment)
 		if err != nil {
 			return nil, err
 		}
 
-		// Remove contract deployment from db
-		err = p.store.DeleteContractDeploymentByName(projectID, address, contractName)
+		blockHeight := deployment.BlockHeight
+
+		// Delete all contract deployments + transaction_executions >= blockHeight
+		err = p.store.TruncateDeploymentsAndExecutionsAfterBlockHeight(projectID, blockHeight)
+		if err != nil {
+			return nil, err
+		}
+
+		var exesB []*model.TransactionExecution
+		err = p.store.GetTransactionExecutionsForProject(projectID, &exesB)
+		if err != nil {
+			return nil, err
+		}
+
+		// Reload emulator after block height rollback
+		em, err = p.load(projectID)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +264,12 @@ func (p *Projects) DeployContract(
 	}
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx)
+
+	blockHeight, err := em.getLatestBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {

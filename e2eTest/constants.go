@@ -463,6 +463,7 @@ mutation($projectId: UUID!, $script: String!, $address: Address!) {
 	title
     script
     address
+	blockHeight
     errors {
       message
       startPosition { offset line column }
@@ -511,12 +512,13 @@ mutation($projectId: UUID!, $title: String!, $script: String!) {
 
 type CreateContractDeploymentResponse struct {
 	CreateContractDeployment struct {
-		ID      string
-		Title   string
-		Script  string
-		Address string
-		Errors  []model.ProgramError
-		Events  []struct {
+		ID          string
+		Title       string
+		Script      string
+		Address     string
+		BlockHeight int
+		Errors      []model.ProgramError
+		Events      []struct {
 			Type   string
 			Values []string
 		}
