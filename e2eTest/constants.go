@@ -25,6 +25,9 @@ import (
 const initAccounts = 5
 const addr1 = "0000000000000001"
 const addr2 = "0000000000000002"
+const addr3 = "0000000000000003"
+const addr4 = "0000000000000004"
+const addr5 = "0000000000000005"
 
 type Project struct {
 	ID                   string
