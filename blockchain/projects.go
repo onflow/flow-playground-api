@@ -237,7 +237,7 @@ func (p *Projects) DeployContract(
 		blockHeight := deployment.BlockHeight
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
-		err = p.store.TruncateDeploymentsAndExecutionsAfterBlockHeight(projectID, blockHeight)
+		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)
 		if err != nil {
 			return nil, err
 		}
@@ -269,6 +269,7 @@ func (p *Projects) DeployContract(
 	if err != nil {
 		return nil, err
 	}
+
 	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
@@ -369,8 +370,9 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 		return nil, err
 	}
 
-	// this can happen if project was cleared but on another replica, this replica gets the request after
+	// This can happen if project was cleared but on another replica, this replica gets the request after
 	// and will get cleared 0 executions from database but has a stale emulator in its own cache
+	// This also occurs when a rollback is required due to contract redeployment
 	if height > len(executions) {
 		p.emulatorCache.reset(projectID)
 		em, err = newEmulator()

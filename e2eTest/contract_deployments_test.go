@@ -235,6 +235,95 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "{}", accResp.Account.State)
 	})
+
+	t.Run("Contract redeployment block height rollback", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		PersonContract := `pub contract Person {}`
+
+		var createContractResp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 6, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr2),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 7, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr3),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 8, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr4),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 9, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr5),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 10, createContractResp.CreateContractDeployment.BlockHeight)
+
+		// Rollback block height
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr3),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 8, createContractResp.CreateContractDeployment.BlockHeight)
+
+		// Rollback block height
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&createContractResp,
+			client.Var("projectId", project.ID),
+			client.Var("script", PersonContract),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		require.Equal(t, 6, createContractResp.CreateContractDeployment.BlockHeight)
+	})
+
 }
 
 func TestContractInteraction(t *testing.T) {
