@@ -511,8 +511,8 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 
 func (s *SQL) TruncateDeploymentsAndExecutionsAtBlockHeight(projectID uuid.UUID, blockHeight int) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Delete(&model.TransactionExecution{},
-			fmt.Sprintf("project_id='%s' AND \"index\" >= %d", projectID, blockHeight-1)).
+		err := tx.Where("project_id=? AND \"index\" >= ?", projectID, blockHeight-1).
+			Delete(&model.TransactionExecution{}).
 			Error
 		if err != nil {
 			return err
@@ -526,9 +526,8 @@ func (s *SQL) TruncateDeploymentsAndExecutionsAtBlockHeight(projectID uuid.UUID,
 			return err
 		}
 
-		err = tx.Delete(
-			&model.ContractDeployment{},
-			fmt.Sprintf("project_id='%s' AND \"block_height\" >= %d", projectID, blockHeight)).
+		err = tx.Where("project_id=? AND block_height >= ?", projectID, blockHeight).
+			Delete(&model.ContractDeployment{}).
 			Error
 		if err != nil {
 			return err
