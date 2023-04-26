@@ -117,6 +117,33 @@ type GetAccountResponse struct {
 	Account Account
 }
 
+const QueryGetProjectStorage = `
+query($projectId: UUID!) {
+  project(id: $projectId) {
+	accounts {
+		address
+		deployedContracts
+		state
+	}
+	transactionTemplates {
+      id
+      script
+      index
+    }
+	scriptTemplates {
+      id
+      script
+      index
+	}
+	contractTemplates {
+      id
+      script
+      index
+	}
+  }
+}
+`
+
 const QueryGetProject = `
 query($projectId: UUID!) {
   project(id: $projectId) {

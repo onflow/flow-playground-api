@@ -236,6 +236,9 @@ func (p *Projects) DeployContract(
 
 		blockHeight := deployment.BlockHeight
 
+		fmt.Printf("Rollback to blockheight %d to redeploy contract %s to account %s\n",
+			blockHeight, contractName, address.ToFlowAddress().String())
+
 		// Delete all contract deployments + transaction_executions >= blockHeight
 		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)
 		if err != nil {
@@ -271,6 +274,9 @@ func (p *Projects) DeployContract(
 	}
 
 	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
+
+	fmt.Printf("Deploying Contract %s to account %s with blockheight %d\n",
+		contractName, address.ToFlowAddress().String(), deploy.BlockHeight)
 
 	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
 	if err != nil {
@@ -333,6 +339,7 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	em, err := p.rebuildState(projectID)
 	if err != nil {
+		fmt.Println("\nFAILED TO REBUILD STATE, CALLING RESET(): ", err.Error())
 		_, err = p.Reset(projectID)
 		if err != nil {
 			return nil, err
