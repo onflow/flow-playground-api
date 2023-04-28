@@ -29,13 +29,13 @@ run:
 
 .PHONY: run-pg
 run-pg:
-	FLOW_DB_USER=dylantinianov \
-	FLOW_DB_PASSWORD=dylantinianov \
+	FLOW_DB_USER=postgres \
+	FLOW_DB_PASSWORD=password \
 	FLOW_DB_PORT=5432 \
-	FLOW_DB_NAME=prodcopy \
+	FLOW_DB_NAME=dapper \
 	FLOW_DB_HOST=localhost \
 	FLOW_STORAGEBACKEND=postgresql \
-	FLOW_DEBUG=false FLOW_SESSIONCOOKIESSECURE=false \
+	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false \
 	GO111MODULE=on \
 	go run \
 	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
