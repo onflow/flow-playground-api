@@ -387,8 +387,8 @@ func (s *SQL) GetFile(id uuid.UUID, pID uuid.UUID, file *model.File) error {
 func (s *SQL) GetFilesForProject(pID uuid.UUID, files *[]*model.File, fileType model.FileType) error {
 	// Note: use map to include zero entries for fileType
 	return s.db.Where(map[string]interface{}{"project_id": pID.String(), "type": fileType}).
-		Find(files).
 		Order("\"index\" asc").
+		Find(files).
 		Error
 }
 
@@ -402,8 +402,8 @@ func (s *SQL) InsertScriptExecution(exe *model.ScriptExecution) error {
 
 func (s *SQL) GetScriptExecutionsForProject(projectID uuid.UUID, exes *[]*model.ScriptExecution) error {
 	return s.db.Where(&model.ScriptExecution{File: model.File{ProjectID: projectID}}).
-		Find(exes).
 		Order("\"index\" asc").
+		Find(exes).
 		Error
 }
 
@@ -466,8 +466,8 @@ func (s *SQL) DeleteContractDeploymentByName(
 
 func (s *SQL) GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error {
 	return s.db.Where(&model.ContractDeployment{File: model.File{ProjectID: projectID}}).
-		Find(deployments).
 		Order("\"index\" asc").
+		Find(deployments).
 		Error
 }
 

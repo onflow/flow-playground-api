@@ -307,7 +307,6 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		fmt.Println("Project Storage: ", projStorage.Project.Accounts)
 
 		// Rollback block height
 		err = c.Post(
@@ -328,7 +327,6 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		fmt.Println("Project Storage: ", projStorage.Project.Accounts)
 
 		// Rollback block height
 		err = c.Post(
@@ -349,7 +347,6 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		fmt.Println("Project Storage: ", projStorage.Project.Accounts)
 	})
 
 }
