@@ -245,13 +245,8 @@ func (p *Projects) DeployContract(
 			return nil, err
 		}
 
-		var exesB []*model.TransactionExecution
-		err = p.store.GetTransactionExecutionsForProject(projectID, &exesB)
-		if err != nil {
-			return nil, err
-		}
-
 		// Reload emulator after block height rollback
+		p.emulatorCache.reset(projectID)
 		em, err = p.load(projectID)
 		if err != nil {
 			return nil, err
@@ -340,6 +335,18 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	em, err := p.rebuildState(projectID)
 	if err != nil {
 		fmt.Println("\nFAILED TO REBUILD STATE, CALLING RESET(): ", err.Error())
+		// TODO: For testing
+		var executions []*model.TransactionExecution
+		err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("NUM EXECUTIONS ON ERROR: ", len(executions))
+		fmt.Println("Execution orders:")
+		for _, exe := range executions {
+			fmt.Println("    Execution: ", exe.Title, exe.Index)
+		}
+
 		_, err = p.Reset(projectID)
 		if err != nil {
 			return nil, err
@@ -358,7 +365,6 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 
 func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	var executions []*model.TransactionExecution
-
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
@@ -366,6 +372,7 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 
 	em := p.emulatorCache.get(projectID)
 	if em == nil { // if cache miss create new emulator
+		fmt.Println("Emulator cache miss")
 		em, err = p.emulatorPool.new()
 		if err != nil {
 			return nil, err
@@ -382,7 +389,7 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	// This also occurs when a rollback is required due to contract redeployment
 	if height > len(executions) {
 		p.emulatorCache.reset(projectID)
-		em, err = newEmulator()
+		em, err = p.emulatorPool.new()
 		if err != nil {
 			return nil, err
 		}
