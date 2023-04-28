@@ -242,13 +242,8 @@ func (p *Projects) DeployContract(
 			return nil, err
 		}
 
-		var exesB []*model.TransactionExecution
-		err = p.store.GetTransactionExecutionsForProject(projectID, &exesB)
-		if err != nil {
-			return nil, err
-		}
-
 		// Reload emulator after block height rollback
+		p.emulatorCache.reset(projectID)
 		em, err = p.load(projectID)
 		if err != nil {
 			return nil, err
@@ -351,7 +346,6 @@ func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 
 func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	var executions []*model.TransactionExecution
-
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
@@ -375,7 +369,7 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	// This also occurs when a rollback is required due to contract redeployment
 	if height > len(executions) {
 		p.emulatorCache.reset(projectID)
-		em, err = newEmulator()
+		em, err = p.emulatorPool.new()
 		if err != nil {
 			return nil, err
 		}

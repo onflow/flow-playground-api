@@ -30,6 +30,7 @@ run:
 .PHONY: run-pg
 run-pg:
 	FLOW_DB_USER=postgres \
+	FLOW_DB_PASSWORD=password \
 	FLOW_DB_PORT=5432 \
 	FLOW_DB_NAME=dapper \
 	FLOW_DB_HOST=localhost \

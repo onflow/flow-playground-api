@@ -299,6 +299,15 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 10, createContractResp.CreateContractDeployment.BlockHeight)
 
+		var projStorage GetProjectResponse
+		err = c.Post(
+			QueryGetProjectStorage,
+			&projStorage,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
 		// Rollback block height
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -311,6 +320,14 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 8, createContractResp.CreateContractDeployment.BlockHeight)
 
+		err = c.Post(
+			QueryGetProjectStorage,
+			&projStorage,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
 		// Rollback block height
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -322,6 +339,14 @@ func TestContractRedeployment(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t, 6, createContractResp.CreateContractDeployment.BlockHeight)
+
+		err = c.Post(
+			QueryGetProjectStorage,
+			&projStorage,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
 	})
 
 }
