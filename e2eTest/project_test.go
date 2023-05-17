@@ -242,7 +242,7 @@ func TestProjects(t *testing.T) {
 	})
 
 	t.Run("Maximum projects limit", func(t *testing.T) {
-		const MaxProjectsLimit = 10
+		const MaxProjectsLimit = 20
 		const additionalAttempts = 5 // Try to create projects over the limit
 
 		c := newClient()
