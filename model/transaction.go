@@ -20,7 +20,6 @@ package model
 
 import (
 	"github.com/google/uuid"
-	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
@@ -38,7 +37,7 @@ type TransactionExecution struct {
 
 func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
-	result *types.TransactionResult,
+	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
 ) *TransactionExecution {
 	args := make([]string, 0)
@@ -68,7 +67,6 @@ func TransactionExecutionFromFlow(
 		Signers:   signers,
 		Errors:    nil,
 		Events:    nil,
-		Logs:      result.Logs,
 	}
 
 	if result.Events != nil {

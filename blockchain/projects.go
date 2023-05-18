@@ -36,10 +36,10 @@ import (
 func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 	return &Projects{
 		store:          store,
-		emulatorCache:  newEmulatorCache(128),
+		flowKitCache:   newFlowKitCache(128),
 		mutex:          newMutex(),
 		accountsNumber: initAccountsNumber,
-		emulatorPool:   newEmulatorPool(10),
+		flowKitPool:    newFlowKitPool(10),
 	}
 }
 
@@ -49,8 +49,8 @@ func NewProjects(store storage.Store, initAccountsNumber int) *Projects {
 // the state is persisted and implements state recreation with caching and resource locking.
 type Projects struct {
 	store          storage.Store
-	emulatorCache  *emulatorCache
-	emulatorPool   *emulatorPool
+	flowKitCache   *flowKitCache
+	flowKitPool    *flowKitPool
 	mutex          *mutex
 	accountsNumber int
 }
@@ -63,7 +63,7 @@ func (p *Projects) Reset(projectID uuid.UUID) ([]*model.Account, error) {
 		return nil, err
 	}
 
-	p.emulatorCache.reset(projectID)
+	p.flowKitCache.reset(projectID)
 
 	err = p.store.ResetProjectState(&project)
 	if err != nil {
@@ -83,7 +83,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	projID := execution.ProjectID
 	p.mutex.load(projID).Lock()
 	defer p.mutex.remove(projID).Unlock()
-	em, err := p.load(projID)
+	fk, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		signers[i] = sig.ToFlowAddress()
 	}
 
-	result, tx, err := em.executeTransaction(
+	tx, result, err := fk.executeTransaction(
 		execution.Script,
 		execution.Arguments,
 		execution.SignersToFlow(),
@@ -101,6 +101,9 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: Do we have to store transactions or can we store a snapshot instead?
+	fk.
 
 	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
@@ -116,16 +119,17 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	projID := execution.ProjectID
 	p.mutex.load(projID).RLock()
 	defer p.mutex.remove(projID).RUnlock()
-	em, err := p.load(projID)
+	fk, err := p.load(projID)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := em.executeScript(execution.Script, execution.Arguments)
+	result, err := fk.executeScript(execution.Script, execution.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: script result is a Cadence.Value?!
 	exe := model.ScriptExecutionFromFlow(
 		result,
 		projID,
@@ -180,12 +184,12 @@ func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account,
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
+	fk, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	account, tx, result, err := em.createAccount()
+	account, err := fk.createAccount()
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +214,7 @@ func (p *Projects) DeployContract(
 ) (*model.ContractDeployment, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
-	em, err := p.load(projectID)
+	fk, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +224,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	flowAccount, _, err := em.getAccount(address.ToFlowAddress())
+	flowAccount, _, err := fk.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -243,14 +247,14 @@ func (p *Projects) DeployContract(
 		}
 
 		// Reload emulator after block height rollback
-		p.emulatorCache.reset(projectID)
-		em, err = p.load(projectID)
+		p.flowKitCache.reset(projectID)
+		fk, err = p.load(projectID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	result, tx, err := em.deployContract(address.ToFlowAddress(), script)
+	tx, result, err := fk.deployContract(address.ToFlowAddress(), script)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +264,7 @@ func (p *Projects) DeployContract(
 
 	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
 
-	blockHeight, err := em.getLatestBlockHeight()
+	blockHeight, err := fk.getLatestBlockHeight()
 	if err != nil {
 		return nil, err
 	}
@@ -326,40 +330,40 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 //
 // Do not call this method directly, it is not concurrency safe.
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
-	em, err := p.rebuildState(projectID)
+	fk, err := p.rebuildState(projectID)
 	if err != nil {
 		_, err = p.Reset(projectID)
 		if err != nil {
 			return nil, err
 		}
 
-		em, err = p.rebuildState(projectID)
+		fk, err = p.rebuildState(projectID)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	p.emulatorCache.add(projectID, em)
+	p.flowKitCache.add(projectID, fk)
 
-	return em, nil
+	return fk, nil
 }
 
-func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
+func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 	var executions []*model.TransactionExecution
 	err := p.store.GetTransactionExecutionsForProject(projectID, &executions)
 	if err != nil {
 		return nil, err
 	}
 
-	em := p.emulatorCache.get(projectID)
-	if em == nil { // if cache miss create new emulator
-		em, err = p.emulatorPool.new()
+	fk := p.flowKitCache.get(projectID)
+	if fk == nil { // if cache miss create new emulator
+		fk, err = p.flowKitPool.new()
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	height, err := em.getLatestBlockHeight()
+	height, err := fk.getLatestBlockHeight()
 	if err != nil {
 		return nil, err
 	}
@@ -368,8 +372,8 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 	// and will get cleared 0 executions from database but has a stale emulator in its own cache
 	// This also occurs when a rollback is required due to contract redeployment
 	if height > len(executions) {
-		p.emulatorCache.reset(projectID)
-		em, err = p.emulatorPool.new()
+		p.flowKitCache.reset(projectID)
+		fk, err = p.flowKitPool.new()
 		if err != nil {
 			return nil, err
 		}
@@ -381,21 +385,21 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*emulator, error) {
 		return nil, err
 	}
 
-	em, err = p.runMissingExecutions(projectID, em, executions)
+	fk, err = p.runMissingExecutions(projectID, fk, executions)
 	if err != nil {
 		return nil, err
 	}
 
-	return em, nil
+	return fk, nil
 }
 
 func (p *Projects) runMissingExecutions(
 	projectID uuid.UUID,
-	em *emulator,
-	executions []*model.TransactionExecution) (*emulator, error) {
+	fk *flowKit,
+	executions []*model.TransactionExecution) (*flowKit, error) {
 
 	for _, execution := range executions {
-		result, _, err := em.executeTransaction(
+		_, result, err := fk.executeTransaction(
 			execution.Script,
 			execution.Arguments,
 			execution.SignersToFlow(),
@@ -412,11 +416,10 @@ func (p *Projects) runMissingExecutions(
 		}
 		if result.Error != nil && len(execution.Errors) == 0 {
 			err := fmt.Errorf(
-				"project %s state recreation failure: execution ID %s failed with result: %s, debug: %v",
+				"project %s state recreation failure: execution ID %s failed with result: %s",
 				projectID.String(),
 				execution.ID.String(),
 				result.Error.Error(),
-				result.Debug,
 			)
 
 			sentry.CaptureException(err)
@@ -424,7 +427,7 @@ func (p *Projects) runMissingExecutions(
 		}
 	}
 
-	return em, nil
+	return fk, nil
 }
 
 // filterMissingExecutions gets all missed executions in current replica cache

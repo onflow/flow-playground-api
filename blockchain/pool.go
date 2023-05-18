@@ -25,10 +25,10 @@ import (
 
 // todo possible improvement is to also create default accounts as part of bootstrap
 
-// newEmulatorPool creates new instance of instance pool with provided size.
-func newEmulatorPool(size int) *emulatorPool {
-	pool := &emulatorPool{
-		instances: make(chan *emulator, size),
+// newFlowKitPool creates new instance of instance pool with provided size.
+func newFlowKitPool(size int) *flowKitPool {
+	pool := &flowKitPool{
+		instances: make(chan *flowKit, size),
 	}
 
 	for i := 0; i < size; i++ {
@@ -38,30 +38,30 @@ func newEmulatorPool(size int) *emulatorPool {
 	return pool
 }
 
-// emulatorPool is an instance pool that optimize slow init time of emulators and hence prepare them upfront.
+// flowKitPool is an instance pool that optimize slow init time of emulators and hence prepare them upfront.
 //
 // This is an optimization trick to avoid waiting for slow bootstrap time of a new emulator once it's needed,
 // we instead prepare bootstrapped emulators ahead of time.
-type emulatorPool struct {
-	instances chan *emulator
+type flowKitPool struct {
+	instances chan *flowKit
 }
 
 // new returns a new emulator instance from the instance pool.
-func (e *emulatorPool) new() (*emulator, error) {
+func (p *flowKitPool) new() (*flowKit, error) {
 	select {
-	case em := <-e.instances:
-		go e.create()
+	case em := <-p.instances:
+		go p.create()
 		return em, nil
 	default: // in case pool gets emptied
 		sentry.CaptureMessage("instance pool empty")
-		return newEmulator()
+		return newFlowkit()
 	}
 }
 
 // add an emulator to internal instance pool, only to be used internally.
-func (e *emulatorPool) add(em *emulator) {
+func (p *flowKitPool) add(fk *flowKit) {
 	select {
-	case e.instances <- em:
+	case p.instances <- fk:
 	default:
 		// instance pool is full, shouldn't happen since we take one and create one, but deadlock prevention if it does
 		return
@@ -69,11 +69,11 @@ func (e *emulatorPool) add(em *emulator) {
 }
 
 // create a new emulator for internal instance pool, only to be used internally.
-func (e *emulatorPool) create() {
-	em, err := newEmulator()
+func (p *flowKitPool) create() {
+	em, err := newFlowkit()
 	if err != nil {
 		sentry.CaptureException(errors.Wrap(err, "instance pool emulator creation failure"))
 		return
 	}
-	e.add(em)
+	p.add(em)
 }

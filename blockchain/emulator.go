@@ -18,6 +18,8 @@
 
 package blockchain
 
+// TODO: Remove this
+/*
 import (
 	"fmt"
 	"github.com/getsentry/sentry-go"
@@ -33,38 +35,6 @@ import (
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
 )
-
-// blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
-// consumer and communicates using flow native types.
-type blockchain interface {
-	// executeTransaction builds and executes a transaction and uses provided authorizers for signing.
-	executeTransaction(
-		script string,
-		arguments []string,
-		authorizers []flowsdk.Address,
-	) (*types.TransactionResult, *flowsdk.Transaction, error)
-
-	// executeScript executes a provided script with the arguments.
-	executeScript(
-		script string,
-		arguments []string,
-	) (*types.ScriptResult, error)
-
-	// createAccount creates a new account and returns it along with transaction and result.
-	createAccount() (*flowsdk.Account, *flowsdk.Transaction, *types.TransactionResult, error)
-
-	// getAccount gets an account by the address and also returns its storage.
-	getAccount(address flowsdk.Address) (*flowsdk.Account, *emu.AccountStorage, error)
-
-	// deployContract deploys a contract on the provided address and returns transaction and result.
-	deployContract(address flowsdk.Address, script string) (*types.TransactionResult, *flowsdk.Transaction, error)
-
-	// removeContract removes specified contract from provided address and returns transaction and result.
-	removeContract(address flowsdk.Address, contractName string) (*types.TransactionResult, *flowsdk.Transaction, error)
-
-	// getLatestBlock height from the network.
-	getLatestBlockHeight() (int, error)
-}
 
 var _ blockchain = &emulator{}
 
@@ -290,3 +260,4 @@ func parseContractName(code string) (string, error) {
 
 	return "", fmt.Errorf("unable to determine contract name")
 }
+*/

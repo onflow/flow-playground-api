@@ -20,7 +20,6 @@ package model
 
 import (
 	"github.com/google/uuid"
-	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
@@ -40,7 +39,7 @@ func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
 	contractName string,
 	script string,
-	result *types.TransactionResult,
+	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
 	blockHeight int,
 ) *ContractDeployment {
@@ -64,7 +63,6 @@ func ContractDeploymentFromFlow(
 		BlockHeight: blockHeight,
 		Errors:      nil,
 		Events:      nil,
-		Logs:        result.Logs,
 	}
 
 	if result.Events != nil {
