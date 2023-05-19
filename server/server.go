@@ -187,6 +187,11 @@ func main() {
 
 	router.HandleFunc("/version", version.Handler)
 
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   conf.AllowedOrigins,
+		AllowCredentials: true,
+	}).Handler)
+
 	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {
 		log.Fatal(err)
