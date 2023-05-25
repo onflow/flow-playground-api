@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
-	"github.com/dapperlabs/flow-playground-api/server/version"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -179,17 +178,6 @@ func main() {
 				errors.Middleware(entry, localHub),
 			),
 		)
-	})
-
-	router.Route("/version", func(r chi.Router) {
-		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   conf.AllowedOrigins,
-			AllowCredentials: true,
-		}).Handler)
-
-		r.Use(httpcontext.Middleware())
-
-		r.HandleFunc("/", version.Handler)
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)

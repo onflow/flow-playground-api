@@ -20,45 +20,11 @@ package version
 
 import (
 	"errors"
-	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/build"
-	"github.com/go-chi/render"
 	"github.com/icza/bitio"
-	"github.com/onflow/cadence"
-	"net/http"
 	"runtime/debug"
 )
 
-func Handler(w http.ResponseWriter, r *http.Request) {
-	version := struct {
-		API      string
-		Cadence  string
-		Emulator string
-	}{
-		API:      "n/a",
-		Cadence:  "n/a",
-		Emulator: "n/a",
-	}
-
-	apiVer := build.Version()
-	if apiVer != nil {
-		version.API = apiVer.String()
-	}
-
-	cadenceVer := semver.MustParse(cadence.Version)
-	if cadenceVer != nil {
-		version.Cadence = cadenceVer.String()
-	}
-
-	emulatorVer, err := getDependencyVersion("github.com/onflow/flow-emulator")
-	if err == nil {
-		version.Emulator = semver.MustParse(emulatorVer).String()
-	}
-
-	render.JSON(w, r, version)
-}
-
-func getDependencyVersion(path string) (string, error) {
+func GetDependencyVersion(path string) (string, error) {
 	_ = bitio.NewReader
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {

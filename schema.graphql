@@ -5,6 +5,7 @@ scalar Version
 type PlaygroundInfo {
   apiVersion: Version!
   cadenceVersion: Version!
+  emulatorVersion: Version!
 }
 
 type Project {
