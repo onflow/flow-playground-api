@@ -182,12 +182,12 @@ func main() {
 	})
 
 	router.Route("/version", func(r chi.Router) {
-		// Add CORS middleware around every request
-		// See https://github.com/rs/cors for full option listing
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
 		}).Handler)
+
+		r.Use(httpcontext.Middleware())
 
 		r.HandleFunc("/", version.Handler)
 	})
