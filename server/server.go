@@ -179,18 +179,21 @@ func main() {
 				errors.Middleware(entry, localHub),
 			),
 		)
+	})
 
+	router.Route("/version", func(r chi.Router) {
+		// Add CORS middleware around every request
+		// See https://github.com/rs/cors for full option listing
+		r.Use(cors.New(cors.Options{
+			AllowedOrigins:   conf.AllowedOrigins,
+			AllowCredentials: true,
+		}).Handler)
+
+		r.HandleFunc("/", version.Handler)
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
-
-	router.HandleFunc("/version", version.Handler)
-
-	router.Use(cors.New(cors.Options{
-		AllowedOrigins:   conf.AllowedOrigins,
-		AllowCredentials: true,
-	}).Handler)
 
 	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {

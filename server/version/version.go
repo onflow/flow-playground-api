@@ -20,7 +20,6 @@ package version
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/go-chi/render"
@@ -67,7 +66,6 @@ func getDependencyVersion(path string) (string, error) {
 	}
 
 	for _, dep := range bi.Deps {
-		fmt.Printf("Dep: %+v\n", dep)
 		if dep.Path == path {
 			return dep.Version, nil
 		}
