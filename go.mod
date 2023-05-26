@@ -11,7 +11,6 @@ require (
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/httplog v0.2.5
-	github.com/go-chi/render v1.0.1
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0

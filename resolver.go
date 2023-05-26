@@ -27,6 +27,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/controller"
 	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/dapperlabs/flow-playground-api/server/version"
 	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
@@ -399,9 +400,15 @@ func (r *projectResolver) UpdatedAt(_ context.Context, proj *model.Project) (str
 type queryResolver struct{ *Resolver }
 
 func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo, error) {
+	emulatorVer, err := version.GetDependencyVersion("github.com/onflow/flow-emulator")
+	if err != nil {
+		return nil, err
+	}
+
 	return &model.PlaygroundInfo{
-		APIVersion:     *r.version,
-		CadenceVersion: *semver.MustParse(cadence.Version),
+		APIVersion:      *r.version,
+		CadenceVersion:  *semver.MustParse(cadence.Version),
+		EmulatorVersion: *semver.MustParse(emulatorVer),
 	}, nil
 }
 
