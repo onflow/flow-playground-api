@@ -313,6 +313,53 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, initAccounts, resp.CreateProject.NumberOfAccounts)
 	})
 
+	t.Run("Get projects list with more than 10 projects", func(t *testing.T) {
+		const ProjectsCount = 11
+
+		c := newClient()
+
+		var firstProjResp CreateProjectResponse
+		var resp CreateProjectResponse
+
+		var err error
+		for projNum := 1; projNum <= ProjectsCount; projNum++ {
+			if projNum == 1 {
+				err = c.Post(
+					MutationCreateProject,
+					&firstProjResp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+				)
+				resp = firstProjResp
+			} else {
+				// Post with session cookie to keep the same userID
+				err = c.Post(
+					MutationCreateProject,
+					&resp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+					client.AddCookie(c.SessionCookie()),
+				)
+			}
+			require.NoError(t, err)
+		}
+
+		var listResp GetProjectListResponse
+		err = c.Post(
+			QueryGetProjectList,
+			&listResp,
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+		assert.Equal(t, ProjectsCount, len(listResp.ProjectList.Projects))
+	})
+
 }
 
 func TestProjectUpdatedTime(t *testing.T) {
