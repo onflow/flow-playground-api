@@ -11,10 +11,10 @@ generate:
 	GO111MODULE=on go generate ./...
 
 .PHONY: ci
-test: check-tidy
+ci: check-tidy
 	GO111MODULE=on go test -v ./...
 
-.PHONY: test
+.PHONY: test-log
 test-log:
 	GO111MODULE=on go test -v ./... > test-results.log
 
