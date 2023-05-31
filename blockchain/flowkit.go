@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -20,6 +21,9 @@ import (
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 // blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
@@ -124,15 +128,68 @@ func (fk *flowKit) executeTransaction(
 	return fk.sendTransaction(tx, authorizers)
 }
 
+// extractType takes in an array formatted as follows "{"type" : "*", "value" : "*"}"
+// representing a typed value and returns the equivalent Go value
+func extractType(typedArray string) (any, error) {
+	type TypedValue struct {
+		Type  string
+		Value string
+	}
+
+	typedValue := TypedValue{}
+	err := json.Unmarshal([]byte(typedArray), &typedValue)
+	if err != nil {
+		return nil, err
+	}
+	typedValue.Type = strings.ToLower(typedValue.Type)
+
+	//fmt.Println("Type: ", typedValue.Type, "Value: ", typedValue.Value)
+
+	var val any
+	switch typedValue.Type {
+	case "string":
+		val = typedValue.Value
+	case "int":
+		val, err = strconv.ParseInt(typedValue.Value, 10, 0)
+	case "int8":
+		val, err = strconv.ParseInt(typedValue.Value, 10, 8)
+	case "int16":
+		val, err = strconv.ParseInt(typedValue.Value, 10, 16)
+	case "int32":
+		val, err = strconv.ParseInt(typedValue.Value, 10, 32)
+	case "int64":
+		val, err = strconv.ParseInt(typedValue.Value, 10, 64)
+	case "uint8":
+		val, err = strconv.ParseUint(typedValue.Value, 10, 8)
+	case "uint16":
+		val, err = strconv.ParseUint(typedValue.Value, 10, 16)
+	case "uint32":
+		val, err = strconv.ParseUint(typedValue.Value, 10, 32)
+	case "uint64":
+		val, err = strconv.ParseUint(typedValue.Value, 10, 64)
+	default:
+		err = errors.New("Unknown type")
+	}
+
+	return val, err
+}
+
 func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, error) {
 	cadenceArgs := make([]cadence.Value, len(arguments))
 	for i, arg := range arguments {
-		// TODO: Need to convert arguments from {"type" : "_", "value" : "_"} to Go value
-		val, err := cadence.NewValue(arg)
+		// TODO: Is this going to work?
+		argVal, err := extractType(arg)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("argVal:", argVal, "argVal type:", reflect.TypeOf(argVal))
+
+		val, err := cadence.NewValue(argVal)
 		if err != nil {
 			return nil, err
 		}
 		cadenceArgs[i] = val
+		fmt.Println("CadenceArgs[i]:", cadenceArgs[i])
 	}
 
 	return fk.blockchain.ExecuteScript(
@@ -192,8 +249,8 @@ func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, *emu.Account
 	if err != nil {
 		return nil, nil, err
 	}
-	// TODO: Run Cadence script to get account storage, but
-	// TODO: ideally we have a storage API built into FlowKit
+	// TODO: Run Cadence script to get account storage, or
+	// TODO: ideally we build in a FlowKit storage API
 	return account, nil, nil
 }
 
