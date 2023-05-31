@@ -206,7 +206,7 @@ func TestContractRedeployment(t *testing.T) {
 		)
 		require.NoError(t, err)
 		require.Equal(t,
-			"{\"Private\":null,\"Public\":{},\"Storage\":{\"friendship\":{\"Fields\":[37],\"ResourceType\":{\"Fields\":[{\"Identifier\":\"uuid\",\"Type\":{}}],\"Initializers\":null,\"Location\":{\"Address\":\"0x0000000000000005\",\"Name\":\"Person\",\"Type\":\"AddressLocation\"},\"QualifiedIdentifier\":\"Person.Friendship\"}}}}",
+			"{\"Private\":null,\"Public\":{},\"Storage\":{\"friendship\":{\"Fields\":[39],\"ResourceType\":{\"Fields\":[{\"Identifier\":\"uuid\",\"Type\":{}}],\"Initializers\":null,\"Location\":{\"Address\":\"0x0000000000000005\",\"Name\":\"Person\",\"Type\":\"AddressLocation\"},\"QualifiedIdentifier\":\"Person.Friendship\"}}}}",
 			accResp.Account.State)
 
 		PersonContractUpdate := `
