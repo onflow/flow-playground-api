@@ -64,29 +64,47 @@ func newFlowkit() (*flowKit, error) {
 		return nil, errors.Wrap(err, "failed to create flow-kit state")
 	}
 
-	gw := gateway.NewEmulatorGatewayWithOpts(
+	emulator := gateway.NewEmulatorGatewayWithOpts(
 		&gateway.EmulatorKey{
-			PublicKey: emu.DefaultServiceKey().PublicKey,
+			PublicKey: emu.DefaultServiceKey().AccountKey().PublicKey,
 			SigAlgo:   emu.DefaultServiceKeySigAlgo,
 			HashAlgo:  emu.DefaultServiceKeyHashAlgo,
 		},
 		gateway.WithEmulatorOptions(
 			emu.WithStore(memstore.New()),
 			emu.WithTransactionValidationEnabled(false),
-			emu.WithSimpleAddresses(),
 			emu.WithStorageLimitEnabled(false),
 			emu.WithTransactionFeesEnabled(false),
-			emu.WithContractRemovalEnabled(true),
+			emu.WithSimpleAddresses(),
+			//emu.WithContractRemovalEnabled(true),
 		),
 	)
 
-	return &flowKit{
+	fk := &flowKit{
 		blockchain: kit.NewFlowkit(
 			state,
 			config.EmulatorNetwork,
-			gw,
+			emulator,
 			output.NewStdoutLogger(output.NoneLog)),
-	}, nil
+	}
+
+	err = fk.bootstrap()
+	if err != nil {
+		return nil, err
+	}
+
+	return fk, nil
+}
+
+func (fk *flowKit) bootstrap() error {
+	err := fk.createInitialAccounts()
+	if err != nil {
+		return err
+	}
+
+	// TODO: bootstrap deployment of standard contracts
+
+	return nil
 }
 
 func (fk *flowKit) executeTransaction(
@@ -109,6 +127,7 @@ func (fk *flowKit) executeTransaction(
 func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, error) {
 	cadenceArgs := make([]cadence.Value, len(arguments))
 	for i, arg := range arguments {
+		// TODO: Need to convert arguments from {"type" : "_", "value" : "_"} to Go value
 		val, err := cadence.NewValue(arg)
 		if err != nil {
 			return nil, err
@@ -126,32 +145,42 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 		kit.LatestScriptQuery)
 }
 
+func (fk *flowKit) createInitialAccounts() error {
+	const initAccountNumber = 5
+
+	for i := 0; i < initAccountNumber; i++ {
+		_, err := fk.createAccount()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (fk *flowKit) createAccount() (*flow.Account, error) {
-	state, err := fk.blockchain.State()
+	serviceAccount, err := fk.getServiceAccount()
+
+	pk, err := serviceAccount.Key.PrivateKey()
 	if err != nil {
 		return nil, err
 	}
 
-	service, err := state.EmulatorServiceAccount()
-	if err != nil {
-		return nil, err
-	}
-	serviceKey, err := service.Key.PrivateKey()
-	if err != nil {
-		return nil, err
-	}
-
+	// TODO: Account creation not working? Need to pass key?
 	account, _, err := fk.blockchain.CreateAccount(
 		context.Background(),
-		service,
-		[]accounts.PublicKey{{
-			Public:   (*serviceKey).PublicKey(),
-			Weight:   flow.AccountKeyWeightThreshold,
-			SigAlgo:  crypto.ECDSA_P256,
-			HashAlgo: crypto.SHA3_256,
-		}},
+		serviceAccount,
+		[]accounts.PublicKey{
+			{
+				Public:   (*pk).PublicKey(),
+				Weight:   flow.AccountKeyWeightThreshold,
+				SigAlgo:  crypto.ECDSA_P256,
+				HashAlgo: crypto.SHA3_256,
+			},
+		},
 	)
 	if err != nil {
+		fmt.Println("ERROR creating account: ", err)
 		return nil, err
 	}
 
@@ -163,7 +192,8 @@ func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, *emu.Account
 	if err != nil {
 		return nil, nil, err
 	}
-	// TODO: How run Cadence script to get account storage
+	// TODO: Run Cadence script to get account storage, but
+	// TODO: ideally we have a storage API built into FlowKit
 	return account, nil, nil
 }
 
@@ -181,8 +211,7 @@ func (fk *flowKit) deployContract(
 		Source: script,
 	})
 
-	//fk.blockchain.AddContract(context.Background()) // TODO: fk.blockchain.AddContract ???
-	return fk.sendTransaction(tx, nil)
+	return fk.sendTransaction(tx, []flow.Address{address})
 }
 
 func (fk *flowKit) removeContract(
@@ -197,22 +226,31 @@ func (fk *flowKit) sendTransaction(
 	tx *flow.Transaction,
 	authorizers []flow.Address,
 ) (*flow.Transaction, *flow.TransactionResult, error) {
-	state, err := fk.blockchain.State()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	service, err := state.EmulatorServiceAccount()
+	serviceAccount, err := fk.getServiceAccount()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var accountRoles transactions.AccountRoles
-	accountRoles.Payer = *service
-	accountRoles.Proposer = *service
+	accountRoles.Payer = *serviceAccount
+	accountRoles.Proposer = *serviceAccount
 
 	for _, auth := range authorizers {
-		acc, _ := state.Accounts().ByAddress(auth)
+		flowAccount, _, err := fk.getAccount(auth)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// TODO: Why is auth account missing keys?
+		fmt.Println("auth account keys: ", flowAccount.Keys)
+
+		acc := &accounts.Account{
+			Name:    "Auth Account",
+			Address: auth,
+			Key:     serviceAccount.Key,
+		}
+
+		fmt.Println("Auth account: ", acc)
 		accountRoles.Authorizers = append(accountRoles.Authorizers, *acc)
 	}
 
@@ -243,6 +281,24 @@ func (fk *flowKit) getLatestBlockHeight() (int, error) {
 		return 0, err
 	}
 	return int(block.BlockHeader.Height), nil
+}
+
+func (fk *flowKit) getServiceAccount() (*accounts.Account, error) {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return nil, err
+	}
+
+	service, err := state.EmulatorServiceAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return &accounts.Account{
+		Name:    "Service Account",
+		Address: flow.HexToAddress("0x01"),
+		Key:     service.Key,
+	}, nil
 }
 
 // parseEventAddress gets an address out of the account creation events payloads

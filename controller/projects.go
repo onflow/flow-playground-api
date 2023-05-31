@@ -119,11 +119,6 @@ func (p *Projects) Create(user *model.User, input model.NewProject) (*model.Proj
 		return nil, errors.Wrap(err, "failed to create project")
 	}
 
-	_, err = p.blockchain.CreateInitialAccounts(proj.ID)
-	if err != nil {
-		return nil, err
-	}
-
 	return proj, nil
 }
 
@@ -152,14 +147,6 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 	err = p.store.GetProject(id, &proj)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
-	}
-
-	// Migrated projects require initial accounts to be created
-	if proj.TransactionExecutionCount == 0 {
-		_, err = p.blockchain.CreateInitialAccounts(proj.ID)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return &proj, nil
@@ -205,6 +192,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 }
 
 // Reset is not used in the API but for testing
-func (p *Projects) Reset(proj *model.Project) ([]*model.Account, error) {
+func (p *Projects) Reset(proj *model.Project) error {
 	return p.blockchain.Reset(proj.ID)
 }

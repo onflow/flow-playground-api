@@ -3,8 +3,7 @@ package blockchain
 import (
 	"context"
 	"github.com/onflow/flow-cli/flowkit/accounts"
-	flow "github.com/onflow/flow-go-sdk"
-	"github.com/onflow/flow-go-sdk/crypto"
+	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -25,17 +24,16 @@ func Test_NewFlowkit(t *testing.T) {
 		service, err := state.EmulatorServiceAccount()
 		assert.NoError(t, err)
 
-		serviceKey, err := service.Key.PrivateKey()
-		assert.NoError(t, err)
+		serviceAccount := &accounts.Account{
+			Name:    "Service Account",
+			Address: flow.HexToAddress("0x01"),
+			Key:     service.Key,
+		}
 
 		account, _, err := fk.blockchain.CreateAccount(
-			context.Background(), service,
-			[]accounts.PublicKey{{
-				Public:   (*serviceKey).PublicKey(),
-				Weight:   flow.AccountKeyWeightThreshold,
-				SigAlgo:  crypto.ECDSA_P256,
-				HashAlgo: crypto.SHA3_256,
-			}},
+			context.Background(),
+			serviceAccount,
+			[]accounts.PublicKey{},
 		)
 		assert.NoError(t, err)
 		accountList = append(accountList, account)

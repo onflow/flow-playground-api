@@ -19,7 +19,6 @@
 package blockchain
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -56,26 +55,21 @@ type Projects struct {
 }
 
 // Reset the blockchain state and return the new account models
-func (p *Projects) Reset(projectID uuid.UUID) ([]*model.Account, error) {
+func (p *Projects) Reset(projectID uuid.UUID) error {
 	var project model.Project
 	err := p.store.GetProject(projectID, &project)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	p.flowKitCache.reset(projectID)
 
 	err = p.store.ResetProjectState(&project)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	accounts, err := p.createInitialAccounts(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return accounts, nil
+	return nil
 }
 
 // ExecuteTransaction executes a transaction from the new transaction execution model and persists the execution.
@@ -102,9 +96,8 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	// TODO: Do we have to store transactions or can we store a snapshot instead?
-	fk.
-
+	// TODO: Update transaction model to store flow.transaction so we don't have to convert
+	// TODO: Note that if we store snapshots we probably won't need to store transactions at all
 	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
@@ -129,7 +122,6 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 		return nil, err
 	}
 
-	// TODO: script result is a Cadence.Value?!
 	exe := model.ScriptExecutionFromFlow(
 		result,
 		projID,
@@ -144,44 +136,9 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 	return exe, nil
 }
 
-// CreateInitialAccounts returns the number of accounts that were created
-func (p *Projects) CreateInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
-	p.mutex.load(projectID).Lock()
-	defer p.mutex.remove(projectID).Unlock()
-	return p.createInitialAccounts(projectID)
-}
-
-func (p *Projects) createInitialAccounts(projectID uuid.UUID) ([]*model.Account, error) {
-	em, err := p.load(projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []*model.Account
-	for i := 0; i < p.accountsNumber; i++ {
-		_, tx, result, err := em.createAccount()
-		if err != nil {
-			return nil, err
-		}
-
-		exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-		err = p.store.InsertTransactionExecution(exe)
-		if err != nil {
-			return nil, err
-		}
-
-		account, err := p.getAccount(projectID, model.NewAddressFromIndex(i))
-		if err != nil {
-			return nil, err
-		}
-		accounts = append(accounts, account)
-	}
-
-	return accounts, nil
-}
-
 // CreateAccount creates a new account and return the account model as well as record the execution.
 func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
+	// TODO: Delete this?
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
 	fk, err := p.load(projectID)
@@ -189,18 +146,12 @@ func (p *Projects) CreateAccount(projectID uuid.UUID) (*model.Account, error) {
 		return nil, err
 	}
 
-	account, err := fk.createAccount()
+	flowAccount, err := fk.createAccount()
 	if err != nil {
 		return nil, err
 	}
 
-	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-	err = p.store.InsertTransactionExecution(exe)
-	if err != nil {
-		return nil, err
-	}
-
-	address := model.NewAddressFromBytes(account.Address.Bytes())
+	address := model.NewAddressFromBytes(flowAccount.Address.Bytes())
 
 	return p.getAccount(projectID, address)
 }
@@ -241,6 +192,7 @@ func (p *Projects) DeployContract(
 		blockHeight := deployment.BlockHeight
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
+		// TODO: Include initial block height of 5 for account creation
 		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)
 		if err != nil {
 			return nil, err
@@ -304,24 +256,28 @@ func (p *Projects) GetAccounts(projectID uuid.UUID, addresses []model.Address) (
 }
 
 func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*model.Account, error) {
-	em, err := p.load(projectID)
+	fk, err := p.load(projectID)
 	if err != nil {
 		return nil, err
 	}
 
-	flowAccount, store, err := em.getAccount(address.ToFlowAddress())
+	flowAccount, store, err := fk.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
 
-	jsonStorage, err := json.Marshal(store)
-	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling account storage")
-	}
+	// TODO: Account storage
+	_ = store
+	/*
+		jsonStorage, err := json.Marshal(store)
+		if err != nil {
+			return nil, errors.Wrap(err, "error marshaling account storage")
+		}
+	*/
 
 	account := model.AccountFromFlow(flowAccount, projectID)
 	account.ProjectID = projectID
-	account.State = string(jsonStorage)
+	account.State = "" // TODO: Add account storage
 
 	return account, nil
 }
@@ -332,7 +288,7 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 func (p *Projects) load(projectID uuid.UUID) (blockchain, error) {
 	fk, err := p.rebuildState(projectID)
 	if err != nil {
-		_, err = p.Reset(projectID)
+		err = p.Reset(projectID)
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +312,7 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 	}
 
 	fk := p.flowKitCache.get(projectID)
-	if fk == nil { // if cache miss create new emulator
+	if fk == nil { // if cache miss create new flowKit
 		fk, err = p.flowKitPool.new()
 		if err != nil {
 			return nil, err
@@ -439,8 +395,13 @@ func (p *Projects) filterMissingExecutions(
 	executions []*model.TransactionExecution,
 	height int,
 ) ([]*model.TransactionExecution, error) {
-	// this will only set executions that are missing from the emulator
-	executions = executions[height:]
+	// TODO: Offset missing executions with account creation since they're not stored as executions
+	const initialAccountsNumber = 5
+
+	if height-initialAccountsNumber >= 0 {
+		// this will only set executions that are missing from the emulator
+		executions = executions[height-initialAccountsNumber:]
+	}
 
 	return executions, nil
 }
