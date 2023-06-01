@@ -28,7 +28,7 @@ import (
 //go:embed *.cdc
 var contracts embed.FS
 
-var Contracts = []string{
+var include = []string{
 	"FungibleToken",
 	"NonFungibleToken",
 	"FlowToken",
@@ -37,6 +37,10 @@ var Contracts = []string{
 	// Note: Adding more contracts will change the initial block height
 }
 
-func Get(name string) ([]byte, error) {
+func Included() []string {
+	return include
+}
+
+func Read(name string) ([]byte, error) {
 	return contracts.ReadFile(fmt.Sprintf("%s.cdc", name))
 }

@@ -145,23 +145,17 @@ func (fk *flowKit) boostrapAccounts() error {
 }
 
 func (fk *flowKit) bootstrapContracts() error {
-	for _, contract := range contracts.Contracts {
+	for _, contract := range contracts.Included() {
 		err := fk.loadContract(contract)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-// initBlockHeight returns what the bootstrapped block height should be
-func (fk *flowKit) initBlockHeight() int {
-	return initialAccounts + len(contracts.Contracts)
-}
-
 func (fk *flowKit) loadContract(name string) error {
-	contract, err := contracts.Get(name)
+	contract, err := contracts.Read(name)
 	if err != nil {
 		return err
 	}
@@ -176,6 +170,11 @@ func (fk *flowKit) loadContract(name string) error {
 	}
 
 	return nil
+}
+
+// initBlockHeight returns what the bootstrapped block height should be
+func (fk *flowKit) initBlockHeight() int {
+	return initialAccounts + len(contracts.Included())
 }
 
 func (fk *flowKit) executeTransaction(
