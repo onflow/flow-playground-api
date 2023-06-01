@@ -6,9 +6,6 @@ IMAGE_URL := gcr.io/dl-flow/playground-api
 K8S_YAMLS_LOCATION := ./k8s
 KUBECONFIG := $(shell uuidgen)
 
-.PHONY: sync-standard-contracts
-sync-standard-contracts: sync_standard_contracts.py
-
 .PHONY: generate
 generate:
 	GO111MODULE=on go generate ./...
@@ -17,7 +14,7 @@ generate:
 ci: check-tidy
 	GO111MODULE=on go test -v ./...
 
-.PHONY: test
+.PHONY: test-log
 test-log:
 	GO111MODULE=on go test -v ./... > test-results.log
 
