@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 
-package graphQL
+package playground
 
 import (
 	"context"
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -65,15 +64,15 @@ func NewResolver(
 	}
 }
 
-func (r *Resolver) Mutation() playground.MutationResolver {
+func (r *Resolver) Mutation() MutationResolver {
 	return &mutationResolver{r}
 }
 
-func (r *Resolver) Project() playground.ProjectResolver {
+func (r *Resolver) Project() ProjectResolver {
 	return &projectResolver{r}
 }
 
-func (r *Resolver) Query() playground.QueryResolver {
+func (r *Resolver) Query() QueryResolver {
 	return &queryResolver{r}
 }
 

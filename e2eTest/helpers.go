@@ -20,9 +20,9 @@ package e2eTest
 
 import (
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
-	"github.com/dapperlabs/flow-playground-api/graphQL"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
@@ -44,7 +44,7 @@ import (
 
 type Client struct {
 	client        *client.Client
-	resolver      *graphQL.Resolver
+	resolver      *playground.Resolver
 	sessionCookie *http.Cookie
 	projects      *blockchain.Projects
 	store         storage.Store
@@ -109,7 +109,7 @@ func newClient() *Client {
 	store := newStore()
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccounts)
-	resolver := graphQL.NewResolver(version, store, authenticator, chain)
+	resolver := playground.NewResolver(version, store, authenticator, chain)
 
 	c := newClientWithResolver(resolver)
 	c.store = store
@@ -117,7 +117,7 @@ func newClient() *Client {
 	return c
 }
 
-func newClientWithResolver(resolver *graphQL.Resolver) *Client {
+func newClientWithResolver(resolver *playground.Resolver) *Client {
 	router := chi.NewRouter()
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
@@ -125,7 +125,7 @@ func newClientWithResolver(resolver *graphQL.Resolver) *Client {
 	localHub := sentry.CurrentHub().Clone()
 	logger := logrus.StandardLogger()
 	entry := logrus.NewEntry(logger)
-	router.Handle("/", graphQL.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
+	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
 		client:   client.New(router),
