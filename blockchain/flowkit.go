@@ -255,7 +255,7 @@ func (fk *flowKit) deployContract(
 ) (*flow.Transaction, *flow.TransactionResult, error) {
 	contractName, err := parseContractName(script)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, userErr.NewUserError(err.Error())
 	}
 
 	tx := templates.AddAccountContract(address, templates.Contract{

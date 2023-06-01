@@ -181,7 +181,7 @@ func Test_CreateProject(t *testing.T) {
 		err = store.GetProject(proj.ID, &dbProj)
 		require.NoError(t, err)
 
-		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
+		assert.Equal(t, 0, dbProj.TransactionExecutionCount)
 	})
 }
 
