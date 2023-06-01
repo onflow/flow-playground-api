@@ -3,6 +3,7 @@ package blockchain
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/blockchain/contracts"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -21,7 +22,6 @@ import (
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
-	"os"
 )
 
 // blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
@@ -142,13 +142,14 @@ func (fk *flowKit) bootstrapContracts() error {
 }
 
 func (fk *flowKit) loadContract(name string) error {
-	path := fmt.Sprintf("cadence/%s.cdc", name)
-	bytes, err := os.ReadFile(path)
+	contract, err := contracts.Get(name)
 	if err != nil {
 		return err
 	}
 
-	script := string(bytes)
+	script := string(contract)
+
+	// Deploy to service account
 	address := model.NewAddressFromIndex(-1).ToFlowAddress()
 	_, _, err = fk.deployContract(address, script)
 	if err != nil {

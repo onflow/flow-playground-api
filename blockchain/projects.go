@@ -96,9 +96,12 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	// TODO: Update transaction model to store flow.transaction so we don't have to convert
-	// TODO: Note that if we store snapshots we probably won't need to store transactions at all
-	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx)
+	blockHeight, err := fk.getLatestBlockHeight()
+	if err != nil {
+		return nil, err
+	}
+
+	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx, blockHeight)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
@@ -181,6 +184,7 @@ func (p *Projects) DeployContract(
 	}
 
 	if _, ok := flowAccount.Contracts[contractName]; ok {
+		fmt.Println("CONTRACT REDEPLOYMENT NEEDED!!")
 		// A contract with this name has already been deployed to this account
 		// Rollback to block height before this contract was initially deployed
 		var deployment model.ContractDeployment
@@ -192,7 +196,6 @@ func (p *Projects) DeployContract(
 		blockHeight := deployment.BlockHeight
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
-		// TODO: Include initial block height of 5 for account creation
 		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)
 		if err != nil {
 			return nil, err
@@ -214,12 +217,12 @@ func (p *Projects) DeployContract(
 		return nil, result.Error
 	}
 
-	exe := model.TransactionExecutionFromFlow(projectID, result, tx)
-
 	blockHeight, err := fk.getLatestBlockHeight()
 	if err != nil {
 		return nil, err
 	}
+
+	exe := model.TransactionExecutionFromFlow(projectID, result, tx, blockHeight)
 
 	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
 

@@ -28,17 +28,19 @@ type TransactionTemplate = File
 
 type TransactionExecution struct {
 	File
-	Arguments []string       `gorm:"serializer:json"`
-	Signers   []Address      `gorm:"serializer:json"`
-	Errors    []ProgramError `gorm:"serializer:json"`
-	Events    []Event        `gorm:"serializer:json"`
-	Logs      []string       `gorm:"serializer:json"`
+	BlockHeight int            `json:"blockHeight"`
+	Arguments   []string       `gorm:"serializer:json"`
+	Signers     []Address      `gorm:"serializer:json"`
+	Errors      []ProgramError `gorm:"serializer:json"`
+	Events      []Event        `gorm:"serializer:json"`
+	Logs        []string       `gorm:"serializer:json"`
 }
 
 func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
+	blockHeight int,
 ) *TransactionExecution {
 	args := make([]string, 0)
 	signers := make([]Address, 0)
@@ -63,10 +65,11 @@ func TransactionExecutionFromFlow(
 			Type:      TransactionFile,
 			Script:    script,
 		},
-		Arguments: args,
-		Signers:   signers,
-		Errors:    nil,
-		Events:    nil,
+		BlockHeight: blockHeight,
+		Arguments:   args,
+		Signers:     signers,
+		Errors:      nil,
+		Events:      nil,
 	}
 
 	if result.Events != nil {

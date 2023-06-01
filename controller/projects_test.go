@@ -122,7 +122,7 @@ func Test_CreateProject(t *testing.T) {
 
 		assert.Equal(t, project.Title, dbProj.Title)
 		assert.Equal(t, project.Description, dbProj.Description)
-		assert.Equal(t, 5, dbProj.TransactionExecutionCount)
+		assert.Equal(t, 0, dbProj.TransactionExecutionCount)
 	})
 
 	t.Run("successful update", func(t *testing.T) {
