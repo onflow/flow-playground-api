@@ -22,6 +22,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/dapperlabs/flow-playground-api/graphQL"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
@@ -35,7 +36,6 @@ import (
 	"strings"
 	"testing"
 
-	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
@@ -44,7 +44,7 @@ import (
 
 type Client struct {
 	client        *client.Client
-	resolver      *playground.Resolver
+	resolver      *graphQL.Resolver
 	sessionCookie *http.Cookie
 	projects      *blockchain.Projects
 	store         storage.Store
@@ -109,7 +109,7 @@ func newClient() *Client {
 	store := newStore()
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccounts)
-	resolver := playground.NewResolver(version, store, authenticator, chain)
+	resolver := graphQL.NewResolver(version, store, authenticator, chain)
 
 	c := newClientWithResolver(resolver)
 	c.store = store
@@ -117,7 +117,7 @@ func newClient() *Client {
 	return c
 }
 
-func newClientWithResolver(resolver *playground.Resolver) *Client {
+func newClientWithResolver(resolver *graphQL.Resolver) *Client {
 	router := chi.NewRouter()
 	router.Use(httpcontext.Middleware())
 	router.Use(legacyauth.MockProjectSessions())
@@ -125,7 +125,7 @@ func newClientWithResolver(resolver *playground.Resolver) *Client {
 	localHub := sentry.CurrentHub().Clone()
 	logger := logrus.StandardLogger()
 	entry := logrus.NewEntry(logger)
-	router.Handle("/", playground.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
+	router.Handle("/", graphQL.GraphQLHandler(resolver, errors.Middleware(entry, localHub)))
 
 	return &Client{
 		client:   client.New(router),

@@ -16,11 +16,12 @@
  * limitations under the License.
  */
 
-package playground
+package graphQL
 
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
@@ -32,7 +33,7 @@ import (
 )
 
 func GraphQLHandler(resolver *Resolver, middlewares ...graphql.ResponseMiddleware) http.HandlerFunc {
-	srv := gqlHandler.NewDefaultServer(NewExecutableSchema(Config{Resolvers: resolver}))
+	srv := gqlHandler.NewDefaultServer(playground.NewExecutableSchema(playground.Config{Resolvers: resolver}))
 
 	srv.Use(telemetry.NewTracer())
 	srv.Use(telemetry.NewMetrics())

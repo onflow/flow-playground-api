@@ -554,7 +554,6 @@ func Test_ScriptExecution(t *testing.T) {
 			return a
 		}`
 
-		// TODO: Need to convert arguments from {"type" : "_", "value" : "_"} to Go value
 		scriptExe := model.NewScriptExecution{
 			ProjectID: proj.ID,
 			Script:    script,
@@ -563,7 +562,7 @@ func Test_ScriptExecution(t *testing.T) {
 
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"value\":\"42\",\"type\":\"Int\"}\n", exe.Value)
+		assert.Equal(t, exe.Value, "42")
 	})
 
 }

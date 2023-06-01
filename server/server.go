@@ -21,6 +21,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/graphQL"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
 	"github.com/dapperlabs/flow-playground-api/server/version"
@@ -34,7 +35,6 @@ import (
 
 	"github.com/go-chi/httplog"
 
-	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"
@@ -107,7 +107,7 @@ func main() {
 	sessionAuthKey := []byte(conf.SessionAuthKey)
 	authenticator := auth.NewAuthenticator(store, sessionName)
 	chain := blockchain.NewProjects(store, initAccountsNumber)
-	resolver := playground.NewResolver(build.Version(), store, authenticator, chain)
+	resolver := graphQL.NewResolver(build.Version(), store, authenticator, chain)
 
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
@@ -174,7 +174,7 @@ func main() {
 
 		r.Handle(
 			"/",
-			playground.GraphQLHandler(
+			graphQL.GraphQLHandler(
 				resolver,
 				errors.Middleware(entry, localHub),
 			),

@@ -2,8 +2,8 @@ package blockchain
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
@@ -21,9 +21,7 @@ import (
 	"github.com/onflow/flow-go-sdk/crypto"
 	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
-	"reflect"
-	"strconv"
-	"strings"
+	"os"
 )
 
 // blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
@@ -80,7 +78,6 @@ func newFlowkit() (*flowKit, error) {
 			emu.WithStorageLimitEnabled(false),
 			emu.WithTransactionFeesEnabled(false),
 			emu.WithSimpleAddresses(),
-			//emu.WithContractRemovalEnabled(true),
 		),
 	)
 
@@ -101,12 +98,62 @@ func newFlowkit() (*flowKit, error) {
 }
 
 func (fk *flowKit) bootstrap() error {
-	err := fk.createInitialAccounts()
+	err := fk.boostrapAccounts()
 	if err != nil {
 		return err
 	}
 
-	// TODO: bootstrap deployment of standard contracts
+	err = fk.bootstrapContracts()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (fk *flowKit) boostrapAccounts() error {
+	const initialAccounts = 5
+	for i := 0; i < initialAccounts; i++ {
+		_, err := fk.createAccount()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (fk *flowKit) bootstrapContracts() error {
+	contracts := []string{
+		"FungibleToken",
+		"NonFungibleToken",
+		"FlowToken",
+		"MetadataViews",
+		// Add more standard contracts here
+	}
+
+	for _, contract := range contracts {
+		err := fk.loadContract(contract)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (fk *flowKit) loadContract(name string) error {
+	path := fmt.Sprintf("cadence/%s.cdc", name)
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	script := string(bytes)
+	address := model.NewAddressFromIndex(-1).ToFlowAddress()
+	_, _, err = fk.deployContract(address, script)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -128,68 +175,23 @@ func (fk *flowKit) executeTransaction(
 	return fk.sendTransaction(tx, authorizers)
 }
 
-// extractType takes in an array formatted as follows "{"type" : "*", "value" : "*"}"
-// representing a typed value and returns the equivalent Go value
-func extractType(typedArray string) (any, error) {
-	type TypedValue struct {
-		Type  string
-		Value string
-	}
+func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, error) {
+	cadenceArgs := make([]cadence.Value, len(arguments))
 
-	typedValue := TypedValue{}
-	err := json.Unmarshal([]byte(typedArray), &typedValue)
+	// Encode arguments using a transaction
+	args, err := parseArguments(arguments)
 	if err != nil {
 		return nil, err
 	}
-	typedValue.Type = strings.ToLower(typedValue.Type)
-
-	//fmt.Println("Type: ", typedValue.Type, "Value: ", typedValue.Value)
-
-	var val any
-	switch typedValue.Type {
-	case "string":
-		val = typedValue.Value
-	case "int":
-		val, err = strconv.ParseInt(typedValue.Value, 10, 0)
-	case "int8":
-		val, err = strconv.ParseInt(typedValue.Value, 10, 8)
-	case "int16":
-		val, err = strconv.ParseInt(typedValue.Value, 10, 16)
-	case "int32":
-		val, err = strconv.ParseInt(typedValue.Value, 10, 32)
-	case "int64":
-		val, err = strconv.ParseInt(typedValue.Value, 10, 64)
-	case "uint8":
-		val, err = strconv.ParseUint(typedValue.Value, 10, 8)
-	case "uint16":
-		val, err = strconv.ParseUint(typedValue.Value, 10, 16)
-	case "uint32":
-		val, err = strconv.ParseUint(typedValue.Value, 10, 32)
-	case "uint64":
-		val, err = strconv.ParseUint(typedValue.Value, 10, 64)
-	default:
-		err = errors.New("Unknown type")
+	tx := &flow.Transaction{
+		Arguments: args,
 	}
 
-	return val, err
-}
-
-func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, error) {
-	cadenceArgs := make([]cadence.Value, len(arguments))
-	for i, arg := range arguments {
-		// TODO: Is this going to work?
-		argVal, err := extractType(arg)
+	for i := range arguments {
+		cadenceArgs[i], err = tx.Argument(i)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("argVal:", argVal, "argVal type:", reflect.TypeOf(argVal))
-
-		val, err := cadence.NewValue(argVal)
-		if err != nil {
-			return nil, err
-		}
-		cadenceArgs[i] = val
-		fmt.Println("CadenceArgs[i]:", cadenceArgs[i])
 	}
 
 	return fk.blockchain.ExecuteScript(
@@ -202,19 +204,6 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 		kit.LatestScriptQuery)
 }
 
-func (fk *flowKit) createInitialAccounts() error {
-	const initAccountNumber = 5
-
-	for i := 0; i < initAccountNumber; i++ {
-		_, err := fk.createAccount()
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (fk *flowKit) createAccount() (*flow.Account, error) {
 	serviceAccount, err := fk.getServiceAccount()
 
@@ -223,7 +212,6 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		return nil, err
 	}
 
-	// TODO: Account creation not working? Need to pass key?
 	account, _, err := fk.blockchain.CreateAccount(
 		context.Background(),
 		serviceAccount,
@@ -237,7 +225,6 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		},
 	)
 	if err != nil {
-		fmt.Println("ERROR creating account: ", err)
 		return nil, err
 	}
 
@@ -293,21 +280,11 @@ func (fk *flowKit) sendTransaction(
 	accountRoles.Proposer = *serviceAccount
 
 	for _, auth := range authorizers {
-		flowAccount, _, err := fk.getAccount(auth)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// TODO: Why is auth account missing keys?
-		fmt.Println("auth account keys: ", flowAccount.Keys)
-
 		acc := &accounts.Account{
 			Name:    "Auth Account",
 			Address: auth,
 			Key:     serviceAccount.Key,
 		}
-
-		fmt.Println("Auth account: ", acc)
 		accountRoles.Authorizers = append(accountRoles.Authorizers, *acc)
 	}
 
