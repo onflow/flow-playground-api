@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain/contracts"
+	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -196,7 +197,7 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 		}
 	}
 
-	return fk.blockchain.ExecuteScript(
+	val, err := fk.blockchain.ExecuteScript(
 		context.Background(),
 		kit.Script{
 			Code:     []byte(script),
@@ -204,6 +205,11 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 			Location: "",
 		},
 		kit.LatestScriptQuery)
+	if err != nil {
+		return nil, userErr.NewUserError(err.Error())
+	}
+
+	return val, nil
 }
 
 func (fk *flowKit) createAccount() (*flow.Account, error) {
@@ -299,16 +305,21 @@ func (fk *flowKit) sendTransaction(
 		args[i] = arg
 	}
 
-	return fk.blockchain.SendTransaction(
+	tx, result, err := fk.blockchain.SendTransaction(
 		context.Background(),
 		accountRoles,
 		kit.Script{
 			Code:     tx.Script,
 			Args:     args,
-			Location: "", // TODO: Do we need this?
+			Location: "",
 		},
 		tx.GasLimit,
 	)
+	if err != nil {
+		return nil, nil, userErr.NewUserError(err.Error())
+	}
+
+	return tx, result, nil
 }
 
 func (fk *flowKit) getLatestBlockHeight() (int, error) {
@@ -335,17 +346,6 @@ func (fk *flowKit) getServiceAccount() (*accounts.Account, error) {
 		Address: flow.HexToAddress("0x01"),
 		Key:     service.Key,
 	}, nil
-}
-
-// parseEventAddress gets an address out of the account creation events payloads
-func parseEventAddress(events []flow.Event) flow.Address {
-	for _, event := range events {
-		if event.Type == flow.EventAccountCreated {
-			addressValue := event.Value.Fields[0].(cadence.Address)
-			return flow.HexToAddress(addressValue.Hex())
-		}
-	}
-	return flow.EmptyAddress
 }
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
