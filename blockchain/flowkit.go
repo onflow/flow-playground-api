@@ -123,15 +123,16 @@ func (fk *flowKit) boostrapAccounts() error {
 }
 
 func (fk *flowKit) bootstrapContracts() error {
-	contracts := []string{
+	Contracts := []string{
 		"FungibleToken",
 		"NonFungibleToken",
 		"FlowToken",
 		"MetadataViews",
 		// Add more standard contracts here
+		// Note: Adding more contracts will change the initial block height
 	}
 
-	for _, contract := range contracts {
+	for _, contract := range Contracts {
 		err := fk.loadContract(contract)
 		if err != nil {
 			return err

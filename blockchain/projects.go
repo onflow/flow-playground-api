@@ -184,7 +184,6 @@ func (p *Projects) DeployContract(
 	}
 
 	if _, ok := flowAccount.Contracts[contractName]; ok {
-		fmt.Println("CONTRACT REDEPLOYMENT NEEDED!!")
 		// A contract with this name has already been deployed to this account
 		// Rollback to block height before this contract was initially deployed
 		var deployment model.ContractDeployment
@@ -194,6 +193,7 @@ func (p *Projects) DeployContract(
 		}
 
 		blockHeight := deployment.BlockHeight
+		fmt.Println("Redeploying Contract", contractName, "at BH:", blockHeight)
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
 		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)

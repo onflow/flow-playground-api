@@ -510,9 +510,8 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 }
 
 func (s *SQL) TruncateDeploymentsAndExecutionsAtBlockHeight(projectID uuid.UUID, blockHeight int) error {
-	// TODO: Take into account the initial block height of 5 for account creation
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where("project_id=? AND \"block_height\" >= ?", projectID, blockHeight-1).
+		err := tx.Where("project_id=? AND \"block_height\" >= ?", projectID, blockHeight).
 			Delete(&model.TransactionExecution{}).
 			Error
 		if err != nil {
