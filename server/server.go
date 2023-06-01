@@ -24,7 +24,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
-	"github.com/dapperlabs/flow-playground-api/server/version"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -179,13 +178,10 @@ func main() {
 				errors.Middleware(entry, localHub),
 			),
 		)
-
 	})
 
 	embedsHandler := controller.NewEmbedsHandler(store, conf.PlaygroundBaseURL)
 	router.Handle("/embed", embedsHandler)
-
-	router.HandleFunc("/version", version.Handler)
 
 	err := ping.SetPingHandlers(store.Ping)
 	if err != nil {

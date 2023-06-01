@@ -88,8 +88,9 @@ type NewTransactionTemplate struct {
 }
 
 type PlaygroundInfo struct {
-	APIVersion     semver.Version `json:"apiVersion"`
-	CadenceVersion semver.Version `json:"cadenceVersion"`
+	APIVersion      semver.Version `json:"apiVersion"`
+	CadenceVersion  semver.Version `json:"cadenceVersion"`
+	EmulatorVersion semver.Version `json:"emulatorVersion"`
 }
 
 type ProgramError struct {
