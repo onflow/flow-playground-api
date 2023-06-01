@@ -14,7 +14,7 @@ generate:
 	GO111MODULE=on go generate ./...
 
 .PHONY: ci
-test: check-tidy
+ci: check-tidy
 	GO111MODULE=on go test -v ./...
 
 .PHONY: test
