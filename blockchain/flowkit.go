@@ -1,3 +1,21 @@
+/*
+ * Flow Playground
+ *
+ * Copyright 2019 Dapper Labs, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package blockchain
 
 import (
@@ -52,9 +70,13 @@ type blockchain interface {
 
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
+
+	initBlockHeight() int
 }
 
 var _ blockchain = &flowKit{}
+
+const initialAccounts = 5
 
 type flowKit struct {
 	blockchain *kit.Flowkit
@@ -113,7 +135,6 @@ func (fk *flowKit) bootstrap() error {
 }
 
 func (fk *flowKit) boostrapAccounts() error {
-	const initialAccounts = 5
 	for i := 0; i < initialAccounts; i++ {
 		_, err := fk.createAccount()
 		if err != nil {
@@ -124,16 +145,7 @@ func (fk *flowKit) boostrapAccounts() error {
 }
 
 func (fk *flowKit) bootstrapContracts() error {
-	Contracts := []string{
-		"FungibleToken",
-		"NonFungibleToken",
-		"FlowToken",
-		"MetadataViews",
-		// Add more standard contracts here
-		// Note: Adding more contracts will change the initial block height
-	}
-
-	for _, contract := range Contracts {
+	for _, contract := range contracts.Contracts {
 		err := fk.loadContract(contract)
 		if err != nil {
 			return err
@@ -141,6 +153,11 @@ func (fk *flowKit) bootstrapContracts() error {
 	}
 
 	return nil
+}
+
+// initBlockHeight returns what the bootstrapped block height should be
+func (fk *flowKit) initBlockHeight() int {
+	return initialAccounts + len(contracts.Contracts)
 }
 
 func (fk *flowKit) loadContract(name string) error {
@@ -214,6 +231,9 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 
 func (fk *flowKit) createAccount() (*flow.Account, error) {
 	serviceAccount, err := fk.getServiceAccount()
+	if err != nil {
+		return nil, err
+	}
 
 	pk, err := serviceAccount.Key.PrivateKey()
 	if err != nil {

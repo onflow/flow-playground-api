@@ -193,7 +193,6 @@ func (p *Projects) DeployContract(
 		}
 
 		blockHeight := deployment.BlockHeight
-		fmt.Println("Redeploying Contract", contractName, "at BH:", blockHeight)
 
 		// Delete all contract deployments + transaction_executions >= blockHeight
 		err = p.store.TruncateDeploymentsAndExecutionsAtBlockHeight(projectID, blockHeight)

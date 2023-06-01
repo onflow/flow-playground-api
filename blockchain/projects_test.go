@@ -111,24 +111,24 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	})
 }
 
-func Test_LoadEmulator(t *testing.T) {
+func Test_LoadFlowKit(t *testing.T) {
 
-	t.Run("successful load of emulator", func(t *testing.T) {
+	t.Run("successful load of flowKit", func(t *testing.T) {
 		projects, _, proj, err := newWithSeededProject()
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
 		for i := 0; i < 4; i++ {
-			_, _, err := emulator.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
+			_, _, err := fk.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
 			require.NoError(t, err)
 		}
 
-		height, err := emulator.getLatestBlockHeight()
+		height, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		require.Equal(t, 5, height)
+		require.Equal(t, fk.initBlockHeight(), height)
 	})
 
 	t.Run("multiple loads with low cache", func(t *testing.T) {
@@ -175,13 +175,13 @@ func Test_LoadEmulator(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlockHeight()
+		latest, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
 		// there should be two blocks created, one from first execution and second from direct db execution from above
-		assert.Equal(t, 7, latest)
+		assert.Equal(t, 2+fk.initBlockHeight(), latest)
 	})
 
 	// this tests that if another replica receives project reset, then this replica won't clear the cache,
@@ -201,12 +201,12 @@ func Test_LoadEmulator(t *testing.T) {
 		err = store.ResetProjectState(proj)
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlockHeight()
+		latest, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
-		assert.Equal(t, 5, latest) // no exe since reset
+		assert.Equal(t, fk.initBlockHeight(), latest) // no exe since reset
 	})
 }
 
@@ -322,9 +322,9 @@ func Test_TransactionExecution(t *testing.T) {
 			Arguments: nil,
 		}
 
-		em, _ := projects.load(proj.ID)
-		b, _ := em.getLatestBlockHeight()
-		assert.Equal(t, 5, b)
+		fk, _ := projects.load(proj.ID)
+		b, _ := fk.getLatestBlockHeight()
+		assert.Equal(t, fk.initBlockHeight(), b)
 
 		executeAndAssert := func(exeLen int) {
 			exe, err := projects.ExecuteTransaction(tx)
@@ -337,9 +337,9 @@ func Test_TransactionExecution(t *testing.T) {
 
 			require.Len(t, dbExe, exeLen)
 
-			em, _ := projects.load(proj.ID)
-			b, _ := em.getLatestBlockHeight()
-			require.Equal(t, exeLen, b-5)
+			fk, _ := projects.load(proj.ID)
+			b, _ := fk.getLatestBlockHeight()
+			require.Equal(t, exeLen, b-fk.initBlockHeight())
 
 			projects.flowKitCache.reset(proj.ID)
 		}

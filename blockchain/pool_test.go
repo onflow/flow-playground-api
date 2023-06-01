@@ -33,7 +33,7 @@ func Test_InstancePool(t *testing.T) {
 		require.NoError(t, err)
 		h, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
-		assert.Equal(t, 5, h) // confirm functioning flowKit
+		assert.Equal(t, fk.initBlockHeight(), h) // confirm functioning flowKit
 	})
 
 	t.Run("drain out the pool", func(t *testing.T) {
@@ -44,7 +44,7 @@ func Test_InstancePool(t *testing.T) {
 			require.NoError(t, err)
 			h, err := fk.getLatestBlockHeight()
 			require.NoError(t, err)
-			assert.Equal(t, 5, h) // confirm functioning flowKit
+			assert.Equal(t, fk.initBlockHeight(), h) // confirm functioning flowKit
 		}
 	})
 
@@ -59,7 +59,7 @@ func Test_InstancePool(t *testing.T) {
 				require.NoError(t, err)
 				h, err := fk.getLatestBlockHeight()
 				require.NoError(t, err)
-				assert.Equal(t, 5, h) // confirm functioning flowKit
+				assert.Equal(t, fk.initBlockHeight(), h) // confirm functioning flowKit
 				wg.Done()
 			}()
 		}
