@@ -68,3 +68,29 @@ func Test_NewFlowkit(t *testing.T) {
 		//assert.Equal(t, accountStorage.Account.Address.Bytes(), accountList[i].Address.Bytes())
 	}
 }
+
+func Test_Export(t *testing.T) {
+	fk, err := newFlowkit()
+	assert.NoError(t, err)
+
+	blockHeight, err := fk.getLatestBlockHeight()
+	assert.NoError(t, err)
+	assert.Equal(t, fk.initBlockHeight(), blockHeight)
+
+	flowJson, err := fk.getFlowJson()
+	assert.NoError(t, err)
+
+	const contains = `{
+	"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"emulator-account": {
+			"address": "f8d6e0586b0a20c7",
+			"key":`
+
+	assert.Contains(t, flowJson, contains)
+}

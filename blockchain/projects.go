@@ -283,6 +283,15 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, nil
 }
 
+func (p *Projects) GetFlowJson(projectID uuid.UUID) (string, error) {
+	fk, err := p.load(projectID)
+	if err != nil {
+		return "", err
+	}
+
+	return fk.getFlowJson()
+}
+
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.

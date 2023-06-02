@@ -33,7 +33,6 @@ import (
 	"github.com/onflow/flow-cli/flowkit/config"
 	"github.com/onflow/flow-cli/flowkit/gateway"
 	"github.com/onflow/flow-cli/flowkit/output"
-	"github.com/onflow/flow-cli/flowkit/tests"
 	"github.com/onflow/flow-cli/flowkit/transactions"
 	emu "github.com/onflow/flow-emulator"
 	"github.com/onflow/flow-emulator/storage/memstore"
@@ -72,6 +71,8 @@ type blockchain interface {
 	getLatestBlockHeight() (int, error)
 
 	initBlockHeight() int
+
+	getFlowJson() (string, error)
 }
 
 var _ blockchain = &flowKit{}
@@ -83,7 +84,7 @@ type flowKit struct {
 }
 
 func newFlowkit() (*flowKit, error) {
-	readerWriter, _ := tests.ReaderWriter()
+	readerWriter := NewInternalReaderWriter()
 	state, err := kit.Init(readerWriter, crypto.ECDSA_P256, crypto.SHA3_256)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create flow-kit state")
@@ -160,11 +161,9 @@ func (fk *flowKit) loadContract(name string) error {
 		return err
 	}
 
-	script := string(contract)
-
 	// Deploy to service account
 	address := model.NewAddressFromIndex(-1).ToFlowAddress()
-	_, _, err = fk.deployContract(address, script)
+	_, _, err = fk.deployContract(address, string(contract))
 	if err != nil {
 		return err
 	}
@@ -175,6 +174,25 @@ func (fk *flowKit) loadContract(name string) error {
 // initBlockHeight returns what the bootstrapped block height should be
 func (fk *flowKit) initBlockHeight() int {
 	return initialAccounts + len(contracts.Included())
+}
+
+func (fk *flowKit) getFlowJson() (string, error) {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return "", err
+	}
+
+	err = state.Save("flow.json")
+	if err != nil {
+		return "", err
+	}
+
+	flowJson, err := state.ReaderWriter().ReadFile("")
+	if err != nil {
+		return "", err
+	}
+
+	return string(flowJson), nil
 }
 
 func (fk *flowKit) executeTransaction(

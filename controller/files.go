@@ -173,3 +173,7 @@ func (f *Files) GetFile(id uuid.UUID, projID uuid.UUID) (*model.File, error) {
 
 	return &file, nil
 }
+
+func (f *Files) GetFlowJson(projID uuid.UUID) (string, error) {
+	return f.blockchain.GetFlowJson(projID)
+}

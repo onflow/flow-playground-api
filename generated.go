@@ -141,6 +141,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Account             func(childComplexity int, address model.Address, projectID uuid.UUID) int
 		ContractTemplate    func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
+		FlowJSON            func(childComplexity int, projectID uuid.UUID) int
 		PlaygroundInfo      func(childComplexity int) int
 		Project             func(childComplexity int, id uuid.UUID) int
 		ProjectList         func(childComplexity int) int
@@ -218,6 +219,7 @@ type QueryResolver interface {
 	ContractTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.File, error)
 	TransactionTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.File, error)
 	ScriptTemplate(ctx context.Context, id uuid.UUID, projectID uuid.UUID) (*model.File, error)
+	FlowJSON(ctx context.Context, projectID uuid.UUID) (string, error)
 }
 
 type executableSchema struct {
@@ -761,6 +763,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ContractTemplate(childComplexity, args["id"].(uuid.UUID), args["projectId"].(uuid.UUID)), true
 
+	case "Query.flowJson":
+		if e.complexity.Query.FlowJSON == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flowJson_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlowJSON(childComplexity, args["projectId"].(uuid.UUID)), true
+
 	case "Query.playgroundInfo":
 		if e.complexity.Query.PlaygroundInfo == nil {
 			break
@@ -1179,6 +1193,8 @@ type Query {
   contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
+
+  flowJson(projectId: UUID!): String!
 }
 
 input NewProject {
@@ -1636,6 +1652,21 @@ func (ec *executionContext) field_Query_contractTemplate_args(ctx context.Contex
 		}
 	}
 	args["projectId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_flowJson_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 uuid.UUID
+	if tmp, ok := rawArgs["projectId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("projectId"))
+		arg0, err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["projectId"] = arg0
 	return args, nil
 }
 
@@ -5323,6 +5354,61 @@ func (ec *executionContext) fieldContext_Query_scriptTemplate(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_scriptTemplate_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flowJson(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flowJson(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlowJSON(rctx, fc.Args["projectId"].(uuid.UUID))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flowJson(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_flowJson_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -9830,6 +9916,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_scriptTemplate(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "flowJson":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flowJson(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

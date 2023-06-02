@@ -454,3 +454,12 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 
 	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
+
+func (r *queryResolver) FlowJSON(_ context.Context, projectID uuid.UUID) (string, error) {
+	flowJson, err := r.files.GetFlowJson(projectID)
+	if err != nil {
+		return "", err
+	}
+
+	return flowJson, nil
+}

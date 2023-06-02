@@ -134,6 +134,8 @@ type Query {
   contractTemplate(id: UUID!, projectId: UUID!): ContractTemplate!
   transactionTemplate(id: UUID!, projectId: UUID!): TransactionTemplate!
   scriptTemplate(id: UUID!, projectId: UUID!): ScriptTemplate!
+
+  flowJson(projectId: UUID!): String!
 }
 
 input NewProject {

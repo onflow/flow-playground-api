@@ -631,6 +631,16 @@ type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
 }
 
+const QueryGetFlowJson = `
+query($projectId: UUID!) {
+  flowJson(projectId: $projectId)
+}
+`
+
+type GetFlowJsonResponse struct {
+	FlowJson string
+}
+
 // todo add tests for:
 // - failed transactions with successful transactions work (bootstrap works)??
 // - assert we don't leak any internal model data to API

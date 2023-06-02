@@ -506,3 +506,41 @@ func TestGetProjectList(t *testing.T) {
 		assert.Equal(t, "foo2", user2ListResp.ProjectList.Projects[0].Title)
 	})
 }
+
+func TestExportFlowJson(t *testing.T) {
+	c := newClient()
+
+	var projResp1 CreateProjectResponse
+	err := c.Post(
+		MutationCreateProject,
+		&projResp1,
+		client.Var("title", "foo1"),
+		client.Var("description", "bar"),
+		client.Var("readme", "bah"),
+		client.Var("seed", 42),
+		client.Var("numberOfAccounts", initAccounts),
+	)
+	require.NoError(t, err)
+
+	var flowJsonResp GetFlowJsonResponse
+	err = c.Post(
+		QueryGetFlowJson,
+		&flowJsonResp,
+		client.Var("projectId", projResp1.CreateProject.ID),
+	)
+	require.NoError(t, err)
+
+	const contains = `{
+	"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"emulator-account": {
+			"address": "f8d6e0586b0a20c7",
+			"key":`
+
+	require.Contains(t, flowJsonResp.FlowJson, contains)
+}
