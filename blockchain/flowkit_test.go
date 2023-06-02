@@ -69,7 +69,7 @@ func Test_NewFlowkit(t *testing.T) {
 	}
 }
 
-func Test_Export(t *testing.T) {
+func Test_FlowJsonExport(t *testing.T) {
 	fk, err := newFlowkit()
 	assert.NoError(t, err)
 

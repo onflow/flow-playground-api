@@ -456,10 +456,5 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 }
 
 func (r *queryResolver) FlowJSON(_ context.Context, projectID uuid.UUID) (string, error) {
-	flowJson, err := r.files.GetFlowJson(projectID)
-	if err != nil {
-		return "", err
-	}
-
-	return flowJson, nil
+	return r.files.GetFlowJson(projectID)
 }

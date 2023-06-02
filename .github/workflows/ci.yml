@@ -6,7 +6,7 @@ on:
   push:
     branches: [ master, staging, v2 ]
   pull_request:
-    branches: [ master, staging, v2 ]
+    branches: [ '**' ]
     types: [opened, synchronize, edited, ready_for_review]
 
 jobs:
