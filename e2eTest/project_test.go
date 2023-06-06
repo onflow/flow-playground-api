@@ -19,7 +19,6 @@
 package e2eTest
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
@@ -575,6 +574,8 @@ func TestExportFlowJson(t *testing.T) {
 			"address": "0000000000000005",
 			"key":`
 
-	fmt.Println(flowJsonResp.FlowJson)
+	//fmt.Println(flowJsonResp.FlowJson)
+	// TODO: Ensure rebuilding state includes deployed contracts!
+	require.Contains(t, flowJsonResp.FlowJson, "Person")
 	require.Contains(t, flowJsonResp.FlowJson, contains)
 }
