@@ -19,6 +19,7 @@
 package e2eTest
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
@@ -522,15 +523,47 @@ func TestExportFlowJson(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	// Deploy a contract
+	PersonContract := `pub contract Person {}`
+	var createContractResp CreateContractDeploymentResponse
+	err = c.Post(
+		MutationCreateContractDeployment,
+		&createContractResp,
+		client.Var("projectId", projResp1.CreateProject.ID),
+		client.Var("script", PersonContract),
+		client.Var("address", addr1),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
 	var flowJsonResp GetFlowJsonResponse
 	err = c.Post(
 		QueryGetFlowJson,
 		&flowJsonResp,
 		client.Var("projectId", projResp1.CreateProject.ID),
+		client.AddCookie(c.SessionCookie()),
 	)
 	require.NoError(t, err)
 
 	const contains = `{
+	"contracts": {
+		"FlowToken": {
+			"source": "",
+			"aliases": null
+		},
+		"FungibleToken": {
+			"source": "",
+			"aliases": null
+		},
+		"MetadataViews": {
+			"source": "",
+			"aliases": null
+		},
+		"NonFungibleToken": {
+			"source": "",
+			"aliases": null
+		}
+	},
 	"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
@@ -538,9 +571,10 @@ func TestExportFlowJson(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	},
 	"accounts": {
-		"emulator-account": {
-			"address": "f8d6e0586b0a20c7",
+		"Account 0x01": {
+			"address": "0000000000000005",
 			"key":`
 
+	fmt.Println(flowJsonResp.FlowJson)
 	require.Contains(t, flowJsonResp.FlowJson, contains)
 }

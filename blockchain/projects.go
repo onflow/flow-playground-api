@@ -356,6 +356,18 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 		return nil, err
 	}
 
+	// Rebuild FlowKit state with deployments
+	var deployments []*model.ContractDeployment
+	err = p.store.GetContractDeploymentsForProject(projectID, &deployments)
+	if err != nil {
+		return nil, err
+	}
+
+	err = fk.rebuildState(deployments)
+	if err != nil {
+		return nil, err
+	}
+
 	return fk, nil
 }
 

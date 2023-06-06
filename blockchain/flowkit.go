@@ -273,6 +273,17 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		return nil, err
 	}
 
+	// Update state with new account
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return nil, err
+	}
+	state.Accounts().AddOrUpdate(&accounts.Account{
+		Name:    fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())),
+		Address: account.Address,
+		Key:     serviceAccount.Key,
+	})
+
 	return account, nil
 }
 
@@ -300,7 +311,44 @@ func (fk *flowKit) deployContract(
 		Source: script,
 	})
 
-	return fk.sendTransaction(tx, []flow.Address{address})
+	tx, result, err := fk.sendTransaction(tx, []flow.Address{address})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Update state with deployed contract
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	contract := config.Contract{
+		Name:     contractName,
+		Location: "", // TODO: This be included for smoother export experience
+		Aliases:  nil,
+	}
+
+	deployment := state.Deployments().
+		ByAccountAndNetwork(address.String(), config.EmulatorNetwork.Name)
+
+	if deployment == nil {
+		state.Deployments().AddOrUpdate(
+			config.Deployment{
+				Network:   config.EmulatorNetwork.Name,
+				Account:   address.String(),
+				Contracts: nil,
+			})
+		deployment = state.Deployments().
+			ByAccountAndNetwork(address.String(), config.EmulatorNetwork.Name)
+	}
+
+	deployment.Contracts = append(deployment.Contracts, config.ContractDeployment{
+		Name: contract.Name,
+	})
+
+	state.Contracts().AddOrUpdate(contract)
+
+	return tx, result, nil
 }
 
 func (fk *flowKit) removeContract(
@@ -357,6 +405,11 @@ func (fk *flowKit) sendTransaction(
 	}
 
 	return tx, result, nil
+}
+
+func (fk *flowKit) rebuildState(deployments []*model.ContractDeployment) error {
+	// TODO: Rebuild state using contract deployments
+	return nil
 }
 
 func (fk *flowKit) getLatestBlockHeight() (int, error) {

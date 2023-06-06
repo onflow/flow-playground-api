@@ -81,6 +81,24 @@ func Test_FlowJsonExport(t *testing.T) {
 	assert.NoError(t, err)
 
 	const contains = `{
+	"contracts": {
+		"FlowToken": {
+			"source": "",
+			"aliases": null
+		},
+		"FungibleToken": {
+			"source": "",
+			"aliases": null
+		},
+		"MetadataViews": {
+			"source": "",
+			"aliases": null
+		},
+		"NonFungibleToken": {
+			"source": "",
+			"aliases": null
+		}
+	},
 	"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
@@ -88,8 +106,8 @@ func Test_FlowJsonExport(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	},
 	"accounts": {
-		"emulator-account": {
-			"address": "f8d6e0586b0a20c7",
+		"Account 0x01": {
+			"address": "0000000000000005",
 			"key":`
 
 	assert.Contains(t, flowJson, contains)
