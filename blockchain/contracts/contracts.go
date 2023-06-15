@@ -21,6 +21,8 @@ package contracts
 import (
 	"embed"
 	"fmt"
+	"github.com/onflow/flow-cli/flowkit/config"
+	"github.com/onflow/flow-go-sdk"
 )
 
 // Embed all contracts in this folder
@@ -28,17 +30,52 @@ import (
 //go:embed *.cdc
 var contracts embed.FS
 
-var include = []string{
-	"FungibleToken",
-	"NonFungibleToken",
-	"FlowToken",
-	"MetadataViews",
-	// Add more standard contracts here
-	// Note: Adding more contracts will change the initial block height
+// Core defines core contract to be embedded, along with their locations in the emulator
+var Core = []config.Contract{
+	{
+		Name: "NonFungibleToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
+			},
+		},
+	},
+	{
+		Name: "FlowToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0x0ae53cb6e3f42a79"),
+			},
+		},
+	},
+	{
+		Name: "FungibleToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xee82856bf20e2aa6"),
+			},
+		},
+	},
+	{
+		Name: "MetadataViews",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
+			},
+		},
+	},
 }
 
 func Included() []string {
-	return include
+	var included []string
+	for _, contract := range Core {
+		included = append(included, contract.Name)
+	}
+	return included
 }
 
 func Read(name string) ([]byte, error) {

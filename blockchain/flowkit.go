@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain/contracts"
 	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
@@ -136,6 +135,11 @@ func (fk *flowKit) bootstrap() error {
 }
 
 func (fk *flowKit) boostrapAccounts() error {
+	err := fk.createServiceAccount()
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < initialAccounts; i++ {
 		_, err := fk.createAccount()
 		if err != nil {
@@ -161,9 +165,13 @@ func (fk *flowKit) loadContract(name string) error {
 		return err
 	}
 
+	service, err := fk.getServiceAccount()
+	if err != nil {
+		return err
+	}
+
 	// Deploy to service account
-	address := model.NewAddressFromIndex(-1).ToFlowAddress()
-	_, _, err = fk.deployContract(address, string(contract))
+	_, _, err = fk.deployContract(service.Address, string(contract))
 	if err != nil {
 		return err
 	}
@@ -180,6 +188,10 @@ func (fk *flowKit) getFlowJson() (string, error) {
 	state, err := fk.blockchain.State()
 	if err != nil {
 		return "", err
+	}
+
+	for _, contract := range contracts.Core {
+		state.Contracts().AddOrUpdate(contract)
 	}
 
 	err = state.Save("flow.json")
@@ -246,6 +258,25 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 	return val, nil
 }
 
+func (fk *flowKit) createServiceAccount() error {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return err
+	}
+
+	serviceAccount, err := fk.getServiceAccount()
+	if err != nil {
+		return err
+	}
+
+	state.Accounts().AddOrUpdate(&accounts.Account{
+		Name:    "Service Account",
+		Address: flow.HexToAddress("0x01"),
+		Key:     serviceAccount.Key,
+	})
+	return nil
+}
+
 func (fk *flowKit) createAccount() (*flow.Account, error) {
 	serviceAccount, err := fk.getServiceAccount()
 	if err != nil {
@@ -278,8 +309,9 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	state.Accounts().AddOrUpdate(&accounts.Account{
-		Name:    fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())),
+		Name:    fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())-1),
 		Address: account.Address,
 		Key:     serviceAccount.Key,
 	})
@@ -301,54 +333,32 @@ func (fk *flowKit) deployContract(
 	address flow.Address,
 	script string,
 ) (*flow.Transaction, *flow.TransactionResult, error) {
-	contractName, err := parseContractName(script)
-	if err != nil {
-		return nil, nil, userErr.NewUserError(err.Error())
-	}
-
-	tx := templates.AddAccountContract(address, templates.Contract{
-		Name:   contractName,
-		Source: script,
-	})
-
-	tx, result, err := fk.sendTransaction(tx, []flow.Address{address})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Update state with deployed contract
 	state, err := fk.blockchain.State()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	contract := config.Contract{
-		Name:     contractName,
-		Location: "", // TODO: This be included for smoother export experience
-		Aliases:  nil,
+	to, err := state.Accounts().ByAddress(address)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	deployment := state.Deployments().
-		ByAccountAndNetwork(address.String(), config.EmulatorNetwork.Name)
+	txID, _, err := fk.blockchain.AddContract(
+		context.Background(),
+		to,
+		kit.Script{
+			Code:     []byte(script),
+			Args:     nil,
+			Location: "", // TODO: do we need location?
+		},
+		kit.UpdateExistingContract(false),
+	)
 
-	if deployment == nil {
-		state.Deployments().AddOrUpdate(
-			config.Deployment{
-				Network:   config.EmulatorNetwork.Name,
-				Account:   address.String(),
-				Contracts: nil,
-			})
-		deployment = state.Deployments().
-			ByAccountAndNetwork(address.String(), config.EmulatorNetwork.Name)
-	}
-
-	deployment.Contracts = append(deployment.Contracts, config.ContractDeployment{
-		Name: contract.Name,
-	})
-
-	state.Contracts().AddOrUpdate(contract)
-
-	return tx, result, nil
+	return fk.blockchain.GetTransactionByID(
+		context.Background(),
+		txID,
+		true,
+	)
 }
 
 func (fk *flowKit) removeContract(
@@ -405,11 +415,6 @@ func (fk *flowKit) sendTransaction(
 	}
 
 	return tx, result, nil
-}
-
-func (fk *flowKit) rebuildState(deployments []*model.ContractDeployment) error {
-	// TODO: Rebuild state using contract deployments
-	return nil
 }
 
 func (fk *flowKit) getLatestBlockHeight() (int, error) {

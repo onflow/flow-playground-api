@@ -544,38 +544,41 @@ func TestExportFlowJson(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	const contains = `{
-	"contracts": {
+	const CoreContracts = `"contracts": {
 		"FlowToken": {
 			"source": "",
-			"aliases": null
+			"aliases": {
+				"emulator": "0ae53cb6e3f42a79"
+			}
 		},
 		"FungibleToken": {
 			"source": "",
-			"aliases": null
+			"aliases": {
+				"emulator": "ee82856bf20e2aa6"
+			}
 		},
 		"MetadataViews": {
 			"source": "",
-			"aliases": null
+			"aliases": {
+				"emulator": "f8d6e0586b0a20c7"
+			}
 		},
 		"NonFungibleToken": {
 			"source": "",
-			"aliases": null
+			"aliases": {
+				"emulator": "f8d6e0586b0a20c7"
+			}
 		}
-	},
-	"networks": {
+	}`
+
+	const Networks = `"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
 		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
 		"testnet": "access.devnet.nodes.onflow.org:9000"
-	},
-	"accounts": {
-		"Account 0x01": {
-			"address": "0000000000000005",
-			"key":`
+	}`
 
-	//fmt.Println(flowJsonResp.FlowJson)
-	// TODO: Ensure rebuilding state includes deployed contracts!
+	require.Contains(t, flowJsonResp.FlowJson, CoreContracts)
+	require.Contains(t, flowJsonResp.FlowJson, Networks)
 	require.Contains(t, flowJsonResp.FlowJson, "Person")
-	require.Contains(t, flowJsonResp.FlowJson, contains)
 }

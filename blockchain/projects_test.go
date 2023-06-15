@@ -27,7 +27,6 @@ import (
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
 	"testing"
 )
 
@@ -161,8 +160,12 @@ func Test_LoadFlowKit(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		fk, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
 		// add another transaction directly to the database to simulate request coming from another replica
 		err = store.InsertTransactionExecution(&model.TransactionExecution{
+			BlockHeight: 2 + fk.initBlockHeight(),
 			File: model.File{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -175,7 +178,7 @@ func Test_LoadFlowKit(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		fk, err := projects.load(proj.ID)
+		fk, err = projects.load(proj.ID)
 		require.NoError(t, err)
 
 		latest, err := fk.getLatestBlockHeight()
@@ -410,16 +413,13 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorld", deployment.Title)
 
-		var txExe []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		var deployments []*model.ContractDeployment
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 1)
+		require.Len(t, deployments, 1)
 
-		txDeploy := txExe[0]
-		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
-		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
-		assert.Equal(t, `{"value":"HelloWorld","type":"String"}`, txDeploy.Arguments[0])
-		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
+		deploy := deployments[0]
+		assert.Equal(t, "flow.AccountContractAdded", deploy.Events[0].Type)
 	})
 
 	t.Run("multiple deploys with imports and cache reset", func(t *testing.T) {
@@ -459,27 +459,27 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
-		var txExe []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		var deployments []*model.ContractDeployment
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 2)
+		require.Len(t, deployments, 2)
 
 		projects.flowKitCache.reset(proj.ID)
 
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 2)
+		require.Len(t, deployments, 2)
 
 		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(2), scriptC)
 		require.NoError(t, err)
 
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 3)
+		require.Len(t, deployments, 3)
 
-		assert.Equal(t, "flow.AccountContractAdded", txExe[2].Events[0].Type)
-		assert.Equal(t, "flow.AccountContractAdded", txExe[1].Events[0].Type)
-		assert.Equal(t, "flow.AccountContractAdded", txExe[0].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[2].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[1].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[0].Events[0].Type)
 
 		//assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
 		//assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
