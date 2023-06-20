@@ -82,22 +82,10 @@ func Test_FlowJsonExport(t *testing.T) {
 	assert.NoError(t, err)
 
 	const CoreContracts = `"contracts": {
-		"FlowToken": {
-			"source": "",
-			"aliases": {
-				"emulator": "0ae53cb6e3f42a79"
-			}
-		},
 		"FungibleToken": {
 			"source": "",
 			"aliases": {
 				"emulator": "ee82856bf20e2aa6"
-			}
-		},
-		"MetadataViews": {
-			"source": "",
-			"aliases": {
-				"emulator": "f8d6e0586b0a20c7"
 			}
 		},
 		"NonFungibleToken": {

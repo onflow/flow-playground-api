@@ -487,3 +487,8 @@ func parseContractName(code string) (string, error) {
 
 	return "", fmt.Errorf("unable to determine contract name")
 }
+
+func GetInitialBlockHeightForTesting() int {
+	fk, _ := newFlowkit()
+	return fk.initBlockHeight()
+}
