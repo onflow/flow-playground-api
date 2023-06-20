@@ -113,6 +113,7 @@ type ContractDeployment {
   id: UUID!
   title: String!
   script: String!
+  arguments: [String!]
   address: Address!
   blockHeight: Int!
   errors: [ProgramError!]
@@ -210,6 +211,7 @@ input NewContractDeployment {
   projectId: UUID!
   script: String!
   address: Address!
+  arguments: [String!]
 }
 
 input NewTransactionTemplate {

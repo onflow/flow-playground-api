@@ -16,6 +16,7 @@ type NewContractDeployment struct {
 	ProjectID uuid.UUID `json:"projectId"`
 	Script    string    `json:"script"`
 	Address   Address   `json:"address"`
+	Arguments []string  `json:"arguments"`
 }
 
 type NewContractTemplate struct {

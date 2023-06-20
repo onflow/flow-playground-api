@@ -61,7 +61,11 @@ type blockchain interface {
 	getAccount(address flow.Address) (*flow.Account, *emu.AccountStorage, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
-	deployContract(address flow.Address, script string) (*flow.Transaction, *flow.TransactionResult, error)
+	deployContract(
+		address flow.Address,
+		script string,
+		arguments []string,
+	) (*flow.Transaction, *flow.TransactionResult, error)
 
 	// removeContract removes specified contract from provided address and returns transaction and result.
 	removeContract(address flow.Address, contractName string) (*flow.Transaction, *flow.TransactionResult, error)
@@ -171,7 +175,7 @@ func (fk *flowKit) loadContract(name string) error {
 	}
 
 	// Deploy to service account
-	_, _, err = fk.deployContract(service.Address, string(contract))
+	_, _, err = fk.deployContract(service.Address, string(contract), nil)
 	if err != nil {
 		fmt.Println("Failed to deploy core contact", err)
 		return err
@@ -333,6 +337,7 @@ func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, *emu.Account
 func (fk *flowKit) deployContract(
 	address flow.Address,
 	script string,
+	arguments []string,
 ) (*flow.Transaction, *flow.TransactionResult, error) {
 	state, err := fk.blockchain.State()
 	if err != nil {
@@ -344,13 +349,18 @@ func (fk *flowKit) deployContract(
 		return nil, nil, err
 	}
 
+	args, err := parseCadenceValues(arguments)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	txID, _, err := fk.blockchain.AddContract(
 		context.Background(),
 		to,
 		kit.Script{
 			Code:     []byte(script),
-			Args:     nil,
-			Location: "", // TODO: do we need location?
+			Args:     args,
+			Location: "",
 		},
 		kit.UpdateExistingContract(false),
 	)
@@ -445,6 +455,18 @@ func (fk *flowKit) getServiceAccount() (*accounts.Account, error) {
 		Address: flow.HexToAddress("0x01"),
 		Key:     service.Key,
 	}, nil
+}
+
+func parseCadenceValues(args []string) ([]cadence.Value, error) {
+	cadenceArgs := make([]cadence.Value, len(args))
+	for i, arg := range args {
+		val, err := jsoncdc.Decode(nil, []byte(arg))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to decode argument")
+		}
+		cadenceArgs[i] = val
+	}
+	return cadenceArgs, nil
 }
 
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list

@@ -19,6 +19,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -140,8 +141,9 @@ func (f *Files) DeployContract(input model.NewContractDeployment) (*model.Contra
 		return nil, errors.New("cannot deploy empty contract")
 	}
 
-	deploy, err := f.blockchain.DeployContract(input.ProjectID, input.Address, input.Script)
+	deploy, err := f.blockchain.DeployContract(input.ProjectID, input.Address, input.Script, input.Arguments)
 	if err != nil {
+		fmt.Println("Failed to deploy contract")
 		return nil, errors.Wrap(err, "failed to deploy contract")
 	}
 
