@@ -165,6 +165,7 @@ func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,
+	arguments []string,
 ) (*model.ContractDeployment, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
@@ -208,7 +209,7 @@ func (p *Projects) DeployContract(
 		}
 	}
 
-	tx, result, err := fk.deployContract(address.ToFlowAddress(), script)
+	tx, result, err := fk.deployContract(address.ToFlowAddress(), script, arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +223,7 @@ func (p *Projects) DeployContract(
 	}
 
 	//exe := model.TransactionExecutionFromFlow(projectID, result, tx, blockHeight) TODO: Remove?
-	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, arguments, result, tx, blockHeight)
 
 	err = p.store.InsertContractDeployment(deploy)
 	if err != nil {
@@ -410,7 +411,7 @@ func (p *Projects) runMissingBlocks(
 				return nil, transactionResultError(projectID, txExec.ID, result.Error)
 			}
 		} else if deploy != nil {
-			_, result, err := fk.deployContract(deploy.Address.ToFlowAddress(), deploy.Script)
+			_, result, err := fk.deployContract(deploy.Address.ToFlowAddress(), deploy.Script, deploy.Arguments)
 			if err != nil {
 				return nil, stateRecreationError(projectID, deploy.ID, err)
 			}

@@ -55,6 +55,7 @@ type ComplexityRoot struct {
 
 	ContractDeployment struct {
 		Address     func(childComplexity int) int
+		Arguments   func(childComplexity int) int
 		BlockHeight func(childComplexity int) int
 		Errors      func(childComplexity int) int
 		Events      func(childComplexity int) int
@@ -264,6 +265,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ContractDeployment.Address(childComplexity), true
+
+	case "ContractDeployment.arguments":
+		if e.complexity.ContractDeployment.Arguments == nil {
+			break
+		}
+
+		return e.complexity.ContractDeployment.Arguments(childComplexity), true
 
 	case "ContractDeployment.blockHeight":
 		if e.complexity.ContractDeployment.BlockHeight == nil {
@@ -1172,6 +1180,7 @@ type ContractDeployment {
   id: UUID!
   title: String!
   script: String!
+  arguments: [String!]
   address: Address!
   blockHeight: Int!
   errors: [ProgramError!]
@@ -1269,6 +1278,7 @@ input NewContractDeployment {
   projectId: UUID!
   script: String!
   address: Address!
+  arguments: [String!]
 }
 
 input NewTransactionTemplate {
@@ -2023,6 +2033,47 @@ func (ec *executionContext) _ContractDeployment_script(ctx context.Context, fiel
 }
 
 func (ec *executionContext) fieldContext_ContractDeployment_script(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ContractDeployment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ContractDeployment_arguments(ctx context.Context, field graphql.CollectedField, obj *model.ContractDeployment) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ContractDeployment_arguments(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Arguments, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ContractDeployment_arguments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ContractDeployment",
 		Field:      field,
@@ -2999,6 +3050,8 @@ func (ec *executionContext) fieldContext_Mutation_createContractDeployment(ctx c
 				return ec.fieldContext_ContractDeployment_title(ctx, field)
 			case "script":
 				return ec.fieldContext_ContractDeployment_script(ctx, field)
+			case "arguments":
+				return ec.fieldContext_ContractDeployment_arguments(ctx, field)
 			case "address":
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
 			case "blockHeight":
@@ -4809,6 +4862,8 @@ func (ec *executionContext) fieldContext_Project_contractDeployments(ctx context
 				return ec.fieldContext_ContractDeployment_title(ctx, field)
 			case "script":
 				return ec.fieldContext_ContractDeployment_script(ctx, field)
+			case "arguments":
+				return ec.fieldContext_ContractDeployment_arguments(ctx, field)
 			case "address":
 				return ec.fieldContext_ContractDeployment_address(ctx, field)
 			case "blockHeight":
@@ -8284,6 +8339,14 @@ func (ec *executionContext) unmarshalInputNewContractDeployment(ctx context.Cont
 			if err != nil {
 				return it, err
 			}
+		case "arguments":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("arguments"))
+			it.Arguments, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -9099,6 +9162,10 @@ func (ec *executionContext) _ContractDeployment(ctx context.Context, sel ast.Sel
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "arguments":
+
+			out.Values[i] = ec._ContractDeployment_arguments(ctx, field, obj)
+
 		case "address":
 
 			out.Values[i] = ec._ContractDeployment_address(ctx, field, obj)

@@ -361,7 +361,7 @@ func Test_TransactionExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 
 		var deployments []*model.ContractDeployment
@@ -409,7 +409,7 @@ func Test_DeployContract(t *testing.T) {
 
 		script := `pub contract HelloWorld {}`
 
-		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), script)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), script, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorld", deployment.Title)
 
@@ -451,11 +451,11 @@ func Test_DeployContract(t *testing.T) {
 				}
 			}`
 
-		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorldA", deploy1.Title)
 
-		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(1), scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(1), scriptB, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
@@ -470,7 +470,7 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, deployments, 2)
 
-		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(2), scriptC)
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(2), scriptC, nil)
 		require.NoError(t, err)
 
 		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
@@ -485,6 +485,26 @@ func Test_DeployContract(t *testing.T) {
 		//assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
 	})
 
+	t.Run("deploy single contract with arguments", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init(a: Int) { self.A = a }
+		}`
+
+		args := []string{
+			`{"type":"Int","value":"42"}`,
+		}
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.Error(t, err)
+
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, args)
+		require.NoError(t, err)
+		require.Equal(t, args, deployment.Arguments)
+	})
 }
 
 func Test_ScriptExecution(t *testing.T) {
@@ -527,7 +547,7 @@ func Test_ScriptExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA)
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 
 		script := `

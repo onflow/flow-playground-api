@@ -54,6 +54,44 @@ func TestContractDeployments(t *testing.T) {
 		assert.Error(t, err)
 	})
 
+	t.Run("Create deployment with initialization arguments", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init(a: Int) { self.A = a }
+		}`
+
+		args := []string{
+			`{"type":"Int","value":"42"}`,
+		}
+
+		var resp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contract),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.Error(t, err)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contract),
+			client.Var("address", addr1),
+			client.Var("arguments", args),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, args, resp.CreateContractDeployment.Arguments)
+	})
+
 }
 
 func TestContractTitleParsing(t *testing.T) {

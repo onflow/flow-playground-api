@@ -483,15 +483,17 @@ mutation CreateScriptExecution($projectId: UUID!, $script: String!, $arguments: 
 `
 
 const MutationCreateContractDeployment = `
-mutation($projectId: UUID!, $script: String!, $address: Address!) {
+mutation($projectId: UUID!, $script: String!, $address: Address!, $arguments: [String!]) {
   createContractDeployment(input: {
 	projectId: $projectId,
 	script: $script,
 	address: $address
+	arguments: $arguments
   }) {
     id
 	title
     script
+    arguments
     address
 	blockHeight
     errors {
@@ -545,6 +547,7 @@ type CreateContractDeploymentResponse struct {
 		ID          string
 		Title       string
 		Script      string
+		Arguments   []string
 		Address     string
 		BlockHeight int
 		Errors      []model.ProgramError
