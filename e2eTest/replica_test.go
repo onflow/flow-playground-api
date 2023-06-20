@@ -71,7 +71,7 @@ func TestReplicas(t *testing.T) {
 		var contract = "pub contract Foo {}"
 
 		for i := 0; i < 10; i++ {
-			accountIdx := i % project.NumberOfAccounts
+			accountIdx := (i % project.NumberOfAccounts) + 1
 
 			var deployResp CreateContractDeploymentResponse
 			err := loadBalancer().Post(
