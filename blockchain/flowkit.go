@@ -173,6 +173,7 @@ func (fk *flowKit) loadContract(name string) error {
 	// Deploy to service account
 	_, _, err = fk.deployContract(service.Address, string(contract))
 	if err != nil {
+		fmt.Println("Failed to deploy core contact", err)
 		return err
 	}
 
