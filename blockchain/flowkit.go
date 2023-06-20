@@ -353,6 +353,9 @@ func (fk *flowKit) deployContract(
 		},
 		kit.UpdateExistingContract(false),
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return fk.blockchain.GetTransactionByID(
 		context.Background(),
