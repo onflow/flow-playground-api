@@ -20,6 +20,7 @@ package blockchain
 
 import (
 	"context"
+	"fmt"
 	"github.com/onflow/flow-cli/flowkit/accounts"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
@@ -67,4 +68,51 @@ func Test_NewFlowkit(t *testing.T) {
 		//assert.Equal(t, accountStorage.Account.Address.Hex(), accountList[i].Address.Hex())
 		//assert.Equal(t, accountStorage.Account.Address.Bytes(), accountList[i].Address.Bytes())
 	}
+}
+
+func Test_FlowJsonExport(t *testing.T) {
+	fk, err := newFlowkit()
+	assert.NoError(t, err)
+
+	blockHeight, err := fk.getLatestBlockHeight()
+	assert.NoError(t, err)
+	assert.Equal(t, fk.initBlockHeight(), blockHeight)
+
+	flowJson, err := fk.getFlowJson()
+	assert.NoError(t, err)
+
+	const CoreContracts = `"contracts": {
+		"FungibleToken": {
+			"source": "",
+			"aliases": {
+				"emulator": "ee82856bf20e2aa6"
+			}
+		},
+		"NonFungibleToken": {
+			"source": "",
+			"aliases": {
+				"emulator": "f8d6e0586b0a20c7"
+			}
+		}
+	}`
+
+	const Networks = `"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	}`
+
+	fmt.Println(flowJson)
+	assert.Contains(t, flowJson, CoreContracts)
+	assert.Contains(t, flowJson, Networks)
+
+	// Accounts
+	assert.Contains(t, flowJson, "Account 0x01")
+	assert.Contains(t, flowJson, "Account 0x02")
+	assert.Contains(t, flowJson, "Account 0x03")
+	assert.Contains(t, flowJson, "Account 0x04")
+	assert.Contains(t, flowJson, "Account 0x05")
+	assert.Contains(t, flowJson, "Service Account")
+	assert.Contains(t, flowJson, "emulator-account")
 }

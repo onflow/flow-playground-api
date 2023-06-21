@@ -29,6 +29,7 @@ type ContractTemplate = File
 type ContractDeployment struct {
 	File
 	Address     Address        `gorm:"serializer:json"`
+	Arguments   []string       `gorm:"serializer:json"`
 	BlockHeight int            `json:"blockHeight"`
 	Errors      []ProgramError `gorm:"serializer:json"`
 	Events      []Event        `gorm:"serializer:json"`
@@ -39,6 +40,7 @@ func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
 	contractName string,
 	script string,
+	arguments []string,
 	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
 	blockHeight int,
@@ -59,6 +61,7 @@ func ContractDeploymentFromFlow(
 			Type:      ContractFile,
 			Script:    script,
 		},
+		Arguments:   arguments,
 		Address:     signers[0],
 		BlockHeight: blockHeight,
 		Errors:      nil,

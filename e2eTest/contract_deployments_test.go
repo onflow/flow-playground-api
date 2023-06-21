@@ -20,12 +20,15 @@ package e2eTest
 
 import (
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
+
+var InitBlockHeight int = blockchain.GetInitialBlockHeightForTesting()
 
 func TestContractDeployments(t *testing.T) {
 	t.Run("Create deployment for non-existent project", func(t *testing.T) {
@@ -49,6 +52,44 @@ func TestContractDeployments(t *testing.T) {
 		)
 
 		assert.Error(t, err)
+	})
+
+	t.Run("Create deployment with initialization arguments", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init(a: Int) { self.A = a }
+		}`
+
+		args := []string{
+			`{"type":"Int","value":"42"}`,
+		}
+
+		var resp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contract),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.Error(t, err)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contract),
+			client.Var("address", addr1),
+			client.Var("arguments", args),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, args, resp.CreateContractDeployment.Arguments)
 	})
 
 }
@@ -226,7 +267,7 @@ func TestContractRedeployment(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Equal(t, 10, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+1, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			QueryGetAccount,
@@ -255,7 +296,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 10, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+1, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -266,7 +307,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 11, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+2, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -277,7 +318,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 12, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+3, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -288,7 +329,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 13, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+4, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			MutationCreateContractDeployment,
@@ -299,7 +340,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 14, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+5, createContractResp.CreateContractDeployment.BlockHeight)
 
 		var projStorage GetProjectResponse
 		err = c.Post(
@@ -320,7 +361,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 12, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+3, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			QueryGetProjectStorage,
@@ -340,7 +381,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
-		require.Equal(t, 10, createContractResp.CreateContractDeployment.BlockHeight)
+		require.Equal(t, InitBlockHeight+1, createContractResp.CreateContractDeployment.BlockHeight)
 
 		err = c.Post(
 			QueryGetProjectStorage,

@@ -20,7 +20,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onflow/cadence v0.38.1
-	github.com/onflow/flow-cli/flowkit v1.0.1
+	github.com/onflow/flow-cli/flowkit v1.1.1
 	github.com/onflow/flow-emulator v0.49.0
 	github.com/onflow/flow-go-sdk v0.40.0
 	github.com/pkg/errors v0.9.1

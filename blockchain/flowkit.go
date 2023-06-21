@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/dapperlabs/flow-playground-api/blockchain/contracts"
 	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
@@ -33,7 +32,6 @@ import (
 	"github.com/onflow/flow-cli/flowkit/config"
 	"github.com/onflow/flow-cli/flowkit/gateway"
 	"github.com/onflow/flow-cli/flowkit/output"
-	"github.com/onflow/flow-cli/flowkit/tests"
 	"github.com/onflow/flow-cli/flowkit/transactions"
 	emu "github.com/onflow/flow-emulator"
 	"github.com/onflow/flow-emulator/storage/memstore"
@@ -63,7 +61,11 @@ type blockchain interface {
 	getAccount(address flow.Address) (*flow.Account, *emu.AccountStorage, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
-	deployContract(address flow.Address, script string) (*flow.Transaction, *flow.TransactionResult, error)
+	deployContract(
+		address flow.Address,
+		script string,
+		arguments []string,
+	) (*flow.Transaction, *flow.TransactionResult, error)
 
 	// removeContract removes specified contract from provided address and returns transaction and result.
 	removeContract(address flow.Address, contractName string) (*flow.Transaction, *flow.TransactionResult, error)
@@ -72,6 +74,8 @@ type blockchain interface {
 	getLatestBlockHeight() (int, error)
 
 	initBlockHeight() int
+
+	getFlowJson() (string, error)
 }
 
 var _ blockchain = &flowKit{}
@@ -83,7 +87,7 @@ type flowKit struct {
 }
 
 func newFlowkit() (*flowKit, error) {
-	readerWriter, _ := tests.ReaderWriter()
+	readerWriter := NewInternalReaderWriter()
 	state, err := kit.Init(readerWriter, crypto.ECDSA_P256, crypto.SHA3_256)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create flow-kit state")
@@ -135,6 +139,11 @@ func (fk *flowKit) bootstrap() error {
 }
 
 func (fk *flowKit) boostrapAccounts() error {
+	err := fk.createServiceAccount()
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < initialAccounts; i++ {
 		_, err := fk.createAccount()
 		if err != nil {
@@ -160,12 +169,15 @@ func (fk *flowKit) loadContract(name string) error {
 		return err
 	}
 
-	script := string(contract)
+	service, err := fk.getServiceAccount()
+	if err != nil {
+		return err
+	}
 
 	// Deploy to service account
-	address := model.NewAddressFromIndex(-1).ToFlowAddress()
-	_, _, err = fk.deployContract(address, script)
+	_, _, err = fk.deployContract(service.Address, string(contract), nil)
 	if err != nil {
+		fmt.Println("Failed to deploy core contact", err)
 		return err
 	}
 
@@ -175,6 +187,29 @@ func (fk *flowKit) loadContract(name string) error {
 // initBlockHeight returns what the bootstrapped block height should be
 func (fk *flowKit) initBlockHeight() int {
 	return initialAccounts + len(contracts.Included())
+}
+
+func (fk *flowKit) getFlowJson() (string, error) {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return "", err
+	}
+
+	for _, contract := range contracts.Core {
+		state.Contracts().AddOrUpdate(contract)
+	}
+
+	err = state.Save("flow.json")
+	if err != nil {
+		return "", err
+	}
+
+	flowJson, err := state.ReaderWriter().ReadFile("")
+	if err != nil {
+		return "", err
+	}
+
+	return string(flowJson), nil
 }
 
 func (fk *flowKit) executeTransaction(
@@ -228,6 +263,25 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 	return val, nil
 }
 
+func (fk *flowKit) createServiceAccount() error {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return err
+	}
+
+	serviceAccount, err := fk.getServiceAccount()
+	if err != nil {
+		return err
+	}
+
+	state.Accounts().AddOrUpdate(&accounts.Account{
+		Name:    "Service Account",
+		Address: flow.HexToAddress("0x01"),
+		Key:     serviceAccount.Key,
+	})
+	return nil
+}
+
 func (fk *flowKit) createAccount() (*flow.Account, error) {
 	serviceAccount, err := fk.getServiceAccount()
 	if err != nil {
@@ -255,6 +309,18 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		return nil, err
 	}
 
+	// Update state with new account
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return nil, err
+	}
+
+	state.Accounts().AddOrUpdate(&accounts.Account{
+		Name:    fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())-1),
+		Address: account.Address,
+		Key:     serviceAccount.Key,
+	})
+
 	return account, nil
 }
 
@@ -271,18 +337,42 @@ func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, *emu.Account
 func (fk *flowKit) deployContract(
 	address flow.Address,
 	script string,
+	arguments []string,
 ) (*flow.Transaction, *flow.TransactionResult, error) {
-	contractName, err := parseContractName(script)
+	state, err := fk.blockchain.State()
 	if err != nil {
-		return nil, nil, userErr.NewUserError(err.Error())
+		return nil, nil, err
 	}
 
-	tx := templates.AddAccountContract(address, templates.Contract{
-		Name:   contractName,
-		Source: script,
-	})
+	to, err := state.Accounts().ByAddress(address)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return fk.sendTransaction(tx, []flow.Address{address})
+	args, err := parseCadenceValues(arguments)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	txID, _, err := fk.blockchain.AddContract(
+		context.Background(),
+		to,
+		kit.Script{
+			Code:     []byte(script),
+			Args:     args,
+			Location: "",
+		},
+		kit.UpdateExistingContract(false),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fk.blockchain.GetTransactionByID(
+		context.Background(),
+		txID,
+		true,
+	)
 }
 
 func (fk *flowKit) removeContract(
@@ -367,6 +457,18 @@ func (fk *flowKit) getServiceAccount() (*accounts.Account, error) {
 	}, nil
 }
 
+func parseCadenceValues(args []string) ([]cadence.Value, error) {
+	cadenceArgs := make([]cadence.Value, len(args))
+	for i, arg := range args {
+		val, err := jsoncdc.Decode(nil, []byte(arg))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to decode argument")
+		}
+		cadenceArgs[i] = val
+	}
+	return cadenceArgs, nil
+}
+
 // parseArguments converts string arguments list in cadence-JSON format into a byte serialised list
 func parseArguments(args []string) ([][]byte, error) {
 	encodedArgs := make([][]byte, len(args))
@@ -406,4 +508,9 @@ func parseContractName(code string) (string, error) {
 	}
 
 	return "", fmt.Errorf("unable to determine contract name")
+}
+
+func GetInitialBlockHeightForTesting() int {
+	fk, _ := newFlowkit()
+	return fk.initBlockHeight()
 }

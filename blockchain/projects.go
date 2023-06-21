@@ -165,6 +165,7 @@ func (p *Projects) DeployContract(
 	projectID uuid.UUID,
 	address model.Address,
 	script string,
+	arguments []string,
 ) (*model.ContractDeployment, error) {
 	p.mutex.load(projectID).Lock()
 	defer p.mutex.remove(projectID).Unlock()
@@ -208,7 +209,7 @@ func (p *Projects) DeployContract(
 		}
 	}
 
-	tx, result, err := fk.deployContract(address.ToFlowAddress(), script)
+	tx, result, err := fk.deployContract(address.ToFlowAddress(), script, arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -221,10 +222,10 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	exe := model.TransactionExecutionFromFlow(projectID, result, tx, blockHeight)
-	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, result, tx, blockHeight)
+	//exe := model.TransactionExecutionFromFlow(projectID, result, tx, blockHeight) TODO: Remove?
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, arguments, result, tx, blockHeight)
 
-	err = p.store.InsertContractDeploymentWithExecution(deploy, exe)
+	err = p.store.InsertContractDeployment(deploy)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +284,15 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 	return account, nil
 }
 
+func (p *Projects) GetFlowJson(projectID uuid.UUID) (string, error) {
+	fk, err := p.load(projectID)
+	if err != nil {
+		return "", err
+	}
+
+	return fk.getFlowJson()
+}
+
 // load initializes an emulator and run transactions previously executed in the project to establish a state.
 //
 // Do not call this method directly, it is not concurrency safe.
@@ -312,6 +322,12 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 		return nil, err
 	}
 
+	var deployments []*model.ContractDeployment
+	err = p.store.GetContractDeploymentsForProject(projectID, &deployments)
+	if err != nil {
+		return nil, err
+	}
+
 	fk := p.flowKitCache.get(projectID)
 	if fk == nil { // if cache miss create new flowKit
 		fk, err = p.flowKitPool.new()
@@ -334,15 +350,10 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 		if err != nil {
 			return nil, err
 		}
-		height = 0
+		height = fk.initBlockHeight()
 	}
 
-	executions, err = p.filterMissingExecutions(executions, height)
-	if err != nil {
-		return nil, err
-	}
-
-	fk, err = p.runMissingExecutions(projectID, fk, executions)
+	fk, err = p.runMissingBlocks(projectID, fk, height, executions, deployments)
 	if err != nil {
 		return nil, err
 	}
@@ -350,59 +361,93 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 	return fk, nil
 }
 
-func (p *Projects) runMissingExecutions(
+func (p *Projects) getExecutionOrDeploymentAtHeight(
+	height int,
+	exes []*model.TransactionExecution,
+	deploys []*model.ContractDeployment,
+) (*model.TransactionExecution, *model.ContractDeployment, error) {
+	for _, exec := range exes {
+		if exec.BlockHeight == height {
+			return exec, nil, nil
+		}
+	}
+
+	for _, deploy := range deploys {
+		if deploy.BlockHeight == height {
+			return nil, deploy, nil
+		}
+	}
+
+	return nil, nil, errors.Errorf("no execution or deployment found at height %d", height)
+}
+
+// runMissingBlocks executes missing transactions and deploys missing contracts
+// occurring after the specified height
+func (p *Projects) runMissingBlocks(
 	projectID uuid.UUID,
 	fk *flowKit,
-	executions []*model.TransactionExecution) (*flowKit, error) {
+	height int,
+	exes []*model.TransactionExecution,
+	deploys []*model.ContractDeployment,
+) (*flowKit, error) {
+	totalBlockHeight := fk.initBlockHeight() + len(exes) + len(deploys)
 
-	for _, execution := range executions {
-		_, result, err := fk.executeTransaction(
-			execution.Script,
-			execution.Arguments,
-			execution.SignersToFlow(),
-		)
+	for height < totalBlockHeight {
+		// Add next missing block
+		txExec, deploy, err := p.getExecutionOrDeploymentAtHeight(height+1, exes, deploys)
 		if err != nil {
-			err := errors.Wrap(err, fmt.Sprintf(
-				"execution error: not able to recreate the project state %s with execution ID %s",
-				projectID,
-				execution.ID.String(),
-			))
-
-			sentry.CaptureException(err)
 			return nil, err
 		}
-		if result.Error != nil && len(execution.Errors) == 0 {
-			err := fmt.Errorf(
-				"project %s state recreation failure: execution ID %s failed with result: %s",
-				projectID.String(),
-				execution.ID.String(),
-				result.Error.Error(),
+		if txExec != nil {
+			_, result, err := fk.executeTransaction(
+				txExec.Script,
+				txExec.Arguments,
+				txExec.SignersToFlow(),
 			)
-
+			if err != nil {
+				return nil, stateRecreationError(projectID, txExec.ID, err)
+			}
+			if result.Error != nil && len(txExec.Errors) == 0 {
+				return nil, transactionResultError(projectID, txExec.ID, result.Error)
+			}
+		} else if deploy != nil {
+			_, result, err := fk.deployContract(deploy.Address.ToFlowAddress(), deploy.Script, deploy.Arguments)
+			if err != nil {
+				return nil, stateRecreationError(projectID, deploy.ID, err)
+			}
+			if result.Error != nil && len(deploys[0].Errors) == 0 {
+				return nil, transactionResultError(projectID, deploy.ID, result.Error)
+			}
+		} else {
+			// This should never happen
+			err := fmt.Errorf("no execution or deployment found for block height %d", height+1)
 			sentry.CaptureException(err)
 			return nil, err
 		}
+		height++
 	}
 
 	return fk, nil
 }
 
-// filterMissingExecutions gets all missed executions in current replica cache
-//
-// based on the executions the function receives it compares that to the emulator block height, since
-// one execution is always one block it can compare the heights to the length. If it finds some executions
-// that are not part of emulator it returns that subset, so they can be applied on top.
-func (p *Projects) filterMissingExecutions(
-	executions []*model.TransactionExecution,
-	height int,
-) ([]*model.TransactionExecution, error) {
-	// TODO: Offset missing executions with account creation since they're not stored as executions
-	const initialAccountsNumber = 5
+func stateRecreationError(
+	projectID uuid.UUID, exeID uuid.UUID, err error) error {
+	err = errors.Wrap(err, fmt.Sprintf(
+		"execution error: not able to recreate the project state %s with execution ID %s",
+		projectID,
+		exeID.String(),
+	))
+	sentry.CaptureException(err)
+	return err
+}
 
-	if height-initialAccountsNumber >= 0 {
-		// this will only set executions that are missing from the emulator
-		executions = executions[height-initialAccountsNumber:]
-	}
-
-	return executions, nil
+func transactionResultError(projectID uuid.UUID, exeID uuid.UUID, resultError error) error {
+	err := fmt.Errorf(
+		"project %s state recreation failure: execution ID %s failed with result: %s",
+		projectID.String(),
+		exeID.String(),
+		resultError.Error(),
+	)
+	sentry.CaptureException(err)
+	return err
 }
