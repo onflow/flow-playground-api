@@ -415,34 +415,6 @@ func (s *SQL) DeleteContractDeployment(deploy *model.ContractDeployment) error {
 	return s.db.Delete(deploy).Error
 }
 
-func (s *SQL) InsertContractDeploymentWithExecution(
-	deploy *model.ContractDeployment,
-	exe *model.TransactionExecution,
-) error {
-	var proj model.Project
-	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
-		return err
-	}
-
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		exe.Index = proj.TransactionExecutionCount
-		proj.TransactionExecutionCount += 1
-		if err := tx.Save(proj).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Create(exe).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Create(deploy).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
 func (s *SQL) DeleteContractDeploymentByName(
 	projectID uuid.UUID,
 	address model.Address,

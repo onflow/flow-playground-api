@@ -97,6 +97,16 @@ type DeleteProjectResponse struct {
 	DeleteProject string
 }
 
+type ResetProjectResponse struct {
+	ResetProjectState string
+}
+
+const MutationResetProjectState = `
+mutation($projectId: UUID!) {
+  resetProjectState(projectId: $projectId)
+}
+`
+
 const MutationDeleteProject = `
 mutation($projectId: UUID!) {
   deleteProject(projectId: $projectId)

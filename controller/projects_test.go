@@ -171,7 +171,7 @@ func Test_CreateProject(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = projects.Reset(proj)
+		err = projects.Reset(proj.ID)
 		assert.NoError(t, err)
 
 		// TODO: Get accounts
