@@ -40,6 +40,7 @@ func TransactionExecutionFromFlow(
 	projectID uuid.UUID,
 	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
+	logs []string,
 	blockHeight int,
 ) *TransactionExecution {
 	args := make([]string, 0)
@@ -70,6 +71,7 @@ func TransactionExecutionFromFlow(
 		Signers:     signers,
 		Errors:      nil,
 		Events:      nil,
+		Logs:        logs,
 	}
 
 	if result.Events != nil {

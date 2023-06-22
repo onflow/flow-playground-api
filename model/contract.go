@@ -43,6 +43,7 @@ func ContractDeploymentFromFlow(
 	arguments []string,
 	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
+	logs []string,
 	blockHeight int,
 ) *ContractDeployment {
 	signers := make([]Address, 0)
@@ -66,6 +67,7 @@ func ContractDeploymentFromFlow(
 		BlockHeight: blockHeight,
 		Errors:      nil,
 		Events:      nil,
+		Logs:        logs,
 	}
 
 	if result.Events != nil {

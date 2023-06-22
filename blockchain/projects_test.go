@@ -242,8 +242,8 @@ func Test_TransactionExecution(t *testing.T) {
 		require.Len(t, exe.Errors, 0)
 
 		assert.Equal(t, proj.ID, exe.ProjectID)
-		//require.Len(t, exe.Logs, 1) // TODO: Logs?
-		//assert.Equal(t, `"hello"`, exe.Logs[0])
+		require.Len(t, exe.Logs, 1)
+		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
 		assert.Equal(t, script, exe.Script)
 		assert.Equal(t, []string{}, exe.Arguments)
 		assert.Equal(t, signers, exe.Signers)
@@ -286,8 +286,8 @@ func Test_TransactionExecution(t *testing.T) {
 			require.Len(t, exe.Errors, 0)
 
 			assert.Equal(t, proj.ID, exe.ProjectID)
-			//require.Len(t, exe.Logs, 1)
-			//assert.Equal(t, `"hello"`, exe.Logs[0])
+			require.Len(t, exe.Logs, 1)
+			assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
 			assert.Equal(t, script, exe.Script)
 			assert.Equal(t, []string{}, exe.Arguments)
 			assert.Equal(t, signers, exe.Signers)
@@ -481,8 +481,13 @@ func Test_DeployContract(t *testing.T) {
 		assert.Equal(t, "flow.AccountContractAdded", deployments[1].Events[0].Type)
 		assert.Equal(t, "flow.AccountContractAdded", deployments[0].Events[0].Type)
 
-		//assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
-		//assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
+		assert.Equal(t,
+			`{"level":"debug","message":"Cadence log: \"HelloWorldA\""}`,
+			deployments[1].Logs[0])
+
+		assert.Equal(t,
+			`{"level":"debug","message":"Cadence log: \"HelloWorldB\""}`,
+			deployments[2].Logs[1])
 	})
 
 	t.Run("deploy single contract with arguments", func(t *testing.T) {
@@ -514,6 +519,8 @@ func Test_ScriptExecution(t *testing.T) {
 
 		script := `pub fun main(): Int { 
 			log("purpose")
+			log("haha")
+			log("test")
 			return 42 
 		}`
 
@@ -526,7 +533,7 @@ func Test_ScriptExecution(t *testing.T) {
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
 		assert.Len(t, exe.Errors, 0)
-		//assert.Equal(t, `"purpose"`, exe.Logs[0])
+		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"purpose\""}`, exe.Logs[0])
 		assert.Equal(t, "42", exe.Value)
 		assert.Equal(t, proj.ID, exe.ProjectID)
 
