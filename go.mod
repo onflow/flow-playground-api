@@ -27,6 +27,7 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/robfig/cron v1.2.0
 	github.com/rs/cors v1.8.0
+	github.com/rs/zerolog v1.29.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.2
 	github.com/vektah/gqlparser/v2 v2.4.2
@@ -169,7 +170,6 @@ require (
 	github.com/psiemens/sconfig v0.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.1-0.20211004051800-57c86be7915a // indirect
-	github.com/rs/zerolog v1.29.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sethvargo/go-retry v0.2.3 // indirect
 	github.com/spacemonkeygo/spacelog v0.0.0-20180420211403-2296661a0572 // indirect
