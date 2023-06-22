@@ -37,8 +37,8 @@ import (
 	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
-	"github.com/onflow/flow-go-sdk/templates"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
 // blockchain interface defines an abstract API for communication with the blockchain. It hides complexity from the
@@ -49,10 +49,10 @@ type blockchain interface {
 		script string,
 		arguments []string,
 		authorizers []flow.Address,
-	) (*flow.Transaction, *flow.TransactionResult, error)
+	) (*flow.Transaction, *flow.TransactionResult, Logs, error)
 
 	// executeScript executes a provided script with the arguments.
-	executeScript(script string, arguments []string) (cadence.Value, error)
+	executeScript(script string, arguments []string) (cadence.Value, Logs, error)
 
 	// createAccount creates a new account and returns it along with transaction and result.
 	createAccount() (*flow.Account, error)
@@ -65,10 +65,7 @@ type blockchain interface {
 		address flow.Address,
 		script string,
 		arguments []string,
-	) (*flow.Transaction, *flow.TransactionResult, error)
-
-	// removeContract removes specified contract from provided address and returns transaction and result.
-	removeContract(address flow.Address, contractName string) (*flow.Transaction, *flow.TransactionResult, error)
+	) (*flow.Transaction, *flow.TransactionResult, Logs, error)
 
 	// getLatestBlock height from the network.
 	getLatestBlockHeight() (int, error)
@@ -83,7 +80,8 @@ var _ blockchain = &flowKit{}
 const initialAccounts = 5
 
 type flowKit struct {
-	blockchain *kit.Flowkit
+	blockchain     *kit.Flowkit
+	logInterceptor *Interceptor
 }
 
 func newFlowkit() (*flowKit, error) {
@@ -93,6 +91,8 @@ func newFlowkit() (*flowKit, error) {
 		return nil, errors.Wrap(err, "failed to create flow-kit state")
 	}
 
+	interceptor := NewInterceptor()
+
 	emulator := gateway.NewEmulatorGatewayWithOpts(
 		&gateway.EmulatorKey{
 			PublicKey: emu.DefaultServiceKey().AccountKey().PublicKey,
@@ -100,6 +100,7 @@ func newFlowkit() (*flowKit, error) {
 			HashAlgo:  emu.DefaultServiceKeyHashAlgo,
 		},
 		gateway.WithEmulatorOptions(
+			emu.WithLogger(zerolog.New(interceptor)),
 			emu.WithStore(memstore.New()),
 			emu.WithTransactionValidationEnabled(false),
 			emu.WithStorageLimitEnabled(false),
@@ -114,6 +115,7 @@ func newFlowkit() (*flowKit, error) {
 			config.EmulatorNetwork,
 			emulator,
 			output.NewStdoutLogger(output.NoneLog)),
+		logInterceptor: interceptor,
 	}
 
 	err = fk.bootstrap()
@@ -175,7 +177,7 @@ func (fk *flowKit) loadContract(name string) error {
 	}
 
 	// Deploy to service account
-	_, _, err = fk.deployContract(service.Address, string(contract), nil)
+	_, _, _, err = fk.deployContract(service.Address, string(contract), nil)
 	if err != nil {
 		fmt.Println("Failed to deploy core contact", err)
 		return err
@@ -216,26 +218,26 @@ func (fk *flowKit) executeTransaction(
 	script string,
 	arguments []string,
 	authorizers []flow.Address,
-) (*flow.Transaction, *flow.TransactionResult, error) {
+) (*flow.Transaction, *flow.TransactionResult, Logs, error) {
 	tx := &flow.Transaction{}
 	tx.Script = []byte(script)
 
 	args, err := parseArguments(arguments)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	tx.Arguments = args
 
 	return fk.sendTransaction(tx, authorizers)
 }
 
-func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, error) {
+func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Value, Logs, error) {
 	cadenceArgs := make([]cadence.Value, len(arguments))
 
 	// Encode arguments using a transaction
 	args, err := parseArguments(arguments)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	tx := &flow.Transaction{
 		Arguments: args,
@@ -244,9 +246,11 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 	for i := range arguments {
 		cadenceArgs[i], err = tx.Argument(i)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
+
+	fk.logInterceptor.ClearLogs()
 
 	val, err := fk.blockchain.ExecuteScript(
 		context.Background(),
@@ -257,10 +261,12 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 		},
 		kit.LatestScriptQuery)
 	if err != nil {
-		return nil, userErr.NewUserError(err.Error())
+		return nil, nil, userErr.NewUserError(err.Error())
 	}
 
-	return val, nil
+	logs := fk.logInterceptor.GetCadenceLogs()
+
+	return val, logs, nil
 }
 
 func (fk *flowKit) createServiceAccount() error {
@@ -338,21 +344,23 @@ func (fk *flowKit) deployContract(
 	address flow.Address,
 	script string,
 	arguments []string,
-) (*flow.Transaction, *flow.TransactionResult, error) {
+) (*flow.Transaction, *flow.TransactionResult, Logs, error) {
 	state, err := fk.blockchain.State()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	to, err := state.Accounts().ByAddress(address)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	args, err := parseCadenceValues(arguments)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
+
+	fk.logInterceptor.ClearLogs()
 
 	txID, _, err := fk.blockchain.AddContract(
 		context.Background(),
@@ -365,31 +373,27 @@ func (fk *flowKit) deployContract(
 		kit.UpdateExistingContract(false),
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return fk.blockchain.GetTransactionByID(
+	tx, result, err := fk.blockchain.GetTransactionByID(
 		context.Background(),
 		txID,
 		true,
 	)
-}
 
-func (fk *flowKit) removeContract(
-	address flow.Address,
-	contractName string,
-) (*flow.Transaction, *flow.TransactionResult, error) {
-	tx := templates.RemoveAccountContract(address, contractName)
-	return fk.sendTransaction(tx, nil)
+	logs := fk.logInterceptor.GetCadenceLogs()
+
+	return tx, result, logs, err
 }
 
 func (fk *flowKit) sendTransaction(
 	tx *flow.Transaction,
 	authorizers []flow.Address,
-) (*flow.Transaction, *flow.TransactionResult, error) {
+) (*flow.Transaction, *flow.TransactionResult, Logs, error) {
 	serviceAccount, err := fk.getServiceAccount()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var accountRoles transactions.AccountRoles
@@ -409,10 +413,12 @@ func (fk *flowKit) sendTransaction(
 	for i := range tx.Arguments {
 		arg, err := tx.Argument(i)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		args[i] = arg
 	}
+
+	fk.logInterceptor.ClearLogs()
 
 	tx, result, err := fk.blockchain.SendTransaction(
 		context.Background(),
@@ -425,10 +431,12 @@ func (fk *flowKit) sendTransaction(
 		tx.GasLimit,
 	)
 	if err != nil {
-		return nil, nil, userErr.NewUserError(err.Error())
+		return nil, nil, nil, userErr.NewUserError(err.Error())
 	}
 
-	return tx, result, nil
+	logs := fk.logInterceptor.GetCadenceLogs()
+
+	return tx, result, logs, nil
 }
 
 func (fk *flowKit) getLatestBlockHeight() (int, error) {

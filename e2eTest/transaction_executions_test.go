@@ -84,7 +84,8 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Errors)
-		//assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"") TODO: Logs
+
+		assert.Contains(t, resp.CreateTransactionExecution.Logs[0], `Hello, World!`)
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 	})
 
@@ -308,7 +309,6 @@ func TestTransactionExecutions(t *testing.T) {
 	})
 
 	t.Run("argument", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -336,6 +336,6 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, resp.CreateTransactionExecution.Errors)
-		//require.Equal(t, resp.CreateTransactionExecution.Logs, []string{"42"}) // TODO: Add Logs
+		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{`{"level":"debug","message":"Cadence log: 42"}`})
 	})
 }

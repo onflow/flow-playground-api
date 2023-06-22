@@ -29,7 +29,7 @@ type InternalReaderWriter struct {
 
 var _ kit.ReaderWriter = &InternalReaderWriter{}
 
-func NewInternalReaderWriter() kit.ReaderWriter {
+func NewInternalReaderWriter() *InternalReaderWriter {
 	return &InternalReaderWriter{}
 }
 

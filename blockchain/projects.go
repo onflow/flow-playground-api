@@ -87,7 +87,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		signers[i] = sig.ToFlowAddress()
 	}
 
-	tx, result, err := fk.executeTransaction(
+	tx, result, logs, err := fk.executeTransaction(
 		execution.Script,
 		execution.Arguments,
 		execution.SignersToFlow(),
@@ -101,7 +101,7 @@ func (p *Projects) ExecuteTransaction(execution model.NewTransactionExecution) (
 		return nil, err
 	}
 
-	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx, blockHeight)
+	exe := model.TransactionExecutionFromFlow(execution.ProjectID, result, tx, logs, blockHeight)
 	err = p.store.InsertTransactionExecution(exe)
 	if err != nil {
 		return nil, err
@@ -120,13 +120,14 @@ func (p *Projects) ExecuteScript(execution model.NewScriptExecution) (*model.Scr
 		return nil, err
 	}
 
-	result, err := fk.executeScript(execution.Script, execution.Arguments)
+	result, logs, err := fk.executeScript(execution.Script, execution.Arguments)
 	if err != nil {
 		return nil, err
 	}
 
 	exe := model.ScriptExecutionFromFlow(
 		result,
+		logs,
 		projID,
 		execution.Script,
 		execution.Arguments,
@@ -209,7 +210,7 @@ func (p *Projects) DeployContract(
 		}
 	}
 
-	tx, result, err := fk.deployContract(address.ToFlowAddress(), script, arguments)
+	tx, result, logs, err := fk.deployContract(address.ToFlowAddress(), script, arguments)
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +223,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	//exe := model.TransactionExecutionFromFlow(projectID, result, tx, blockHeight) TODO: Remove?
-	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, arguments, result, tx, blockHeight)
+	deploy := model.ContractDeploymentFromFlow(projectID, contractName, script, arguments, result, tx, logs, blockHeight)
 
 	err = p.store.InsertContractDeployment(deploy)
 	if err != nil {
@@ -399,7 +399,7 @@ func (p *Projects) runMissingBlocks(
 			return nil, err
 		}
 		if txExec != nil {
-			_, result, err := fk.executeTransaction(
+			_, result, _, err := fk.executeTransaction(
 				txExec.Script,
 				txExec.Arguments,
 				txExec.SignersToFlow(),
@@ -411,7 +411,7 @@ func (p *Projects) runMissingBlocks(
 				return nil, transactionResultError(projectID, txExec.ID, result.Error)
 			}
 		} else if deploy != nil {
-			_, result, err := fk.deployContract(deploy.Address.ToFlowAddress(), deploy.Script, deploy.Arguments)
+			_, result, _, err := fk.deployContract(deploy.Address.ToFlowAddress(), deploy.Script, deploy.Arguments)
 			if err != nil {
 				return nil, stateRecreationError(projectID, deploy.ID, err)
 			}

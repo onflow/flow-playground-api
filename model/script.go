@@ -19,7 +19,6 @@
 package model
 
 import (
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
@@ -35,10 +34,13 @@ type ScriptExecution struct {
 	Logs      []string       `gorm:"serializer:json"`
 }
 
-func ScriptExecutionFromFlow(result cadence.Value, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
-	// TODO: Get execution result from a cadence.Value and check for errors
-	fmt.Println("Script Execution Result: ", result.String())
-
+func ScriptExecutionFromFlow(
+	result cadence.Value,
+	logs []string,
+	projectID uuid.UUID,
+	script string,
+	arguments []string,
+) *ScriptExecution {
 	exe := &ScriptExecution{
 		File: File{
 			ID:        uuid.New(),
@@ -49,7 +51,7 @@ func ScriptExecutionFromFlow(result cadence.Value, projectID uuid.UUID, script s
 		Arguments: arguments,
 		Value:     result.String(),
 		Errors:    nil,
-		Logs:      nil, // TODO: Add result
+		Logs:      logs,
 	}
 
 	/*
