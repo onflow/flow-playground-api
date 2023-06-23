@@ -468,6 +468,7 @@ func TestContractImport(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.Empty(t, respB.CreateContractDeployment.Errors)
+	require.Contains(t, respB.CreateContractDeployment.Logs[0], "HelloWorldA")
 }
 
 const counterContract = `
