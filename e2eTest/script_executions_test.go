@@ -186,4 +186,30 @@ func TestScriptExecutions(t *testing.T) {
 		require.Empty(t, resp.CreateScriptExecution.Errors)
 		assert.Equal(t, "3", resp.CreateScriptExecution.Value)
 	})
+
+	t.Run("logs", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateScriptExecutionResponse
+
+		const script = `
+		pub fun main() {
+			log("hello")
+			log("test")
+		}`
+
+		err := c.Post(
+			MutationCreateScriptExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		require.NoError(t, err)
+		assert.Contains(t, resp.CreateScriptExecution.Logs[0], "hello")
+		assert.Contains(t, resp.CreateScriptExecution.Logs[1], "test")
+	})
 }
