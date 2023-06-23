@@ -141,6 +141,20 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	return proj.ExportPublicMutable(), nil
 }
 
+func (r *mutationResolver) ResetProjectState(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
+	err := r.authorize(ctx, projectID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	err = r.projects.Reset(projectID)
+	if err != nil {
+		return uuid.UUID{}, errors.Wrap(err, "failed to reset project")
+	}
+
+	return projectID, nil
+}
+
 func (r *mutationResolver) DeleteProject(ctx context.Context, projectID uuid.UUID) (uuid.UUID, error) {
 	err := r.authorize(ctx, projectID)
 	if err != nil {

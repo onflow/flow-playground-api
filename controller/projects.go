@@ -191,7 +191,6 @@ func (p *Projects) UpdateVersion(id uuid.UUID, version *semver.Version) error {
 	return nil
 }
 
-// Reset is not used in the API but for testing
-func (p *Projects) Reset(proj *model.Project) error {
-	return p.blockchain.Reset(proj.ID)
+func (p *Projects) Reset(projID uuid.UUID) error {
+	return p.blockchain.Reset(projID)
 }

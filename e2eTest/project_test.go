@@ -242,6 +242,21 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, deleteResp.DeleteProject, resp.CreateProject.ID)
 	})
 
+	t.Run("Reset project state", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		var resetResp ResetProjectResponse
+		err := c.Post(
+			MutationResetProjectState,
+			&resetResp,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, project.ID, resetResp.ResetProjectState)
+	})
+
 	t.Run("Maximum projects limit", func(t *testing.T) {
 		const MaxProjectsLimit = 10
 		const additionalAttempts = 5 // Try to create projects over the limit

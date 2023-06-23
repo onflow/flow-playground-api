@@ -58,7 +58,6 @@ type Store interface {
 	InsertContractDeployment(deploy *model.ContractDeployment) error
 	DeleteContractDeployment(deploy *model.ContractDeployment) error
 	DeleteContractDeploymentByName(projectID uuid.UUID, address model.Address, contractName string) error
-	InsertContractDeploymentWithExecution(deploy *model.ContractDeployment, exe *model.TransactionExecution) error
 	GetContractDeploymentsForProject(projectID uuid.UUID, deployments *[]*model.ContractDeployment) error
 	GetContractDeploymentOnAddress(projectID uuid.UUID, title string, address model.Address, deployment *model.ContractDeployment) error
 	TruncateDeploymentsAndExecutionsAtBlockHeight(projectID uuid.UUID, blockHeight int) error
