@@ -405,25 +405,13 @@ func (fk *flowKit) sendTransaction(
 		return nil, nil, nil, err
 	}
 
-	// TODO: If no signers are passed this works, but when a signer is passed it fails?
 	for _, auth := range authorizers {
 		acc, err := state.Accounts().ByAddress(auth)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 		accountRoles.Authorizers = append(accountRoles.Authorizers, *acc)
-
-		/*
-			acc := &accounts.Account{
-				Name:    "Auth Account",
-				Address: auth,
-				Key:     serviceAccount.Key,
-			}
-			accountRoles.Authorizers = append(accountRoles.Authorizers, *acc)
-		*/
 	}
-
-	fmt.Println("Signers (authorizers):", accountRoles.Authorizers)
 
 	args := make([]cadence.Value, len(tx.Arguments))
 	for i := range tx.Arguments {
