@@ -79,6 +79,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
+			client.Var("signers", addr1),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
