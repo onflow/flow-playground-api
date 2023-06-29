@@ -89,6 +89,38 @@ func TestTransactionExecutions(t *testing.T) {
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 	})
 
+	t.Run("Multi-signer execution", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+		transaction {
+  			prepare(acct1: AuthAccount, acct2: AuthAccount) {}
+
+			execute { 
+				log("Hello, World!")
+			} 
+		}`
+
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.Var("signers", []string{addr1, addr2}),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Empty(t, resp.CreateTransactionExecution.Errors)
+
+		assert.Contains(t, resp.CreateTransactionExecution.Logs[0], `Hello, World!`)
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+	})
+
 	t.Run("Multiple executions", func(t *testing.T) {
 		c := newClient()
 

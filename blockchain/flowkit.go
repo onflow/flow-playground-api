@@ -179,7 +179,6 @@ func (fk *flowKit) loadContract(name string) error {
 	// Deploy to service account
 	_, _, _, err = fk.deployContract(service.Address, string(contract), nil)
 	if err != nil {
-		fmt.Println("Failed to deploy core contact", err)
 		return err
 	}
 
@@ -400,11 +399,15 @@ func (fk *flowKit) sendTransaction(
 	accountRoles.Payer = *serviceAccount
 	accountRoles.Proposer = *serviceAccount
 
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	for _, auth := range authorizers {
-		acc := &accounts.Account{
-			Name:    "Auth Account",
-			Address: auth,
-			Key:     serviceAccount.Key,
+		acc, err := state.Accounts().ByAddress(auth)
+		if err != nil {
+			return nil, nil, nil, err
 		}
 		accountRoles.Authorizers = append(accountRoles.Authorizers, *acc)
 	}
