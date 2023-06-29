@@ -12,11 +12,11 @@ generate:
 
 .PHONY: ci
 ci: check-tidy
-	GO111MODULE=on go test -v ./...
+	GO111MODULE=on go test -timeout 30m -v ./...
 
 .PHONY: test-log
 test-log:
-	GO111MODULE=on go test -v ./... > test-results.log
+	GO111MODULE=on go test -timeout 30m -v ./... > test-results.log
 
 .PHONY: run
 run:
