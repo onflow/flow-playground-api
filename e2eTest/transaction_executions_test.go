@@ -89,7 +89,7 @@ func TestTransactionExecutions(t *testing.T) {
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 	})
 
-	t.Run("Signed execution", func(t *testing.T) {
+	t.Run("Multi-signer execution", func(t *testing.T) {
 		c := newClient()
 
 		project := createProject(t, c)
@@ -98,7 +98,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		const script = `
 		transaction {
-  			prepare(acct: AuthAccount) {}
+  			prepare(acct1: AuthAccount, acct2: AuthAccount) {}
 
 			execute { 
 				log("Hello, World!")
@@ -110,7 +110,7 @@ func TestTransactionExecutions(t *testing.T) {
 			&resp,
 			client.Var("projectId", project.ID),
 			client.Var("script", script),
-			client.Var("signers", []string{addr1}),
+			client.Var("signers", []string{addr1, addr2}),
 			client.AddCookie(c.SessionCookie()),
 		)
 		require.NoError(t, err)
