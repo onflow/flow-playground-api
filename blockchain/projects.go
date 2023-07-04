@@ -344,7 +344,7 @@ func (p *Projects) rebuildState(projectID uuid.UUID) (*flowKit, error) {
 	// This can happen if project was cleared but on another replica, this replica gets the request after
 	// and will get cleared 0 executions from database but has a stale emulator in its own cache
 	// This also occurs when a rollback is required due to contract redeployment
-	if height > len(executions) {
+	if height > len(executions)+len(deployments)+fk.numAccounts() {
 		p.flowKitCache.reset(projectID)
 		fk, err = p.flowKitPool.new()
 		if err != nil {

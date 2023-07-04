@@ -72,6 +72,8 @@ type blockchain interface {
 
 	initBlockHeight() int
 
+	numAccounts() int
+
 	getFlowJson() (string, error)
 }
 
@@ -92,6 +94,7 @@ func newFlowkit() (*flowKit, error) {
 	}
 
 	interceptor := NewInterceptor()
+	emulatorLogger := zerolog.New(interceptor)
 
 	emulator := gateway.NewEmulatorGatewayWithOpts(
 		&gateway.EmulatorKey{
@@ -100,7 +103,7 @@ func newFlowkit() (*flowKit, error) {
 			HashAlgo:  emu.DefaultServiceKeyHashAlgo,
 		},
 		gateway.WithEmulatorOptions(
-			emu.WithLogger(zerolog.New(interceptor)),
+			emu.WithLogger(emulatorLogger),
 			emu.WithStore(memstore.New()),
 			emu.WithTransactionValidationEnabled(false),
 			emu.WithStorageLimitEnabled(false),
@@ -188,6 +191,10 @@ func (fk *flowKit) loadContract(name string) error {
 // initBlockHeight returns what the bootstrapped block height should be
 func (fk *flowKit) initBlockHeight() int {
 	return initialAccounts + len(contracts.Included())
+}
+
+func (fk *flowKit) numAccounts() int {
+	return initialAccounts
 }
 
 func (fk *flowKit) getFlowJson() (string, error) {
