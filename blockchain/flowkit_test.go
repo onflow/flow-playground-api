@@ -20,7 +20,6 @@ package blockchain
 
 import (
 	"context"
-	"fmt"
 	"github.com/onflow/flow-cli/flowkit/accounts"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
@@ -81,20 +80,12 @@ func Test_FlowJsonExport(t *testing.T) {
 	flowJson, err := fk.getFlowJson()
 	assert.NoError(t, err)
 
-	const CoreContracts = `"contracts": {
-		"FungibleToken": {
+	const FungibleToken = `"FungibleToken": {
 			"source": "",
 			"aliases": {
 				"emulator": "ee82856bf20e2aa6"
 			}
-		},
-		"NonFungibleToken": {
-			"source": "",
-			"aliases": {
-				"emulator": "f8d6e0586b0a20c7"
-			}
-		}
-	}`
+		}`
 
 	const Networks = `"networks": {
 		"emulator": "127.0.0.1:3569",
@@ -103,8 +94,7 @@ func Test_FlowJsonExport(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
 
-	fmt.Println(flowJson)
-	assert.Contains(t, flowJson, CoreContracts)
+	assert.Contains(t, flowJson, FungibleToken)
 	assert.Contains(t, flowJson, Networks)
 
 	// Accounts

@@ -33,20 +33,20 @@ var contracts embed.FS
 // Core defines core contract to be embedded, along with their locations in the emulator
 var Core = []config.Contract{
 	{
-		Name: "NonFungibleToken",
-		Aliases: config.Aliases{
-			config.Alias{
-				Network: "emulator",
-				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
-			},
-		},
-	},
-	{
 		Name: "FungibleToken",
 		Aliases: config.Aliases{
 			config.Alias{
 				Network: "emulator",
 				Address: flow.HexToAddress("0xee82856bf20e2aa6"),
+			},
+		},
+	},
+	{
+		Name: "NonFungibleToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
 			},
 		},
 	},
