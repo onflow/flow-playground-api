@@ -22,6 +22,7 @@ import (
 	"embed"
 	"fmt"
 	"github.com/onflow/flow-cli/flowkit/config"
+	"github.com/onflow/flow-go-sdk"
 )
 
 // Embed all contracts in this folder
@@ -31,46 +32,44 @@ var contracts embed.FS
 
 // Core defines core contract to be embedded, along with their locations in the emulator
 var Core = []config.Contract{
-	/*
-		{
-			Name: "NonFungibleToken",
-			Aliases: config.Aliases{
-				config.Alias{
-					Network: "emulator",
-					Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
-				},
+	{
+		Name: "FungibleToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xee82856bf20e2aa6"),
 			},
 		},
-		{
-			Name: "FungibleToken",
-			Aliases: config.Aliases{
-				config.Alias{
-					Network: "emulator",
-					Address: flow.HexToAddress("0xee82856bf20e2aa6"),
-				},
+	},
+	{
+		Name: "NonFungibleToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
 			},
 		},
-		// TODO: Need to support new import schema in order to resolve core contracts
-
-			{
-				Name: "FlowToken",
-				Aliases: config.Aliases{
-					config.Alias{
-						Network: "emulator",
-						Address: flow.HexToAddress("0x0ae53cb6e3f42a79"),
-					},
-				},
+	},
+	/* TODO: Remove init args from FlowToken
+	{
+		Name: "FlowToken",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0x0ae53cb6e3f42a79"),
 			},
-			{
-				Name: "MetadataViews",
-				Aliases: config.Aliases{
-					config.Alias{
-						Network: "emulator",
-						Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
-					},
-				},
-			},
+		},
+	},
 	*/
+	{
+		Name: "MetadataViews",
+		Aliases: config.Aliases{
+			config.Alias{
+				Network: "emulator",
+				Address: flow.HexToAddress("0xf8d6e0586b0a20c7"),
+			},
+		},
+	},
 }
 
 func Included() []string {

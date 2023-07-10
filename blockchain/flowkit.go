@@ -291,6 +291,12 @@ func (fk *flowKit) createServiceAccount() error {
 		Address: flow.HexToAddress("0x01"),
 		Key:     serviceAccount.Key,
 	})
+
+	state.Deployments().AddOrUpdate(config.Deployment{ // init empty deployment
+		Network: config.EmulatorNetwork.Name,
+		Account: "Service Account",
+	})
+
 	return nil
 }
 
@@ -327,10 +333,17 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		return nil, err
 	}
 
+	name := fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())-1)
+
 	state.Accounts().AddOrUpdate(&accounts.Account{
-		Name:    fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())-1),
+		Name:    name,
 		Address: account.Address,
 		Key:     serviceAccount.Key,
+	})
+
+	state.Deployments().AddOrUpdate(config.Deployment{ // init empty deployment
+		Network: config.EmulatorNetwork.Name,
+		Account: name,
 	})
 
 	return account, nil

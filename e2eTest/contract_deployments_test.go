@@ -116,6 +116,113 @@ func TestContractTitleParsing(t *testing.T) {
 	require.Equal(t, "HelloWorld", respA.CreateContractDeployment.Title)
 }
 
+func TestImportSyntax(t *testing.T) {
+	t.Run("new import syntax", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		const contractA = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init(a: Int) { self.A = a }
+		}`
+
+		args := []string{
+			`{"type":"Int","value":"42"}`,
+		}
+
+		const contractB = `
+		import "HelloWorld"
+		pub contract Test {
+			pub var B: Int
+			pub init() { self.B = HelloWorld.A }
+		}`
+
+		var resp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr1),
+			client.Var("arguments", args),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractB),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+	})
+
+	t.Run("multiple deployments with same name", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		const contractA = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+		}`
+
+		const contractB = `
+		import "HelloWorld"
+		pub contract Test {
+			pub var B: Int
+			pub init() { self.B = HelloWorld.A }
+		}`
+
+		var resp CreateContractDeploymentResponse
+		err := c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr2),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+
+		// TODO: What if we deploy a different contract with the same name?!?
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractA),
+			client.Var("address", addr3),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+
+		err = c.Post(
+			MutationCreateContractDeployment,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", contractB),
+			client.Var("address", addr1),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+	})
+}
+
 func TestContractRedeployment(t *testing.T) {
 	t.Run("same contract name with different arguments", func(t *testing.T) {
 		c := newClient()

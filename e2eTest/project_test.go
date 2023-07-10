@@ -19,7 +19,6 @@
 package e2eTest
 
 import (
-	"fmt"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
@@ -567,6 +566,12 @@ func TestExportFlowJson(t *testing.T) {
 				"emulator": "ee82856bf20e2aa6"
 			}
 		},
+		"MetadataViews": {
+			"source": "",
+			"aliases": {
+				"emulator": "f8d6e0586b0a20c7"
+			}
+		},
 		"NonFungibleToken": {
 			"source": "",
 			"aliases": {
@@ -586,7 +591,6 @@ func TestExportFlowJson(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
 
-	fmt.Println(flowJsonResp.FlowJson)
 	require.Contains(t, flowJsonResp.FlowJson, CoreContracts)
 	require.Contains(t, flowJsonResp.FlowJson, Networks)
 	require.Contains(t, flowJsonResp.FlowJson, "Person")

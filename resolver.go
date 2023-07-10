@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -209,7 +208,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 	ctx context.Context,
 	input model.NewTransactionExecution,
 ) (*model.TransactionExecution, error) {
-	fmt.Println("CreateTransactionExecution()")
 	err := r.authorize(ctx, input.ProjectID)
 	if err != nil {
 		return nil, err
@@ -219,8 +217,6 @@ func (r *mutationResolver) CreateTransactionExecution(
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("TX: ", exe.Logs)
 
 	return adapter.TransactionToAPI(exe), nil
 }
