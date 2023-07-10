@@ -510,6 +510,44 @@ func Test_DeployContract(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, args, deployment.Arguments)
 	})
+
+	t.Run("deploy contract with new import syntax", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+		}`
+
+		const importContract = `
+		import "HelloWorld"
+
+		pub contract Test {
+			pub var B: Int
+			pub init() { self.B = HelloWorld.A }
+		}`
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.NoError(t, err)
+
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), importContract, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("import core contracts", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		import "FungibleToken"
+		import "MetadataViews"
+		import "NonFungibleToken"
+		
+		pub contract Test {}`
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.NoError(t, err)
+	})
 }
 
 func Test_ScriptExecution(t *testing.T) {
