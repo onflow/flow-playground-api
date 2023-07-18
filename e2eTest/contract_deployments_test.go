@@ -353,11 +353,9 @@ func TestContractRedeployment(t *testing.T) {
 			client.Var("address", addr1),
 		)
 		require.NoError(t, err)
-		/* TODO: Fix account storage retrieval
-		require.Equal(t,
-			"{\"Private\":null,\"Public\":{},\"Storage\":{\"friendship\":{\"Fields\":[37],\"ResourceType\":{\"Fields\":[{\"Identifier\":\"uuid\",\"Type\":{}}],\"Initializers\":null,\"Location\":{\"Address\":\"0x0000000000000005\",\"Name\":\"Person\",\"Type\":\"AddressLocation\"},\"QualifiedIdentifier\":\"Person.Friendship\"}}}}",
-			accResp.Account.State)
-		*/
+		require.Contains(t,
+			accResp.Account.State,
+			`{"value": A.0000000000000005.Person.Friendship(uuid: 39)`)
 
 		PersonContractUpdate := `
 		pub contract Person { 
@@ -383,7 +381,7 @@ func TestContractRedeployment(t *testing.T) {
 			client.Var("address", addr1),
 		)
 		require.NoError(t, err)
-		//require.Equal(t, "{}", accResp.Account.State) TODO: account storage
+		require.NotContains(t, accResp.Account.State, "Person.Friendship")
 	})
 
 	t.Run("Contract redeployment block height rollback", func(t *testing.T) {
