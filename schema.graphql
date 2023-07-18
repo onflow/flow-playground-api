@@ -127,6 +127,7 @@ type ProjectList {
 
 type Query {
   playgroundInfo: PlaygroundInfo!
+  userID: String!
   projectList: ProjectList!
   project(id: UUID!): Project!
 

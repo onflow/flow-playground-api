@@ -19,6 +19,7 @@
 package e2eTest
 
 import (
+	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
@@ -328,6 +329,83 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, initAccounts, resp.CreateProject.NumberOfAccounts)
 	})
 
+	t.Run("Get project List over limit", func(t *testing.T) {
+		const MaxProjectsLimit = 10
+		const AdditionalProjects = 5
+
+		c := newClient()
+
+		var resp CreateProjectResponse
+
+		// Create maximum number of projects
+		var err error
+		for projNum := 1; projNum <= MaxProjectsLimit; projNum++ {
+			if projNum == 1 {
+				err = c.Post(
+					MutationCreateProject,
+					&resp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+				)
+			} else {
+				// Post with session cookie to keep the same userID
+				err = c.Post(
+					MutationCreateProject,
+					&resp,
+					client.Var("title", "foo"+strconv.Itoa(projNum)),
+					client.Var("description", "bar"),
+					client.Var("readme", "bah"),
+					client.Var("seed", 42),
+					client.Var("numberOfAccounts", initAccounts),
+					client.AddCookie(c.SessionCookie()),
+				)
+			}
+			require.NoError(t, err)
+		}
+
+		var uid UserIDResponse
+		err = c.Post(
+			QueryUserID,
+			&uid,
+			client.AddCookie(c.SessionCookie()),
+		)
+
+		// Create additional projects directly in database
+		for i := 0; i < AdditionalProjects; i++ {
+			err = store.CreateProject(&model.Project{
+				ID:                        uuid.New(),
+				Secret:                    uuid.New(),
+				PublicID:                  uuid.New(),
+				UserID:                    uuid.MustParse(uid.UserID),
+				ParentID:                  nil,
+				Title:                     "test",
+				Description:               "test",
+				Readme:                    "test",
+				Seed:                      0,
+				NumberOfAccounts:          5,
+				TransactionExecutionCount: 0,
+				Persist:                   false,
+				AccessedAt:                time.Now(),
+				Version:                   semver.MustParse("2.0.0"),
+				Mutable:                   false,
+			}, nil)
+			require.NoError(t, err)
+		}
+
+		// Verify that the project list can be retrieved
+		var projectList GetProjectListResponse
+		err = c.Post(
+			QueryGetProjectList,
+			&projectList,
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		require.Equal(t, len(projectList.ProjectList.Projects), MaxProjectsLimit+AdditionalProjects)
+	})
 }
 
 func TestProjectUpdatedTime(t *testing.T) {

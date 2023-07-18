@@ -149,6 +149,7 @@ type ComplexityRoot struct {
 		ProjectList         func(childComplexity int) int
 		ScriptTemplate      func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
 		TransactionTemplate func(childComplexity int, id uuid.UUID, projectID uuid.UUID) int
+		UserID              func(childComplexity int) int
 	}
 
 	ScriptExecution struct {
@@ -216,6 +217,7 @@ type ProjectResolver interface {
 }
 type QueryResolver interface {
 	PlaygroundInfo(ctx context.Context) (*model.PlaygroundInfo, error)
+	UserID(ctx context.Context) (string, error)
 	ProjectList(ctx context.Context) (*model.ProjectList, error)
 	Project(ctx context.Context, id uuid.UUID) (*model.Project, error)
 	Account(ctx context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error)
@@ -847,6 +849,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.TransactionTemplate(childComplexity, args["id"].(uuid.UUID), args["projectId"].(uuid.UUID)), true
 
+	case "Query.userID":
+		if e.complexity.Query.UserID == nil {
+			break
+		}
+
+		return e.complexity.Query.UserID(childComplexity), true
+
 	case "ScriptExecution.arguments":
 		if e.complexity.ScriptExecution.Arguments == nil {
 			break
@@ -1208,6 +1217,7 @@ type ProjectList {
 
 type Query {
   playgroundInfo: PlaygroundInfo!
+  userID: String!
   projectList: ProjectList!
   project(id: UUID!): Project!
 
@@ -5094,6 +5104,50 @@ func (ec *executionContext) fieldContext_Query_playgroundInfo(ctx context.Contex
 				return ec.fieldContext_PlaygroundInfo_emulatorVersion(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PlaygroundInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_userID(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserID(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_userID(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9939,6 +9993,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_playgroundInfo(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "userID":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userID(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

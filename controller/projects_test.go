@@ -84,13 +84,13 @@ const seedTitle = "e2eTest title"
 const seedDesc = "e2eTest desc"
 const seedReadme = "e2eTest readme"
 
-func seedProject(projects *Projects, user *model.User) (*model.Project, error) {
+func newProject() model.NewProject {
 	contract := model.NewProjectContractTemplate{
 		Title:  "contract template 1",
 		Script: "a",
 	}
 
-	project, err := projects.Create(user, model.NewProject{
+	return model.NewProject{
 		Title:                seedTitle,
 		Description:          seedDesc,
 		Readme:               seedReadme,
@@ -98,7 +98,11 @@ func seedProject(projects *Projects, user *model.User) (*model.Project, error) {
 		ContractTemplates:    []*model.NewProjectContractTemplate{&contract},
 		TransactionTemplates: nil,
 		ScriptTemplates:      nil,
-	})
+	}
+}
+
+func seedProject(projects *Projects, user *model.User) (*model.Project, error) {
+	project, err := projects.Create(user, newProject())
 	return project, err
 }
 
@@ -404,3 +408,46 @@ func Test_StateRecreation(t *testing.T) {
 
 	assert.Contains(t, acc.DeployedContracts, "HelloWorld")
 }
+
+/*
+func Test_ProjectLimit(t *testing.T) {
+	store, user, _, projects, _, _ := createControllers()
+
+	ProjectsLimit := config.Playground().MaxProjectsLimit
+	// Create max number of projects
+	for i := 0; i < ProjectsLimit; i++ {
+		_, err := seedProject(projects, user)
+		require.NoError(t, err)
+	}
+
+	// Verify we can't create additional projects
+	_, err := seedProject(projects, user)
+	require.Error(t, err)
+
+	// Force additional project creation in storage
+	newProj := newProject()
+	proj := &model.Project{
+		ID:               uuid.New(),
+		Secret:           uuid.New(),
+		PublicID:         uuid.New(),
+		ParentID:         newProj.ParentID,
+		Seed:             newProj.Seed,
+		Title:            newProj.Title,
+		Description:      newProj.Description,
+		Readme:           newProj.Readme,
+		Persist:          false,
+		NumberOfAccounts: newProj.NumberOfAccounts,
+		AccessedAt:       time.Now(),
+		Version:          semver.MustParse("2.0.0"),
+		UserID:           user.ID,
+	}
+	err = store.CreateProject(proj, nil)
+	require.NoError(t, err)
+
+	// Retrieve project list for user
+	projectList, err := projects.GetProjectListForUser(user.ID, nil, context.Background())
+	require.NoError(t, err)
+
+	require.Equal(t, len(projectList.Projects), ProjectsLimit+1)
+}
+*/

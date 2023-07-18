@@ -184,6 +184,16 @@ type GetProjectListResponse struct {
 	}
 }
 
+const QueryUserID = `
+query() {
+  userID()
+}
+`
+
+type UserIDResponse struct {
+	UserID string
+}
+
 const MutationUpdateProjectPersist = `
 mutation($projectId: UUID!, $title: String!, $description: String!, $readme: String!, $persist: Boolean!) {
   updateProject(input: { id: $projectId, title: $title, description: $description, readme: $readme, persist: $persist }) {
