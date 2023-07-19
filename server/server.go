@@ -138,9 +138,12 @@ func main() {
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
+		corsDebug := platform == config.Staging
+
 		r.Use(cors.New(cors.Options{
 			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
+			Debug:            corsDebug,
 		}).Handler)
 
 		cookieStore := gsessions.NewCookieStore(sessionAuthKey)
