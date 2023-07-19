@@ -395,10 +395,10 @@ func TestProjects(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		// Verify that the project list can be retrieved
+		// Verify that the full project list can be retrieved
 		var projectList GetProjectListResponse
 		err = c.Post(
-			QueryGetProjectList,
+			QueryGetFullProjectList,
 			&projectList,
 			client.AddCookie(c.SessionCookie()),
 		)

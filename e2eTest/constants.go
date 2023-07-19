@@ -44,6 +44,7 @@ type Project struct {
 	ScriptTemplates      []ScriptTemplate
 	ContractTemplates    []ContractTemplate
 	Secret               string
+	ContractDeployments  []ContractDeployment
 }
 
 type Account struct {
@@ -314,6 +315,14 @@ type TransactionTemplate struct {
 	Title  string
 	Script string
 	Index  int
+}
+
+type ContractDeployment struct {
+	ID          string
+	Script      string
+	Title       string
+	Address     string
+	BlockHeight int
 }
 
 const MutationCreateTransactionTemplate = `
@@ -663,6 +672,42 @@ query($projectId: UUID!) {
 type GetFlowJsonResponse struct {
 	FlowJson string
 }
+
+const QueryGetFullProjectList = `
+query GetProjects {
+  projectList {
+    projects {
+      id
+      updatedAt
+      title
+      contractTemplates {
+        id
+        script
+        title
+        index
+      }
+      transactionTemplates {
+        id
+        script
+        title
+        index
+      }
+      scriptTemplates {
+        id
+        script
+        title
+        index
+      }
+      contractDeployments {
+        id
+        script
+        title
+        address
+        blockHeight
+      }
+    }
+  }
+}`
 
 // todo add tests for:
 // - failed transactions with successful transactions work (bootstrap works)??
