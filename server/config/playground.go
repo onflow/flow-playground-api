@@ -28,11 +28,11 @@ type PlaygroundConfig struct {
 	SessionMaxAge              time.Duration `default:"157680000s"`
 	SessionCookiesSecure       bool          `default:"true"`
 	SessionCookiesHTTPOnly     bool          `default:"true"`
-	SessionCookiesSameSiteNone bool          `default:"false"`
+	SessionCookiesSameSiteNone bool          `default:"true"`
 	LedgerCacheSize            int           `default:"128"`
 	PlaygroundBaseURL          string        `default:"http://localhost:3000"`
 	ForceMigration             bool          `default:"false"`
-	MaxProjectsLimit           int           `default:"10"`
+	MaxProjectsLimit           int           `default:"20"`
 	StaleProjectDays           int           `default:"90"`
 	StorageBackend             string
 }
