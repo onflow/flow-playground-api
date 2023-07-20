@@ -1,13 +1,5 @@
 package blockchain
 
-import (
-	"fmt"
-	"github.com/onflow/cadence"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
-	"gopkg.in/yaml.v2"
-	"reflect"
-)
-
 type AccountStorage any
 
 type StorageItem struct {
@@ -16,14 +8,52 @@ type StorageItem struct {
 	Path  interface{}
 }
 
+const StorageIteration = `
+pub fun main(address: Address) : AnyStruct{
+
+	var res :  [{String:AnyStruct}] = []
+
+	getAuthAccount(address).forEachStored(fun (path: StoragePath, type: Type): Bool {
+		res.append(
+		{
+			"path" : path,
+			"type" : type.identifier,
+			"value":  type.isSubtype(of: Type<AnyStruct>()) ?
+							getAuthAccount(address).borrow<&AnyStruct>(from: path)! as AnyStruct
+							: getAuthAccount(address).borrow<&AnyResource>(from: path)! as AnyStruct
+		})
+		return true
+	})
+
+	getAuthAccount(address).forEachPublic(fun (path: PublicPath, type: Type): Bool {
+		res.append(
+		{
+			"path" : path,
+			"type" : type.identifier,
+			"value":  getAuthAccount(address).getLinkTarget(path)
+		})
+		return true
+	})
+
+	getAuthAccount(address).forEachPrivate(fun (path: PrivatePath, type: Type): Bool {
+		res.append(
+		{
+			"path" : path,
+			"type" : type.identifier,
+			"value":  getAuthAccount(address).getLinkTarget(path)
+		})
+		return true
+	})
+	return res
+}`
+
 //type StorageItem map[interface{}]interface{}
 
+/* TODO: Parse account storage into a useful format or structure
 func ParseAccountStorage(rawStorage cadence.Value) (*AccountStorage, error) {
-	fmt.Println("Storage:", rawStorage.String())
-
 	encoded, err := jsoncdc.Encode(rawStorage)
 	if err != nil {
-		fmt.Println("ERROR encoding", err.Error())
+		return nil, err
 	}
 
 	var storage AccountStorage
@@ -32,16 +62,10 @@ func ParseAccountStorage(rawStorage cadence.Value) (*AccountStorage, error) {
 		fmt.Println("ERROR Unmarshal", err.Error())
 	}
 
-	fmt.Println("Storage:", storage)
-	fmt.Println(reflect.TypeOf(storage))
-
 	for key, val := range storage.(map[interface{}]interface{}) {
 		fmt.Println("Key, val:", key, ",", val)
 	}
 
-	//fmt.Println("Unmarshalled val", item[0])
-	//fmt.Println("Unmarshalled path", item[0]["path"])
-	//fmt.Println("Unmarshalled type", item[0]["type"])
-
 	return nil, nil
 }
+*/
