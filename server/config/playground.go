@@ -22,7 +22,7 @@ import "time"
 
 type PlaygroundConfig struct {
 	Port                       int           `default:"8080"`
-	Debug                      bool          `default:"false"`
+	Debug                      bool          `default:"true"`
 	AllowedOrigins             []string      `default:"http://localhost:3000"`
 	SessionAuthKey             string        `default:"428ce08c21b93e5f0eca24fbeb0c7673"`
 	SessionMaxAge              time.Duration `default:"157680000s"`

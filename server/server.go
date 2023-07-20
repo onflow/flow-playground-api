@@ -44,7 +44,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
 
-	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/getsentry/sentry-go"
@@ -111,10 +110,12 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(monitoring.Middleware())
 
+	corsDebug := false
+
 	if conf.Debug {
 		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true, JSON: true})
 		router.Use(httplog.RequestLogger(logger))
-		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
+		corsDebug = true
 	}
 
 	if config.Telemetry().TracingEnabled {
@@ -138,17 +139,8 @@ func main() {
 	router.Route("/query", func(r chi.Router) {
 		// Add CORS middleware around every request
 		// See https://github.com/rs/cors for full option listing
-		corsDebug := false
-		allowedOrigins := conf.AllowedOrigins
-
-		if platform == config.Staging {
-			corsDebug = true
-			allowedOrigins = []string{"*"}
-		}
-
 		r.Use(cors.New(cors.Options{
-			AllowedOrigins:   allowedOrigins,
-			AllowedHeaders:   []string{"*"},
+			AllowedOrigins:   conf.AllowedOrigins,
 			AllowCredentials: true,
 			Debug:            corsDebug,
 		}).Handler)
