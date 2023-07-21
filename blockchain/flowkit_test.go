@@ -20,6 +20,7 @@ package blockchain
 
 import (
 	"context"
+	"fmt"
 	"github.com/onflow/flow-cli/flowkit/accounts"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
@@ -58,14 +59,15 @@ func Test_NewFlowkit(t *testing.T) {
 	}
 
 	for i := 0; i < testAccounts; i++ {
-		// TODO: Verify account storage
-		account, _, err := fk.getAccount(accountList[i].Address)
-		//_, accountStorage, err := emu.getAccount(accountList[i].Address)
+		account, err := fk.getAccount(accountList[i].Address)
 		assert.NoError(t, err)
+
+		accountStorage, err := fk.getAccountStorage(accountList[i].Address)
+		assert.NoError(t, err)
+
 		assert.Equal(t, account.Address, accountList[i].Address)
-		//assert.Equal(t, accountStorage.Account.Address.String(), accountList[i].Address.String())
-		//assert.Equal(t, accountStorage.Account.Address.Hex(), accountList[i].Address.Hex())
-		//assert.Equal(t, accountStorage.Account.Address.Bytes(), accountList[i].Address.Bytes())
+		assert.Contains(t, accountStorage, "A.0000000000000003.FlowToken.Vault(uuid:")
+		assert.Contains(t, accountStorage, `"path": /storage/flowTokenVault`)
 	}
 }
 
@@ -82,9 +84,7 @@ func Test_FlowJsonExport(t *testing.T) {
 
 	const FungibleToken = `"FungibleToken": {
 			"source": "",
-			"aliases": {
-				"emulator": "ee82856bf20e2aa6"
-			}
+			"aliases": null
 		}`
 
 	const Networks = `"networks": {
@@ -94,15 +94,17 @@ func Test_FlowJsonExport(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
 
+	fmt.Println(flowJson)
+
 	assert.Contains(t, flowJson, FungibleToken)
 	assert.Contains(t, flowJson, Networks)
 
 	// Accounts
-	assert.Contains(t, flowJson, "Account 0x01")
-	assert.Contains(t, flowJson, "Account 0x02")
-	assert.Contains(t, flowJson, "Account 0x03")
-	assert.Contains(t, flowJson, "Account 0x04")
 	assert.Contains(t, flowJson, "Account 0x05")
+	assert.Contains(t, flowJson, "Account 0x06")
+	assert.Contains(t, flowJson, "Account 0x07")
+	assert.Contains(t, flowJson, "Account 0x08")
+	assert.Contains(t, flowJson, "Account 0x09")
 	assert.Contains(t, flowJson, "Service Account")
 	assert.Contains(t, flowJson, "emulator-account")
 }

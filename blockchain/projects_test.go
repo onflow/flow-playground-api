@@ -120,7 +120,7 @@ func Test_LoadFlowKit(t *testing.T) {
 		require.NoError(t, err)
 
 		for i := 0; i < 4; i++ {
-			_, _, err := fk.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
+			_, err := fk.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
 			require.NoError(t, err)
 		}
 

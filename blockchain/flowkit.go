@@ -21,7 +21,6 @@ package blockchain
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/blockchain/contracts"
 	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
@@ -33,7 +32,7 @@ import (
 	"github.com/onflow/flow-cli/flowkit/gateway"
 	"github.com/onflow/flow-cli/flowkit/output"
 	"github.com/onflow/flow-cli/flowkit/transactions"
-	emu "github.com/onflow/flow-emulator"
+	emu "github.com/onflow/flow-emulator/emulator"
 	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
@@ -57,8 +56,11 @@ type blockchain interface {
 	// createAccount creates a new account and returns it along with transaction and result.
 	createAccount() (*flow.Account, error)
 
-	// getAccount gets an account by the address and also returns its storage.
-	getAccount(address flow.Address) (*flow.Account, *emu.AccountStorage, error)
+	// getAccount gets an account by the address
+	getAccount(address flow.Address) (*flow.Account, error)
+
+	// getAccountStorage gets storage for an account by the address
+	getAccountStorage(address flow.Address) (string, error)
 
 	// deployContract deploys a contract on the provided address and returns transaction and result.
 	deployContract(
@@ -79,6 +81,10 @@ type blockchain interface {
 
 var _ blockchain = &flowKit{}
 
+// NumEmulatorAccounts 4 accounts with bootstrapped contracts: 0x01, 0x02, 0x03, 0x04
+const NumEmulatorAccounts = 4
+
+// initialAccounts number of accounts to bootstrap for users
 const initialAccounts = 5
 
 type flowKit struct {
@@ -149,6 +155,11 @@ func (fk *flowKit) boostrapAccounts() error {
 		return err
 	}
 
+	err = fk.createEmulatorAccounts()
+	if err != nil {
+		return err
+	}
+
 	for i := 0; i < initialAccounts; i++ {
 		_, err := fk.createAccount()
 		if err != nil {
@@ -159,30 +170,49 @@ func (fk *flowKit) boostrapAccounts() error {
 }
 
 func (fk *flowKit) bootstrapContracts() error {
-	for _, contract := range contracts.Included() {
-		err := fk.loadContract(contract)
+	/* Bootstrapped Emulator Contracts
+	0x01: FlowIDTableStaking, FlowStorageFees, MetadataViews, NonFungibleToken, ViewResolver
+	FlowDKG, FlowEpoch, FlowServiceAccount, FlowStakingCollection, LockedTokens,
+	NodeVersionBeacon, StakingProxy, FlowClusterQC
+	0x02: FungibleToken, FungibleTokenMetadataViews
+	0x03: FlowToken
+	0x04: FlowFees
+	*/
+
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return err
+	}
+
+	for i := 1; i <= NumEmulatorAccounts; i++ {
+		var emulatorContracts []config.ContractDeployment
+
+		// Get all bootstrapped contracts from each emulator account
+		addr := flow.HexToAddress(fmt.Sprintf("0x0%d", i))
+		account, err := fk.blockchain.GetAccount(context.Background(), addr)
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
 
-func (fk *flowKit) loadContract(name string) error {
-	contract, err := contracts.Read(name)
-	if err != nil {
-		return err
-	}
+		// Create flowKit deployments for each contract to make them accessible
+		for name := range account.Contracts {
+			state.Contracts().AddOrUpdate(config.Contract{
+				Name:     name,
+				Location: "",
+				Aliases:  nil,
+			})
 
-	service, err := fk.getServiceAccount()
-	if err != nil {
-		return err
-	}
+			emulatorContracts = append(emulatorContracts, config.ContractDeployment{
+				Name: name,
+				Args: nil, // TODO: Do we need to know what the arguments are?
+			})
+		}
 
-	// Deploy to service account
-	_, _, _, err = fk.deployContract(service.Address, string(contract), nil)
-	if err != nil {
-		return err
+		state.Deployments().AddOrUpdate(config.Deployment{
+			Network:   config.EmulatorNetwork.Name,
+			Account:   fmt.Sprintf("Emulator Account 0x%d", i),
+			Contracts: emulatorContracts,
+		})
 	}
 
 	return nil
@@ -190,7 +220,7 @@ func (fk *flowKit) loadContract(name string) error {
 
 // initBlockHeight returns what the bootstrapped block height should be
 func (fk *flowKit) initBlockHeight() int {
-	return initialAccounts + len(contracts.Included())
+	return initialAccounts
 }
 
 func (fk *flowKit) numAccounts() int {
@@ -198,13 +228,10 @@ func (fk *flowKit) numAccounts() int {
 }
 
 func (fk *flowKit) getFlowJson() (string, error) {
+	// TODO: Maybe we shouldn't provide flow.json since it's too complicated and not useful?
 	state, err := fk.blockchain.State()
 	if err != nil {
 		return "", err
-	}
-
-	for _, contract := range contracts.Core {
-		state.Contracts().AddOrUpdate(contract)
 	}
 
 	err = state.Save("flow.json")
@@ -300,6 +327,36 @@ func (fk *flowKit) createServiceAccount() error {
 	return nil
 }
 
+func (fk *flowKit) createEmulatorAccounts() error {
+	state, err := fk.blockchain.State()
+	if err != nil {
+		return err
+	}
+
+	serviceAccount, err := fk.getServiceAccount()
+	if err != nil {
+		return err
+	}
+
+	for i := 1; i <= NumEmulatorAccounts; i++ {
+		addr := fmt.Sprintf("0x%d", i)
+		name := fmt.Sprintf("Emulator Account %s", addr)
+
+		state.Accounts().AddOrUpdate(&accounts.Account{
+			Name:    name,
+			Address: flow.HexToAddress(addr),
+			Key:     serviceAccount.Key,
+		})
+
+		state.Deployments().AddOrUpdate(config.Deployment{ // init empty deployment
+			Network: config.EmulatorNetwork.Name,
+			Account: name,
+		})
+	}
+
+	return nil
+}
+
 func (fk *flowKit) createAccount() (*flow.Account, error) {
 	serviceAccount, err := fk.getServiceAccount()
 	if err != nil {
@@ -349,14 +406,30 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 	return account, nil
 }
 
-func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, *emu.AccountStorage, error) {
+func (fk *flowKit) getAccountStorage(address flow.Address) (string, error) {
+	args := []string{fmt.Sprintf(`{"type":"Address","value":"0x%s"}`, address.Hex())}
+	val, _, err := fk.executeScript(StorageIteration, args)
+	if err != nil {
+		return "", err
+	}
+
+	/* TODO: Parse account storage
+	_, err = ParseAccountStorage(val)
+	if err != nil {
+		return "", err
+	}
+	*/
+
+	return val.String(), nil
+}
+
+func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, error) {
 	account, err := fk.blockchain.GetAccount(context.Background(), address)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	// TODO: Run Cadence script to get account storage, or
-	// TODO: ideally we build in a FlowKit storage API
-	return account, nil, nil
+
+	return account, nil
 }
 
 func (fk *flowKit) deployContract(

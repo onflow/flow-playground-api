@@ -317,7 +317,7 @@ func TestTransactionExecutions(t *testing.T) {
           transaction {
               execute {
                   var i = 0
-                  while i < 1_000_000 {
+                  while i < 1_000_000_000 {
                       i = i + 1
                   }
               }

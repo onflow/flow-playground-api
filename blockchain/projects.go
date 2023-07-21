@@ -180,7 +180,7 @@ func (p *Projects) DeployContract(
 		return nil, err
 	}
 
-	flowAccount, _, err := fk.getAccount(address.ToFlowAddress())
+	flowAccount, err := fk.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
@@ -263,23 +263,19 @@ func (p *Projects) getAccount(projectID uuid.UUID, address model.Address) (*mode
 		return nil, err
 	}
 
-	flowAccount, store, err := fk.getAccount(address.ToFlowAddress())
+	flowAccount, err := fk.getAccount(address.ToFlowAddress())
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: Account storage
-	_ = store
-	/*
-		jsonStorage, err := json.Marshal(store)
-		if err != nil {
-			return nil, errors.Wrap(err, "error marshaling account storage")
-		}
-	*/
+	accountStorage, err := fk.getAccountStorage(address.ToFlowAddress())
+	if err != nil {
+		return nil, err
+	}
 
 	account := model.AccountFromFlow(flowAccount, projectID)
 	account.ProjectID = projectID
-	account.State = "" // TODO: Add account storage
+	account.State = accountStorage
 
 	return account, nil
 }
