@@ -120,7 +120,7 @@ func TestScriptExecutions(t *testing.T) {
 		const script = `
           pub fun main() {
               var i = 0
-              while i < 1_000_000 {
+              while i < 1_000_000_000 {
                   i = i + 1
               }
           }
@@ -135,7 +135,7 @@ func TestScriptExecutions(t *testing.T) {
 		)
 
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "[Error Code: 1110] computation exceeds limit (100000)")
+		require.Contains(t, err.Error(), "[Error Code: 1111] memory usage exceeds limit (4294967295)")
 	})
 
 	t.Run("return address", func(t *testing.T) {
