@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 
 ## (1) Build the app binary
-FROM golang:1.18 AS build-app
+FROM golang:1.19 AS build-app
 
 ARG VERSION
 
