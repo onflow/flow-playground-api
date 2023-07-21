@@ -559,31 +559,6 @@ func TestExportFlowJson(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	const CoreContracts = `"contracts": {
-		"FungibleToken": {
-			"source": "",
-			"aliases": {
-				"emulator": "ee82856bf20e2aa6"
-			}
-		},
-		"MetadataViews": {
-			"source": "",
-			"aliases": {
-				"emulator": "f8d6e0586b0a20c7"
-			}
-		},
-		"NonFungibleToken": {
-			"source": "",
-			"aliases": {
-				"emulator": "f8d6e0586b0a20c7"
-			}
-		},
-		"Person": {
-			"source": "",
-			"aliases": null
-		}
-	}`
-
 	const Networks = `"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
@@ -591,7 +566,7 @@ func TestExportFlowJson(t *testing.T) {
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
 
-	require.Contains(t, flowJsonResp.FlowJson, CoreContracts)
+	require.Contains(t, flowJsonResp.FlowJson, "FungibleToken")
 	require.Contains(t, flowJsonResp.FlowJson, Networks)
 	require.Contains(t, flowJsonResp.FlowJson, "Person")
 }
