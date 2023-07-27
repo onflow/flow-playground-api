@@ -22,9 +22,4 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN chmod a+x /app/app
 
-## (2) Add the statically linked binary to a distroless image
-FROM gcr.io/distroless/base
-
-COPY --from=build-app /app/app /bin/app
-
-ENTRYPOINT ["/bin/app"]
+ENTRYPOINT ["/app/app"]
