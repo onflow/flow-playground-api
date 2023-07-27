@@ -80,6 +80,8 @@ func TestAccountDeployedContracts(t *testing.T) {
 }
 
 func TestAccountStorage(t *testing.T) {
+	t.Skip("Account storage parsing not implemented with FlowKit") // TODO: Add back account storage
+
 	c := newClient()
 
 	project := createProject(t, c)

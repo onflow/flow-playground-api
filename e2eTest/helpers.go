@@ -20,6 +20,7 @@ package e2eTest
 
 import (
 	"github.com/Masterminds/semver"
+	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
@@ -35,7 +36,6 @@ import (
 	"strings"
 	"testing"
 
-	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"

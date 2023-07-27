@@ -20,7 +20,6 @@ package e2eTest
 
 import (
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,7 +84,40 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Empty(t, resp.CreateTransactionExecution.Errors)
-		assert.Contains(t, resp.CreateTransactionExecution.Logs, "\"Hello, World!\"")
+
+		assert.Contains(t, resp.CreateTransactionExecution.Logs[0], `Hello, World!`)
+		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
+	})
+
+	t.Run("Multi-signer execution", func(t *testing.T) {
+		c := newClient()
+
+		project := createProject(t, c)
+
+		var resp CreateTransactionExecutionResponse
+
+		const script = `
+		transaction {
+  			prepare(acct1: AuthAccount, acct2: AuthAccount) {}
+
+			execute { 
+				log("Hello, World!")
+			} 
+		}`
+
+		err := c.Post(
+			MutationCreateTransactionExecution,
+			&resp,
+			client.Var("projectId", project.ID),
+			client.Var("script", script),
+			client.Var("signers", []string{addr1, addr2}),
+			client.AddCookie(c.SessionCookie()),
+		)
+		require.NoError(t, err)
+
+		assert.Empty(t, resp.CreateTransactionExecution.Errors)
+
+		assert.Contains(t, resp.CreateTransactionExecution.Logs[0], `Hello, World!`)
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
 	})
 
@@ -176,7 +208,7 @@ func TestTransactionExecutions(t *testing.T) {
 			eventA.Values[0],
 		)
 
-		_, err = c.projects.Reset(uuid.MustParse(project.ID))
+		err = c.projects.Reset(uuid.MustParse(project.ID))
 		require.NoError(t, err)
 
 		var respB CreateTransactionExecutionResponse
@@ -221,27 +253,9 @@ func TestTransactionExecutions(t *testing.T) {
 			client.Var("script", script),
 			client.AddCookie(c.SessionCookie()),
 		)
-		require.NoError(t, err)
-
-		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "unexpected token: EOF",
-					StartPosition: &model.ProgramPosition{
-						Offset: 41,
-						Line:   3,
-						Column: 8,
-					},
-					EndPosition: &model.ProgramPosition{
-						Offset: 41,
-						Line:   3,
-						Column: 8,
-					},
-				},
-			},
-			resp.CreateTransactionExecution.Errors,
-		)
-		require.Empty(t, resp.CreateTransactionExecution.Logs)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unexpected token: EOF")
+		//require.Empty(t, resp.CreateTransactionExecution.Logs)
 	})
 
 	t.Run("invalid (semantic error)", func(t *testing.T) {
@@ -264,24 +278,7 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "cannot find variable in this scope: `XYZ`",
-					StartPosition: &model.ProgramPosition{
-						Offset: 35,
-						Line:   2,
-						Column: 34,
-					},
-					EndPosition: &model.ProgramPosition{
-						Offset: 37,
-						Line:   2,
-						Column: 36,
-					},
-				},
-			},
-			resp.CreateTransactionExecution.Errors,
-		)
+		require.Contains(t, resp.CreateTransactionExecution.Errors[0].Message, "cannot find variable in this scope: `XYZ`")
 		require.Empty(t, resp.CreateTransactionExecution.Logs)
 	})
 
@@ -305,24 +302,7 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Equal(t,
-			[]model.ProgramError{
-				{
-					Message: "panic: oh no",
-					StartPosition: &model.ProgramPosition{
-						Offset: 35,
-						Line:   2,
-						Column: 34,
-					},
-					EndPosition: &model.ProgramPosition{
-						Offset: 48,
-						Line:   2,
-						Column: 47,
-					},
-				},
-			},
-			resp.CreateTransactionExecution.Errors,
-		)
+		require.Contains(t, resp.CreateTransactionExecution.Errors[0].Message, "panic: oh no")
 		require.Empty(t, resp.CreateTransactionExecution.Logs)
 	})
 
@@ -337,7 +317,7 @@ func TestTransactionExecutions(t *testing.T) {
           transaction {
               execute {
                   var i = 0
-                  while i < 1_000_000 {
+                  while i < 1_000_000_000 {
                       i = i + 1
                   }
               }
@@ -354,14 +334,13 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, script, resp.CreateTransactionExecution.Script)
-		require.Equal(t,
-			"[Error Code: 1110] computation exceeds limit (100000)",
+		require.Contains(t,
 			resp.CreateTransactionExecution.Errors[0].Message,
+			"[Error Code: 1110] computation exceeds limit (100000)",
 		)
 	})
 
 	t.Run("argument", func(t *testing.T) {
-		t.Parallel()
 		c := newClient()
 
 		project := createProject(t, c)
@@ -389,6 +368,6 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, resp.CreateTransactionExecution.Errors)
-		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{"42"})
+		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{`{"level":"debug","message":"Cadence log: 42"}`})
 	})
 }

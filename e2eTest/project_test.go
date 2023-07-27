@@ -241,6 +241,21 @@ func TestProjects(t *testing.T) {
 		assert.Equal(t, deleteResp.DeleteProject, resp.CreateProject.ID)
 	})
 
+	t.Run("Reset project state", func(t *testing.T) {
+		c := newClient()
+		project := createProject(t, c)
+
+		var resetResp ResetProjectResponse
+		err := c.Post(
+			MutationResetProjectState,
+			&resetResp,
+			client.Var("projectId", project.ID),
+			client.AddCookie(c.SessionCookie()),
+		)
+		assert.NoError(t, err)
+		assert.Equal(t, project.ID, resetResp.ResetProjectState)
+	})
+
 	t.Run("Maximum projects limit", func(t *testing.T) {
 		const MaxProjectsLimit = 10
 		const additionalAttempts = 5 // Try to create projects over the limit
@@ -505,4 +520,53 @@ func TestGetProjectList(t *testing.T) {
 		assert.Equal(t, 1, len(user2ListResp.ProjectList.Projects))
 		assert.Equal(t, "foo2", user2ListResp.ProjectList.Projects[0].Title)
 	})
+}
+
+func TestExportFlowJson(t *testing.T) {
+	c := newClient()
+
+	var projResp1 CreateProjectResponse
+	err := c.Post(
+		MutationCreateProject,
+		&projResp1,
+		client.Var("title", "foo1"),
+		client.Var("description", "bar"),
+		client.Var("readme", "bah"),
+		client.Var("seed", 42),
+		client.Var("numberOfAccounts", initAccounts),
+	)
+	require.NoError(t, err)
+
+	// Deploy a contract
+	PersonContract := `pub contract Person {}`
+	var createContractResp CreateContractDeploymentResponse
+	err = c.Post(
+		MutationCreateContractDeployment,
+		&createContractResp,
+		client.Var("projectId", projResp1.CreateProject.ID),
+		client.Var("script", PersonContract),
+		client.Var("address", addr1),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	var flowJsonResp GetFlowJsonResponse
+	err = c.Post(
+		QueryGetFlowJson,
+		&flowJsonResp,
+		client.Var("projectId", projResp1.CreateProject.ID),
+		client.AddCookie(c.SessionCookie()),
+	)
+	require.NoError(t, err)
+
+	const Networks = `"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	}`
+
+	require.Contains(t, flowJsonResp.FlowJson, "FungibleToken")
+	require.Contains(t, flowJsonResp.FlowJson, Networks)
+	require.Contains(t, flowJsonResp.FlowJson, "Person")
 }

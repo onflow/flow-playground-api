@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 
 ## (1) Build the app binary
-FROM golang:1.18 AS build-app
+FROM golang:1.19 AS build-app
 
 ARG VERSION
 
@@ -22,9 +22,4 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 RUN chmod a+x /app/app
 
-## (2) Add the statically linked binary to a distroless image
-FROM gcr.io/distroless/base
-
-COPY --from=build-app /app/app /bin/app
-
-ENTRYPOINT ["/bin/app"]
+ENTRYPOINT ["/app/app"]

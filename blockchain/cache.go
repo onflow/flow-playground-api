@@ -24,8 +24,8 @@ import (
 )
 
 // newEmulatorCache returns a new instance of cache with provided capacity.
-func newEmulatorCache(capacity int) *emulatorCache {
-	return &emulatorCache{
+func newFlowKitCache(capacity int) *flowKitCache {
+	return &flowKitCache{
 		cache: lru.New(capacity),
 	}
 }
@@ -33,31 +33,31 @@ func newEmulatorCache(capacity int) *emulatorCache {
 // emulatorCache caches the emulator state.
 //
 // In the environment where multiple replicas maintain it's own cache copy it can get into multiple states:
-// - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
-//   then replica A needs to apply missed transaction execution 2 before continuing
-// - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
-//   doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
-//   executions that wasn't cleared
-type emulatorCache struct {
+//   - it can get stale because replica A receives transaction execution 1, and replica B receives transaction execution 2,
+//     then replica A needs to apply missed transaction execution 2 before continuing
+//   - it can be outdated because replica A receives project reset, which clears all executions and the cache, but replica B
+//     doesn't receive that request so on next run it receives 0 executions but cached emulator contains state from previous
+//     executions that wasn't cleared
+type flowKitCache struct {
 	cache *lru.Cache
 }
 
 // reset the cache for the ID.
-func (c *emulatorCache) reset(ID uuid.UUID) {
+func (c *flowKitCache) reset(ID uuid.UUID) {
 	c.cache.Remove(ID)
 }
 
 // get returns a cached emulator if exists, but also checks if it's stale.
-func (c *emulatorCache) get(ID uuid.UUID) *emulator {
+func (c *flowKitCache) get(ID uuid.UUID) *flowKit {
 	val, ok := c.cache.Get(ID)
 	if !ok {
 		return nil
 	}
 
-	return val.(*emulator)
+	return val.(*flowKit)
 }
 
 // add new entry in the cache.
-func (c *emulatorCache) add(ID uuid.UUID, emulator *emulator) {
-	c.cache.Add(ID, emulator)
+func (c *flowKitCache) add(ID uuid.UUID, fk *flowKit) {
+	c.cache.Add(ID, fk)
 }

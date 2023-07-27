@@ -20,8 +20,7 @@ package model
 
 import (
 	"github.com/google/uuid"
-	jsoncdc "github.com/onflow/cadence/encoding/json"
-	"github.com/onflow/flow-emulator/types"
+	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
 )
 
@@ -35,7 +34,13 @@ type ScriptExecution struct {
 	Logs      []string       `gorm:"serializer:json"`
 }
 
-func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, script string, arguments []string) *ScriptExecution {
+func ScriptExecutionFromFlow(
+	result cadence.Value,
+	logs []string,
+	projectID uuid.UUID,
+	script string,
+	arguments []string,
+) *ScriptExecution {
 	exe := &ScriptExecution{
 		File: File{
 			ID:        uuid.New(),
@@ -44,17 +49,20 @@ func ScriptExecutionFromFlow(result *types.ScriptResult, projectID uuid.UUID, sc
 			Script:    script,
 		},
 		Arguments: arguments,
-		Value:     "",
+		Value:     result.String(),
 		Errors:    nil,
-		Logs:      result.Logs,
+		Logs:      logs,
 	}
 
-	if result.Error != nil {
-		exe.Errors = ProgramErrorFromFlow(result.Error)
-	} else {
-		enc, _ := jsoncdc.Encode(result.Value)
-		exe.Value = string(enc)
-	}
+	/*
+		// TODO: Check result for errors
+		if result.Error != nil {
+			exe.Errors = ProgramErrorFromFlow(result.Error)
+		} else {
+			enc, _ := jsoncdc.Encode(result.Value)
+			exe.Value = string(enc)
+		}
+	*/
 
 	return exe
 }

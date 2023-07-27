@@ -21,6 +21,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
@@ -33,7 +34,6 @@ import (
 
 	"github.com/go-chi/httplog"
 
-	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/build"

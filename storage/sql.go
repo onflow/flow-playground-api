@@ -415,34 +415,6 @@ func (s *SQL) DeleteContractDeployment(deploy *model.ContractDeployment) error {
 	return s.db.Delete(deploy).Error
 }
 
-func (s *SQL) InsertContractDeploymentWithExecution(
-	deploy *model.ContractDeployment,
-	exe *model.TransactionExecution,
-) error {
-	var proj model.Project
-	if err := s.db.First(&proj, &model.Project{ID: exe.ProjectID}).Error; err != nil {
-		return err
-	}
-
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		exe.Index = proj.TransactionExecutionCount
-		proj.TransactionExecutionCount += 1
-		if err := tx.Save(proj).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Create(exe).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Create(deploy).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
 func (s *SQL) DeleteContractDeploymentByName(
 	projectID uuid.UUID,
 	address model.Address,
@@ -511,7 +483,7 @@ func (s *SQL) GetTransactionExecutionsForProject(projectID uuid.UUID, exes *[]*m
 
 func (s *SQL) TruncateDeploymentsAndExecutionsAtBlockHeight(projectID uuid.UUID, blockHeight int) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Where("project_id=? AND \"index\" >= ?", projectID, blockHeight-1).
+		err := tx.Where("project_id=? AND \"block_height\" >= ?", projectID, blockHeight).
 			Delete(&model.TransactionExecution{}).
 			Error
 		if err != nil {

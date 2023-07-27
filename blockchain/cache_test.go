@@ -42,19 +42,19 @@ func createExecutions(count int) []*model.TransactionExecution {
 
 func Test_Cache(t *testing.T) {
 
-	t.Run("returns cached emulator", func(t *testing.T) {
+	t.Run("returns cached flowKit", func(t *testing.T) {
 		testID := uuid.New()
-		c := newEmulatorCache(2)
+		c := newFlowKitCache(2)
 
-		em, err := newEmulator()
+		em, err := newFlowkit()
 		require.NoError(t, err)
 
 		c.add(testID, em)
 
-		cacheEm := c.get(testID)
-		require.NotNil(t, cacheEm)
+		cacheFlowKit := c.get(testID)
+		require.NotNil(t, cacheFlowKit)
 
-		cacheHeight, err := cacheEm.getLatestBlockHeight()
+		cacheHeight, err := cacheFlowKit.getLatestBlockHeight()
 		require.NoError(t, err)
 
 		height, err := em.getLatestBlockHeight()

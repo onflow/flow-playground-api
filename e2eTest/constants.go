@@ -97,6 +97,16 @@ type DeleteProjectResponse struct {
 	DeleteProject string
 }
 
+type ResetProjectResponse struct {
+	ResetProjectState string
+}
+
+const MutationResetProjectState = `
+mutation($projectId: UUID!) {
+  resetProjectState(projectId: $projectId)
+}
+`
+
 const MutationDeleteProject = `
 mutation($projectId: UUID!) {
   deleteProject(projectId: $projectId)
@@ -483,15 +493,17 @@ mutation CreateScriptExecution($projectId: UUID!, $script: String!, $arguments: 
 `
 
 const MutationCreateContractDeployment = `
-mutation($projectId: UUID!, $script: String!, $address: Address!) {
+mutation($projectId: UUID!, $script: String!, $address: Address!, $arguments: [String!]) {
   createContractDeployment(input: {
 	projectId: $projectId,
 	script: $script,
 	address: $address
+	arguments: $arguments
   }) {
     id
 	title
     script
+    arguments
     address
 	blockHeight
     errors {
@@ -545,6 +557,7 @@ type CreateContractDeploymentResponse struct {
 		ID          string
 		Title       string
 		Script      string
+		Arguments   []string
 		Address     string
 		BlockHeight int
 		Errors      []model.ProgramError
@@ -629,6 +642,16 @@ mutation($templateId: UUID!, $projectId: UUID!) {
 
 type DeleteScriptTemplateResponse struct {
 	DeleteScriptTemplate string
+}
+
+const QueryGetFlowJson = `
+query($projectId: UUID!) {
+  flowJson(projectId: $projectId)
+}
+`
+
+type GetFlowJsonResponse struct {
+	FlowJson string
 }
 
 // todo add tests for:

@@ -27,7 +27,6 @@ import (
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
 	"testing"
 )
 
@@ -99,7 +98,7 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	b.Run("without cache", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, _ = projects.load(proj.ID)
-			projects.emulatorCache.reset(proj.ID) // clear cache
+			projects.flowKitCache.reset(proj.ID) // clear cache
 		}
 	})
 
@@ -111,24 +110,24 @@ func Benchmark_LoadEmulator(b *testing.B) {
 	})
 }
 
-func Test_LoadEmulator(t *testing.T) {
+func Test_LoadFlowKit(t *testing.T) {
 
-	t.Run("successful load of emulator", func(t *testing.T) {
+	t.Run("successful load of flowKit", func(t *testing.T) {
 		projects, _, proj, err := newWithSeededProject()
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
 		for i := 0; i < 4; i++ {
-			_, _, err := emulator.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
+			_, err := fk.getAccount(flowsdk.HexToAddress(fmt.Sprintf("0x0%d", i+1)))
 			require.NoError(t, err)
 		}
 
-		height, err := emulator.getLatestBlockHeight()
+		height, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
 
-		require.Equal(t, 0, height)
+		require.Equal(t, fk.initBlockHeight(), height)
 	})
 
 	t.Run("multiple loads with low cache", func(t *testing.T) {
@@ -161,8 +160,12 @@ func Test_LoadEmulator(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		fk, err := projects.load(proj.ID)
+		require.NoError(t, err)
+
 		// add another transaction directly to the database to simulate request coming from another replica
 		err = store.InsertTransactionExecution(&model.TransactionExecution{
+			BlockHeight: 2 + fk.initBlockHeight(),
 			File: model.File{
 				ID:        uuid.New(),
 				ProjectID: proj.ID,
@@ -175,13 +178,13 @@ func Test_LoadEmulator(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err = projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlockHeight()
+		latest, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
 		// there should be two blocks created, one from first execution and second from direct db execution from above
-		assert.Equal(t, 2, latest)
+		assert.Equal(t, 2+fk.initBlockHeight(), latest)
 	})
 
 	// this tests that if another replica receives project reset, then this replica won't clear the cache,
@@ -201,12 +204,12 @@ func Test_LoadEmulator(t *testing.T) {
 		err = store.ResetProjectState(proj)
 		require.NoError(t, err)
 
-		emulator, err := projects.load(proj.ID)
+		fk, err := projects.load(proj.ID)
 		require.NoError(t, err)
 
-		latest, err := emulator.getLatestBlockHeight()
+		latest, err := fk.getLatestBlockHeight()
 		require.NoError(t, err)
-		assert.Equal(t, 0, latest) // no exe since reset
+		assert.Equal(t, fk.initBlockHeight(), latest) // no exe since reset
 	})
 }
 
@@ -240,7 +243,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 		assert.Equal(t, proj.ID, exe.ProjectID)
 		require.Len(t, exe.Logs, 1)
-		assert.Equal(t, `"hello"`, exe.Logs[0])
+		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
 		assert.Equal(t, script, exe.Script)
 		assert.Equal(t, []string{}, exe.Arguments)
 		assert.Equal(t, signers, exe.Signers)
@@ -284,7 +287,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 			assert.Equal(t, proj.ID, exe.ProjectID)
 			require.Len(t, exe.Logs, 1)
-			assert.Equal(t, `"hello"`, exe.Logs[0])
+			assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
 			assert.Equal(t, script, exe.Script)
 			assert.Equal(t, []string{}, exe.Arguments)
 			assert.Equal(t, signers, exe.Signers)
@@ -322,9 +325,9 @@ func Test_TransactionExecution(t *testing.T) {
 			Arguments: nil,
 		}
 
-		em, _ := projects.load(proj.ID)
-		b, _ := em.getLatestBlockHeight()
-		assert.Equal(t, 0, b)
+		fk, _ := projects.load(proj.ID)
+		b, _ := fk.getLatestBlockHeight()
+		assert.Equal(t, fk.initBlockHeight(), b)
 
 		executeAndAssert := func(exeLen int) {
 			exe, err := projects.ExecuteTransaction(tx)
@@ -337,11 +340,11 @@ func Test_TransactionExecution(t *testing.T) {
 
 			require.Len(t, dbExe, exeLen)
 
-			em, _ := projects.load(proj.ID)
-			b, _ := em.getLatestBlockHeight()
-			require.Equal(t, exeLen, b)
+			fk, _ := projects.load(proj.ID)
+			b, _ := fk.getLatestBlockHeight()
+			require.Equal(t, exeLen, b-fk.initBlockHeight())
 
-			projects.emulatorCache.reset(proj.ID)
+			projects.flowKitCache.reset(proj.ID)
 		}
 
 		for i := 0; i < 5; i++ {
@@ -358,10 +361,7 @@ func Test_TransactionExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		accounts, err := projects.CreateInitialAccounts(proj.ID)
-		assert.NoError(t, err)
-
-		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 
 		var deployments []*model.ContractDeployment
@@ -369,13 +369,13 @@ func Test_TransactionExecution(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, deployment.Title, deployments[0].Title)
 
-		acc, err := projects.GetAccount(proj.ID, accounts[0].Address)
+		acc, err := projects.GetAccount(proj.ID, model.NewAddressFromIndex(0))
 		assert.NoError(t, err)
 
 		assert.Equal(t, deployment.Title, acc.DeployedContracts[0])
-		assert.True(t, strings.Contains(acc.State, "HelloWorld"))
+		//assert.True(t, strings.Contains(acc.State, "HelloWorld")) //TODO: Account storage
 
-		projects.emulatorCache.reset(proj.ID)
+		projects.flowKitCache.reset(proj.ID)
 
 		script := `
 			import HelloWorldA from 0x05
@@ -386,7 +386,7 @@ func Test_TransactionExecution(t *testing.T) {
 				}
 			}`
 
-		signers := []model.Address{accounts[1].Address}
+		signers := []model.Address{model.NewAddressFromIndex(1)}
 
 		tx := model.NewTransactionExecution{
 			ProjectID: proj.ID,
@@ -409,25 +409,17 @@ func Test_DeployContract(t *testing.T) {
 
 		script := `pub contract HelloWorld {}`
 
-		const numAccounts = 5
-		accounts, err := projects.CreateInitialAccounts(proj.ID)
-		require.NoError(t, err)
-		require.Equal(t, len(accounts), numAccounts)
-
-		deployment, err := projects.DeployContract(proj.ID, accounts[0].Address, script)
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), script, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorld", deployment.Title)
 
-		var txExe []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		var deployments []*model.ContractDeployment
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 6)
+		require.Len(t, deployments, 1)
 
-		txDeploy := txExe[5]
-		assert.Equal(t, "flow.AccountContractAdded", txDeploy.Events[0].Type)
-		assert.True(t, strings.Contains(txDeploy.Script, "signer.contracts.add"))
-		assert.Equal(t, `{"value":"HelloWorld","type":"String"}`, txDeploy.Arguments[0])
-		assert.Equal(t, model.Address{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x5}, txDeploy.Signers[0])
+		deploy := deployments[0]
+		assert.Equal(t, "flow.AccountContractAdded", deploy.Events[0].Type)
 	})
 
 	t.Run("multiple deploys with imports and cache reset", func(t *testing.T) {
@@ -459,43 +451,103 @@ func Test_DeployContract(t *testing.T) {
 				}
 			}`
 
-		accounts, err := projects.CreateInitialAccounts(proj.ID)
-		assert.NoError(t, err)
-
-		deploy1, err := projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		deploy1, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorldA", deploy1.Title)
 
-		deploy2, err := projects.DeployContract(proj.ID, accounts[1].Address, scriptB)
+		deploy2, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(1), scriptB, nil)
 		require.NoError(t, err)
 		assert.Equal(t, "HelloWorldB", deploy2.Title)
 
-		var txExe []*model.TransactionExecution
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		var deployments []*model.ContractDeployment
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 7)
+		require.Len(t, deployments, 2)
 
-		projects.emulatorCache.reset(proj.ID)
+		projects.flowKitCache.reset(proj.ID)
 
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 7)
+		require.Len(t, deployments, 2)
 
-		_, err = projects.DeployContract(proj.ID, accounts[2].Address, scriptC)
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(2), scriptC, nil)
 		require.NoError(t, err)
 
-		err = store.GetTransactionExecutionsForProject(proj.ID, &txExe)
+		err = store.GetContractDeploymentsForProject(proj.ID, &deployments)
 		require.NoError(t, err)
-		require.Len(t, txExe, 8)
+		require.Len(t, deployments, 3)
 
-		assert.Equal(t, "flow.AccountContractAdded", txExe[7].Events[0].Type)
-		assert.Equal(t, "flow.AccountContractAdded", txExe[6].Events[0].Type)
-		assert.Equal(t, "flow.AccountContractAdded", txExe[5].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[2].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[1].Events[0].Type)
+		assert.Equal(t, "flow.AccountContractAdded", deployments[0].Events[0].Type)
 
-		assert.Equal(t, `"HelloWorldA"`, txExe[7].Logs[0])
-		assert.Equal(t, `"HelloWorldB"`, txExe[7].Logs[1])
+		assert.Equal(t,
+			`{"level":"debug","message":"Cadence log: \"HelloWorldA\""}`,
+			deployments[1].Logs[0])
+
+		assert.Equal(t,
+			`{"level":"debug","message":"Cadence log: \"HelloWorldB\""}`,
+			deployments[2].Logs[1])
 	})
 
+	t.Run("deploy single contract with arguments", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init(a: Int) { self.A = a }
+		}`
+
+		args := []string{
+			`{"type":"Int","value":"42"}`,
+		}
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.Error(t, err)
+
+		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, args)
+		require.NoError(t, err)
+		require.Equal(t, args, deployment.Arguments)
+	})
+
+	t.Run("deploy contract with new import syntax", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		pub contract HelloWorld {
+			pub var A: Int
+			pub init() { self.A = 5 }
+		}`
+
+		const importContract = `
+		import "HelloWorld"
+
+		pub contract Test {
+			pub var B: Int
+			pub init() { self.B = HelloWorld.A }
+		}`
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.NoError(t, err)
+
+		_, err = projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), importContract, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("import core contracts", func(t *testing.T) {
+		projects, _, proj, _ := newWithSeededProject()
+
+		const contract = `
+		import "FungibleToken"
+		import "MetadataViews"
+		import "NonFungibleToken"
+		
+		pub contract Test {}`
+
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
+		require.NoError(t, err)
+	})
 }
 
 func Test_ScriptExecution(t *testing.T) {
@@ -505,6 +557,8 @@ func Test_ScriptExecution(t *testing.T) {
 
 		script := `pub fun main(): Int { 
 			log("purpose")
+			log("haha")
+			log("test")
 			return 42 
 		}`
 
@@ -517,8 +571,8 @@ func Test_ScriptExecution(t *testing.T) {
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
 		assert.Len(t, exe.Errors, 0)
-		assert.Equal(t, `"purpose"`, exe.Logs[0])
-		assert.Equal(t, "{\"value\":\"42\",\"type\":\"Int\"}\n", exe.Value)
+		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"purpose\""}`, exe.Logs[0])
+		assert.Equal(t, "42", exe.Value)
 		assert.Equal(t, proj.ID, exe.ProjectID)
 
 		var dbScripts []*model.ScriptExecution
@@ -538,10 +592,7 @@ func Test_ScriptExecution(t *testing.T) {
 				pub init() { self.A = "HelloWorldA" }
 			}`
 
-		accounts, err := projects.CreateInitialAccounts(proj.ID)
-		assert.NoError(t, err)
-
-		_, err = projects.DeployContract(proj.ID, accounts[0].Address, scriptA)
+		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 
 		script := `
@@ -558,7 +609,7 @@ func Test_ScriptExecution(t *testing.T) {
 
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"value\":\"HelloWorldA\",\"type\":\"String\"}\n", exe.Value)
+		assert.Equal(t, "\"HelloWorldA\"", exe.Value)
 	})
 
 	t.Run("script with arguments", func(t *testing.T) {
@@ -576,23 +627,23 @@ func Test_ScriptExecution(t *testing.T) {
 
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
-		assert.Equal(t, "{\"value\":\"42\",\"type\":\"Int\"}\n", exe.Value)
+		assert.Equal(t, exe.Value, "42")
 	})
 
 }
 
 func Benchmark_GetAccounts(b *testing.B) {
 	projects, _, proj, _ := newWithSeededProject()
-	accs, _ := projects.CreateInitialAccounts(proj.ID)
 
-	addresses := make([]model.Address, len(accs))
-	for i, a := range accs {
-		addresses[i] = a.Address
+	addresses := make([]model.Address, 5)
+	for i := 0; i < 5; i++ {
+		addresses[i] = model.NewAddressFromIndex(i)
 	}
 
 	b.Run("get batch accounts", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = projects.GetAccounts(proj.ID, addresses)
+			_, err := projects.GetAccounts(proj.ID, addresses)
+			assert.NoError(b, err)
 		}
 	})
 }

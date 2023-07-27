@@ -20,7 +20,6 @@ package model
 
 import (
 	"github.com/google/uuid"
-	"github.com/onflow/flow-emulator/types"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"
 )
@@ -30,6 +29,7 @@ type ContractTemplate = File
 type ContractDeployment struct {
 	File
 	Address     Address        `gorm:"serializer:json"`
+	Arguments   []string       `gorm:"serializer:json"`
 	BlockHeight int            `json:"blockHeight"`
 	Errors      []ProgramError `gorm:"serializer:json"`
 	Events      []Event        `gorm:"serializer:json"`
@@ -40,8 +40,10 @@ func ContractDeploymentFromFlow(
 	projectID uuid.UUID,
 	contractName string,
 	script string,
-	result *types.TransactionResult,
+	arguments []string,
+	result *flowsdk.TransactionResult,
 	tx *flowsdk.Transaction,
+	logs []string,
 	blockHeight int,
 ) *ContractDeployment {
 	signers := make([]Address, 0)
@@ -60,11 +62,12 @@ func ContractDeploymentFromFlow(
 			Type:      ContractFile,
 			Script:    script,
 		},
+		Arguments:   arguments,
 		Address:     signers[0],
 		BlockHeight: blockHeight,
 		Errors:      nil,
 		Events:      nil,
-		Logs:        result.Logs,
+		Logs:        logs,
 	}
 
 	if result.Events != nil {
