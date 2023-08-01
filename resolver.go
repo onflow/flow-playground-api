@@ -102,6 +102,7 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
+		fmt.Println("Project access not authorized:", err.Error())
 		return userErr.NewUserError("not authorized")
 	}
 
@@ -128,6 +129,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	fmt.Println("Update Project()")
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
+		fmt.Println("Failed to authorize:", err.Error())
 		return nil, err
 	}
 	fmt.Println("Update Project(): Authorized successfully")
