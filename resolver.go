@@ -20,6 +20,7 @@ package playground
 
 import (
 	"context"
+	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -95,8 +96,8 @@ type mutationResolver struct {
 
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	proj, err := r.projects.Get(ID)
-
 	if err != nil {
+		fmt.Println("Failed to get project:", err.Error())
 		return errors.Wrap(err, "failed to get project")
 	}
 
