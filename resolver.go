@@ -125,17 +125,21 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
+	fmt.Println("Update Project()")
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Update Project(): Authorized successfully")
 
 	if err := validateUpdate(&input); err != nil {
+		fmt.Println("Failed to Validation Update:", err.Error())
 		return nil, err
 	}
 
 	proj, err := r.projects.Update(input)
 	if err != nil {
+		fmt.Println("Failed to update project: ", err.Error())
 		return nil, errors.Wrap(err, "failed to update project")
 	}
 
