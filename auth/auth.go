@@ -102,21 +102,22 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 
 	session := sessions.Get(ctx, a.sessionName)
 
-	if !session.IsNew {
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err != nil {
-			return errors.New("access denied")
-		}
+	user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+	if err != nil {
+		fmt.Println("Failed to get current user: ", err.Error())
+		return errors.New("access denied")
 	}
 
 	if a.hasProjectAccess(user, proj) {
 		err = sessions.Save(ctx, session)
 		if err != nil {
+			fmt.Println("Failed to Save Session: ", err.Error())
 			return errors.New("access denied")
 		}
 
 		return nil
 	}
+	fmt.Println("User does not have Project Access")
 
 	if a.hasLegacyProjectAccess(ctx, proj) {
 		user, err = a.migrateLegacyProjectAccess(user, proj)
