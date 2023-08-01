@@ -141,10 +141,11 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 	fmt.Println("Projects.Get()")
 	err := p.store.ProjectAccessed(id)
 	if err != nil {
-		fmt.Println("Failed to update accessed time:", err.Error())
+		fmt.Println("Projects.Get(): Failed to update accessed time:", err.Error())
 		return nil, errors.Wrap(err, "failed to update project accessed time")
 	}
 
+	fmt.Println("Projects.Get(): Getting Project from Store")
 	var proj model.Project
 	err = p.store.GetProject(id, &proj)
 	if err != nil {
@@ -152,6 +153,7 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
+	fmt.Println("Projects.Get(): Returning project")
 	return &proj, nil
 }
 

@@ -140,19 +140,23 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
+	fmt.Println("getCurrentUser()")
 	var user model.User
 	var userID uuid.UUID
 
 	err := userID.UnmarshalText([]byte(userIDStr))
 	if err != nil {
+		fmt.Println("failed to unmarshal userIDStr")
 		return nil, errors.Wrap(err, "failed to unmarshal userIDStr")
 	}
 
 	err = a.store.GetUser(userID, &user)
 	if err != nil {
+		fmt.Println("Failed to get user from db", err.Error())
 		return nil, errors.Wrap(err, "failed to get user from db")
 	}
 
+	fmt.Println("Returning User")
 	return &user, nil
 }
 

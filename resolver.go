@@ -95,17 +95,20 @@ type mutationResolver struct {
 }
 
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
+	fmt.Println("authorize()")
 	proj, err := r.projects.Get(ID)
 	if err != nil {
 		fmt.Println("Failed to get project:", err.Error())
 		return errors.Wrap(err, "failed to get project")
 	}
 
+	fmt.Println("authorize(): Check Project Access")
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
 		fmt.Println("Project access not authorized:", err.Error())
 		return userErr.NewUserError("not authorized")
 	}
 
+	fmt.Println("No authorize error")
 	return nil
 }
 
@@ -129,7 +132,7 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input model.Update
 	fmt.Println("Update Project()")
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
-		fmt.Println("Failed to authorize:", err.Error())
+		fmt.Println("Update Project(): Failed to authorize:", err.Error())
 		return nil, err
 	}
 	fmt.Println("Update Project(): Authorized successfully")

@@ -145,6 +145,7 @@ func (s *SQL) CreateProject(proj *model.Project, files []*model.File) error {
 }
 
 func (s *SQL) ProjectAccessed(id uuid.UUID) error {
+	fmt.Println("SQL: ProjectAccessed()")
 	update := make(map[string]any)
 	update["accessed_at"] = time.Now()
 	return s.db.Model(&model.Project{ID: id}).Updates(update).Error
@@ -269,6 +270,7 @@ func (s *SQL) DeleteProject(id uuid.UUID) error {
 }
 
 func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
+	fmt.Println("SQL: GetProject()")
 	return s.db.First(proj, id).Error
 }
 
