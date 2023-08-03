@@ -49,17 +49,13 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	fmt.Println("Session Get()")
 	store := ctx.Value(sessionCtxKeySession).(sessions.Store)
-	fmt.Println("Session Get(): Got Store")
 
 	// ignore error because a session is always returned even if one does not exist
 	session, err := store.Get(httpcontext.Request(ctx), name)
 	if err != nil {
 		fmt.Println("Session Store.Get error:", err.Error())
 	}
-
-	fmt.Println("Got Session")
 
 	return session
 }

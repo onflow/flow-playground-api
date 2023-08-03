@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"reflect"
 
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
@@ -104,6 +105,10 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 	session := sessions.Get(ctx, a.sessionName)
 
 	fmt.Println("Check Project Access(): getCurrentUser")
+	fmt.Println("Session.Values:", session.Values)
+	fmt.Println("Session.Values[userIDKey]:", session.Values[userIDKey])
+	fmt.Println("Typeof Session.Values[userIDKey]", reflect.TypeOf(session.Values[userIDKey]))
+	fmt.Println("session.Values[userIDKey].(string)", session.Values[userIDKey].(string))
 	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {
 		fmt.Println("Failed to get current user: ", err.Error())
