@@ -97,17 +97,21 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
-	fmt.Println("Check Project Access")
-	var user *model.User
+	fmt.Println("Check Project Access()")
+	//var user *model.User
 	var err error
 
 	session := sessions.Get(ctx, a.sessionName)
 
-	user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+	fmt.Println("Check Project Access(): getCurrentUser")
+	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {
 		fmt.Println("Failed to get current user: ", err.Error())
 		return errors.New("access denied")
 	}
+
+	fmt.Println("UserID:", user.ID)
+	fmt.Println("Check Project Access(): got current user")
 
 	if a.hasProjectAccess(user, proj) {
 		err = sessions.Save(ctx, session)
@@ -116,6 +120,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 			return errors.New("access denied")
 		}
 
+		fmt.Println("Check Project Access(): user has access")
 		return nil
 	}
 	fmt.Println("User does not have Project Access")
