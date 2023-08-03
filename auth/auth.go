@@ -21,14 +21,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
-	"reflect"
-
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 // An Authenticator manages user authentication for the Playground API.
@@ -67,10 +65,12 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	if !session.IsNew {
 		// Try to load existing user
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err == nil {
-			fmt.Printf("Failed to load user id %s from session\n", session.Values[userIDKey].(string))
-			userLoaded = true
+		if session.Values[userIDKey] != nil {
+			user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+			if err == nil {
+				fmt.Printf("Failed to load user id %s from session\n", session.Values[userIDKey].(string))
+				userLoaded = true
+			}
 		}
 	}
 
@@ -99,24 +99,21 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
 	fmt.Println("Check Project Access()")
-	//var user *model.User
-	var err error
 
 	session := sessions.Get(ctx, a.sessionName)
 
-	fmt.Println("Check Project Access(): getCurrentUser")
-	fmt.Println("Session.Values:", session.Values)
-	fmt.Println("Session.Values[userIDKey]:", session.Values[userIDKey])
-	fmt.Println("Typeof Session.Values[userIDKey]", reflect.TypeOf(session.Values[userIDKey]))
+	if session.Values[userIDKey] == nil {
+		fmt.Println("No userIDKey in session")
+		return errors.New("no userIdKey found in session")
+	}
 	fmt.Println("session.Values[userIDKey].(string)", session.Values[userIDKey].(string))
+
 	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {
-		fmt.Println("Failed to get current user: ", err.Error())
 		return errors.New("access denied")
 	}
 
 	fmt.Println("UserID:", user.ID)
-	fmt.Println("Check Project Access(): got current user")
 
 	if a.hasProjectAccess(user, proj) {
 		err = sessions.Save(ctx, session)

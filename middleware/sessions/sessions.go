@@ -54,8 +54,10 @@ func Get(ctx context.Context, name string) *sessions.Session {
 	// ignore error because a session is always returned even if one does not exist
 	session, err := store.Get(httpcontext.Request(ctx), name)
 	if err != nil {
-		fmt.Println("Session Store.Get error:", err.Error())
+		fmt.Println("invalid cookie:", err.Error())
 	}
+
+	// TODO: No cached session is present causing no userIDKey to be there
 
 	return session
 }

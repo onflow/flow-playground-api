@@ -115,8 +115,10 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
+		fmt.Println("Failed to get or create user in CreateProject()")
 		return nil, errors.Wrap(err, "failed to get or create user")
 	}
+	fmt.Println("CreateProject() user is: ", user.ID.String())
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
