@@ -25,6 +25,7 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -68,7 +69,8 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 		if session.Values[userIDKey] != nil {
 			user, err = a.getCurrentUser(session.Values[userIDKey].(string))
 			if err != nil {
-				fmt.Printf("Failed to load user id %s from session\n", session.Values[userIDKey].(string))
+				sentry.CaptureException(errors.New(fmt.Sprintf(
+					"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
 			} else {
 				userLoaded = true
 			}
@@ -99,12 +101,9 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
-	fmt.Println("Check Project Access()")
-
 	session := sessions.Get(ctx, a.sessionName)
 
 	if session.Values[userIDKey] == nil {
-		fmt.Println("No userIDKey in session")
 		return errors.New("no userIdKey found in session")
 	}
 
@@ -113,19 +112,14 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 		return errors.New("access denied")
 	}
 
-	fmt.Println("UserID:", user.ID)
-
 	if a.hasProjectAccess(user, proj) {
 		err = sessions.Save(ctx, session)
 		if err != nil {
-			fmt.Println("Failed to Save Session: ", err.Error())
 			return errors.New("access denied")
 		}
 
-		fmt.Println("Check Project Access(): user has access")
 		return nil
 	}
-	fmt.Println("User does not have Project Access")
 
 	if a.hasLegacyProjectAccess(ctx, proj) {
 		user, err = a.migrateLegacyProjectAccess(user, proj)
@@ -147,23 +141,19 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 }
 
 func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
-	fmt.Println("getCurrentUser()")
 	var user model.User
 	var userID uuid.UUID
 
 	err := userID.UnmarshalText([]byte(userIDStr))
 	if err != nil {
-		fmt.Println("failed to unmarshal userIDStr")
 		return nil, errors.Wrap(err, "failed to unmarshal userIDStr")
 	}
 
 	err = a.store.GetUser(userID, &user)
 	if err != nil {
-		fmt.Println("Failed to get user from db", err.Error())
 		return nil, errors.Wrap(err, "failed to get user from db")
 	}
 
-	fmt.Println("Returning User")
 	return &user, nil
 }
 
