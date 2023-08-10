@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
-	playgroundErrors "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -73,8 +72,6 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 			} else {
 				userLoaded = true
 			}
-		} else {
-			return nil, playgroundErrors.NewAuthorizationError("userID is missing from existing session")
 		}
 	}
 
@@ -90,7 +87,6 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	err = sessions.Save(ctx, session)
 	if err != nil {
-		fmt.Println("FAILED TO UPDATE SESSION")
 		return nil, errors.Wrap(err, "failed to update session")
 	}
 
@@ -111,7 +107,6 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 		fmt.Println("No userIDKey in session")
 		return errors.New("no userIdKey found in session")
 	}
-	fmt.Println("session.Values[userIDKey].(string)", session.Values[userIDKey].(string))
 
 	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {

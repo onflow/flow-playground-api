@@ -40,13 +40,16 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), sessionCtxKeySession, store)
 
-			fmt.Println("Request: ", r.Header)
+			fmt.Println("Cookies:", r.Cookies())
+			if len(r.Cookies()) == 0 {
+				fmt.Println("COOKIES MISSING FROM REQUEST")
+			}
 
-			fmt.Println("Sessions Middleware Handler:")
 			session, err := store.Get(r, "flow-playground")
 			if err != nil {
 				fmt.Println("    error getting flow-playground session:", err.Error())
 			}
+
 			fmt.Println("    Session Values:", session.Values)
 			r = r.WithContext(ctx)
 
