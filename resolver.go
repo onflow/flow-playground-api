@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -95,30 +94,23 @@ type mutationResolver struct {
 }
 
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
-	fmt.Println("authorize()")
 	proj, err := r.projects.Get(ID)
 	if err != nil {
-		fmt.Println("Failed to get project:", err.Error())
 		return errors.Wrap(err, "failed to get project")
 	}
 
-	fmt.Println("authorize(): Check Project Access")
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-		fmt.Println("Project access not authorized:", err.Error())
 		return userErr.NewUserError("not authorized")
 	}
 
-	fmt.Println("No authorize error")
 	return nil
 }
 
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		fmt.Println("Failed to get or create user in CreateProject()")
 		return nil, errors.Wrap(err, "failed to get or create user")
 	}
-	fmt.Println("CreateProject() user is: ", user.ID.String())
 
 	proj, err := r.projects.Create(user, input)
 	if err != nil {
@@ -131,22 +123,17 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewPro
 }
 
 func (r *mutationResolver) UpdateProject(ctx context.Context, input model.UpdateProject) (*model.Project, error) {
-	fmt.Println("Update Project()")
 	err := r.authorize(ctx, input.ID)
 	if err != nil {
-		fmt.Println("Update Project(): Failed to authorize:", err.Error())
 		return nil, err
 	}
-	fmt.Println("Update Project(): Authorized successfully")
 
 	if err := validateUpdate(&input); err != nil {
-		fmt.Println("Failed to Validation Update:", err.Error())
 		return nil, err
 	}
 
 	proj, err := r.projects.Update(input)
 	if err != nil {
-		fmt.Println("Failed to update project: ", err.Error())
 		return nil, errors.Wrap(err, "failed to update project")
 	}
 
