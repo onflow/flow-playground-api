@@ -40,6 +40,8 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), sessionCtxKeySession, store)
 
+			fmt.Println("Request: ", r.Header)
+
 			fmt.Println("Sessions Middleware Handler:")
 			session, err := store.Get(r, "flow-playground")
 			if err != nil {
