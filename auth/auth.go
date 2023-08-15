@@ -21,13 +21,13 @@ package auth
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
-
 	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/getsentry/sentry-go"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 // An Authenticator manages user authentication for the Playground API.
@@ -66,10 +66,14 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	if !session.IsNew {
 		// Try to load existing user
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err == nil {
-			fmt.Printf("Failed to load user id %s from session\n", session.Values[userIDKey].(string))
-			userLoaded = true
+		if session.Values[userIDKey] != nil {
+			user, err = a.getCurrentUser(session.Values[userIDKey].(string))
+			if err != nil {
+				sentry.CaptureException(errors.New(fmt.Sprintf(
+					"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
+			} else {
+				userLoaded = true
+			}
 		}
 	}
 
@@ -97,16 +101,15 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
-	var user *model.User
-	var err error
-
 	session := sessions.Get(ctx, a.sessionName)
 
-	if !session.IsNew {
-		user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-		if err != nil {
-			return errors.New("access denied")
-		}
+	if session.Values[userIDKey] == nil {
+		return errors.New("no userIdKey found in session")
+	}
+
+	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
+	if err != nil {
+		return errors.New("access denied")
 	}
 
 	if a.hasProjectAccess(user, proj) {

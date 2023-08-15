@@ -99,7 +99,6 @@ func newSQL(dial gorm.Dialector, level logger.LogLevel) *SQL {
 }
 
 func migrate(db *gorm.DB) {
-	fmt.Println("Running database auto migration")
 	err := db.AutoMigrate(
 		&model.Project{},
 		&model.File{},

@@ -95,7 +95,6 @@ type mutationResolver struct {
 
 func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	proj, err := r.projects.Get(ID)
-
 	if err != nil {
 		return errors.Wrap(err, "failed to get project")
 	}
