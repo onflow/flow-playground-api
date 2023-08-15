@@ -19,7 +19,6 @@
 package e2eTest
 
 import (
-	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,62 +27,6 @@ import (
 )
 
 func TestAuthentication(t *testing.T) {
-	t.Run("Migrate legacy auth", func(t *testing.T) {
-		c := newClient()
-
-		project := createProject(t, c)
-
-		var respA UpdateProjectResponse
-
-		oldSessionCookie := c.SessionCookie()
-
-		// clear session cookie before making request
-		c.ClearSessionCookie()
-
-		err := c.Post(
-			MutationUpdateProjectPersist,
-			&respA,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", true),
-			client.AddCookie(legacyauth.MockProjectSessionCookie(project.ID, project.Secret)),
-		)
-		require.NoError(t, err)
-
-		assert.Equal(t, project.ID, respA.UpdateProject.ID)
-		assert.Equal(t, project.Title, respA.UpdateProject.Title)
-		assert.Equal(t, project.Description, respA.UpdateProject.Description)
-		assert.Equal(t, project.Readme, respA.UpdateProject.Readme)
-		assert.True(t, respA.UpdateProject.Persist)
-
-		// a new session cookie should be set
-		require.NotNil(t, c.SessionCookie())
-		assert.NotEqual(t, oldSessionCookie.Value, c.SessionCookie().Value)
-
-		var respB UpdateProjectResponse
-
-		err = c.Post(
-			MutationUpdateProjectPersist,
-			&respB,
-			client.Var("projectId", project.ID),
-			client.Var("title", project.Title),
-			client.Var("description", project.Description),
-			client.Var("readme", project.Readme),
-			client.Var("persist", false),
-			client.AddCookie(c.SessionCookie()),
-		)
-		require.NoError(t, err)
-
-		// should be able to perform update using new session cookie
-		assert.Equal(t, project.ID, respB.UpdateProject.ID)
-		assert.Equal(t, project.Title, respB.UpdateProject.Title)
-		assert.Equal(t, project.Description, respB.UpdateProject.Description)
-		assert.Equal(t, project.Readme, respB.UpdateProject.Readme)
-		assert.False(t, respB.UpdateProject.Persist)
-	})
-
 	t.Run("Create project with malformed session cookie", func(t *testing.T) {
 		c := newClient()
 
