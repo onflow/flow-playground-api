@@ -272,6 +272,7 @@ func (s *SQL) GetProject(id uuid.UUID, proj *model.Project) error {
 }
 
 func (s *SQL) GetAllProjectsForUser(userID uuid.UUID, proj *[]*model.Project) error {
+	fmt.Println("SQL: GetAllProjectsForUser()")
 	return s.db.Where(&model.Project{UserID: userID}).
 		Order("\"updated_at\" desc").
 		Find(proj).Error

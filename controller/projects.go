@@ -153,12 +153,14 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 }
 
 func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authenticator, ctx context.Context) (*model.ProjectList, error) {
+	fmt.Println("GetProjectListForUser()")
 	var projects []*model.Project
 	err := p.store.GetAllProjectsForUser(userID, &projects)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get projects for user "+userID.String())
 	}
 
+	fmt.Println("GetProjectListForUser(): exporting projects")
 	exportedProjects := make([]*model.Project, len(projects))
 
 	for i, proj := range projects {
