@@ -171,6 +171,7 @@ func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authentica
 		}
 	}
 
+	fmt.Println("GetProjectListForUser(): returning", len(exportedProjects), "projects")
 	return &model.ProjectList{Projects: exportedProjects}, nil
 }
 
