@@ -468,6 +468,7 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
+	fmt.Println("ProjectList(): Returning project list to query resolver")
 	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
 
