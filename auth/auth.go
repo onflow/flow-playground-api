@@ -89,6 +89,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	err = sessions.Save(ctx, session)
 	if err != nil {
+		fmt.Println("Failed to save session!")
 		return nil, errors.Wrap(err, "failed to update session")
 	}
 

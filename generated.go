@@ -5129,6 +5129,7 @@ func (ec *executionContext) _Query_projectList(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.ProjectList)
 	fc.Result = res
+	fmt.Println("Generated Result:", res.Projects)
 	return ec.marshalNProjectList2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProjectList(ctx, field.Selections, res)
 }
 
