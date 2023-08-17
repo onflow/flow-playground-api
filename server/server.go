@@ -44,7 +44,6 @@ import (
 	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
 	"github.com/dapperlabs/flow-playground-api/storage"
 
-	gqlPlayground "github.com/99designs/gqlgen/graphql/playground"
 	"github.com/Masterminds/semver"
 	stackdriver "github.com/TV4/logrus-stackdriver-formatter"
 	"github.com/getsentry/sentry-go"
@@ -115,7 +114,7 @@ func main() {
 	if conf.Debug {
 		logger := httplog.NewLogger("playground-api", httplog.Options{Concise: true, JSON: true})
 		router.Use(httplog.RequestLogger(logger))
-		router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
+		//router.Handle("/", gqlPlayground.Handler("GraphQL playground", "/query"))
 	}
 
 	if config.Telemetry().TracingEnabled {
