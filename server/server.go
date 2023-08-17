@@ -165,6 +165,7 @@ func main() {
 		defer func() {
 			err := recover()
 			if err != nil {
+				fmt.Println("Server Recover: ", err)
 				localHub.Recover(err)
 				sentry.Flush(time.Second * 5)
 			}

@@ -58,14 +58,14 @@ func SetCookieStore(cookieStore *sessions.CookieStore) {
 func Get(ctx context.Context, name string) *sessions.Session {
 	// TODO: Store panics on dereference
 	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
-	// TODO: Does cookieStore need a mutex?!?
 	//store := ctx.Value(sessionCtxKeySession).(sessions.Store)
 	//fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
 
-	//store := CookieStore
-
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)
+	if session == nil {
+		fmt.Println("SESSION IS NIL!")
+	}
 
 	return session
 }
