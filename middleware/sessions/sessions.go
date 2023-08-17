@@ -67,6 +67,11 @@ func Get(ctx context.Context, name string) *sessions.Session {
 		fmt.Println("SESSION IS NIL!")
 	}
 
+	err := Save(ctx, session)
+	if err != nil {
+		fmt.Println("Failed to save session")
+	}
+
 	return session
 }
 
