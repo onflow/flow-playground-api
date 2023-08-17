@@ -20,10 +20,8 @@ package sessions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/gorilla/sessions"
 
@@ -52,21 +50,13 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in Sessions.Get()", r)
-			panic(errors.New("panic in Sessions.Get()"))
-		}
-	}()
-
 	// TODO: Store panics on dereference
 	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
-	store := ctx.Value(sessionCtxKeySession) //.(sessions.Store)
-	fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
-	fmt.Println("TypeOf store:", reflect.TypeOf(store))
+	store := ctx.Value(sessionCtxKeySession).(sessions.Store)
+	//fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
 
 	// ignore error because a session is always returned even if one does not exist
-	session, _ := store.(sessions.Store).Get(httpcontext.Request(ctx), name)
+	session, _ := store.Get(httpcontext.Request(ctx), name)
 
 	return session
 }
