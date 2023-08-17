@@ -49,16 +49,20 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	// TODO: Store is not being set!!
+	// TODO: Store panics on dereference
+	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
 	store := ctx.Value(sessionCtxKeySession).(sessions.Store)
 	fmt.Println("Session.Get(): Store: ", store)
 
-	if store == nil {
-		fmt.Println("Session.Get(): Store is nil, sessionCtxKeySession not set!")
-	}
-
 	// ignore error because a session is always returned even if one does not exist
 	session, err := store.Get(httpcontext.Request(ctx), name)
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
+
 	fmt.Println("Session Get(): err:", err.Error())
 
 	return session

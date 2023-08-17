@@ -154,6 +154,7 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 
 func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authenticator, ctx context.Context) (*model.ProjectList, error) {
 	fmt.Println("GetProjectListForUser()")
+	fmt.Println("GetProjectListForUser() ctx session:", ctx.Value("session"))
 	var projects []*model.Project
 	err := p.store.GetAllProjectsForUser(userID, &projects)
 	if err != nil {
