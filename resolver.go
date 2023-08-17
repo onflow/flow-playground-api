@@ -462,8 +462,6 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
 	fmt.Println("ProjectList()")
-	fmt.Println("ProjectList() ctx session:", ctx.Value("session"))
-
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		fmt.Println("ProjectList(): Failed to GetOrCreateUser()")
@@ -471,7 +469,6 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 	}
 
 	fmt.Println("ProjectList(): Returning project list to query resolver")
-	fmt.Println("END ProjectList() ctx session:", ctx.Value("session"))
 	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
 
