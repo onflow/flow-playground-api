@@ -160,16 +160,21 @@ func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authentica
 		return nil, errors.Wrap(err, "failed to get projects for user "+userID.String())
 	}
 
-	fmt.Println("GetProjectListForUser(): exporting projects")
 	exportedProjects := make([]*model.Project, len(projects))
+	fmt.Println("GetProjectListForUser(): Exporting ", len(projects), "projects")
+
+	numImmutable := 0
 
 	for i, proj := range projects {
 		if err := auth.CheckProjectAccess(ctx, proj); err != nil {
+			numImmutable++
 			exportedProjects[i] = proj.ExportPublicImmutable()
 		} else {
 			exportedProjects[i] = proj.ExportPublicMutable()
 		}
 	}
+
+	fmt.Println("GetProjectListForUser(): ", numImmutable, "immutable +", len(projects)-numImmutable, "mutable")
 
 	fmt.Println("GetProjectListForUser(): returning", len(exportedProjects), "projects")
 	return &model.ProjectList{Projects: exportedProjects}, nil
