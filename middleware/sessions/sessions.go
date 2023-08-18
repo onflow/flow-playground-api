@@ -63,14 +63,9 @@ func Get(ctx context.Context, name string) *sessions.Session {
 
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)
-	if session == nil {
-		fmt.Println("SESSION IS NIL!")
-	}
 
-	err := Save(ctx, session)
-	if err != nil {
-		fmt.Println("Failed to save session")
-	}
+	// TODO: Save must be called to set the response cookie/ headers?
+	_ = Save(ctx, session) // Pre save in case it's not saved elsewhere?
 
 	return session
 }
