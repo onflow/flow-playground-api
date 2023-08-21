@@ -28,6 +28,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"sync"
 )
 
 // An Authenticator manages user authentication for the Playground API.
@@ -37,6 +38,7 @@ import (
 type Authenticator struct {
 	store       storage.Store
 	sessionName string
+	lock        sync.Mutex
 }
 
 // NewAuthenticator returns a new authenticator instance.
@@ -57,6 +59,9 @@ const userIDKey = "userID"
 // GetOrCreateUser gets an existing user from the current session or creates a
 // new user and session if a session does not already exist.
 func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
 	session := sessions.Get(ctx, a.sessionName)
 
 	var user *model.User
@@ -102,6 +107,9 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
 	session := sessions.Get(ctx, a.sessionName)
 
 	if session.Values[userIDKey] == nil {

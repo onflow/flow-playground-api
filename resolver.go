@@ -352,6 +352,7 @@ func (r *mutationResolver) CreateContractDeployment(
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
+	fmt.Println("projectResolver: TransactionTemplates()")
 	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
 	if err != nil {
 		return nil, err
@@ -371,6 +372,7 @@ func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.P
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
+	fmt.Println("projectResolver: ScriptTemplates()")
 	return r.files.GetFilesForProject(proj.ID, model.ScriptFile)
 }
 
@@ -385,10 +387,12 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Projec
 }
 
 func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
+	fmt.Println("projectResolver: ContractTemplates()")
 	return r.files.GetFilesForProject(proj.ID, model.ContractFile)
 }
 
 func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Project) ([]*model.ContractDeployment, error) {
+	fmt.Println("projectResolver: ContractDeployments()")
 	var deploys []*model.ContractDeployment
 	err := r.store.GetContractDeploymentsForProject(proj.ID, &deploys)
 	if err != nil {
@@ -427,15 +431,18 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
+	fmt.Println("queryResolver: Project()")
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
+		fmt.Println("queryResolver: Project(): Exporting Public Immutable")
 		return proj.ExportPublicImmutable(), nil
 	}
 
+	fmt.Println("queryResolver: Project(): Exporting Public Mutable")
 	return proj.ExportPublicMutable(), nil
 }
 

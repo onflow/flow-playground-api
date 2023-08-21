@@ -58,7 +58,7 @@ func SetCookieStore(cookieStore *sessions.CookieStore) {
 func Get(ctx context.Context, name string) *sessions.Session {
 	// TODO: Store panics on dereference
 	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
-	//store := ctx.Value(sessionCtxKeySession).(sessions.Store)
+	//store := ctx.Value(sessionCtxKeySession).(sessions.Store) // TODO: Revert to this
 	//fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
 
 	// ignore error because a session is always returned even if one does not exist
