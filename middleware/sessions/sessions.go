@@ -32,7 +32,7 @@ type sessionCtxKey string
 
 const sessionCtxKeySession sessionCtxKey = "session"
 
-var store *sessions.CookieStore
+//var store *sessions.CookieStore
 
 // Middleware injects middleware for managing sessions into an HTTP handler.
 //
@@ -50,15 +50,17 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 	}
 }
 
+/*
 func SetCookieStore(cookieStore *sessions.CookieStore) {
 	store = cookieStore
 }
+*/
 
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
 	// TODO: Store panics on dereference
 	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
-	//store := ctx.Value(sessionCtxKeySession).(sessions.Store) // TODO: Revert to this
+	store := ctx.Value(sessionCtxKeySession).(sessions.Store) // TODO: Revert to this
 	//fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
 
 	// ignore error because a session is always returned even if one does not exist

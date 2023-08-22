@@ -64,38 +64,27 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	session := sessions.Get(ctx, a.sessionName)
 
-	var user *model.User
-	var err error
-
-	userLoaded := false
-
-	if !session.IsNew {
-		// Try to load existing user
-		if session.Values[userIDKey] != nil {
-			user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-			if err != nil {
-				sentry.CaptureException(errors.New(fmt.Sprintf(
-					"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
-			} else {
-				userLoaded = true
-			}
-		}
-	}
-
-	if !userLoaded {
-		// Create new user
-		user, err = a.createNewUser()
+	if session.Values[userIDKey] == nil {
+		// Create new user since UserID for cookie has not been created yet
+		user, err := a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
 
 		session.Values[userIDKey] = user.ID.String()
+
+		err = sessions.Save(ctx, session)
+		if err != nil {
+			fmt.Println("Failed to save session!")
+			return nil, errors.Wrap(err, "failed to save userID to session")
+		}
 	}
 
-	err = sessions.Save(ctx, session)
+	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {
-		fmt.Println("Failed to save session!")
-		return nil, errors.Wrap(err, "failed to update session")
+		sentry.CaptureException(errors.New(fmt.Sprintf(
+			"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
+		return nil, errors.New("failed to load user id from session")
 	}
 
 	return user, nil

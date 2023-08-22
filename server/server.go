@@ -153,7 +153,7 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
-		sessions.SetCookieStore(cookieStore)
+		//sessions.SetCookieStore(cookieStore)
 
 		// Create a new hub for this subroutine and bind current client and handle to scope
 		localHub := sentry.CurrentHub().Clone()
