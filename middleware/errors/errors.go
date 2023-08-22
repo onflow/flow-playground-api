@@ -52,7 +52,11 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 		errList := graphql.GetErrors(ctx)
 
 		fmt.Println("Errors Middleware Response: ", res)
-		fmt.Println("Errors Middleware Response Data: ", res.Data)
+		responseData, err := res.Data.MarshalJSON()
+		if err != nil {
+			fmt.Println("ERROR FAILED TO MARSHALL RESP DATA")
+		}
+		fmt.Println("ResponseData: ", string(responseData))
 
 		for i, err := range errList {
 			contextEntry := entry.
