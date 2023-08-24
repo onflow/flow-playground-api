@@ -78,7 +78,7 @@ func TestReplicas(t *testing.T) {
 				MutationCreateContractDeployment,
 				&deployResp,
 				client.Var("projectId", project.ID),
-				client.Var("address", "000000000000000"+strconv.Itoa(accountIdx)),
+				client.Var("address", "000000000000000"+strconv.Itoa(accountIdx+4)),
 				client.Var("script", contract),
 				client.AddCookie(cookie),
 			)

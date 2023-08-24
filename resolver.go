@@ -21,7 +21,6 @@ package playground
 import (
 	"context"
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	"github.com/dapperlabs/flow-playground-api/controller"
@@ -212,12 +211,12 @@ func (r *mutationResolver) CreateTransactionExecution(
 		return nil, err
 	}
 
-	exe, err := r.files.CreateTransactionExecution(adapter.TransactionFromAPI(input))
+	exe, err := r.files.CreateTransactionExecution(input)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.TransactionToAPI(exe), nil
+	return exe, nil
 }
 
 func (r *mutationResolver) CreateScriptTemplate(ctx context.Context, input model.NewScriptTemplate) (*model.ScriptTemplate, error) {
@@ -275,12 +274,7 @@ func (r *mutationResolver) CreateScriptExecution(
 		return nil, err
 	}
 
-	exe, err := r.files.CreateScriptExecution(adapter.ScriptFromAPI(input))
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.ScriptToAPI(exe), nil
+	return r.files.CreateScriptExecution(input)
 }
 
 func (r *mutationResolver) CreateContractTemplate(ctx context.Context, input model.NewContractTemplate) (*model.File, error) {
@@ -340,12 +334,12 @@ func (r *mutationResolver) CreateContractDeployment(
 		return nil, err
 	}
 
-	deployment, err := r.files.DeployContract(adapter.ContractFromAPI(input))
+	deployment, err := r.files.DeployContract(input)
 	if err != nil {
 		return nil, err
 	}
 
-	return adapter.ContractToAPI(deployment), nil
+	return deployment, nil
 }
 
 type projectResolver struct{ *Resolver }
@@ -366,7 +360,7 @@ func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.P
 		return nil, err
 	}
 
-	return adapter.TransactionsToAPI(exes), nil
+	return exes, nil
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
@@ -380,7 +374,7 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Projec
 		return nil, err
 	}
 
-	return adapter.ScriptsToAPI(exes), nil
+	return exes, nil
 }
 
 func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
@@ -394,16 +388,11 @@ func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Pro
 		return nil, err
 	}
 
-	return adapter.ContractsToAPI(deploys), nil
+	return deploys, nil
 }
 
 func (r *projectResolver) Accounts(_ context.Context, proj *model.Project) ([]*model.Account, error) {
-	accounts, err := r.accounts.AllForProjectID(proj.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.AccountsToAPI(accounts), nil
+	return r.accounts.AllForProjectID(proj.ID)
 }
 
 func (r *projectResolver) UpdatedAt(_ context.Context, proj *model.Project) (string, error) {
@@ -451,12 +440,7 @@ func (r *queryResolver) ContractTemplate(_ context.Context, id uuid.UUID, projec
 }
 
 func (r *queryResolver) Account(_ context.Context, address model.Address, projectID uuid.UUID) (*model.Account, error) {
-	acc, err := r.accounts.GetByAddress(adapter.AddressFromAPI(address), projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	return adapter.AccountToAPI(acc), nil
+	return r.accounts.GetByAddress(address, projectID)
 }
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {

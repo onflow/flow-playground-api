@@ -320,7 +320,7 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 
 		MakeFriendsTransaction := `
-		import Person from 0x01
+		import Person from 0x05
 		
 		transaction {
 			let acc: AuthAccount
@@ -544,7 +544,7 @@ func TestContractImport(t *testing.T) {
 	}`
 
 	contractB := `
-	import HelloWorldA from 0x01
+	import HelloWorldA from 0x05
 	pub contract HelloWorldB {
 		pub init() {
 			log(HelloWorldA.A)
