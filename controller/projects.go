@@ -153,8 +153,6 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 }
 
 func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authenticator, ctx context.Context) (*model.ProjectList, error) {
-	fmt.Println("GetProjectListForUser()")
-	fmt.Println("GetProjectListForUser() ctx session:", ctx.Value("session"))
 	var projects []*model.Project
 	err := p.store.GetAllProjectsForUser(userID, &projects)
 	if err != nil {
@@ -162,7 +160,6 @@ func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authentica
 	}
 
 	exportedProjects := make([]*model.Project, len(projects))
-	fmt.Println("GetProjectListForUser(): Exporting ", len(projects), "projects")
 
 	numImmutable := 0
 
@@ -175,9 +172,6 @@ func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authentica
 		}
 	}
 
-	fmt.Println("GetProjectListForUser(): ", numImmutable, "immutable +", len(projects)-numImmutable, "mutable")
-
-	fmt.Println("GetProjectListForUser(): returning", len(exportedProjects), "projects")
 	return &model.ProjectList{Projects: exportedProjects}, nil
 }
 

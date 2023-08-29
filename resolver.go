@@ -20,7 +20,6 @@ package playground
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/adapter"
 	"github.com/dapperlabs/flow-playground-api/auth"
@@ -352,7 +351,6 @@ func (r *mutationResolver) CreateContractDeployment(
 type projectResolver struct{ *Resolver }
 
 func (r *projectResolver) TransactionTemplates(_ context.Context, proj *model.Project) ([]*model.TransactionTemplate, error) {
-	fmt.Println("projectResolver: TransactionTemplates()")
 	files, err := r.files.GetFilesForProject(proj.ID, model.TransactionFile)
 	if err != nil {
 		return nil, err
@@ -372,7 +370,6 @@ func (r *projectResolver) TransactionExecutions(_ context.Context, proj *model.P
 }
 
 func (r *projectResolver) ScriptTemplates(_ context.Context, proj *model.Project) ([]*model.ScriptTemplate, error) {
-	fmt.Println("projectResolver: ScriptTemplates()")
 	return r.files.GetFilesForProject(proj.ID, model.ScriptFile)
 }
 
@@ -387,12 +384,10 @@ func (r *projectResolver) ScriptExecutions(_ context.Context, proj *model.Projec
 }
 
 func (r *projectResolver) ContractTemplates(_ context.Context, proj *model.Project) ([]*model.ContractTemplate, error) {
-	fmt.Println("projectResolver: ContractTemplates()")
 	return r.files.GetFilesForProject(proj.ID, model.ContractFile)
 }
 
 func (r *projectResolver) ContractDeployments(_ context.Context, proj *model.Project) ([]*model.ContractDeployment, error) {
-	fmt.Println("projectResolver: ContractDeployments()")
 	var deploys []*model.ContractDeployment
 	err := r.store.GetContractDeploymentsForProject(proj.ID, &deploys)
 	if err != nil {
@@ -431,18 +426,15 @@ func (r *queryResolver) PlaygroundInfo(_ context.Context) (*model.PlaygroundInfo
 }
 
 func (r *queryResolver) Project(ctx context.Context, id uuid.UUID) (*model.Project, error) {
-	fmt.Println("queryResolver: Project()")
 	proj, err := r.projects.Get(id)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get project")
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-		fmt.Println("queryResolver: Project(): Exporting Public Immutable")
 		return proj.ExportPublicImmutable(), nil
 	}
 
-	fmt.Println("queryResolver: Project(): Exporting Public Mutable")
 	return proj.ExportPublicMutable(), nil
 }
 
@@ -468,14 +460,11 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 }
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
-	fmt.Println("ProjectList()")
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		fmt.Println("ProjectList(): Failed to GetOrCreateUser()")
 		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
-	fmt.Println("ProjectList(): Returning project list to query resolver")
 	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
 }
 

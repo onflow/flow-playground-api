@@ -32,8 +32,6 @@ type sessionCtxKey string
 
 const sessionCtxKeySession sessionCtxKey = "session"
 
-//var store *sessions.CookieStore
-
 // Middleware injects middleware for managing sessions into an HTTP handler.
 //
 // Sessions are stored using the provided sessions.Store instance.
@@ -50,24 +48,14 @@ func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 	}
 }
 
-/*
-func SetCookieStore(cookieStore *sessions.CookieStore) {
-	store = cookieStore
-}
-*/
-
 // Get returns the session with the given name, or creates one if it does not exist.
 func Get(ctx context.Context, name string) *sessions.Session {
-	// TODO: Store panics on dereference
-	// TODO: This means that ctx.Value(sessionCtxKeySession) is not a sessions.Store
-	store := ctx.Value(sessionCtxKeySession).(sessions.Store) // TODO: Revert to this
-	//fmt.Println("Session.Get(): Store ctx value: ", ctx.Value(sessionCtxKeySession))
+	store := ctx.Value(sessionCtxKeySession).(sessions.Store)
 
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)
 
-	// TODO: Save must be called to set the response cookie/ headers?
-	_ = Save(ctx, session) // Pre save in case it's not saved elsewhere?
+	_ = Save(ctx, session) // Pre save in case it's not saved elsewhere
 
 	return session
 }

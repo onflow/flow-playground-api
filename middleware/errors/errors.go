@@ -51,13 +51,6 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 		res := next(ctx)
 		errList := graphql.GetErrors(ctx)
 
-		fmt.Println("Errors Middleware Response: ", res)
-		responseData, err := res.Data.MarshalJSON()
-		if err != nil {
-			fmt.Println("ERROR FAILED TO MARSHALL RESP DATA")
-		}
-		fmt.Println("ResponseData: ", string(responseData))
-
 		for i, err := range errList {
 			contextEntry := entry.
 				WithFields(debugFields)
@@ -71,7 +64,6 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 					telemetry.UserErrorCounter.Inc()
 					res.Extensions["code"] = "BAD_REQUEST"
 				} else if errors.As(err, &authErr) {
-					fmt.Println("Middleware Auth errors:", err.Error())
 					res.Extensions["code"] = "AUTHORIZATION_ERROR"
 				} else {
 					fmt.Println("Middleware errors: ", err.Error())

@@ -5116,12 +5116,10 @@ func (ec *executionContext) _Query_projectList(ctx context.Context, field graphq
 		return ec.resolvers.Query().ProjectList(rctx)
 	})
 	if err != nil {
-		fmt.Println("Generated.go: line 5199 error!")
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		fmt.Println("Generated.go: resTmp == nil!!")
 		if !graphql.HasFieldError(ctx, fc) {
 			ec.Errorf(ctx, "must not be null")
 		}
@@ -5129,7 +5127,6 @@ func (ec *executionContext) _Query_projectList(ctx context.Context, field graphq
 	}
 	res := resTmp.(*model.ProjectList)
 	fc.Result = res
-	fmt.Println("Generated Result:", res.Projects)
 	return ec.marshalNProjectList2ᚖgithubᚗcomᚋdapperlabsᚋflowᚑplaygroundᚑapiᚋmodelᚐProjectList(ctx, field.Selections, res)
 }
 

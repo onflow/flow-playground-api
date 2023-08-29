@@ -153,8 +153,6 @@ func main() {
 			cookieStore.Options.SameSite = http.SameSiteNoneMode
 		}
 
-		//sessions.SetCookieStore(cookieStore)
-
 		// Create a new hub for this subroutine and bind current client and handle to scope
 		localHub := sentry.CurrentHub().Clone()
 		localHub.ConfigureScope(func(scope *sentry.Scope) {
@@ -164,7 +162,7 @@ func main() {
 		defer func() {
 			err := recover()
 			if err != nil {
-				fmt.Println("Server Recover: ", err)
+				fmt.Println("Server Recovered: ", err)
 				localHub.Recover(err)
 				sentry.Flush(time.Second * 5)
 			}
