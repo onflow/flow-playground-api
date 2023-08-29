@@ -38,7 +38,6 @@ const sessionCtxKeySession sessionCtxKey = "session"
 func Middleware(store sessions.Store) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Println("Sessions Middleware(): Setting sessionCtxKeySession to", store)
 			ctx := context.WithValue(r.Context(), sessionCtxKeySession, store)
 
 			r = r.WithContext(ctx)
