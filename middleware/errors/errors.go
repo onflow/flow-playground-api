@@ -21,6 +21,7 @@ package errors
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -65,6 +66,7 @@ func Middleware(entry *logrus.Entry, localHub *sentry.Hub) graphql.ResponseMiddl
 				} else if errors.As(err, &authErr) {
 					res.Extensions["code"] = "AUTHORIZATION_ERROR"
 				} else {
+					fmt.Println("Middleware errors: ", err.Error())
 					localHub.CaptureException(err)
 					telemetry.ServerErrorCounter.Inc()
 					res.Errors[i].Message = ServerErr.Error()

@@ -20,6 +20,7 @@ package sessions
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/sessions"
@@ -53,6 +54,8 @@ func Get(ctx context.Context, name string) *sessions.Session {
 	// ignore error because a session is always returned even if one does not exist
 	session, _ := store.Get(httpcontext.Request(ctx), name)
 
+	_ = Save(ctx, session) // Pre save in case it's not saved elsewhere
+
 	return session
 }
 
@@ -63,6 +66,7 @@ func Save(ctx context.Context, session *sessions.Session) error {
 		httpcontext.Writer(ctx),
 	)
 	if err != nil {
+		fmt.Println("Sessions Save(): failed to save session:", err.Error())
 		return err
 	}
 

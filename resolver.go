@@ -99,7 +99,7 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 	}
 
 	if err := r.auth.CheckProjectAccess(ctx, proj); err != nil {
-		return userErr.NewUserError("not authorized")
+		return userErr.NewAuthorizationError("not authorized")
 	}
 
 	return nil
@@ -108,7 +108,7 @@ func (r *mutationResolver) authorize(ctx context.Context, ID uuid.UUID) error {
 func (r *mutationResolver) CreateProject(ctx context.Context, input model.NewProject) (*model.Project, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get or create user")
+		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
 	proj, err := r.projects.Create(user, input)
@@ -446,7 +446,7 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
 	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
-		return nil, err
+		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
 	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)

@@ -28,6 +28,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"sync"
 )
 
 // An Authenticator manages user authentication for the Playground API.
@@ -37,6 +38,7 @@ import (
 type Authenticator struct {
 	store       storage.Store
 	sessionName string
+	lock        sync.Mutex
 }
 
 // NewAuthenticator returns a new authenticator instance.
@@ -57,39 +59,32 @@ const userIDKey = "userID"
 // GetOrCreateUser gets an existing user from the current session or creates a
 // new user and session if a session does not already exist.
 func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
 	session := sessions.Get(ctx, a.sessionName)
 
-	var user *model.User
-	var err error
-
-	userLoaded := false
-
-	if !session.IsNew {
-		// Try to load existing user
-		if session.Values[userIDKey] != nil {
-			user, err = a.getCurrentUser(session.Values[userIDKey].(string))
-			if err != nil {
-				sentry.CaptureException(errors.New(fmt.Sprintf(
-					"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
-			} else {
-				userLoaded = true
-			}
-		}
-	}
-
-	if !userLoaded {
-		// Create new user
-		user, err = a.createNewUser()
+	if session.Values[userIDKey] == nil {
+		// Create new user since UserID for cookie has not been created yet
+		user, err := a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
 
 		session.Values[userIDKey] = user.ID.String()
+
+		err = sessions.Save(ctx, session)
+		if err != nil {
+			fmt.Println("Failed to save session!")
+			return nil, errors.Wrap(err, "failed to save userID to session")
+		}
 	}
 
-	err = sessions.Save(ctx, session)
+	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update session")
+		sentry.CaptureException(errors.New(fmt.Sprintf(
+			"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
+		return nil, errors.New("failed to load user id from session")
 	}
 
 	return user, nil
@@ -101,6 +96,9 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 // This function checks for access using both the new and legacy authentication schemes. If
 // a user has legacy access, their authentication is then migrated to use the new scheme.
 func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Project) error {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
 	session := sessions.Get(ctx, a.sessionName)
 
 	if session.Values[userIDKey] == nil {
