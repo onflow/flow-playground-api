@@ -18,13 +18,12 @@
 
 package blockchain
 
-type AccountStorage any
-
-type StorageItem struct {
-	Value interface{}
-	Type  interface{}
-	Path  interface{}
-}
+import (
+	"errors"
+	"fmt"
+	"github.com/onflow/cadence"
+	"strings"
+)
 
 const StorageIteration = `
 pub fun main(address: Address) : AnyStruct{
@@ -65,25 +64,94 @@ pub fun main(address: Address) : AnyStruct{
 	return res
 }`
 
-//type StorageItem map[interface{}]interface{}
+type AccountStorage []StorageItem
 
-/* TODO: Parse account storage into a useful format or structure
-func ParseAccountStorage(rawStorage cadence.Value) (*AccountStorage, error) {
-	encoded, err := jsoncdc.Encode(rawStorage)
-	if err != nil {
-		return nil, err
-	}
-
-	var storage AccountStorage
-	err = yaml.Unmarshal(encoded, &storage)
-	if err != nil {
-		fmt.Println("ERROR Unmarshal", err.Error())
-	}
-
-	for key, val := range storage.(map[interface{}]interface{}) {
-		fmt.Println("Key, val:", key, ",", val)
-	}
-
-	return nil, nil
+type StorageItem struct {
+	Value string
+	Type  string
+	Path  string
 }
-*/
+
+// ParseAccountStorage parses the account storage returned by the StorageIteration script
+// and returns the storage as a list of StorageItem
+func ParseAccountStorage(rawStorage cadence.Value) (storage *AccountStorage, err error) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			storage = nil
+			err = errors.New("failed to parse account storage")
+		}
+	}()
+	storage = &AccountStorage{}
+
+	// Storage item parts
+	const (
+		ValuePrefix = `value: `
+		PathPrefix  = `path: `
+		TypePrefix  = `type: `
+	)
+
+	items := strings.Split(rawStorage.String(), "},")
+	for _, item := range items {
+		storageItem := StorageItem{}
+		item = strings.TrimPrefix(item, "[")
+		item = strings.TrimPrefix(item, "{")
+
+		// Extract parts of value, path, type for current item
+		prevPart := ""
+		itemParts := strings.Split(item, ",")
+		for _, part := range itemParts {
+			part = strings.TrimPrefix(part, " ")
+			part = strings.TrimPrefix(part, "{")
+			part = strings.TrimSuffix(part, "}]")
+			part = strings.ReplaceAll(part, `"`, ``)
+
+			if strings.HasPrefix(part, ValuePrefix) {
+				prevPart = ValuePrefix
+				storageItem.Value = strings.TrimPrefix(part, ValuePrefix)
+			} else if strings.HasPrefix(part, PathPrefix) {
+				prevPart = PathPrefix
+				storageItem.Path = strings.TrimPrefix(part, PathPrefix)
+			} else if strings.HasPrefix(part, TypePrefix) {
+				prevPart = TypePrefix
+				storageItem.Type = strings.TrimPrefix(part, TypePrefix)
+			} else {
+				// Add to previous part
+				if prevPart == ValuePrefix {
+					storageItem.Value += `, ` + part
+				} else if prevPart == PathPrefix {
+					storageItem.Path += `, ` + part
+				} else if prevPart == TypePrefix {
+					storageItem.Type += `, ` + part
+				} else {
+					// Shouldn't happen
+					continue
+				}
+			}
+		}
+
+		*storage = append(*storage, storageItem)
+	}
+
+	return storage, nil
+}
+
+func (storage *AccountStorage) ToJsonString() string {
+	jsonItems := ``
+	for i, item := range *storage {
+		if i != 0 {
+			jsonItems += `,`
+		}
+		jsonItems += item.ToJsonString()
+	}
+	return fmt.Sprintf(`{"storageItems":[%s]}`, jsonItems)
+}
+
+func (item *StorageItem) ToJsonString() string {
+	return fmt.Sprintf(
+		`"value":"%s", "type":"%s", "path":"%s"`,
+		item.Value,
+		item.Type,
+		item.Path,
+	)
+}
