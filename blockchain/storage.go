@@ -64,7 +64,11 @@ pub fun main(address: Address) : AnyStruct{
 	return res
 }`
 
-type AccountStorage []StorageItem
+type AccountStorage struct {
+	storage []StorageItem
+	public  []StorageItem
+	private []StorageItem
+}
 
 type StorageItem struct {
 	Value string
@@ -130,26 +134,44 @@ func ParseAccountStorage(rawStorage cadence.Value) (storage *AccountStorage, err
 			}
 		}
 
-		*storage = append(*storage, storageItem)
+		if strings.HasPrefix(storageItem.Path, `/public/`) {
+			storage.public = append(storage.public, storageItem)
+		} else if strings.HasPrefix(storageItem.Path, `/private/`) {
+			storage.private = append(storage.private, storageItem)
+		} else {
+			storage.storage = append(storage.storage, storageItem)
+		}
 	}
 
 	return storage, nil
 }
 
-func (storage *AccountStorage) ToJsonString() string {
-	jsonItems := ``
-	for i, item := range *storage {
+func StorageItemListToJson(itemList []StorageItem) string {
+	json := ``
+	for i, item := range itemList {
 		if i != 0 {
-			jsonItems += `,`
+			json += `,`
 		}
-		jsonItems += item.ToJsonString()
+		json += item.ToJsonString()
 	}
-	return fmt.Sprintf(`{"storageItems":[%s]}`, jsonItems)
+	return json
+}
+
+func (storage *AccountStorage) ToJsonString() string {
+	jsonStorage := StorageItemListToJson(storage.storage)
+	jsonPublic := StorageItemListToJson(storage.public)
+	jsonPrivate := StorageItemListToJson(storage.private)
+
+	return fmt.Sprintf(`{"storage":[%s], "public":[%s], "private":[%s]}`,
+		jsonStorage,
+		jsonPublic,
+		jsonPrivate,
+	)
 }
 
 func (item *StorageItem) ToJsonString() string {
 	return fmt.Sprintf(
-		`"value":"%s", "type":"%s", "path":"%s"`,
+		`{"value":"%s", "type":"%s", "path":"%s"}`,
 		item.Value,
 		item.Type,
 		item.Path,
