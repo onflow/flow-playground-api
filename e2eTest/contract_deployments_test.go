@@ -355,7 +355,7 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 		require.Contains(t,
 			accResp.Account.State,
-			`{"value": A.0000000000000005.Person.Friendship`)
+			`A.0000000000000005.Person.Friendship`)
 
 		PersonContractUpdate := `
 		pub contract Person { 
