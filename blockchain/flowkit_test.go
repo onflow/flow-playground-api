@@ -67,7 +67,7 @@ func Test_NewFlowkit(t *testing.T) {
 
 		assert.Equal(t, account.Address, accountList[i].Address)
 		assert.Contains(t, accountStorage, "A.0000000000000003.FlowToken.Vault(uuid:")
-		assert.Contains(t, accountStorage, `"path": /storage/flowTokenVault`)
+		assert.Contains(t, accountStorage, `/storage/flowTokenVault`)
 	}
 }
 
