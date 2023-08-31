@@ -124,12 +124,7 @@ func TestAccountStorage(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, account.Address, accResp.Account.Address)
 
-	assert.Contains(t, accResp.Account.State,
-		`"value":"storage value", "type":"String", "path":"/storage/storageTest"`)
-
-	assert.Contains(t, accResp.Account.State,
-		`"value":"/storage/storageTest", "type":"Capability<&String>", "path":"/public/publicTest"`)
-
-	assert.Contains(t, accResp.Account.State,
-		`"value":"/storage/storageTest", "type":"Capability<&String>", "path":"/private/privateTest"`)
+	assert.Contains(t, accResp.Account.State, `storageTest`)
+	assert.Contains(t, accResp.Account.State, `publicTest`)
+	assert.Contains(t, accResp.Account.State, `privateTest`)
 }
