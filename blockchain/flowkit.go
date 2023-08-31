@@ -410,12 +410,12 @@ func (fk *flowKit) getAccountStorage(address flow.Address) (string, error) {
 	args := []string{fmt.Sprintf(`{"type":"Address","value":"0x%s"}`, address.Hex())}
 	val, _, err := fk.executeScript(StorageIteration, args)
 	if err != nil {
-		return "{}", err
+		return "", err
 	}
 
 	storage, err := jsoncdc.Encode(val)
 	if err != nil {
-		return "{}", err
+		return "", err
 	}
 	return string(storage), nil
 }
