@@ -413,14 +413,11 @@ func (fk *flowKit) getAccountStorage(address flow.Address) (string, error) {
 		return "", err
 	}
 
-	/* TODO: Parse account storage
-	_, err = ParseAccountStorage(val)
+	storage, err := jsoncdc.Encode(val)
 	if err != nil {
 		return "", err
 	}
-	*/
-
-	return val.String(), nil
+	return string(storage), nil
 }
 
 func (fk *flowKit) getAccount(address flow.Address) (*flow.Account, error) {

@@ -18,14 +18,6 @@
 
 package blockchain
 
-type AccountStorage any
-
-type StorageItem struct {
-	Value interface{}
-	Type  interface{}
-	Path  interface{}
-}
-
 const StorageIteration = `
 pub fun main(address: Address) : AnyStruct{
 
@@ -64,26 +56,3 @@ pub fun main(address: Address) : AnyStruct{
 	})
 	return res
 }`
-
-//type StorageItem map[interface{}]interface{}
-
-/* TODO: Parse account storage into a useful format or structure
-func ParseAccountStorage(rawStorage cadence.Value) (*AccountStorage, error) {
-	encoded, err := jsoncdc.Encode(rawStorage)
-	if err != nil {
-		return nil, err
-	}
-
-	var storage AccountStorage
-	err = yaml.Unmarshal(encoded, &storage)
-	if err != nil {
-		fmt.Println("ERROR Unmarshal", err.Error())
-	}
-
-	for key, val := range storage.(map[interface{}]interface{}) {
-		fmt.Println("Key, val:", key, ",", val)
-	}
-
-	return nil, nil
-}
-*/
