@@ -449,7 +449,7 @@ func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, er
 		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
-	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
+	return r.projects.GetProjectListForUser(user.ID)
 }
 
 func (r *queryResolver) FlowJSON(_ context.Context, projectID uuid.UUID) (string, error) {
