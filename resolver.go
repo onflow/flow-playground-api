@@ -444,12 +444,12 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 }
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
-	user, err := r.auth.GetOrCreateUser(ctx)
+	user, err := r.auth.GetUser(ctx)
 	if err != nil {
 		return nil, userErr.NewAuthorizationError(err.Error())
 	}
 
-	return r.projects.GetProjectListForUser(user.ID, r.auth, ctx)
+	return r.projects.GetProjectListForUser(user.ID)
 }
 
 func (r *queryResolver) FlowJSON(_ context.Context, projectID uuid.UUID) (string, error) {

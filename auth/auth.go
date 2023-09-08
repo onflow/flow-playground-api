@@ -64,27 +64,41 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 
 	session := sessions.Get(ctx, a.sessionName)
 
-	if session.Values[userIDKey] == nil {
+	user, err := a.getCurrentUser(ctx)
+	if errors.Is(err, errNotFound) {
 		// Create new user since UserID for cookie has not been created yet
-		user, err := a.createNewUser()
+		user, err = a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
 
 		session.Values[userIDKey] = user.ID.String()
-
 		err = sessions.Save(ctx, session)
 		if err != nil {
 			fmt.Println("Failed to save session!")
 			return nil, errors.Wrap(err, "failed to save userID to session")
 		}
-	}
-
-	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
-	if err != nil {
+	} else if err != nil {
 		sentry.CaptureException(errors.New(fmt.Sprintf(
 			"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
 		return nil, errors.New("failed to load user id from session")
+	}
+
+	return user, nil
+}
+
+func (a *Authenticator) GetUser(ctx context.Context) (*model.User, error) {
+	a.lock.Lock()
+	defer a.lock.Unlock()
+
+	session := sessions.Get(ctx, a.sessionName)
+	user, err := a.getCurrentUser(ctx)
+	if err != nil {
+		if !errors.Is(err, errNotFound) {
+			sentry.CaptureException(errors.New(fmt.Sprintf(
+				"Failed to load user id %s from session\n", session.Values[userIDKey].(string))))
+		}
+		return nil, fmt.Errorf("failed to load user id from session: %w", err)
 	}
 
 	return user, nil
@@ -105,7 +119,7 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 		return errors.New("no userIdKey found in session")
 	}
 
-	user, err := a.getCurrentUser(session.Values[userIDKey].(string))
+	user, err := a.getCurrentUser(ctx)
 	if err != nil {
 		return errors.New("access denied")
 	}
@@ -138,11 +152,23 @@ func (a *Authenticator) CheckProjectAccess(ctx context.Context, proj *model.Proj
 	return errors.New("access denied")
 }
 
-func (a *Authenticator) getCurrentUser(userIDStr string) (*model.User, error) {
+var errNotFound = errors.New("user not found")
+
+// getCurrentUser from the request context using the session to get the user ID
+// and retrieving that user from the storage.
+// expected errors:
+// - errNotFound user was not created
+func (a *Authenticator) getCurrentUser(ctx context.Context) (*model.User, error) {
+	session := sessions.Get(ctx, a.sessionName)
+	if session.Values[userIDKey] == nil {
+		return nil, errNotFound
+	}
+	rawUserID := session.Values[userIDKey].(string)
+
 	var user model.User
 	var userID uuid.UUID
 
-	err := userID.UnmarshalText([]byte(userIDStr))
+	err := userID.UnmarshalText([]byte(rawUserID))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal userIDStr")
 	}

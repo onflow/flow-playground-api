@@ -19,10 +19,8 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
 	userErrors "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/model"
@@ -152,7 +150,7 @@ func (p *Projects) Get(id uuid.UUID) (*model.Project, error) {
 	return &proj, nil
 }
 
-func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authenticator, ctx context.Context) (*model.ProjectList, error) {
+func (p *Projects) GetProjectListForUser(userID uuid.UUID) (*model.ProjectList, error) {
 	var projects []*model.Project
 	err := p.store.GetAllProjectsForUser(userID, &projects)
 	if err != nil {
@@ -162,11 +160,7 @@ func (p *Projects) GetProjectListForUser(userID uuid.UUID, auth *auth.Authentica
 	exportedProjects := make([]*model.Project, len(projects))
 
 	for i, proj := range projects {
-		if err := auth.CheckProjectAccess(ctx, proj); err != nil {
-			exportedProjects[i] = proj.ExportPublicImmutable()
-		} else {
-			exportedProjects[i] = proj.ExportPublicMutable()
-		}
+		exportedProjects[i] = proj.ExportPublicMutable()
 	}
 
 	return &model.ProjectList{Projects: exportedProjects}, nil
