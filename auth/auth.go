@@ -67,7 +67,7 @@ func (a *Authenticator) GetOrCreateUser(ctx context.Context) (*model.User, error
 	user, err := a.getCurrentUser(ctx)
 	if errors.Is(err, errNotFound) {
 		// Create new user since UserID for cookie has not been created yet
-		user, err := a.createNewUser()
+		user, err = a.createNewUser()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create new user")
 		}
