@@ -21,7 +21,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/onflow/cadence v0.40.0
 	github.com/onflow/flow-cli/flowkit v1.3.2
-	github.com/onflow/flow-emulator v0.54.0
+	github.com/onflow/flow-emulator v0.54.1
 	github.com/onflow/flow-go-sdk v0.41.10
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
