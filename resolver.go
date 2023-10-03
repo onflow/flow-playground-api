@@ -20,6 +20,8 @@ package playground
 
 import (
 	"context"
+	"time"
+
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/auth"
 	"github.com/dapperlabs/flow-playground-api/blockchain"
@@ -31,7 +33,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/onflow/cadence"
 	"github.com/pkg/errors"
-	"time"
 )
 
 type Resolver struct {
@@ -444,7 +445,7 @@ func (r *queryResolver) Account(_ context.Context, address model.Address, projec
 }
 
 func (r *queryResolver) ProjectList(ctx context.Context) (*model.ProjectList, error) {
-	user, err := r.auth.GetUser(ctx)
+	user, err := r.auth.GetOrCreateUser(ctx)
 	if err != nil {
 		return nil, userErr.NewAuthorizationError(err.Error())
 	}
