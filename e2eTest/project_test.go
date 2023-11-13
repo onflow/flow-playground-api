@@ -19,14 +19,15 @@
 package e2eTest
 
 import (
+	"strconv"
+	"testing"
+	"time"
+
 	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strconv"
-	"testing"
-	"time"
 )
 
 func TestProjects(t *testing.T) {
@@ -559,10 +560,10 @@ func TestExportFlowJson(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	const Networks = `"networks": {
+	const Networks = `	"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
-		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testing": "127.0.0.1:3569",
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
 
