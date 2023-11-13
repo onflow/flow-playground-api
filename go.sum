@@ -813,8 +813,6 @@ github.com/onflow/atree v0.6.0/go.mod h1:gBHU0M05qCbv9NN0kijLWMgC47gHVNBIp4KmsVF
 github.com/onflow/cadence v0.20.1/go.mod h1:7mzUvPZUIJztIbr9eTvs+fQjWWHTF8veC+yk4ihcNIA=
 github.com/onflow/cadence v0.42.5 h1:QCilotmJzfRToLd+02o3N62JIioSr8FfN7cujmR/IXQ=
 github.com/onflow/cadence v0.42.5/go.mod h1:raU8va8QRyTa/eUbhej4mbyW2ETePfSaywoo36MddgE=
-github.com/onflow/flow-cli/flowkit v1.3.2 h1:KOA39juR+H34wfmHoImIOu5UYjr+X7yRXygS46ckcg8=
-github.com/onflow/flow-cli/flowkit v1.3.2/go.mod h1:MXBfHLOB7+QPTFs+HfdsC3/KujyISELCAX0L4Wzz8Jc=
 github.com/onflow/flow-cli/flowkit v1.7.0 h1:tVmVguEEJVSO6CcOG/UI3jTkrF056hczeUxSaEMnuZ4=
 github.com/onflow/flow-cli/flowkit v1.7.0/go.mod h1:tPBuuYss8S8carovC49N1YVPIBheF6KD9Vr6Ocg3VpQ=
 github.com/onflow/flow-core-contracts/lib/go/contracts v1.2.4-0.20231016154253-a00dbf7c061f h1:S8yIZw9LFXfYD1V5H9BiixihHw3GrXVPrmfplSzYaww=
