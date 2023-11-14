@@ -16,33 +16,13 @@
  * limitations under the License.
  */
 
-package blockchain
+package main
 
 import (
-	"os"
-
-	kit "github.com/onflow/flow-cli/flowkit"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
-type InternalReaderWriter struct {
-	data []byte
-}
-
-var _ kit.ReaderWriter = &InternalReaderWriter{}
-
-func NewInternalReaderWriter() *InternalReaderWriter {
-	return &InternalReaderWriter{}
-}
-
-func (rw *InternalReaderWriter) ReadFile(_ string) ([]byte, error) {
-	return rw.data, nil
-}
-
-func (rw *InternalReaderWriter) WriteFile(_ string, data []byte, _ os.FileMode) error {
-	rw.data = data
-	return nil
-}
-
-func (rw *InternalReaderWriter) MkdirAll(_ string, _ os.FileMode) error {
-	return nil
-}
+// this is added to resolve the issue with chainhash ambiguous import,
+// the code is not used, but it's needed to force go.mod specify and retain chainhash version
+// workaround for issue: https://github.com/golang/go/issues/27899
+var _ = chainhash.Hash{}

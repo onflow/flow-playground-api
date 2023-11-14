@@ -20,11 +20,11 @@ package blockchain
 
 import (
 	"context"
-	"fmt"
+	"testing"
+
 	"github.com/onflow/flow-cli/flowkit/accounts"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // Test_NewEmulator tests creating a large number of new accounts and validates corresponding storage addresses
@@ -89,11 +89,9 @@ func Test_FlowJsonExport(t *testing.T) {
 	const Networks = `"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
-		"sandboxnet": "access.sandboxnet.nodes.onflow.org:9000",
+		"testing": "127.0.0.1:3569",
 		"testnet": "access.devnet.nodes.onflow.org:9000"
 	}`
-
-	fmt.Println(flowJson)
 
 	assert.Contains(t, flowJson, FungibleToken)
 	assert.Contains(t, flowJson, Networks)
