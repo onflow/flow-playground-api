@@ -14,7 +14,6 @@ require (
 	github.com/go-chi/httplog v0.2.5
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/uuid v1.3.1
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/icza/bitio v1.1.0

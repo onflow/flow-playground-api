@@ -21,16 +21,17 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	playground "github.com/dapperlabs/flow-playground-api"
 	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/dapperlabs/flow-playground-api/server/ping"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"log"
-	"net/http"
-	"strings"
-	"time"
 
 	"github.com/go-chi/httplog"
 
@@ -170,7 +171,6 @@ func main() {
 
 		r.Use(httpcontext.Middleware())
 		r.Use(sessions.Middleware(cookieStore))
-		r.Use(monitoring.Middleware())
 
 		r.Handle(
 			"/",
