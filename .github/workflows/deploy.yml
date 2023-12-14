@@ -1,0 +1,38 @@
+name: "Deploy to Cloud Run"
+
+on:
+  push:
+
+env:
+  DOCKER_IMAGE_URL: ${{ var.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ var.GCP_PROJECT_ID }}/${{ var.GCP_REPO }}/${{ var.GCP_APP }}:${{ github.sha }}
+  SERVICE: ${{ var.GCP_SERVICE }}
+  PROJECT_ID: ${{ var.GCP_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Google auth
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+            credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: '${{ env.PROJECT_ID }}'
+      
+      - name: Docker Auth
+        run: |-
+          docker build -t ${{ env.DOCKER_IMAGE_URL }} --file Dockerfile .
+          docker push ${{ env.DOCKER_IMAGE_URL }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          service: ${{ env.SERVICE }}
+          image: ${{ env.DOCKER_IMAGE_URL }}
