@@ -4,11 +4,11 @@ on:
   push:
 
 env:
-  DOCKER_IMAGE_URL: ${{ var.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ var.GCP_PROJECT_ID }}/${{ var.GCP_REPO }}/${{ var.GCP_APP }}:${{ github.sha }}
-  SERVICE: ${{ var.GCP_SERVICE }}
-  PROJECT_ID: ${{ var.GCP_PROJECT_ID }}
-  SERVICE_ACCOUNT: ${{ var.GCP_SERVICE_ACCOUNT }}
-  WORKLOAD_IDENTITY_PROVIDER: ${{ var.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  DOCKER_IMAGE_URL: ${{ vars.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_REPO }}/${{ vars.GCP_APP }}:${{ github.sha }}
+  SERVICE: ${{ vars.GCP_SERVICE }}
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+  WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
   deploy:
