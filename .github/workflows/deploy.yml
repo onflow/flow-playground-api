@@ -7,6 +7,8 @@ env:
   DOCKER_IMAGE_URL: ${{ var.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ var.GCP_PROJECT_ID }}/${{ var.GCP_REPO }}/${{ var.GCP_APP }}:${{ github.sha }}
   SERVICE: ${{ var.GCP_SERVICE }}
   PROJECT_ID: ${{ var.GCP_PROJECT_ID }}
+  SERVICE_ACCOUNT: ${{ var.GCP_SERVICE_ACCOUNT }}
+  WORKLOAD_IDENTITY_PROVIDER: ${{ var.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
   deploy:
@@ -14,17 +16,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
+
       - name: Google auth
         id: auth
-        uses: google-github-actions/auth@v1
+        uses: 'google-github-actions/auth@v2'
         with:
-            credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
       
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: '${{ env.PROJECT_ID }}'
+          project_id: ${{ env.PROJECT_ID }}
       
       - name: Docker Auth
         run: |-
