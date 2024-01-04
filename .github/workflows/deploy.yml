@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  DOCKER_IMAGE_URL: ${{ vars.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_REPO }}/${{ vars.GCP_APP }}/${{ github.sha }}
+  DOCKER_IMAGE_URL: ${{ vars.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_REPO }}/${{ vars.GCP_APP }}:${{ github.sha }}
   SERVICE: ${{ vars.GCP_SERVICE }}
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
