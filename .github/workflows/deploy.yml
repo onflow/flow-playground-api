@@ -14,16 +14,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # - name: Checkout
+      #   uses: actions/checkout@v3
+      - name: Checkout actions-oidc-debugger
         uses: actions/checkout@v3
+        with:
+          repository: github/actions-oidc-debugger
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./.github/actions/actions-oidc-debugger
+      - name: Debug OIDC Claims
+        uses: ./.github/actions/actions-oidc-debugger
+        with:
+          audience: 'projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/YOUR_PROJECT_ID/providers/YOUR_WIF_PROVIDER_POOL_NAME'
 
       - name: Google auth
         id: auth
         uses: 'google-github-actions/auth@v2'
         with:
-          # token_format: 'access_token'
+          token_format: 'access_token'
           workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-          # service_account: ${{ env.SERVICE_ACCOUNT }}
+          service_account: ${{ env.SERVICE_ACCOUNT }}
       
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
