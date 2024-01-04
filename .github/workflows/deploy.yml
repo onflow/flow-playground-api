@@ -9,6 +9,7 @@ env:
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
   WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+  GAR_LOCATION: ${{ vars.GCP_GAR_LOCATION }}
 
 jobs:
   deploy:
@@ -34,6 +35,7 @@ jobs:
       
       - name: Docker Auth
         run: |-
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev
           docker build -t ${{ env.DOCKER_IMAGE_URL }} --file Dockerfile .
           docker push ${{ env.DOCKER_IMAGE_URL }}
 
