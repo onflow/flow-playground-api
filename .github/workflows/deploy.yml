@@ -4,7 +4,7 @@ on:
   push:
 
 env:
-  DOCKER_IMAGE_URL: ${{ vars.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_REPO }}/${{ vars.GCP_APP }}:${{ github.sha }}
+  DOCKER_IMAGE_URL: ${{ vars.GCP_GAR_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_REPO }}/${{ vars.GCP_APP }}/${{ github.sha }}
   SERVICE: ${{ vars.GCP_SERVICE }}
   PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
@@ -14,14 +14,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write # This is required for requesting the JWT
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Google auth
         id: auth
-        uses: 'google-github-actions/auth@v2'
+        uses: google-github-actions/auth@v2
         with:
           token_format: 'access_token'
           workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
