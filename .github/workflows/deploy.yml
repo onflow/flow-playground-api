@@ -81,5 +81,5 @@ jobs:
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          service: ${{ vars.GCP_PROJECT_ID }}
+          service: ${{ vars.GCP_SERVICE }}
           image: ${{ env.DOCKER_IMAGE_URL }}
