@@ -17,7 +17,6 @@
  */
 
 // Package client is used internally for testing. See readme for alternatives
-//
 package client
 
 import (

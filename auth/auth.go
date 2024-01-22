@@ -20,6 +20,7 @@ package auth
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 

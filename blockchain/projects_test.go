@@ -20,6 +20,10 @@ package blockchain
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"testing"
+
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/dapperlabs/flow-playground-api/storage"
@@ -27,9 +31,6 @@ import (
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"sync"
-	"testing"
 )
 
 const accountsNumber = 5

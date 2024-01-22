@@ -21,8 +21,7 @@
 // To use this package, simply import it in your program, then add build
 // arguments like the following:
 //
-//   go build -ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=v1.0.0"
-//
+//	go build -ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=v1.0.0"
 package build
 
 import (

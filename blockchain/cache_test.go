@@ -20,11 +20,12 @@ package blockchain
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func createExecutions(count int) []*model.TransactionExecution {

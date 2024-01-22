@@ -19,10 +19,11 @@
 package blockchain
 
 import (
-	flowsdk "github.com/onflow/flow-go-sdk"
 	"strconv"
 	"strings"
 	"testing"
+
+	flowsdk "github.com/onflow/flow-go-sdk"
 
 	"github.com/stretchr/testify/assert"
 )

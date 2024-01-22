@@ -21,14 +21,15 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/Masterminds/semver"
 	"github.com/go-chi/chi"

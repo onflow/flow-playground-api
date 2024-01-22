@@ -20,9 +20,10 @@ package blockchain
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
-	"sync"
 )
 
 func newMutex() *mutex {

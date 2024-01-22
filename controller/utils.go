@@ -19,10 +19,11 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/Masterminds/semver"
 	"github.com/dapperlabs/flow-playground-api/build"
 	"github.com/onflow/cadence"
-	"net/http"
 
 	"github.com/go-chi/render"
 )

@@ -304,8 +304,9 @@ func generateWrapperStyles() string {
 }
 
 // TODO: those styles can be served via CSS file over CDN
-//  this will enable browsers caching, smaller response and easier update
-//  especially with big background-image for Playground umbrella logo
+//
+//	this will enable browsers caching, smaller response and easier update
+//	especially with big background-image for Playground umbrella logo
 func createSnippetStyles() string {
 	wrapperStyles := generateWrapperStyles()
 

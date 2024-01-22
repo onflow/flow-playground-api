@@ -20,12 +20,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/go-chi/httplog"
 

@@ -20,6 +20,7 @@ package model
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
 	"github.com/pkg/errors"

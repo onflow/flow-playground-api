@@ -19,12 +19,13 @@
 package blockchain
 
 import (
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_Mutex(t *testing.T) {

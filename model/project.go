@@ -19,8 +19,9 @@
 package model
 
 import (
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/Masterminds/semver"
 	"github.com/google/uuid"

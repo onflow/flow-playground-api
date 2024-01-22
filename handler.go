@@ -21,11 +21,12 @@ package playground
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"runtime/debug"
+
 	"github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
-	"net/http"
-	"runtime/debug"
 
 	"github.com/99designs/gqlgen/graphql"
 	gqlHandler "github.com/99designs/gqlgen/graphql/handler"
