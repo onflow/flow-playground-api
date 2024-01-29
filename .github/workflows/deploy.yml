@@ -58,7 +58,7 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v1
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ vars.GCP_SERVICE }}
           image: ${{ env.DOCKER_IMAGE_URL }}
@@ -81,7 +81,7 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v1
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ vars.GCP_SERVICE }}
           image: ${{ env.DOCKER_IMAGE_URL }}
