@@ -22,7 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
+	"github.com/onflow/flow-playground-api/telemetry"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/sirupsen/logrus"

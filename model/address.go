@@ -47,7 +47,7 @@ func NewAddressFromString(address string) Address {
 
 // NewAddressFromIndex calculates the address based on the offset from the initial account address
 func NewAddressFromIndex(index int) Address {
-	const initialAccount = 0x05
+	const initialAccount = 0x06
 	bs := make([]byte, 8)
 	binary.BigEndian.PutUint64(bs, uint64(initialAccount+index))
 	return NewAddressFromBytes(bs)

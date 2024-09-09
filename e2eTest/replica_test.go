@@ -18,10 +18,10 @@
 package e2eTest
 
 import (
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"fmt"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strconv"
 	"testing"
 )
 
@@ -68,7 +68,7 @@ func TestReplicas(t *testing.T) {
 	})
 
 	t.Run("Re-deploy contracts on multiple replicas to initial accounts", func(t *testing.T) {
-		var contract = "pub contract Foo {}"
+		var contract = "access(all) contract Foo {}"
 
 		for i := 0; i < 10; i++ {
 			accountIdx := (i % project.NumberOfAccounts) + 1
@@ -78,7 +78,7 @@ func TestReplicas(t *testing.T) {
 				MutationCreateContractDeployment,
 				&deployResp,
 				client.Var("projectId", project.ID),
-				client.Var("address", "000000000000000"+strconv.Itoa(accountIdx+4)),
+				client.Var("address", fmt.Sprintf("000000000000000%x", accountIdx+5)),
 				client.Var("script", contract),
 				client.AddCookie(cookie),
 			)

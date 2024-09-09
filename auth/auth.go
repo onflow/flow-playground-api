@@ -21,12 +21,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
-	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
+	legacyauth "github.com/onflow/flow-playground-api/auth/legacy"
+	"github.com/onflow/flow-playground-api/middleware/sessions"
+	"github.com/onflow/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/storage"
 	"github.com/pkg/errors"
 	"sync"
 )

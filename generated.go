@@ -14,8 +14,8 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-playground-api/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )

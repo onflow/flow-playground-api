@@ -20,14 +20,14 @@ package e2eTest
 
 import (
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api"
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
-	"github.com/dapperlabs/flow-playground-api/middleware/errors"
-	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/onflow/flow-playground-api"
+	"github.com/onflow/flow-playground-api/blockchain"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
+	"github.com/onflow/flow-playground-api/middleware/errors"
+	"github.com/onflow/flow-playground-api/server/config"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -36,10 +36,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dapperlabs/flow-playground-api/auth"
-	legacyauth "github.com/dapperlabs/flow-playground-api/auth/legacy"
-	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
-	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/onflow/flow-playground-api/auth"
+	legacyauth "github.com/onflow/flow-playground-api/auth/legacy"
+	"github.com/onflow/flow-playground-api/middleware/httpcontext"
+	"github.com/onflow/flow-playground-api/storage"
 )
 
 type Client struct {
