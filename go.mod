@@ -21,7 +21,7 @@ require (
 	github.com/icza/bitio v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onflow/cadence v1.0.0-preview.49
+	github.com/onflow/cadence v1.0.0-preview.52
 	github.com/onflow/flow-emulator v1.0.0-preview.40
 	github.com/onflow/flow-go-sdk v1.0.0-preview.51
 	github.com/onflow/flowkit/v2 v2.0.0-stable-cadence-alpha.31
