@@ -19,15 +19,15 @@
 package e2eTest
 
 import (
-	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/model"
 )
 
 const initAccounts = 5
-const addr1 = "0000000000000005"
-const addr2 = "0000000000000006"
-const addr3 = "0000000000000007"
-const addr4 = "0000000000000008"
-const addr5 = "0000000000000009"
+const addr1 = "0000000000000006"
+const addr2 = "0000000000000007"
+const addr3 = "0000000000000008"
+const addr4 = "0000000000000009"
+const addr5 = "000000000000000a"
 
 type Project struct {
 	ID                   string

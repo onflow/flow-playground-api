@@ -30,8 +30,8 @@ import (
 	"github.com/alecthomas/chroma/styles"
 	"github.com/google/uuid"
 
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/onflow/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/storage"
 )
 
 type Snippet struct {
@@ -304,8 +304,9 @@ func generateWrapperStyles() string {
 }
 
 // TODO: those styles can be served via CSS file over CDN
-//  this will enable browsers caching, smaller response and easier update
-//  especially with big background-image for Playground umbrella logo
+//
+//	this will enable browsers caching, smaller response and easier update
+//	especially with big background-image for Playground umbrella logo
 func createSnippetStyles() string {
 	wrapperStyles := generateWrapperStyles()
 

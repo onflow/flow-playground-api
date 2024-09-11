@@ -19,19 +19,19 @@
 package controller
 
 import (
-	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/onflow/flow-go-sdk"
+	"github.com/onflow/flow-playground-api/server/config"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-playground-api/blockchain"
+	"github.com/onflow/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -320,20 +320,20 @@ func Test_StaleProjects(t *testing.T) {
 func Test_StateRecreation(t *testing.T) {
 	_, user, _, projects, files, accounts := createControllers()
 
-	contract1 := `pub contract HelloWorld { 
+	contract1 := `access(all) contract HelloWorld { 
 		init() {
 			log("hello")
 		} 
 	}`
 
 	tx1 := `transaction {
-		prepare(auth: AuthAccount) {}
+		prepare(auth: &Account) {}
 		execute {
 			log("hello tx")		
 		}
 	}`
 
-	script1 := `pub fun main(): Int {
+	script1 := `access(all) fun main(): Int {
 		return 42;
 	}`
 

@@ -19,40 +19,24 @@
 package blockchain
 
 const StorageIteration = `
-pub fun main(address: Address) : AnyStruct{
+access(all) fun main(address: Address) : AnyStruct{
 
 	var res :  [{String:AnyStruct}] = []
 
-	getAuthAccount(address).forEachStored(fun (path: StoragePath, type: Type): Bool {
+	getAuthAccount<auth(Storage) &Account>(address).storage.forEachStored(fun (path: StoragePath, type: Type): Bool {
 		res.append(
 		{
-			"path" : path,
+			"path" : path, 
 			"type" : type.identifier,
 			"value":  type.isSubtype(of: Type<AnyStruct>()) ?
-							getAuthAccount(address).borrow<&AnyStruct>(from: path)! as AnyStruct
-							: getAuthAccount(address).borrow<&AnyResource>(from: path)! as AnyStruct
+							getAuthAccount<auth(Storage) &Account>(address).storage.borrow<&AnyStruct>(from: path)! as AnyStruct
+							: getAuthAccount<auth(Storage) &Account>(address).storage.borrow<&AnyResource>(from: path)! as AnyStruct
 		})
 		return true
 	})
 
-	getAuthAccount(address).forEachPublic(fun (path: PublicPath, type: Type): Bool {
-		res.append(
-		{
-			"path" : path,
-			"type" : type.identifier,
-			"value":  getAuthAccount(address).getLinkTarget(path)
-		})
-		return true
-	})
+	
 
-	getAuthAccount(address).forEachPrivate(fun (path: PrivatePath, type: Type): Bool {
-		res.append(
-		{
-			"path" : path,
-			"type" : type.identifier,
-			"value":  getAuthAccount(address).getLinkTarget(path)
-		})
-		return true
-	})
+
 	return res
 }`

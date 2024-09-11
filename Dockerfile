@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
 
 ## (1) Build the app binary
-FROM golang:1.19 AS build-app
+FROM golang:1.22 AS build-app
 
 ARG VERSION
 
@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     GO111MODULE=on GOOS=linux GOARCH=amd64 \
     go build \
-    -ldflags "-extldflags -static -X github.com/dapperlabs/flow-playground-api/build.version=${VERSION}" \
+    -ldflags "-extldflags -static -X github.com/onflow/flow-playground-api/build.version=${VERSION}" \
     -o ./app ./server
 
 RUN chmod a+x /app/app

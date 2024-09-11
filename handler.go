@@ -21,9 +21,9 @@ package playground
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/middleware/errors"
-	"github.com/dapperlabs/flow-playground-api/telemetry"
 	"github.com/getsentry/sentry-go"
+	"github.com/onflow/flow-playground-api/middleware/errors"
+	"github.com/onflow/flow-playground-api/telemetry"
 	"net/http"
 	"runtime/debug"
 

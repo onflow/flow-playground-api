@@ -21,22 +21,22 @@ package blockchain
 import (
 	"context"
 	"fmt"
-
-	userErr "github.com/dapperlabs/flow-playground-api/middleware/errors"
 	"github.com/onflow/cadence"
 	jsoncdc "github.com/onflow/cadence/encoding/json"
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/parser"
-	kit "github.com/onflow/flow-cli/flowkit"
-	"github.com/onflow/flow-cli/flowkit/accounts"
-	"github.com/onflow/flow-cli/flowkit/config"
-	"github.com/onflow/flow-cli/flowkit/gateway"
-	"github.com/onflow/flow-cli/flowkit/output"
-	"github.com/onflow/flow-cli/flowkit/transactions"
+	kit "github.com/onflow/flowkit/v2"
+	"github.com/onflow/flowkit/v2/accounts"
+	"github.com/onflow/flowkit/v2/config"
+	"github.com/onflow/flowkit/v2/gateway"
+	"github.com/onflow/flowkit/v2/output"
+	"github.com/onflow/flowkit/v2/transactions"
+
 	emu "github.com/onflow/flow-emulator/emulator"
 	"github.com/onflow/flow-emulator/storage/memstore"
 	"github.com/onflow/flow-go-sdk"
 	"github.com/onflow/flow-go-sdk/crypto"
+	userErr "github.com/onflow/flow-playground-api/middleware/errors"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 )
@@ -95,7 +95,8 @@ type flowKit struct {
 
 func newFlowkit() (*flowKit, error) {
 	readerWriter := NewInternalReaderWriter()
-	state, err := kit.Init(readerWriter, crypto.ECDSA_P256, crypto.SHA3_256)
+	state, err := kit.Init(readerWriter)
+	state, err = kit.Load([]string{"flow.json"}, readerWriter)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create flow-kit state")
 	}
@@ -211,7 +212,7 @@ func (fk *flowKit) bootstrapContracts() error {
 
 		state.Deployments().AddOrUpdate(config.Deployment{
 			Network:   config.EmulatorNetwork.Name,
-			Account:   fmt.Sprintf("Emulator Account 0x%d", i),
+			Account:   fmt.Sprintf("Emulator Account 0x%x", i),
 			Contracts: emulatorContracts,
 		})
 	}
@@ -294,6 +295,7 @@ func (fk *flowKit) executeScript(script string, arguments []string) (cadence.Val
 			Location: "",
 		},
 		kit.LatestScriptQuery)
+
 	if err != nil {
 		return nil, nil, userErr.NewUserError(err.Error())
 	}
@@ -391,7 +393,7 @@ func (fk *flowKit) createAccount() (*flow.Account, error) {
 		return nil, err
 	}
 
-	name := fmt.Sprintf("Account 0x0%d", len(state.Accounts().Names())-1)
+	name := fmt.Sprintf("Account 0x0%x", len(state.Accounts().Names()))
 
 	state.Accounts().AddOrUpdate(&accounts.Account{
 		Name:    name,
@@ -534,7 +536,7 @@ func (fk *flowKit) sendTransaction(
 }
 
 func (fk *flowKit) getLatestBlockHeight() (int, error) {
-	block, err := fk.blockchain.Gateway().GetLatestBlock()
+	block, err := fk.blockchain.Gateway().GetLatestBlock(context.Background())
 	if err != nil {
 		return 0, err
 	}
@@ -546,7 +548,6 @@ func (fk *flowKit) getServiceAccount() (*accounts.Account, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	service, err := state.EmulatorServiceAccount()
 	if err != nil {
 		return nil, err

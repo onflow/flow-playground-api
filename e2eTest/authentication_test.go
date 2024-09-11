@@ -19,7 +19,7 @@
 package e2eTest
 
 import (
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"

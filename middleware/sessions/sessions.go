@@ -25,7 +25,7 @@ import (
 
 	"github.com/gorilla/sessions"
 
-	"github.com/dapperlabs/flow-playground-api/middleware/httpcontext"
+	"github.com/onflow/flow-playground-api/middleware/httpcontext"
 )
 
 type sessionCtxKey string

@@ -24,7 +24,7 @@ run:
 	FLOW_SESSIONCOOKIESSECURE=false \
 	GO111MODULE=on \
 	go run \
-	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
+	-ldflags "-X github.com/onflow/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
 .PHONY: run-pg
@@ -38,7 +38,7 @@ run-pg:
 	FLOW_DEBUG=true FLOW_SESSIONCOOKIESSECURE=false \
 	GO111MODULE=on \
 	go run \
-	-ldflags "-X github.com/dapperlabs/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
+	-ldflags "-X github.com/onflow/flow-playground-api/build.version=$(LAST_KNOWN_VERSION)" \
 	server/server.go
 
 .PHONY: install-linter
