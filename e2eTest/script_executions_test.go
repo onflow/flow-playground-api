@@ -19,7 +19,7 @@
 package e2eTest
 
 import (
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -34,7 +34,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main() { }"
+		const script = "access(all) fun main() { }"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -55,7 +55,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main() {"
+		const script = "access(all) fun main() {"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -75,7 +75,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main() { XYZ }"
+		const script = "access(all) fun main() { XYZ }"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -96,7 +96,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main() { panic(\"oh no\") }"
+		const script = "access(all) fun main() { panic(\"oh no\") }"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -118,7 +118,7 @@ func TestScriptExecutions(t *testing.T) {
 		var resp CreateScriptExecutionResponse
 
 		const script = `
-          pub fun main() {
+          access(all) fun main() {
               var i = 0
               while i < 1_000_000_000 {
                   i = i + 1
@@ -145,7 +145,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main(): Address { return 0x1 as Address }"
+		const script = "access(all) fun main(): Address { return 0x1 as Address }"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -168,7 +168,7 @@ func TestScriptExecutions(t *testing.T) {
 
 		var resp CreateScriptExecutionResponse
 
-		const script = "pub fun main(a: Int): Int { return a + 1 }"
+		const script = "access(all) fun main(a: Int): Int { return a + 1 }"
 
 		err := c.Post(
 			MutationCreateScriptExecution,
@@ -195,7 +195,7 @@ func TestScriptExecutions(t *testing.T) {
 		var resp CreateScriptExecutionResponse
 
 		const script = `
-		pub fun main() {
+		access(all) fun main() {
 			log("hello")
 			log("test")
 		}`

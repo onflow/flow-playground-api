@@ -19,6 +19,8 @@
 package blockchain
 
 import (
+	"encoding/json"
+	"github.com/rs/zerolog"
 	"io"
 	"strings"
 )
@@ -42,14 +44,27 @@ func (logger *Interceptor) Write(p []byte) (n int, err error) {
 }
 
 func (logger *Interceptor) ClearLogs() {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	logger.logs = Logs{}
+}
+
+type logMessage struct {
+	Level   string `json:"level"`
+	Message string `json:"message"`
 }
 
 func (logger *Interceptor) GetCadenceLogs() Logs {
 	var filteredLogs Logs
+
 	for _, log := range logger.logs {
 		if strings.Contains(log, `"message":"Cadence log:`) {
-			filteredLogs = append(filteredLogs, strings.TrimSuffix(log, "\n"))
+			//json decode string log to get the message
+			parsedLog := logMessage{}
+			err := json.NewDecoder(strings.NewReader(log)).Decode(&parsedLog)
+			if err != nil {
+				continue
+			}
+			filteredLogs = append(filteredLogs, parsedLog.Message)
 		}
 	}
 	return filteredLogs

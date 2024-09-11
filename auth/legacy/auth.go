@@ -26,8 +26,8 @@ import (
 
 	gorillasessions "github.com/gorilla/sessions"
 
-	"github.com/dapperlabs/flow-playground-api/middleware/sessions"
-	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/middleware/sessions"
+	"github.com/onflow/flow-playground-api/model"
 )
 
 const projectSecretKeyName = "project-secret"

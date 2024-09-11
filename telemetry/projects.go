@@ -19,9 +19,9 @@
 package telemetry
 
 import (
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/server/config"
 	"github.com/getsentry/sentry-go"
+	"github.com/onflow/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/server/config"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	"time"
@@ -102,4 +102,5 @@ func registerProjectJobs() error {
 	job.Start()
 
 	return nil
+
 }

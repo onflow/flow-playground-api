@@ -21,11 +21,16 @@ package blockchain
 import (
 	"os"
 
-	kit "github.com/onflow/flow-cli/flowkit"
+	kit "github.com/onflow/flowkit/v2"
 )
 
 type InternalReaderWriter struct {
 	data []byte
+}
+
+func (rw *InternalReaderWriter) Stat(path string) (os.FileInfo, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 var _ kit.ReaderWriter = &InternalReaderWriter{}
@@ -34,7 +39,26 @@ func NewInternalReaderWriter() *InternalReaderWriter {
 	return &InternalReaderWriter{}
 }
 
-func (rw *InternalReaderWriter) ReadFile(_ string) ([]byte, error) {
+func (rw *InternalReaderWriter) ReadFile(path string) ([]byte, error) {
+	if path == "flow.json" {
+		return []byte(`
+{
+	"contracts": {
+	},
+	"networks": {
+		"emulator": "127.0.0.1:3569",
+		"mainnet": "access.mainnet.nodes.onflow.org:9000",
+		"testing": "127.0.0.1:3569",
+		"testnet": "access.devnet.nodes.onflow.org:9000"
+	},
+	"accounts": {
+		"emulator-account": {
+			"address": "0000000000000001",
+			"key": "0x0d866eb285a9bdb29730a1ca37bd7201fb5bd1a922632b1d5a784b6bc3c216b9"
+		}
+	}
+}`), nil
+	}
 	return rw.data, nil
 }
 

@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
-	"github.com/dapperlabs/flow-playground-api/model"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
+	"github.com/onflow/flow-playground-api/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,8 +65,8 @@ func TestProjects(t *testing.T) {
 		var resp CreateProjectResponse
 
 		contractTemplates := []*model.NewProjectContractTemplate{
-			{Title: "Foo", Script: "pub contract Foo {}"},
-			{Title: "Bar", Script: "pub contract Bar {}"},
+			{Title: "Foo", Script: "access(all) contract Foo {}"},
+			{Title: "Bar", Script: "access(all) contract Bar {}"},
 		}
 
 		err := c.Post(
@@ -83,9 +83,9 @@ func TestProjects(t *testing.T) {
 
 		// Verify contract templates
 		assert.Equal(t, "Foo", resp.CreateProject.ContractTemplates[0].Title)
-		assert.Equal(t, "pub contract Foo {}", resp.CreateProject.ContractTemplates[0].Script)
+		assert.Equal(t, "access(all) contract Foo {}", resp.CreateProject.ContractTemplates[0].Script)
 		assert.Equal(t, "Bar", resp.CreateProject.ContractTemplates[1].Title)
-		assert.Equal(t, "pub contract Bar {}", resp.CreateProject.ContractTemplates[1].Script)
+		assert.Equal(t, "access(all) contract Bar {}", resp.CreateProject.ContractTemplates[1].Script)
 
 	})
 
@@ -539,7 +539,7 @@ func TestExportFlowJson(t *testing.T) {
 	require.NoError(t, err)
 
 	// Deploy a contract
-	PersonContract := `pub contract Person {}`
+	PersonContract := `access(all) contract Person {}`
 	var createContractResp CreateContractDeploymentResponse
 	err = c.Post(
 		MutationCreateContractDeployment,
@@ -560,7 +560,7 @@ func TestExportFlowJson(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	const Networks = `	"networks": {
+	const Networks = `"networks": {
 		"emulator": "127.0.0.1:3569",
 		"mainnet": "access.mainnet.nodes.onflow.org:9000",
 		"testing": "127.0.0.1:3569",

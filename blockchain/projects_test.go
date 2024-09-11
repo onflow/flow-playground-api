@@ -21,10 +21,10 @@ package blockchain
 import (
 	"fmt"
 	"github.com/Masterminds/semver"
-	"github.com/dapperlabs/flow-playground-api/model"
-	"github.com/dapperlabs/flow-playground-api/storage"
 	"github.com/google/uuid"
 	flowsdk "github.com/onflow/flow-go-sdk"
+	"github.com/onflow/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -77,7 +77,7 @@ func projectSeed() (*model.Project, []*model.File) {
 		ProjectID: proj.ID,
 		Title:     "Script 1",
 		Index:     0,
-		Script:    "pub fun main(): Int { return 42; }",
+		Script:    "access(all) fun main(): Int { return 42; }",
 	})
 
 	return proj, files
@@ -220,7 +220,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 		script := `
 			transaction {
-				prepare (signer: AuthAccount) {} 
+				prepare (signer: &Account) {} 
 				execute {
 					log("hello")
 				}
@@ -243,7 +243,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 		assert.Equal(t, proj.ID, exe.ProjectID)
 		require.Len(t, exe.Logs, 1)
-		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
+		assert.Equal(t, `Cadence log: "hello"`, exe.Logs[0])
 		assert.Equal(t, script, exe.Script)
 		assert.Equal(t, []string{}, exe.Arguments)
 		assert.Equal(t, signers, exe.Signers)
@@ -263,7 +263,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 		script := `
 			transaction {
-				prepare (signer: AuthAccount) {} 
+				prepare (signer: &Account) {} 
 				execute {
 					log("hello")
 				}
@@ -287,7 +287,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 			assert.Equal(t, proj.ID, exe.ProjectID)
 			require.Len(t, exe.Logs, 1)
-			assert.Equal(t, `{"level":"debug","message":"Cadence log: \"hello\""}`, exe.Logs[0])
+			assert.Equal(t, `Cadence log: "hello"`, exe.Logs[0])
 			assert.Equal(t, script, exe.Script)
 			assert.Equal(t, []string{}, exe.Arguments)
 			assert.Equal(t, signers, exe.Signers)
@@ -308,7 +308,7 @@ func Test_TransactionExecution(t *testing.T) {
 
 		script := `
 			transaction {
-				prepare (signer: AuthAccount) {} 
+				prepare (signer: &Account) {} 
 				execute {
 					log("hello")
 				}
@@ -356,9 +356,9 @@ func Test_TransactionExecution(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
 		scriptA := `
-			pub contract HelloWorldA {
-				pub var A: String
-				pub init() { self.A = "HelloWorldA" }
+			access(all) contract HelloWorldA {
+				access(all) var A: String
+				access(all) init() { self.A = "HelloWorldA" }
 			}`
 
 		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
@@ -378,9 +378,9 @@ func Test_TransactionExecution(t *testing.T) {
 		projects.flowKitCache.reset(proj.ID)
 
 		script := `
-			import HelloWorldA from 0x05
+			import HelloWorldA from 0x06
 			transaction {
-				prepare (signer: AuthAccount) {} 
+				prepare (signer: &Account) {} 
 				execute {
 					log(HelloWorldA.A)
 				}
@@ -407,7 +407,7 @@ func Test_DeployContract(t *testing.T) {
 	t.Run("deploy single contract", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 
-		script := `pub contract HelloWorld {}`
+		script := `access(all) contract HelloWorld {}`
 
 		deployment, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), script, nil)
 		require.NoError(t, err)
@@ -426,26 +426,26 @@ func Test_DeployContract(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 
 		scriptA := `
-			pub contract HelloWorldA {
-				pub var A: String
-				pub init() { self.A = "HelloWorldA" }
+			access(all) contract HelloWorldA {
+				access(all) var A: String
+				access(all) init() { self.A = "HelloWorldA" }
 			}`
 
 		scriptB := `
-			import HelloWorldA from 0x05
-			pub contract HelloWorldB {
-				pub var B: String
-				pub init() {
+			import HelloWorldA from 0x06
+			access(all) contract HelloWorldB {
+				access(all) var B: String
+				access(all) init() {
 					self.B = "HelloWorldB"
 					log(HelloWorldA.A) 
 				}
 			}`
 
 		scriptC := `
-			import HelloWorldA from 0x05
-			import HelloWorldB from 0x06
-			pub contract HelloWorldC {
-				pub init() { 
+			import HelloWorldA from 0x06
+			import HelloWorldB from 0x07
+			access(all) contract HelloWorldC {
+				access(all) init() { 
 					log(HelloWorldA.A)
 					log(HelloWorldB.B)
 				}
@@ -482,11 +482,11 @@ func Test_DeployContract(t *testing.T) {
 		assert.Equal(t, "flow.AccountContractAdded", deployments[0].Events[0].Type)
 
 		assert.Equal(t,
-			`{"level":"debug","message":"Cadence log: \"HelloWorldA\""}`,
+			`Cadence log: "HelloWorldA"`,
 			deployments[1].Logs[0])
 
 		assert.Equal(t,
-			`{"level":"debug","message":"Cadence log: \"HelloWorldB\""}`,
+			`Cadence log: "HelloWorldB"`,
 			deployments[2].Logs[1])
 	})
 
@@ -494,9 +494,9 @@ func Test_DeployContract(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
 		const contract = `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init(a: Int) { self.A = a }
+		access(all) contract HelloWorld {
+			access(all) var A: Int
+			access(all) init(a: Int) { self.A = a }
 		}`
 
 		args := []string{
@@ -515,17 +515,17 @@ func Test_DeployContract(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
 		const contract = `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init() { self.A = 5 }
+		access(all) contract HelloWorld {
+			access(all) var A: Int
+			access(all) init() { self.A = 5 }
 		}`
 
 		const importContract = `
 		import "HelloWorld"
 
-		pub contract Test {
-			pub var B: Int
-			pub init() { self.B = HelloWorld.A }
+		access(all) contract Test {
+			access(all) var B: Int
+			access(all) init() { self.B = HelloWorld.A }
 		}`
 
 		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
@@ -543,7 +543,7 @@ func Test_DeployContract(t *testing.T) {
 		import "MetadataViews"
 		import "NonFungibleToken"
 		
-		pub contract Test {}`
+		access(all) contract Test {}`
 
 		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), contract, nil)
 		require.NoError(t, err)
@@ -555,7 +555,7 @@ func Test_ScriptExecution(t *testing.T) {
 	t.Run("single script execution", func(t *testing.T) {
 		projects, store, proj, _ := newWithSeededProject()
 
-		script := `pub fun main(): Int { 
+		script := `access(all) fun main(): Int { 
 			log("purpose")
 			log("haha")
 			log("test")
@@ -571,7 +571,7 @@ func Test_ScriptExecution(t *testing.T) {
 		exe, err := projects.ExecuteScript(scriptExe)
 		require.NoError(t, err)
 		assert.Len(t, exe.Errors, 0)
-		assert.Equal(t, `{"level":"debug","message":"Cadence log: \"purpose\""}`, exe.Logs[0])
+		assert.Equal(t, `Cadence log: "purpose"`, exe.Logs[0])
 		assert.Equal(t, "42", exe.Value)
 		assert.Equal(t, proj.ID, exe.ProjectID)
 
@@ -587,17 +587,17 @@ func Test_ScriptExecution(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
 		scriptA := `
-			pub contract HelloWorldA {
-				pub var A: String
-				pub init() { self.A = "HelloWorldA" }
+			access(all) contract HelloWorldA {
+				access(all) var A: String
+				access(all) init() { self.A = "HelloWorldA" }
 			}`
 
 		_, err := projects.DeployContract(proj.ID, model.NewAddressFromIndex(0), scriptA, nil)
 		require.NoError(t, err)
 
 		script := `
-			import HelloWorldA from 0x05
-			pub fun main(): String { 
+			import HelloWorldA from 0x06
+			access(all) fun main(): String { 
 				return HelloWorldA.A
 			}`
 
@@ -615,7 +615,7 @@ func Test_ScriptExecution(t *testing.T) {
 	t.Run("script with arguments", func(t *testing.T) {
 		projects, _, proj, _ := newWithSeededProject()
 
-		script := `pub fun main(a: Int): Int { 
+		script := `access(all) fun main(a: Int): Int { 
 			return a
 		}`
 

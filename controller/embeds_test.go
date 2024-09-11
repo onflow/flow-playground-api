@@ -21,7 +21,7 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/storage"
+	"github.com/onflow/flow-playground-api/storage"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,7 +34,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/dapperlabs/flow-playground-api/model"
+	"github.com/onflow/flow-playground-api/model"
 )
 
 // version to create project
@@ -122,7 +122,7 @@ func TestEmbedsHandler_ServeHTTP(t *testing.T) {
 	require.NoError(t, projErr)
 
 	script := `
-	pub fun main(): Int {
+	access(all) fun main(): Int {
 	  return 42
 	}
 	`

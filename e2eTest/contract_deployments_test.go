@@ -20,9 +20,9 @@ package e2eTest
 
 import (
 	"fmt"
-	"github.com/dapperlabs/flow-playground-api/blockchain"
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-playground-api/blockchain"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -37,9 +37,9 @@ func TestContractDeployments(t *testing.T) {
 		badID := uuid.New().String()
 
 		contractA := `
-		pub contract HelloWorldA {
-			pub var A: String
-			pub init() { self.A = "HelloWorldA" }
+		access(all) contract HelloWorldA {
+			access(all) var A: String
+			access(all) init() { self.A = "HelloWorldA" }
 		}`
 
 		var resp CreateContractDeploymentResponse
@@ -59,9 +59,9 @@ func TestContractDeployments(t *testing.T) {
 		project := createProject(t, c)
 
 		const contract = `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init(a: Int) { self.A = a }
+		access(all) contract HelloWorld {
+			access(all) var A: Int
+			access(all) init(a: Int) { self.A = a }
 		}`
 
 		args := []string{
@@ -99,8 +99,8 @@ func TestContractTitleParsing(t *testing.T) {
 
 	project := createProject(t, c)
 	contractA := `
-		pub contract HelloWorld {
-			pub init() {}
+		access(all) contract HelloWorld {
+			access(all) init() {}
 		}`
 
 	var respA CreateContractDeploymentResponse
@@ -122,9 +122,9 @@ func TestImportSyntax(t *testing.T) {
 		project := createProject(t, c)
 
 		const contractA = `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init(a: Int) { self.A = a }
+		access(all)contract HelloWorld {
+			access(all)var A: Int
+			access(all)init(a: Int) { self.A = a }
 		}`
 
 		args := []string{
@@ -133,9 +133,9 @@ func TestImportSyntax(t *testing.T) {
 
 		const contractB = `
 		import "HelloWorld"
-		pub contract Test {
-			pub var B: Int
-			pub init() { self.B = HelloWorld.A }
+		access(all) contract Test {
+			access(all) var B: Int
+			access(all) init() { self.B = HelloWorld.A }
 		}`
 
 		var resp CreateContractDeploymentResponse
@@ -166,16 +166,16 @@ func TestImportSyntax(t *testing.T) {
 		project := createProject(t, c)
 
 		const contractA = `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init() { self.A = 5 }
+		access(all) contract HelloWorld {
+			access(all) var A: Int
+			access(all) init() { self.A = 5 }
 		}`
 
 		const contractB = `
 		import "HelloWorld"
-		pub contract Test {
-			pub var B: Int
-			pub init() { self.B = HelloWorld.A }
+		access(all) contract Test {
+			access(all) var B: Int
+			access(all) init() { self.B = HelloWorld.A }
 		}`
 
 		var resp CreateContractDeploymentResponse
@@ -230,9 +230,9 @@ func TestContractRedeployment(t *testing.T) {
 		project := createProject(t, c)
 
 		contractA := `
-		pub contract HelloWorld {
-			pub var A: Int
-			pub init() { self.A = 5 }
+		access(all) contract HelloWorld {
+			access(all) var A: Int
+			access(all) init() { self.A = 5 }
 			access(all) fun returnInt(): Int {
         		return self.A
     		}
@@ -242,9 +242,9 @@ func TestContractRedeployment(t *testing.T) {
 		}`
 
 		contractB := `
-		pub contract HelloWorld {
-			pub var B: String
-			pub init() { self.B = "HelloWorldB" }
+		access(all) contract HelloWorld {
+			access(all) var B: String
+			access(all) init() { self.B = "HelloWorldB" }
 			access(all) fun returnString(): String {
         		return self.B
     		}
@@ -296,13 +296,13 @@ func TestContractRedeployment(t *testing.T) {
 		project := createProject(t, c)
 
 		PersonContract := `
-		pub contract Person {
-			pub fun makeFriends(): @Friendship {
+		access(all) contract Person {
+			access(all) fun makeFriends(): @Friendship {
 				return <-create Friendship()
 			}
 		
-			pub resource Friendship {
-				pub fun yaay() {
+			access(all) resource Friendship {
+				access(all) fun yaay() {
 					log("such a nice friend") // we can log to output, useful on emualtor for debugging
 				}
 			}
@@ -320,17 +320,17 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 
 		MakeFriendsTransaction := `
-		import Person from 0x05
+		import Person from 0x06
 		
 		transaction {
-			let acc: AuthAccount
+			let acc: auth(Storage) &Account
 		
-			prepare(signer: AuthAccount) {
+			prepare(signer: auth(Storage) &Account) {
 				self.acc = signer    
 			}
 			
 			execute {
-				self.acc.save<@Person.Friendship>(<-Person.makeFriends(), to: StoragePath(identifier: "friendship")!)
+				self.acc.storage.save<@Person.Friendship>(<-Person.makeFriends(), to: StoragePath(identifier: "friendship")!)
 			}
 		}`
 
@@ -355,10 +355,10 @@ func TestContractRedeployment(t *testing.T) {
 		require.NoError(t, err)
 		require.Contains(t,
 			accResp.Account.State,
-			`A.0000000000000005.Person.Friendship`)
+			`A.0000000000000006.Person.Friendship`)
 
 		PersonContractUpdate := `
-		pub contract Person { 
+		access(all) contract Person { 
 		// empty
 		}`
 
@@ -389,7 +389,7 @@ func TestContractRedeployment(t *testing.T) {
 
 		project := createProject(t, c)
 
-		PersonContract := `pub contract Person {}`
+		PersonContract := `access(all) contract Person {}`
 
 		var createContractResp CreateContractDeploymentResponse
 		err := c.Post(
@@ -538,15 +538,15 @@ func TestContractImport(t *testing.T) {
 	project := createProject(t, c)
 
 	contractA := `
-	pub contract HelloWorldA {
-		pub var A: String
-		pub init() { self.A = "HelloWorldA" }
+	access(all) contract HelloWorldA {
+		access(all) var A: String
+		access(all) init() { self.A = "HelloWorldA" }
 	}`
 
 	contractB := `
-	import HelloWorldA from 0x05
-	pub contract HelloWorldB {
-		pub init() {
+	import HelloWorldA from 0x06
+	access(all) contract HelloWorldB {
+		access(all) init() {
 			log(HelloWorldA.A)
 		}
 	}`
@@ -577,24 +577,24 @@ func TestContractImport(t *testing.T) {
 }
 
 const counterContract = `
-  pub contract Counting {
+  access(all) contract Counting {
 
-      pub event CountIncremented(count: Int)
+      access(all) event CountIncremented(count: Int)
 
-      pub resource Counter {
-          pub var count: Int
+      access(all) resource Counter {
+          access(all) var count: Int
 
           init() {
               self.count = 0
           }
 
-          pub fun add(_ count: Int) {
+          access(all) fun add(_ count: Int) {
               self.count = self.count + count
               emit CountIncremented(count: self.count)
           }
       }
 
-      pub fun createCounter(): @Counter {
+      access(all) fun createCounter(): @Counter {
           return <-create Counter()
       }
   }
@@ -609,12 +609,12 @@ func generateAddTwoToCounterScript(counterAddress string) string {
 
             transaction {
 
-                prepare(signer: AuthAccount) {
-                    if signer.borrow<&Counting.Counter>(from: /storage/counter) == nil {
-                        signer.save(<-Counting.createCounter(), to: /storage/counter)
+                prepare(signer: auth(Storage) &Account) {
+                    if signer.storage.borrow<&Counting.Counter>(from: /storage/counter) == nil {
+                        signer.storage.save(<-Counting.createCounter(), to: /storage/counter)
                     }
 
-                    signer.borrow<&Counting.Counter>(from: /storage/counter)!.add(2)
+                    signer.storage.borrow<&Counting.Counter>(from: /storage/counter)!.add(2)
                 }
             }
         `,

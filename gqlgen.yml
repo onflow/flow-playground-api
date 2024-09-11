@@ -17,24 +17,24 @@ resolver:
 autobind: []
 models:
   UUID:
-    model: github.com/dapperlabs/flow-playground-api/model.UUID
+    model: github.com/onflow/flow-playground-api/model.UUID
   Address:
-    model: github.com/dapperlabs/flow-playground-api/model.Address
+    model: github.com/onflow/flow-playground-api/model.Address
   Version:
-    model: github.com/dapperlabs/flow-playground-api/model.Version
+    model: github.com/onflow/flow-playground-api/model.Version
   Project:
-    model: github.com/dapperlabs/flow-playground-api/model.Project
+    model: github.com/onflow/flow-playground-api/model.Project
   Account:
-    model: github.com/dapperlabs/flow-playground-api/model.Account
+    model: github.com/onflow/flow-playground-api/model.Account
   TransactionTemplate:
-    model: github.com/dapperlabs/flow-playground-api/model.TransactionTemplate
+    model: github.com/onflow/flow-playground-api/model.TransactionTemplate
   TransactionExecution:
-    model: github.com/dapperlabs/flow-playground-api/model.TransactionExecution
+    model: github.com/onflow/flow-playground-api/model.TransactionExecution
   ScriptTemplate:
-    model: github.com/dapperlabs/flow-playground-api/model.ScriptTemplate
+    model: github.com/onflow/flow-playground-api/model.ScriptTemplate
   ScriptExecution:
-    model: github.com/dapperlabs/flow-playground-api/model.ScriptExecution
+    model: github.com/onflow/flow-playground-api/model.ScriptExecution
   ContractTemplate:
-    model: github.com/dapperlabs/flow-playground-api/model.ContractTemplate
+    model: github.com/onflow/flow-playground-api/model.ContractTemplate
   ContractDeployment:
-    model: github.com/dapperlabs/flow-playground-api/model.ContractDeployment
+    model: github.com/onflow/flow-playground-api/model.ContractDeployment

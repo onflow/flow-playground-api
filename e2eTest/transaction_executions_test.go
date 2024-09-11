@@ -19,8 +19,8 @@
 package e2eTest
 
 import (
-	"github.com/dapperlabs/flow-playground-api/e2eTest/client"
 	"github.com/google/uuid"
+	"github.com/onflow/flow-playground-api/e2eTest/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -98,7 +98,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		const script = `
 		transaction {
-  			prepare(acct1: AuthAccount, acct2: AuthAccount) {}
+  			prepare(acct1: &Account, acct2: &Account) {}
 
 			execute { 
 				log("Hello, World!")
@@ -128,7 +128,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respA CreateTransactionExecutionResponse
 
-		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
+		const script = "transaction { prepare(signer: auth(Storage) &Account) { Account(payer: signer) } }"
 
 		err := c.Post(
 			MutationCreateTransactionExecution,
@@ -141,14 +141,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 6)
+		require.Len(t, respA.CreateTransactionExecution.Events, 14)
 
-		eventA := respA.CreateTransactionExecution.Events[5]
+		eventA := respA.CreateTransactionExecution.Events[13]
 
-		// first account should have address 0x0a
+		// first account should have address 0x0b
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000a"}`,
+		assert.Equal(t,
+			`flow.AccountCreated(address: 0x000000000000000b)`,
 			eventA.Values[0],
 		)
 
@@ -165,14 +165,14 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respB.CreateTransactionExecution.Errors)
-		require.Len(t, respB.CreateTransactionExecution.Events, 6)
+		require.Len(t, respB.CreateTransactionExecution.Events, 14)
 
-		eventB := respB.CreateTransactionExecution.Events[5]
+		eventB := respB.CreateTransactionExecution.Events[13]
 
-		// second account should have address 0x07
+		// second account should have address 0x0x
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000b"}`,
+		assert.Equal(t,
+			`flow.AccountCreated(address: 0x000000000000000c)`,
 			eventB.Values[0],
 		)
 	})
@@ -184,7 +184,7 @@ func TestTransactionExecutions(t *testing.T) {
 
 		var respA CreateTransactionExecutionResponse
 
-		const script = "transaction { prepare(signer: AuthAccount) { AuthAccount(payer: signer) } }"
+		const script = "transaction { prepare(signer: auth(Storage) &Account) { Account(payer: signer) } }"
 
 		err := c.Post(
 			MutationCreateTransactionExecution,
@@ -197,14 +197,15 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, respA.CreateTransactionExecution.Errors)
-		require.Len(t, respA.CreateTransactionExecution.Events, 6)
+		require.Len(t, respA.CreateTransactionExecution.Events, 14)
 
-		eventA := respA.CreateTransactionExecution.Events[5]
+		eventA := respA.CreateTransactionExecution.Events[13]
 
 		// first account should have address 0x0a
 		assert.Equal(t, "flow.AccountCreated", eventA.Type)
-		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000a"}`,
+
+		assert.Equal(t,
+			`flow.AccountCreated(address: 0x000000000000000b)`,
 			eventA.Values[0],
 		)
 
@@ -223,14 +224,14 @@ func TestTransactionExecutions(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		require.Len(t, respB.CreateTransactionExecution.Events, 6)
+		require.Len(t, respB.CreateTransactionExecution.Events, 14)
 
-		eventB := respB.CreateTransactionExecution.Events[5]
+		eventB := respB.CreateTransactionExecution.Events[13]
 
 		// second account should have address 0x0a again due to reset
 		assert.Equal(t, "flow.AccountCreated", eventB.Type)
-		assert.JSONEq(t,
-			`{"type":"Address","value":"0x000000000000000a"}`,
+		assert.Equal(t,
+			`flow.AccountCreated(address: 0x000000000000000b)`,
 			eventB.Values[0],
 		)
 	})
@@ -368,6 +369,6 @@ func TestTransactionExecutions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Empty(t, resp.CreateTransactionExecution.Errors)
-		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{`{"level":"debug","message":"Cadence log: 42"}`})
+		require.Equal(t, resp.CreateTransactionExecution.Logs, []string{`Cadence log: 42`})
 	})
 }
