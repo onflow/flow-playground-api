@@ -138,7 +138,7 @@ func (p *Client) WebsocketWithPayload(query string, initPayload map[string]inter
 			}
 			if op.Type != dataMsg {
 				if op.Type == errorMsg {
-					return fmt.Errorf(string(op.Payload))
+					return fmt.Errorf("error received: %s", string(op.Payload))
 				} else {
 					return fmt.Errorf("expected data message, got %#v", op)
 				}
