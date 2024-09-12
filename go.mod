@@ -21,10 +21,10 @@ require (
 	github.com/icza/bitio v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onflow/cadence v1.0.0-preview.49
-	github.com/onflow/flow-emulator v1.0.0-preview.40
-	github.com/onflow/flow-go-sdk v1.0.0-preview.51
-	github.com/onflow/flowkit/v2 v2.0.0-stable-cadence-alpha.31
+	github.com/onflow/cadence v1.0.0-preview.52
+	github.com/onflow/flow-emulator v1.0.0
+	github.com/onflow/flow-go-sdk v1.0.0-preview.56
+	github.com/onflow/flowkit/v2 v2.0.0-stable-cadence-alpha.33
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/robfig/cron v1.2.0
@@ -194,10 +194,10 @@ require (
 	github.com/onflow/flow-core-contracts/lib/go/templates v1.3.1 // indirect
 	github.com/onflow/flow-ft/lib/go/contracts v1.0.0 // indirect
 	github.com/onflow/flow-ft/lib/go/templates v1.0.0 // indirect
-	github.com/onflow/flow-go v0.37.7-0.20240822174309-8b4fff2114d4 // indirect
+	github.com/onflow/flow-go v0.37.10 // indirect
 	github.com/onflow/flow-nft/lib/go/contracts v1.2.1 // indirect
 	github.com/onflow/flow-nft/lib/go/templates v1.2.0 // indirect
-	github.com/onflow/flow/protobuf/go/flow v0.4.5 // indirect
+	github.com/onflow/flow/protobuf/go/flow v0.4.6 // indirect
 	github.com/onflow/go-ethereum v1.14.7 // indirect
 	github.com/onflow/sdks v0.6.0-preview.1 // indirect
 	github.com/onflow/wal v1.0.2 // indirect
